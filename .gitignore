@@ -69,3 +69,6 @@ __pycache__/
 
 # Project notes
 .note/
+
+# Agent harness scan artifact
+.agent/

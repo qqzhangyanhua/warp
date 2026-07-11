@@ -117,7 +117,11 @@ impl AuthState {
     /// 3. WARP_USER_SECRET environment variable
     /// 4. Persisted user from secure storage
     #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    pub fn initialize(ctx: &AppContext, api_key: Option<String>) -> Self {
+    pub fn initialize(
+        ctx: &AppContext,
+        api_key: Option<String>,
+        anonymous_only: bool,
+    ) -> Self {
         let state = Self::new(ctx);
 
         if Self::should_use_test_user() {
@@ -132,7 +136,7 @@ impl AuthState {
             return state;
         }
 
-        if let Some(api_key_value) = api_key {
+        if let Some(api_key_value) = api_key.filter(|_| !anonymous_only) {
             log::info!("Authenticating via API key");
             let formatted = if api_key_value.starts_with(API_KEY_PREFIX) {
                 api_key_value
@@ -149,6 +153,7 @@ impl AuthState {
         // Try WARP_USER_SECRET environment variable.
         if let Some(persisted) = option_env!("WARP_USER_SECRET")
             .and_then(|s| serde_json::from_str::<PersistedUser>(s).ok())
+            .filter(|user| !anonymous_only || user.anonymous_user_type.is_some())
         {
             state.apply_persisted_user(persisted);
             return state;
@@ -157,6 +162,9 @@ impl AuthState {
         // Try reading from secure storage.
         match PersistedUser::from_secure_storage(ctx) {
             Ok(persisted) => {
+                if anonymous_only && persisted.anonymous_user_type.is_none() {
+                    return state;
+                }
                 if persisted.auth_tokens.refresh_token.is_empty() {
                     log::warn!(
                         "Found persisted user with empty refresh token; clearing secure storage entry"

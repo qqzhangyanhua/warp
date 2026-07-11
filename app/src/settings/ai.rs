@@ -1803,7 +1803,7 @@ impl AISettings {
             .is_anonymous_or_logged_out();
 
         *self.is_any_ai_enabled
-            && !is_anonymous_or_logged_out
+            && (!is_anonymous_or_logged_out || FeatureFlag::AnonymousOnlyMode.is_enabled())
             && !self.is_ai_disabled_due_to_remote_session_org_policy(app)
     }
 
@@ -1944,7 +1944,10 @@ impl AISettings {
     /// False when the user/org has disabled it, cloud conversations are off,
     /// or AI is globally off.
     pub fn is_cloud_handoff_enabled(&self, app: &warpui::AppContext) -> bool {
-        if !self.is_any_ai_enabled(app) || *self.should_force_disable_cloud_handoff {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled()
+            || !self.is_any_ai_enabled(app)
+            || *self.should_force_disable_cloud_handoff
+        {
             return false;
         }
         if !FeatureFlag::OzHandoff.is_enabled()

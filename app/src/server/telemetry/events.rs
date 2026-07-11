@@ -54,7 +54,7 @@ use crate::server::block::DisplaySetting;
 use crate::server::ids::{ObjectUid, ServerId};
 use crate::settings::import::config::{ParsedTerminalSetting, SettingType};
 use crate::settings::import::model::TerminalType;
-use crate::settings::AgentModeCodingPermissionsType;
+use crate::settings::{AgentModeCodingPermissionsType, LocalePreference};
 use crate::settings_view::TeamsInviteOption;
 use crate::tab::TabTelemetryAction;
 use crate::terminal::block_list_viewport::InputMode;
@@ -1562,6 +1562,9 @@ pub enum TelemetryEvent {
     TeamLeft,
     ToggleSettingsSync {
         is_settings_sync_enabled: bool,
+    },
+    LanguagePreferenceChanged {
+        locale_preference: LocalePreference,
     },
     TeamLinkCopied,
     RemovedUserFromTeam,
@@ -3242,6 +3245,9 @@ impl TelemetryEvent {
             TelemetryEvent::SaveAsWorkflowModal { source } => Some(json!({ "source": source })),
             TelemetryEvent::CommandCorrection { event } => Some(json!({ "event": event })),
             TelemetryEvent::SetLineHeight { new_value } => Some(json!({ "new_value": new_value })),
+            TelemetryEvent::LanguagePreferenceChanged { locale_preference } => {
+                Some(json!({ "locale_preference": locale_preference }))
+            }
             TelemetryEvent::CommandSearchOpened { has_initial_query } => {
                 Some(json!({ "has_initial_query": has_initial_query }))
             }
@@ -4963,6 +4969,7 @@ impl TelemetryEvent {
             | TelemetryEvent::SendEmailInvites
             | TelemetryEvent::CommandCorrection { .. }
             | TelemetryEvent::SetLineHeight { .. }
+            | TelemetryEvent::LanguagePreferenceChanged { .. }
             | TelemetryEvent::ResourceCenterOpened
             | TelemetryEvent::ResourceCenterTipsCompleted
             | TelemetryEvent::ResourceCenterTipsSkipped
@@ -5396,6 +5403,7 @@ impl TelemetryEventDesc for TelemetryEventDiscriminants {
                 EnablementState::Always
             }
             Self::ToggleSettingsSync { .. } => EnablementState::Always,
+            Self::LanguagePreferenceChanged { .. } => EnablementState::Always,
             Self::AgentTipShown | Self::AgentTipClicked | Self::ToggleShowAgentTips => {
                 EnablementState::Flag(FeatureFlag::AgentTips)
             }
@@ -5855,6 +5863,7 @@ impl TelemetryEventDesc for TelemetryEventDiscriminants {
             Self::AgentModeRewindExecuted { .. } => "Executed Conversation Rewind",
             Self::ReinputCommands => "Context Menu: Reinput Commands",
             Self::ToggleSettingsSync => "Toggle Settings Sync",
+            Self::LanguagePreferenceChanged => "Language Preference Changed",
             Self::ToggleFocusPaneOnHover => "Toggle Focus Pane On Hover",
             Self::LoginLaterButtonClicked => "Login Later Button Clicked",
             Self::LoginLaterConfirmationButtonClicked => "Login Later Confirmation Button Clicked",
@@ -6632,6 +6641,7 @@ impl TelemetryEventDesc for TelemetryEventDiscriminants {
             Self::SendEmailInvites => "Sent email invites for Warp Drive team",
             Self::CommandCorrection => "Accepted command correction",
             Self::SetLineHeight => "Set line height through Settings -> Appearance",
+            Self::LanguagePreferenceChanged => "Changed display language preference in Settings -> Appearance",
             Self::ResourceCenterOpened => "Opened Resource Center pane",
             Self::ResourceCenterTipsCompleted => "Completed resource center tips",
             Self::ResourceCenterTipsSkipped => "Skipped welcome tips for new users",

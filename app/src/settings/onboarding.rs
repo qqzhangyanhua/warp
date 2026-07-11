@@ -23,6 +23,7 @@ pub fn apply_onboarding_settings(
     has_account: bool,
     app: &mut AppContext,
 ) {
+    let has_ai_identity = has_account || FeatureFlag::AnonymousOnlyMode.is_enabled();
     let is_ai_enabled = match selected_settings {
         SelectedSettings::AgentDrivenDevelopment {
             agent_settings,
@@ -37,7 +38,7 @@ pub fn apply_onboarding_settings(
             // on a Warp account, so AI is only enabled once they have one.
             // Skipping login leaves AI off even for agent intent (including the
             // bring-your-own-agents `disable_oz` path).
-            has_account
+            has_ai_identity
         }
         SelectedSettings::Terminal {
             ui_customization,
@@ -94,7 +95,7 @@ fn apply_ui_customization_settings(
     WarpDriveSettings::handle(app).update(app, |settings, ctx| {
         report_if_error!(settings
             .enable_warp_drive
-            .set_value(ui.show_warp_drive, ctx));
+            .set_value(ui.show_warp_drive && !FeatureFlag::AnonymousOnlyMode.is_enabled(), ctx));
     });
 
     CodeSettings::handle(app).update(app, |settings, ctx| {

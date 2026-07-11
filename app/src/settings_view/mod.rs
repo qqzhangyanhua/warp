@@ -56,13 +56,17 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextColors, TextOptions,
 };
+use crate::i18n::{tr, Message};
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::view;
 use crate::pane_group::{BackingView, Direction, PaneConfiguration, PaneEvent, SplitPaneState};
 use crate::server::server_api::ServerApiProvider;
 use crate::server::telemetry::MCPServerCollectionPaneEntrypoint;
-use crate::settings::{AISettings, BlockVisibilitySettings, SettingsFileError};
+use crate::settings::{
+    AISettings, BlockVisibilitySettings, LocalizationSettings, LocalizationSettingsChangedEvent,
+    SettingsFileError,
+};
 use crate::settings_view::mcp_servers_page::{MCPServersSettingsPage, MCPServersSettingsPageEvent};
 use crate::terminal::model::blockgrid::BlockGrid;
 use crate::terminal::SizeInfo;
@@ -311,6 +315,21 @@ impl Display for SettingsSection {
 }
 
 impl SettingsSection {
+    fn hidden_in_anonymous_only_mode(self) -> bool {
+        FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && matches!(
+                self,
+                Self::Account
+                    | Self::BillingAndUsage
+                    | Self::Referrals
+                    | Self::SharedBlocks
+                    | Self::Teams
+                    | Self::WarpDrive
+                    | Self::CloudEnvironments
+                    | Self::OzCloudAPIKeys
+            )
+    }
+
     /// Returns true if this section is a subpage under any umbrella.
     pub fn is_subpage(&self) -> bool {
         self.is_ai_subpage() || self.is_code_subpage() || self.is_cloud_platform_subpage()
@@ -373,6 +392,40 @@ impl SettingsSection {
     /// The ordered list of Cloud platform subpage sections.
     pub fn cloud_platform_subpages() -> &'static [Self] {
         &[Self::CloudEnvironments, Self::OzCloudAPIKeys]
+    }
+
+    fn title_message(self) -> Message {
+        match self {
+            Self::About => Message::SettingsSectionAbout,
+            Self::Account => Message::SettingsSectionAccount,
+            Self::MCPServers => Message::SettingsSectionMcpServers,
+            Self::BillingAndUsage => Message::SettingsSectionBillingAndUsage,
+            Self::Appearance => Message::SettingsSectionAppearance,
+            Self::Features => Message::SettingsSectionFeatures,
+            Self::Keybindings => Message::SettingsSectionKeybindings,
+            Self::Privacy => Message::SettingsSectionPrivacy,
+            Self::Referrals => Message::SettingsSectionReferrals,
+            Self::Scripting => Message::SettingsSectionScripting,
+            Self::SharedBlocks => Message::SettingsSectionSharedBlocks,
+            Self::Teams => Message::SettingsSectionTeams,
+            Self::WarpDrive => Message::SettingsSectionWarpDrive,
+            Self::Warpify => Message::SettingsSectionWarpify,
+            Self::AI => Message::SettingsSectionAgents,
+            Self::WarpAgent => Message::SettingsSectionWarpAgent,
+            Self::AgentProfiles => Message::SettingsSectionAgentProfiles,
+            Self::AgentMCPServers => Message::SettingsSectionAgentMcpServers,
+            Self::Knowledge => Message::SettingsSectionKnowledge,
+            Self::ThirdPartyCLIAgents => Message::SettingsSectionThirdPartyCliAgents,
+            Self::Code => Message::SettingsSectionCode,
+            Self::CodeIndexing => Message::SettingsSectionCodeIndexing,
+            Self::EditorAndCodeReview => Message::SettingsSectionEditorAndCodeReview,
+            Self::CloudEnvironments => Message::SettingsSectionCloudEnvironments,
+            Self::OzCloudAPIKeys => Message::SettingsSectionOzCloudApiKeys,
+        }
+    }
+
+    pub fn localized_title(self, app: &AppContext) -> &'static str {
+        tr(app, self.title_message())
     }
 }
 
@@ -1163,6 +1216,15 @@ impl SettingsView {
             me.handle_appearance_page_event(event, ctx);
         });
 
+        ctx.subscribe_to_model(&LocalizationSettings::handle(ctx), |_, _, event, ctx| {
+            if matches!(
+                event,
+                LocalizationSettingsChangedEvent::LocalePreferenceSetting { .. }
+            ) {
+                ctx.notify();
+            }
+        });
+
         // Features page
         let features_page_handle = ctx.add_typed_action_view(|ctx| {
             FeaturesPageView::new(global_resource_handles.clone(), ctx)
@@ -1333,25 +1395,31 @@ impl SettingsView {
         // with subpages; the actual AI SettingsPage is hidden from direct sidebar listing.
         let mut nav_items = vec![
             SettingsNavItem::Page(SettingsSection::Account),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Agents",
-                SettingsSection::ai_subpages().to_vec(),
-            )),
+            SettingsNavItem::Umbrella(
+                SettingsUmbrella::new("Agents", SettingsSection::ai_subpages().to_vec())
+                    .with_localized_label(Message::SettingsSectionAgents),
+            ),
             SettingsNavItem::Page(SettingsSection::BillingAndUsage),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Code",
-                vec![
-                    SettingsSection::CodeIndexing,
-                    SettingsSection::EditorAndCodeReview,
-                ],
-            )),
-            SettingsNavItem::Umbrella(SettingsUmbrella::new(
-                "Cloud platform",
-                vec![
-                    SettingsSection::CloudEnvironments,
-                    SettingsSection::OzCloudAPIKeys,
-                ],
-            )),
+            SettingsNavItem::Umbrella(
+                SettingsUmbrella::new(
+                    "Code",
+                    vec![
+                        SettingsSection::CodeIndexing,
+                        SettingsSection::EditorAndCodeReview,
+                    ],
+                )
+                .with_localized_label(Message::SettingsSectionCode),
+            ),
+            SettingsNavItem::Umbrella(
+                SettingsUmbrella::new(
+                    "Cloud platform",
+                    vec![
+                        SettingsSection::CloudEnvironments,
+                        SettingsSection::OzCloudAPIKeys,
+                    ],
+                )
+                .with_localized_label(Message::SettingsSectionCloudPlatform),
+            ),
             SettingsNavItem::Page(SettingsSection::Teams),
             SettingsNavItem::Page(SettingsSection::Appearance),
             SettingsNavItem::Page(SettingsSection::Features),
@@ -1363,6 +1431,13 @@ impl SettingsView {
             SettingsNavItem::Page(SettingsSection::Privacy),
             SettingsNavItem::Page(SettingsSection::About),
         ];
+
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            nav_items.retain(|item| match item {
+                SettingsNavItem::Page(section) => !section.hidden_in_anonymous_only_mode(),
+                SettingsNavItem::Umbrella(umbrella) => umbrella.label != "Cloud platform",
+            });
+        }
 
         if FeatureFlag::WarpControlCli.is_enabled() {
             let shared_blocks_index = nav_items
@@ -1385,7 +1460,14 @@ impl SettingsView {
                 SettingsSection::Account
             }
             Some(section) if section.is_subpage() => section,
-            other => other.unwrap_or_default(),
+            Some(section) if section.hidden_in_anonymous_only_mode() => SettingsSection::WarpAgent,
+            other => other.unwrap_or_else(|| {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    SettingsSection::WarpAgent
+                } else {
+                    SettingsSection::default()
+                }
+            }),
         };
 
         // Auto-expand the umbrella if the initial page is one of its subpages.
@@ -2028,6 +2110,7 @@ impl SettingsView {
         let section = match section {
             SettingsSection::AI => SettingsSection::WarpAgent,
             SettingsSection::Code => SettingsSection::CodeIndexing,
+            hidden if hidden.hidden_in_anonymous_only_mode() => SettingsSection::WarpAgent,
             other => other,
         };
 
@@ -2121,6 +2204,9 @@ impl SettingsView {
     }
 
     fn should_render_page(&self, settings_page: &SettingsPage, app: &AppContext) -> bool {
+        if settings_page.section.hidden_in_anonymous_only_mode() {
+            return false;
+        }
         match &settings_page.view_handle {
             SettingsPageViewHandle::Main(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::Teams(v) => v.as_ref(app).should_render(app),
@@ -2479,7 +2565,7 @@ impl View for SettingsView {
                     {
                         let page_active = section == self.current_settings_page;
                         buttons.add_child(
-                            page.render_page_button(appearance, *match_data, page_active)
+                            page.render_page_button(appearance, *match_data, page_active, app)
                                 .on_click(move |ctx, _, _| {
                                     ctx.dispatch_typed_action(SettingsAction::SelectAndRefresh(
                                         section,
@@ -2512,7 +2598,7 @@ impl View for SettingsView {
                     // across the full clickable area, not just the text.
                     buttons.add_child(
                         umbrella
-                            .render_umbrella_row(appearance)
+                            .render_umbrella_row(appearance, app)
                             .on_click(move |ctx, _, _| {
                                 ctx.dispatch_typed_action(SettingsAction::ToggleUmbrella(
                                     nav_index,
@@ -2543,9 +2629,9 @@ impl View for SettingsView {
                             }
 
                             let is_active = subpage_section == self.current_settings_page;
-                            if let Some(hoverable) = umbrella
-                                .render_subpage_button(sub_idx, appearance, match_data, is_active)
-                            {
+                            if let Some(hoverable) = umbrella.render_subpage_button(
+                                sub_idx, appearance, match_data, is_active, app,
+                            ) {
                                 buttons.add_child(
                                     hoverable
                                         .on_click(move |ctx, _, _| {

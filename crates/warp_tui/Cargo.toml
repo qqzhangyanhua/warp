@@ -84,6 +84,7 @@ pathfinder_color.workspace = true
 warp = { workspace = true, features = ["tui", "test-util"] }
 
 [features]
+anonymous_only_mode = ["warp/anonymous_only_mode"]
 # Declared so the `warp_channel_config::load_config!` macro's
 # `cfg(feature = "release_bundle")` branch is a known cfg in this crate. Today it
 # stays off and the local bin uses the runtime generator; wiring the embedded

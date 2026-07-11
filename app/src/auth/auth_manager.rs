@@ -141,6 +141,11 @@ impl AuthManager {
         enforce_state_validation: bool,
         ctx: &mut ModelContext<Self>,
     ) {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            log::warn!("Ignoring account auth callback in anonymous-only mode");
+            return;
+        }
+
         let AuthRedirectPayload {
             refresh_token,
             user_uid,

@@ -45,6 +45,7 @@ use super::warp_drive_page::WarpDriveSettingsPageView;
 use super::warpify_page::WarpifyPageView;
 use super::SettingsSection;
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::settings::CloudPreferencesSettings;
 use crate::themes::theme::Fill;
 use crate::ui_components::blended_colors;
@@ -170,7 +171,10 @@ impl SettingsPage {
         appearance: &Appearance,
         match_data: MatchData,
         clicked: bool,
+        app: &AppContext,
     ) -> Hoverable {
+        let label = self.section.localized_title(app).to_owned() + &match_data.to_string();
+
         appearance
             .ui_builder()
             .button(
@@ -181,7 +185,7 @@ impl SettingsPage {
                 },
                 self.button_state_handle.clone(),
             )
-            .with_text_label(self.section.to_string() + &match_data.to_string())
+            .with_text_label(label)
             .with_style(
                 UiComponentStyles::default()
                     .set_border_width(0.)
@@ -1561,6 +1565,7 @@ impl<V: warpui::View> PageType<V> {
                         let category = &categories[i];
                         FilteredCategory {
                             title: category.title,
+                            localized_title: category.localized_title,
                             subtitle: category.subtitle,
                             widgets: indices
                                 .iter()
@@ -1672,14 +1677,13 @@ impl<V: warpui::View> PageType<V> {
                 let num_categories = categories.len();
                 for (i, category) in categories.into_iter().enumerate() {
                     if !category.title.is_empty() {
+                        let title = category.localized_title(app);
                         if let Some(subtitle) = category.subtitle {
                             page.add_child(render_sub_header_with_description(
-                                appearance,
-                                category.title,
-                                subtitle,
+                                appearance, title, subtitle,
                             ));
                         } else {
-                            page.add_child(render_sub_header(appearance, category.title, None));
+                            page.add_child(render_sub_header(appearance, title, None));
                         }
                     }
                     for widget in &category.widgets {
@@ -1820,6 +1824,7 @@ pub(super) enum FilteredPageType<'a, V: warpui::View> {
 /// A grouping of related [`SettingsWidget`]s that fall under the same sub-header.
 pub(super) struct Category<V: warpui::View> {
     title: &'static str,
+    localized_title: Option<Message>,
     subtitle: Option<&'static str>,
     widgets: Vec<Box<dyn SettingsWidget<View = V>>>,
 }
@@ -1831,6 +1836,7 @@ impl<V: warpui::View> Category<V> {
     ) -> Self {
         Self {
             title,
+            localized_title: None,
             subtitle: None,
             widgets,
         }
@@ -1840,13 +1846,27 @@ impl<V: warpui::View> Category<V> {
         self.subtitle = Some(subtitle);
         self
     }
+
+    pub(super) fn with_localized_title(mut self, message: Message) -> Self {
+        self.localized_title = Some(message);
+        self
+    }
 }
 
 /// A [`Category`] with only the results which match a search query.
 pub(super) struct FilteredCategory<'a, V: warpui::View> {
     pub(super) title: &'static str,
+    pub(super) localized_title: Option<Message>,
     pub(super) subtitle: Option<&'static str>,
     pub(super) widgets: Vec<&'a dyn SettingsWidget<View = V>>,
+}
+
+impl<V: warpui::View> FilteredCategory<'_, V> {
+    fn localized_title(&self, app: &AppContext) -> &'static str {
+        self.localized_title
+            .map(|message| tr(app, message))
+            .unwrap_or(self.title)
+    }
 }
 
 /// Widgets are pieces of renderable settings modal content which can be associated with search

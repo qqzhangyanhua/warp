@@ -512,6 +512,9 @@ impl UserWorkspaces {
     /// Anonymous or logged-out users are not allowed to use custom inference.
     /// Controlled by the BYO_ENDPOINT billing policy.
     pub fn is_custom_inference_enabled(&self, app: &AppContext) -> bool {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return true;
+        }
         if AuthStateProvider::as_ref(app)
             .get()
             .is_anonymous_or_logged_out()

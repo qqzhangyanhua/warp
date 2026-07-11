@@ -35,7 +35,7 @@ pub fn initialize_settings_for_tests_with_mode(
         init_and_register_user_preferences, AISettings, AccessibilitySettings,
         AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings, ChangelogSettings,
         CloudPreferencesSettings, CodeSettings, DebugSettings, EmacsBindingsSettings, FontSettings,
-        GPUSettings, InputModeSettings, InputSettings, LocalControlSettings,
+        GPUSettings, InputModeSettings, InputSettings, LocalControlSettings, LocalizationSettings,
         NativePreferenceSettings, PaneSettings, SameLinePromptBlockSettings, ScrollSettings,
         SelectionSettings, SshSettings, ThemeSettings, VimBannerSettings,
     };
@@ -86,6 +86,7 @@ pub fn initialize_settings_for_tests_with_mode(
     GPUSettings::register(app);
     InputModeSettings::register(app);
     InputSettings::register(app);
+    LocalizationSettings::register(app);
     KeysSettings::register(app);
     LigatureSettings::register(app);
     if warp_core::features::FeatureFlag::WarpControlCli.is_enabled() {

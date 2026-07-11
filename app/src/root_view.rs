@@ -1711,7 +1711,21 @@ impl RootView {
                     let should_show_pre_login_onboarding = FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
                         && FeatureFlag::AgentOnboarding.is_enabled()
                         && !has_completed_local_onboarding;
-                    if FeatureFlag::ForceLogin.is_enabled() {
+                    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                        if should_show_pre_login_onboarding {
+                            let workspace_args_box: Box<WorkspaceArgs> = workspace_args.into();
+                            let onboarding_view = Self::create_agent_onboarding_view(ctx);
+                            onboarding_view.update(ctx, |view, ctx| {
+                                view.start_onboarding(ctx);
+                            });
+                            AuthOnboardingState::Onboarding {
+                                onboarding_view,
+                                target: AuthOnboardingTarget::Workspace(workspace_args_box),
+                            }
+                        } else {
+                            AuthOnboardingState::Terminal(workspace_args.create_workspace(ctx))
+                        }
+                    } else if FeatureFlag::ForceLogin.is_enabled() {
                         // ForceLogin is true for Preview
                         AuthOnboardingState::Auth(workspace_args.into())
                     } else if should_show_pre_login_onboarding {
@@ -1760,6 +1774,12 @@ impl RootView {
             pending_post_auth_onboarding_settings: None,
             paste_auth_token_modal: None,
         };
+
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() && !auth_state.is_logged_in() {
+            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
+                auth_manager.create_anonymous_user(None, ctx);
+            });
+        }
 
         match &root_view.auth_onboarding_state {
             AuthOnboardingState::Terminal(workspace) if FeatureFlag::Changelog.is_enabled() => {
@@ -2161,7 +2181,8 @@ impl RootView {
                 // With old onboarding, we ask user to log in before onboarding, so don't do it after onboarding completes.
                 let requires_login = !is_logged_in
                     && (ai_enabled || warp_drive_enabled)
-                    && FeatureFlag::OpenWarpNewSettingsModes.is_enabled();
+                    && FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
+                    && !FeatureFlag::AnonymousOnlyMode.is_enabled();
 
                 if requires_login {
                     let tutorial = OnboardingTutorial::from(selected_settings.clone());
@@ -2225,7 +2246,11 @@ impl RootView {
                     return;
                 }
 
-                apply_onboarding_settings(selected_settings, is_logged_in, ctx);
+                apply_onboarding_settings(
+                    selected_settings,
+                    is_logged_in || FeatureFlag::AnonymousOnlyMode.is_enabled(),
+                    ctx,
+                );
 
                 if is_logged_in {
                     AuthManager::handle(ctx)

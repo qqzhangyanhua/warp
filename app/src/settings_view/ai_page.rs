@@ -4726,9 +4726,10 @@ impl SettingsWidget for GlobalAIWidget {
         let is_ai_disabled_due_to_remote_session_org_policy =
             AISettings::as_ref(app).is_ai_disabled_due_to_remote_session_org_policy(app);
 
-        let is_anonymous = AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out();
+        let is_anonymous = !FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && AuthStateProvider::as_ref(app)
+                .get()
+                .is_anonymous_or_logged_out();
 
         let mut row = Flex::row()
             .with_main_axis_size(MainAxisSize::Max)
@@ -4992,6 +4993,10 @@ impl SettingsWidget for UsageWidget {
 
     fn search_terms(&self) -> &str {
         "a.i. ai usage limit plan"
+    }
+
+    fn should_render(&self, _app: &AppContext) -> bool {
+        !FeatureFlag::AnonymousOnlyMode.is_enabled()
     }
 
     fn render(
@@ -8902,7 +8907,8 @@ impl CustomInferenceVisibility {
         let member_byo_endpoints_allowed = workspaces.are_member_byo_endpoints_allowed();
 
         // BYOK: shown even when BYO is off so the upgrade CTA can render.
-        let show_provider_keys = member_byo_keys_allowed;
+        let show_provider_keys =
+            member_byo_keys_allowed && !FeatureFlag::AnonymousOnlyMode.is_enabled();
         let provider_keys_enabled = show_provider_keys && is_any_ai_enabled && is_byo_enabled;
 
         // BYOE (custom endpoints).

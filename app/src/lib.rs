@@ -39,6 +39,7 @@ mod external_secrets;
 mod font_fallback;
 mod global_resource_handles;
 mod gpu_state;
+mod i18n;
 mod input_classifier;
 mod interval_timer;
 mod linear;
@@ -1320,7 +1321,8 @@ pub(crate) fn initialize_app(
         LaunchMode::Tui { api_key, .. } if ChannelState::channel().is_dogfood() => api_key.clone(),
         _ => None,
     };
-    let api_key = if FeatureFlag::APIKeyAuthentication.is_enabled() {
+    let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
+    let api_key = if FeatureFlag::APIKeyAuthentication.is_enabled() && !anonymous_only {
         api_key
     } else {
         None
@@ -1347,7 +1349,7 @@ pub(crate) fn initialize_app(
         eprintln!("{warning}");
     }
 
-    let auth_state = Arc::new(AuthState::initialize(ctx, api_key));
+    let auth_state = Arc::new(AuthState::initialize(ctx, api_key, anonymous_only));
     timer.mark_interval_end("AUTH_MANAGER_SET_USER");
 
     let agent_source = determine_agent_source(launch_mode);

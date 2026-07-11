@@ -252,9 +252,10 @@ impl PrivacySettings {
         let warp_drive_privacy = WarpDrivePrivacySettings::as_ref(ctx);
         let is_telemetry_enabled = *warp_drive_privacy.is_telemetry_enabled.value();
         let is_crash_reporting_enabled = *warp_drive_privacy.is_crash_reporting_enabled.value();
-        let is_cloud_conversation_storage_enabled = *warp_drive_privacy
-            .is_cloud_conversation_storage_enabled
-            .value();
+        let is_cloud_conversation_storage_enabled = !FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && *warp_drive_privacy
+                .is_cloud_conversation_storage_enabled
+                .value();
 
         // Listen for changes to the cloud model and update ourselves when they happen.
         ctx.subscribe_to_model(
@@ -562,6 +563,7 @@ impl PrivacySettings {
         new_value: bool,
         ctx: &mut ModelContext<PrivacySettings>,
     ) {
+        let new_value = new_value && !FeatureFlag::AnonymousOnlyMode.is_enabled();
         let old_value = self.is_cloud_conversation_storage_enabled;
         if new_value == old_value {
             return;

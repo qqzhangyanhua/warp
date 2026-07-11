@@ -804,6 +804,10 @@ pub enum FeatureFlag {
     /// login-gated features are disabled until they sign in.
     SkipFirebaseAnonymousUser,
 
+    /// Runs the product without Warp account sign-in while retaining an anonymous service
+    /// identity for supported features.
+    AnonymousOnlyMode,
+
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 

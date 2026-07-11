@@ -855,6 +855,12 @@ impl LLMPreferences {
         available: &'a AvailableLLMs,
         app: &AppContext,
     ) -> &'a LLMInfo {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return self
+                .custom_llm_choices(app)
+                .next()
+                .unwrap_or_else(|| available.default_llm_info());
+        }
         available
             .usable_default_llm_info(app)
             .or_else(|| self.custom_llm_choices(app).next())
@@ -874,7 +880,9 @@ impl LLMPreferences {
         id: &LLMId,
         app: &AppContext,
     ) -> Option<&'a LLMInfo> {
-        Self::server_info_for_id_router_gated(available, id)
+        (!FeatureFlag::AnonymousOnlyMode.is_enabled())
+            .then(|| Self::server_info_for_id_router_gated(available, id))
+            .flatten()
             .or_else(|| self.custom_llm_info_for_id_if_enabled(id, app))
             .or_else(|| self.custom_router_llm_info_for_id_if_enabled(id))
     }
@@ -898,7 +906,7 @@ impl LLMPreferences {
                 return info;
             }
         }
-        self.models_by_feature.agent_mode.default_llm_info()
+        self.fallback_llm_info(&self.models_by_feature.agent_mode, app)
     }
 
     pub fn get_active_coding_model<'a>(
@@ -950,6 +958,7 @@ impl LLMPreferences {
     ) -> impl Iterator<Item = &LLMInfo> {
         // Don't show admin-disabled models in the dropdown
         let routers_enabled = FeatureFlag::CustomModelRouters.is_enabled();
+        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
         self.models_by_feature
             .agent_mode
             .choices
@@ -958,16 +967,19 @@ impl LLMPreferences {
             // Gate cloud/team routers behind the same flag as local routers so
             // the entire custom-router feature is controlled by one flag.
             .filter(move |llm| {
-                routers_enabled || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str())
+                !anonymous_only
+                    && (routers_enabled
+                        || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str()))
             })
             .chain(self.custom_llm_choices(app))
-            .chain(self.custom_router_choices())
+            .chain(self.custom_router_choices().filter(move |_| !anonymous_only))
     }
 
     /// Returns the set of LLMs available for coding.
     pub fn get_coding_llm_choices(&self, app: &AppContext) -> impl Iterator<Item = &LLMInfo> {
         // Don't show admin-disabled models in the dropdown
         let routers_enabled = FeatureFlag::CustomModelRouters.is_enabled();
+        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
         self.models_by_feature
             .coding
             .choices
@@ -975,19 +987,25 @@ impl LLMPreferences {
             .filter(|llm| !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled)))
             // Gate cloud/team routers behind the same flag as local routers.
             .filter(move |llm| {
-                routers_enabled || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str())
+                !anonymous_only
+                    && (routers_enabled
+                        || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str()))
             })
             .chain(self.custom_llm_choices(app))
-            .chain(self.custom_router_choices())
+            .chain(self.custom_router_choices().filter(move |_| !anonymous_only))
     }
 
     /// Returns the set of LLMs available for CLI agent.
     pub fn get_cli_agent_llm_choices(&self, app: &AppContext) -> impl Iterator<Item = &LLMInfo> {
         // Don't show admin-disabled models in the dropdown
+        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
         self.get_cli_agent_available()
             .choices
             .iter()
-            .filter(|llm| !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled)))
+            .filter(move |llm| {
+                !anonymous_only
+                    && !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled))
+            })
             .chain(self.custom_llm_choices(app))
     }
 
@@ -1028,7 +1046,11 @@ impl LLMPreferences {
 
     /// Returns the set of LLMs available for computer use agent.
     pub fn get_computer_use_llm_choices(&self) -> impl Iterator<Item = &LLMInfo> {
-        self.get_computer_use_available().choices.iter()
+        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
+        self.get_computer_use_available()
+            .choices
+            .iter()
+            .filter(move |_| !anonymous_only)
     }
 
     /// Returns the `LLMInfo` for the computer use agent model.

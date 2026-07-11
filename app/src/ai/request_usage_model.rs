@@ -5,6 +5,7 @@ use anyhow::Context as _;
 use chrono::{DateTime, Local, Utc};
 use instant::Instant;
 use serde::{Deserialize, Serialize};
+use warp_core::features::FeatureFlag;
 use warp_core::user_preferences::GetUserPreferences as _;
 use warp_errors::report_error;
 pub use warp_graphql::billing::BonusGrantType;
@@ -407,6 +408,10 @@ impl AIRequestUsageModel {
     ///    connected a Grok subscription
     /// Use this method as the starting point for AI availability checking.
     pub fn has_any_ai_remaining(&self, ctx: &AppContext) -> bool {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return ApiKeyManager::as_ref(ctx).keys().has_valid_custom_endpoint();
+        }
+
         let current_workspace = UserWorkspaces::as_ref(ctx).current_workspace();
 
         let has_base_plan_ai_requests = self.has_requests_remaining();

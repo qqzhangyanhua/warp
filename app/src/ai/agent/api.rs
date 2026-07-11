@@ -297,7 +297,8 @@ impl RequestParams {
                 &request_input.coding_model_id,
             )
         });
-        let allow_use_of_warp_credits = *AISettings::as_ref(app).can_use_warp_credits_for_fallback;
+        let allow_use_of_warp_credits = !FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && *AISettings::as_ref(app).can_use_warp_credits_for_fallback;
 
         let app_execution_mode = AppExecutionMode::as_ref(app);
         let autonomy_level = if app_execution_mode.is_autonomous() {

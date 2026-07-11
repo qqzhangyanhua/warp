@@ -99,6 +99,16 @@ impl ApiKeys {
         .filter(|key| key.as_deref().is_some_and(|v| !v.trim().is_empty()))
         .count()
     }
+
+    pub fn has_valid_custom_endpoint(&self) -> bool {
+        self.custom_endpoints.iter().any(|endpoint| {
+            !endpoint.url.trim().is_empty()
+                && !endpoint.api_key.trim().is_empty()
+                && endpoint.models.iter().any(|model| {
+                    !model.name.trim().is_empty() && !model.config_key.trim().is_empty()
+                })
+        })
+    }
 }
 
 /// OAuth tokens for a connected xAI / Grok subscription (e.g. SuperGrok).

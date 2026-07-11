@@ -2,6 +2,7 @@
 
 use anyhow::{Context, Result};
 use serde::Serialize;
+use warp_core::features::FeatureFlag;
 use warp_cli::agent::OutputFormat;
 use warpui::platform::TerminationMode;
 use warpui::{AppContext, SingletonEntity};
@@ -13,6 +14,10 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// Kick off a device authorization login flow and handle auth events.
 pub fn login(ctx: &mut AppContext) -> Result<()> {
+    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        anyhow::bail!("This build only supports anonymous mode; account sign-in is unavailable");
+    }
+
     let auth_state = AuthStateProvider::as_ref(ctx).get();
     let has_cached_credentials = auth_state.is_logged_in();
 
@@ -126,6 +131,34 @@ impl SingletonEntity for WhoamiRunner {}
 /// Print information about the currently authenticated principal.
 pub fn whoami(ctx: &mut AppContext, output_format: OutputFormat) -> Result<()> {
     let auth_state = AuthStateProvider::as_ref(ctx).get();
+    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        let info = WhoamiOutput {
+            uid: auth_state
+                .user_id()
+                .map(|id| id.as_string())
+                .unwrap_or_else(|| auth_state.anonymous_id()),
+            principal_type: "anonymous",
+            display_name: None,
+            email: None,
+            team_uid: None,
+            team_name: None,
+        };
+
+        match output_format {
+            OutputFormat::Json => println!(
+                "{}",
+                serde_json::to_string(&info).context("whoami output should serialize")?
+            ),
+            OutputFormat::Pretty => println!("Anonymous ID: {}", info.uid),
+            OutputFormat::Text => println!("anonymous:{}", info.uid),
+            OutputFormat::Ndjson => {
+                anyhow::bail!("`whoami` does not support --output-format ndjson");
+            }
+        }
+        ctx.terminate_app(TerminationMode::ForceTerminate, None);
+        return Ok(());
+    }
+
     let principal_type = auth_state.principal_type().unwrap_or_default();
 
     let uid = auth_state
@@ -223,6 +256,10 @@ pub fn whoami(ctx: &mut AppContext, output_format: OutputFormat) -> Result<()> {
 
 /// Log out of Warp using the same logic as the app.
 pub fn logout(ctx: &mut AppContext) -> Result<()> {
+    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        anyhow::bail!("This build only supports anonymous mode; account logout is unavailable");
+    }
+
     let auth_state = AuthStateProvider::as_ref(ctx).get();
     if !auth_state.is_logged_in() {
         println!("You are not logged in.");

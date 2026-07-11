@@ -7,6 +7,7 @@
 //! flow, flipping the model to [`TuiLoginPhase::LoggedIn`] when it completes.
 
 use warpui::{AppContext, Entity, SingletonEntity};
+use warp_core::features::FeatureFlag;
 
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
@@ -52,9 +53,10 @@ impl SingletonEntity for TuiLoginModel {}
 /// Registers the [`TuiLoginModel`], mounts the TUI immediately, and runs the
 /// device-authorization login flow when the user isn't already logged in.
 pub(crate) fn init(mount: TuiMountFn, ctx: &mut AppContext) {
+    let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
     let logged_in = AuthStateProvider::as_ref(ctx).get().is_logged_in();
 
-    let initial_phase = if logged_in {
+    let initial_phase = if logged_in || anonymous_only {
         TuiLoginPhase::LoggedIn
     } else {
         TuiLoginPhase::AwaitingLogin {
@@ -71,6 +73,13 @@ pub(crate) fn init(mount: TuiMountFn, ctx: &mut AppContext) {
     mount(ctx);
 
     if logged_in {
+        return;
+    }
+
+    if anonymous_only {
+        AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
+            auth_manager.create_anonymous_user(None, ctx);
+        });
         return;
     }
 

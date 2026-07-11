@@ -55,6 +55,7 @@ use crate::editor::{
 };
 use crate::features::FeatureFlag;
 use crate::gpu_state::{GPUState, GPUStateEvent};
+use crate::i18n::{tr, Message};
 use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
 use crate::server::telemetry::{InputUXChangeOrigin, TelemetryEvent};
 use crate::settings::app_icon::{AppIcon, AppIconSettings, ShowDockIconState};
@@ -62,9 +63,10 @@ use crate::settings::{
     active_theme_kind, respect_system_theme, AIFontName, AISettings, AppEditorSettings,
     CodeSettings, CursorBlink, CursorBlinkEnabled, CursorDisplayType, EnforceMinimumContrast,
     FocusPaneOnHover, FontSettings, FontSettingsChangedEvent, GPUSettings, InputBoxType,
-    InputModeSettings, InputModeState, InputSettings, InputSettingsChangedEvent, MonospaceFontName,
-    PaneSettings, ShouldDimInactivePanes, ThemeSettings, UseSystemTheme, UseThinStrokes,
-    DEFAULT_MONOSPACE_FONT_NAME,
+    InputModeSettings, InputModeState, InputSettings, InputSettingsChangedEvent, LocalePreference,
+    LocalePreferenceSetting, LocalizationSettings, LocalizationSettingsChangedEvent,
+    MonospaceFontName, PaneSettings, ShouldDimInactivePanes, ThemeSettings, UseSystemTheme,
+    UseThinStrokes, DEFAULT_MONOSPACE_FONT_NAME,
 };
 use crate::terminal::block_list_viewport::InputMode;
 use crate::terminal::blockgrid_element::BlockGridElement;
@@ -502,6 +504,7 @@ pub enum AppearancePageAction {
         from_binding: bool,
     },
     SetInputType(InputBoxType),
+    SetLocalePreference(LocalePreference),
     SetAppIcon(AppIcon),
     ToggleShowDockIcon,
     SetCursorType(CursorDisplayType),
@@ -570,6 +573,7 @@ pub struct AppearanceSettingsPageView {
     enforce_min_contrast_dropdown: ViewHandle<Dropdown<AppearancePageAction>>,
     input_mode_dropdown: ViewHandle<Dropdown<AppearancePageAction>>,
     input_type_radio_state: RadioButtonStateHandle,
+    language_dropdown: ViewHandle<Dropdown<AppearancePageAction>>,
     app_icon_dropdown: ViewHandle<Dropdown<AppearancePageAction>>,
     workspace_decorations_dropdown: ViewHandle<Dropdown<AppearancePageAction>>,
     tab_close_button_position_dropdown: ViewHandle<Dropdown<AppearancePageAction>>,
@@ -683,6 +687,9 @@ impl TypedActionView for AppearanceSettingsPageView {
                 from_binding,
             } => self.set_input_mode(*new_mode, *from_binding, ctx),
             SetInputType(input_type) => self.set_input_type(*input_type, ctx),
+            SetLocalePreference(locale_preference) => {
+                self.set_locale_preference(*locale_preference, ctx)
+            }
             SetAppIcon(new_icon) => self.set_app_icon(*new_icon, ctx),
             ToggleShowDockIcon => self.toggle_show_dock_icon(ctx),
             SetCursorType(cursor_display_type) => self.set_cursor_type(*cursor_display_type, ctx),
@@ -973,10 +980,20 @@ impl AppearanceSettingsPageView {
                 ctx.notify();
             }
         });
+        ctx.subscribe_to_model(&LocalizationSettings::handle(ctx), |me, _, event, ctx| {
+            if matches!(
+                event,
+                LocalizationSettingsChangedEvent::LocalePreferenceSetting { .. }
+            ) {
+                me.update_language_dropdown(ctx);
+                me.update_app_icon_dropdown(ctx);
+                ctx.notify();
+            }
+        });
         ctx.subscribe_to_model(&AppIconSettings::handle(ctx), |me, _, _, ctx| {
             me.app_icon_dropdown.update(ctx, |dropdown, ctx| {
                 let app_icon = *AppIconSettings::as_ref(ctx).app_icon;
-                dropdown.set_selected_by_name(Self::app_icon_dropdown_item_label(app_icon), ctx);
+                dropdown.set_selected_by_action(AppearancePageAction::SetAppIcon(app_icon), ctx);
                 ctx.notify();
             });
             ctx.notify()
@@ -1223,6 +1240,20 @@ impl AppearanceSettingsPageView {
             dropdown
         });
 
+        let language_dropdown = ctx.add_typed_action_view(|ctx| {
+            let mut dropdown = Dropdown::new(ctx);
+            dropdown.set_top_bar_max_width(INPUT_MODE_DROPDOWN_WIDTH);
+            dropdown.set_menu_width(INPUT_MODE_DROPDOWN_WIDTH, ctx);
+            dropdown.set_items(Self::language_dropdown_items(ctx), ctx);
+            dropdown.set_selected_by_action(
+                AppearancePageAction::SetLocalePreference(
+                    *LocalizationSettings::as_ref(ctx).locale_preference,
+                ),
+                ctx,
+            );
+            dropdown
+        });
+
         let app_icon_dropdown = ctx.add_typed_action_view(|ctx| {
             let mut dropdown = Dropdown::new(ctx);
             dropdown.set_top_bar_max_width(INPUT_MODE_DROPDOWN_WIDTH);
@@ -1243,7 +1274,7 @@ impl AppearanceSettingsPageView {
                     .into_iter()
                     .map(|val| {
                         DropdownItem::new(
-                            Self::app_icon_dropdown_item_label(val),
+                            Self::app_icon_dropdown_item_label(ctx, val),
                             AppearancePageAction::SetAppIcon(val),
                         )
                     })
@@ -1333,6 +1364,7 @@ impl AppearanceSettingsPageView {
             thin_strokes_dropdown,
             input_mode_dropdown,
             input_type_radio_state,
+            language_dropdown,
             app_icon_dropdown,
             enforce_min_contrast_dropdown,
             workspace_decorations_dropdown: Self::build_workspace_decoration_visibility_dropdown(
@@ -1359,19 +1391,28 @@ impl AppearanceSettingsPageView {
     }
 
     fn build_page(ctx: &mut ViewContext<Self>) -> PageType<Self> {
-        let mut categories = vec![Category::new(
-            "Themes",
+        let mut categories =
             vec![
-                Box::new(CreateCustomThemeWidget::default()),
-                Box::new(ThemeSelectWidget::default()),
-            ],
-        )];
+                Category::new("General", vec![Box::new(LanguageWidget::default())])
+                    .with_localized_title(Message::SettingsGeneralCategory),
+            ];
+
+        categories.push(
+            Category::new(
+                "Themes",
+                vec![
+                    Box::new(CreateCustomThemeWidget::default()),
+                    Box::new(ThemeSelectWidget::default()),
+                ],
+            )
+            .with_localized_title(Message::SettingsThemesCategory),
+        );
 
         if AppIconSettings::as_ref(ctx).is_supported_on_current_platform() {
-            categories.push(Category::new(
-                "Icon",
-                vec![Box::new(CustomAppIconWidget::default())],
-            ));
+            categories.push(
+                Category::new("Icon", vec![Box::new(CustomAppIconWidget::default())])
+                    .with_localized_title(Message::SettingsIconCategory),
+            );
         }
 
         let window_settings = WindowSettings::as_ref(ctx);
@@ -1413,7 +1454,10 @@ impl AppearanceSettingsPageView {
         }
 
         if !window_settings_widgets.is_empty() {
-            categories.push(Category::new("Window", window_settings_widgets));
+            categories.push(
+                Category::new("Window", window_settings_widgets)
+                    .with_localized_title(Message::SettingsWindowCategory),
+            );
         }
 
         // Tools panel tab visibility toggles. These control which of the four
@@ -1437,7 +1481,10 @@ impl AppearanceSettingsPageView {
         }
         tools_panel_widgets.push(Box::new(ToolsPanelWarpDriveWidget::default()));
         if !tools_panel_widgets.is_empty() {
-            categories.push(Category::new("Tools panel", tools_panel_widgets));
+            categories.push(
+                Category::new("Tools panel", tools_panel_widgets)
+                    .with_localized_title(Message::SettingsToolsPanelCategory),
+            );
         }
 
         // Create the Input category with all widgets
@@ -1449,15 +1496,21 @@ impl AppearanceSettingsPageView {
             Box::new(InputModeWidget::default()),
         ];
 
-        categories.push(Category::new("Input", category_widgets));
+        categories.push(
+            Category::new("Input", category_widgets)
+                .with_localized_title(Message::SettingsInputCategory),
+        );
 
-        categories.push(Category::new(
-            "Panes",
-            vec![
-                Box::new(DimInactivePanesWidget::default()),
-                Box::new(FocusFollowsMouseWidget::default()),
-            ],
-        ));
+        categories.push(
+            Category::new(
+                "Panes",
+                vec![
+                    Box::new(DimInactivePanesWidget::default()),
+                    Box::new(FocusFollowsMouseWidget::default()),
+                ],
+            )
+            .with_localized_title(Message::SettingsPanesCategory),
+        );
 
         let mut block_settings_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
             Box::new(CompactModeWidget::default()),
@@ -1466,7 +1519,10 @@ impl AppearanceSettingsPageView {
         if FeatureFlag::MinimalistUI.is_enabled() {
             block_settings_widgets.push(Box::new(ShowBlockDividersWidget::default()));
         }
-        categories.push(Category::new("Blocks", block_settings_widgets));
+        categories.push(
+            Category::new("Blocks", block_settings_widgets)
+                .with_localized_title(Message::SettingsBlocksCategory),
+        );
 
         let font_settings = FontSettings::as_ref(ctx);
         let mut text_settings_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
@@ -1495,15 +1551,21 @@ impl AppearanceSettingsPageView {
             text_settings_widgets.push(Box::new(LigaturesWidget::default()));
         }
 
-        categories.push(Category::new("Text", text_settings_widgets));
+        categories.push(
+            Category::new("Text", text_settings_widgets)
+                .with_localized_title(Message::SettingsTextCategory),
+        );
 
-        categories.push(Category::new(
-            "Cursor",
-            vec![
-                Box::new(CursorTypeWidget::default()),
-                Box::new(BlinkingCursorWidget::default()),
-            ],
-        ));
+        categories.push(
+            Category::new(
+                "Cursor",
+                vec![
+                    Box::new(CursorTypeWidget::default()),
+                    Box::new(BlinkingCursorWidget::default()),
+                ],
+            )
+            .with_localized_title(Message::SettingsCursorCategory),
+        );
 
         let tab_settings = TabSettings::as_ref(ctx);
         let mut tab_settings_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> =
@@ -1547,12 +1609,18 @@ impl AppearanceSettingsPageView {
             tab_settings_widgets.push(Box::new(DirectoryTabColorsWidget { add_picker }));
         }
 
-        categories.push(Category::new("Tabs", tab_settings_widgets));
+        categories.push(
+            Category::new("Tabs", tab_settings_widgets)
+                .with_localized_title(Message::SettingsTabsCategory),
+        );
 
-        categories.push(Category::new(
-            "Full-screen Apps",
-            vec![Box::new(AltScreenPaddingWidget::default())],
-        ));
+        categories.push(
+            Category::new(
+                "Full-screen Apps",
+                vec![Box::new(AltScreenPaddingWidget::default())],
+            )
+            .with_localized_title(Message::SettingsFullScreenAppsCategory),
+        );
 
         PageType::new_categorized(categories, None)
     }
@@ -1670,10 +1738,32 @@ impl AppearanceSettingsPageView {
         }
     }
 
-    fn app_icon_dropdown_item_label(val: AppIcon) -> &'static str {
+    fn language_dropdown_items(app: &AppContext) -> Vec<DropdownItem<AppearancePageAction>> {
+        [
+            (
+                LocalePreference::System,
+                Message::SettingsLanguageSystemOption,
+            ),
+            (LocalePreference::En, Message::SettingsLanguageEnglishOption),
+            (
+                LocalePreference::ZhCn,
+                Message::SettingsLanguageSimplifiedChineseOption,
+            ),
+        ]
+        .into_iter()
+        .map(|(locale_preference, message)| {
+            DropdownItem::new(
+                tr(app, message),
+                AppearancePageAction::SetLocalePreference(locale_preference),
+            )
+        })
+        .collect()
+    }
+
+    fn app_icon_dropdown_item_label(app: &AppContext, val: AppIcon) -> &'static str {
         match val {
             AppIcon::Aurora => "Aurora",
-            AppIcon::Default => "Default",
+            AppIcon::Default => tr(app, Message::AppearanceAppIconDefault),
             AppIcon::Classic1 => "Classic 1",
             AppIcon::Classic2 => "Classic 2",
             AppIcon::Classic3 => "Classic 3",
@@ -2354,6 +2444,58 @@ impl AppearanceSettingsPageView {
         }
     }
 
+    fn update_language_dropdown(&mut self, ctx: &mut ViewContext<Self>) {
+        self.language_dropdown.update(ctx, |dropdown, ctx| {
+            dropdown.set_items(Self::language_dropdown_items(ctx), ctx);
+            dropdown.set_selected_by_action(
+                AppearancePageAction::SetLocalePreference(
+                    *LocalizationSettings::as_ref(ctx).locale_preference,
+                ),
+                ctx,
+            );
+        });
+    }
+
+    fn update_app_icon_dropdown(&mut self, ctx: &mut ViewContext<Self>) {
+        self.app_icon_dropdown.update(ctx, |dropdown, ctx| {
+            let values: Vec<AppIcon> = all::<AppIcon>().collect();
+            dropdown.set_items(
+                values
+                    .into_iter()
+                    .map(|val| {
+                        DropdownItem::new(
+                            Self::app_icon_dropdown_item_label(ctx, val),
+                            AppearancePageAction::SetAppIcon(val),
+                        )
+                    })
+                    .collect(),
+                ctx,
+            );
+            dropdown.set_selected_by_action(
+                AppearancePageAction::SetAppIcon(*AppIconSettings::as_ref(ctx).app_icon),
+                ctx,
+            );
+        });
+    }
+
+    fn set_locale_preference(
+        &mut self,
+        locale_preference: LocalePreference,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        if *LocalizationSettings::as_ref(ctx).locale_preference != locale_preference {
+            LocalizationSettings::handle(ctx).update(ctx, |settings, ctx| {
+                report_if_error!(settings.locale_preference.set_value(locale_preference, ctx));
+            });
+            send_telemetry_from_ctx!(
+                TelemetryEvent::LanguagePreferenceChanged { locale_preference },
+                ctx
+            );
+            self.update_language_dropdown(ctx);
+            ctx.notify();
+        }
+    }
+
     fn set_input_type(&mut self, new_type: InputBoxType, ctx: &mut ViewContext<Self>) {
         let old_type = InputSettings::as_ref(ctx).input_type(ctx);
 
@@ -2750,20 +2892,20 @@ impl SettingsWidget for CreateCustomThemeWidget {
     type View = AppearanceSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "create theme create custom theme"
+        "create theme create custom theme 创建 自定义 主题"
     }
 
     fn render(
         &self,
         _view: &Self::View,
         appearance: &Appearance,
-        _app: &AppContext,
+        app: &AppContext,
     ) -> Box<dyn Element> {
         Align::new(
             appearance
                 .ui_builder()
                 .link(
-                    "Create your own custom theme".to_string(),
+                    tr(app, Message::AppearanceCreateCustomTheme).to_string(),
                     Some("https://docs.warp.dev/terminal/appearance/custom-themes".to_string()),
                     None,
                     self.mouse_state.clone(),
@@ -2798,9 +2940,9 @@ impl ThemeSelectWidget {
     ) -> Box<dyn Element> {
         let theme: WarpTheme = WarpConfig::as_ref(app).theme_config().theme(&theme_kind);
         let mode_ui_label = match theme_chooser_mode {
-            ThemeChooserMode::SystemLight => "Light",
-            ThemeChooserMode::SystemDark => "Dark",
-            ThemeChooserMode::SystemAgnostic => "Current theme",
+            ThemeChooserMode::SystemLight => tr(app, Message::AppearanceThemeLight),
+            ThemeChooserMode::SystemDark => tr(app, Message::AppearanceThemeDark),
+            ThemeChooserMode::SystemAgnostic => tr(app, Message::AppearanceCurrentTheme),
         };
 
         ConstrainedBox::new(
@@ -2877,7 +3019,7 @@ impl SettingsWidget for ThemeSelectWidget {
     type View = AppearanceSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "sync with os theme themes background backgrounds color colors customize"
+        "sync with os theme themes background backgrounds color colors customize 跟随 主题 浅色 深色 系统"
     }
 
     fn render(
@@ -2919,7 +3061,7 @@ impl SettingsWidget for ThemeSelectWidget {
         Flex::column()
             .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
             .with_child(render_body_item::<AppearancePageAction>(
-                "Sync with OS".into(),
+                tr(app, Message::AppearanceSyncWithOs).into(),
                 None,
                 LocalOnlyIconState::for_setting(
                     UseSystemTheme::storage_key(),
@@ -2946,10 +3088,7 @@ impl SettingsWidget for ThemeSelectWidget {
             .with_child(
                 appearance
                     .ui_builder()
-                    .span(
-                        "Automatically switch between light and dark themes when your system does."
-                            .to_string(),
-                    )
+                    .span(tr(app, Message::AppearanceSyncWithOsDescription).to_string())
                     .with_style(
                         UiComponentStyles::default().set_margin(Coords::default().bottom(10.)),
                     )
@@ -2974,7 +3113,7 @@ impl SettingsWidget for CustomAppIconWidget {
     type View = AppearanceSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "customize custom app icon icons dock cmd tab app switcher"
+        "customize custom app icon icons dock cmd tab app switcher 自定义 图标 dock"
     }
 
     fn render(
@@ -3000,8 +3139,8 @@ impl SettingsWidget for CustomAppIconWidget {
 
         let dropdown = render_dropdown_item(
             appearance,
-            "Customize your app icon",
-            show_bundle_warning.then_some("Changing the app icon requires the app to be bundled."),
+            tr(app, Message::AppearanceCustomizeAppIcon),
+            show_bundle_warning.then_some(tr(app, Message::AppearanceAppIconBundleRequired)),
             None,
             LocalOnlyIconState::Hidden,
             None,
@@ -3009,7 +3148,7 @@ impl SettingsWidget for CustomAppIconWidget {
         );
 
         let show_dock_icon_toggle = render_body_item::<AppearancePageAction>(
-            "Show Warp in Dock".into(),
+            tr(app, Message::AppearanceShowWarpInDock).into(),
             None,
             LocalOnlyIconState::for_setting(
                 ShowDockIconState::storage_key(),
@@ -3048,14 +3187,9 @@ impl SettingsWidget for CustomAppIconWidget {
                 let column = Flex::column().with_child(dropdown).with_child(
                     appearance
                         .ui_builder()
-                        .wrappable_text(
-                            "You may need to restart Warp for MacOS to apply the preferred icon style.",
-                            true,
-                        )
+                        .wrappable_text(tr(app, Message::AppearanceRestartForAppIcon), true)
                         .with_style(UiComponentStyles {
-                            font_color: Some(
-                                theme.sub_text_color(theme.background()).into_solid(),
-                            ),
+                            font_color: Some(theme.sub_text_color(theme.background()).into_solid()),
                             margin: Some(Coords::default().bottom(8.)),
                             ..Default::default()
                         })
@@ -3090,7 +3224,7 @@ impl SettingsWidget for CustomWindowSizeWidget {
     type View = AppearanceSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "open windows with custom size"
+        "open windows with custom size 窗口 自定义 尺寸 行数 列数"
     }
 
     fn render(
@@ -3105,7 +3239,7 @@ impl SettingsWidget for CustomWindowSizeWidget {
         let row_border_color: Option<Fill> =
             (!view.valid_new_window_rows).then(|| themes::theme::Fill::error().into());
         let mut column = Flex::column().with_child(render_body_item::<AppearancePageAction>(
-            "Open new windows with custom size".into(),
+            tr(app, Message::AppearanceOpenNewWindowsWithCustomSize).into(),
             None,
             LocalOnlyIconState::for_setting(
                 OpenWindowsAtCustomSize::storage_key(),
@@ -3129,7 +3263,7 @@ impl SettingsWidget for CustomWindowSizeWidget {
         if *window_settings.open_windows_at_custom_size.value() {
             column.add_child(
                 Container::new(render_body_item::<AppearancePageAction>(
-                    "Columns".into(),
+                    tr(app, Message::AppearanceCustomWindowColumns).into(),
                     None,
                     // We show the local-only icon for this with the toggle, not the individual inputs.
                     LocalOnlyIconState::Hidden,
@@ -3165,7 +3299,7 @@ impl SettingsWidget for CustomWindowSizeWidget {
             );
             column.add_child(
                 Container::new(render_body_item::<AppearancePageAction>(
-                    "Rows".into(),
+                    tr(app, Message::AppearanceCustomWindowRows).into(),
                     None,
                     // We show the local-only icon for this with the toggle, not the individual inputs.
                     LocalOnlyIconState::Hidden,
@@ -3213,7 +3347,7 @@ impl SettingsWidget for WindowOpacityWidget {
     type View = AppearanceSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "window opacity transparency"
+        "window opacity transparency 窗口 不透明度 透明"
     }
 
     fn render(
@@ -3230,7 +3364,7 @@ impl SettingsWidget for WindowOpacityWidget {
             return Flex::column()
                 .with_child(
                     Container::new(render_body_item_label::<AppearancePageAction>(
-                        "Window Opacity:".to_owned(),
+                        format!("{}:", tr(app, Message::AppearanceWindowOpacityLabel)),
                         None,
                         None,
                         LocalOnlyIconState::Hidden,
@@ -3242,7 +3376,7 @@ impl SettingsWidget for WindowOpacityWidget {
                 .with_child(
                     Container::new(
                         FormattedTextElement::from_str(
-                            "Transparency is not supported with your graphics drivers.",
+                            tr(app, Message::AppearanceWindowOpacityUnsupported),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )
@@ -3257,7 +3391,10 @@ impl SettingsWidget for WindowOpacityWidget {
 
         let opacity_value = *window_settings.background_opacity;
         let mut col = Flex::column().with_child(render_body_item::<AppearancePageAction>(
-            format!("Window Opacity: {opacity_value}"),
+            format!(
+                "{}: {opacity_value}",
+                tr(app, Message::AppearanceWindowOpacityLabel)
+            ),
             // TODO(CORE-3384) add AdditionalInfo here.
             None,
             LocalOnlyIconState::for_setting(
@@ -3293,9 +3430,8 @@ impl SettingsWidget for WindowOpacityWidget {
             // Skip showing the warning for OpenGL since WGPU often incorrectly reports it as not
             // supporting alpha.
             if !window.supports_transparency() && window.graphics_backend() != GraphicsBackend::Gl {
-                let mut message = Cow::Borrowed(
-                    "The selected graphics settings may not support rendering transparent windows.",
-                );
+                let mut message =
+                    Cow::Borrowed(tr(app, Message::AppearanceWindowOpacityTransparencyWarning));
                 let gpu_settings = GPUSettings::as_ref(app);
                 if (gpu_settings
                     .prefer_low_power_gpu
@@ -3305,10 +3441,10 @@ impl SettingsWidget for WindowOpacityWidget {
                         .preferred_backend
                         .is_supported_on_current_platform()
                 {
-                    message.to_mut().push_str(
-                        " Try changing the settings for the graphics backend or integrated GPU in \
-                        Features > System.",
-                    );
+                    message.to_mut().push_str(tr(
+                        app,
+                        Message::AppearanceWindowOpacityGraphicsSettingsSuggestion,
+                    ));
                 }
 
                 col.add_child(
@@ -3340,7 +3476,7 @@ impl SettingsWidget for WindowBlurWidget {
     type View = AppearanceSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "window blur radius"
+        "window blur radius 窗口 模糊 半径"
     }
 
     fn render(
@@ -3362,7 +3498,10 @@ impl SettingsWidget for WindowBlurWidget {
 
         Flex::column()
             .with_child(render_body_item::<AppearancePageAction>(
-                format!("Window Blur Radius: {blur_value}"),
+                format!(
+                    "{}: {blur_value}",
+                    tr(app, Message::AppearanceWindowBlurRadiusLabel)
+                ),
                 Some(label_info),
                 LocalOnlyIconState::for_setting(
                     BackgroundBlurRadius::storage_key(),
@@ -3407,7 +3546,7 @@ impl SettingsWidget for WindowBlurTextureWidget {
     type View = AppearanceSettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "window blur texture acrylic"
+        "window blur texture acrylic 窗口 模糊 亚克力 纹理"
     }
 
     fn render(
@@ -3419,7 +3558,7 @@ impl SettingsWidget for WindowBlurTextureWidget {
         let window_settings = WindowSettings::as_ref(app);
         let use_blur_texture = *window_settings.background_blur_texture;
         let mut col = Flex::column().with_child(render_body_item::<AppearancePageAction>(
-            "Use Window Blur (Acrylic texture)".to_string(),
+            tr(app, Message::AppearanceWindowBlurTexture).to_string(),
             None,
             LocalOnlyIconState::for_setting(
                 BackgroundBlurTexture::storage_key(),
@@ -3445,7 +3584,7 @@ impl SettingsWidget for WindowBlurTextureWidget {
                 col.add_child(
                     Container::new(
                         FormattedTextElement::from_str(
-                            "The selected hardware may not support rendering transparent windows.",
+                            tr(app, Message::AppearanceWindowBlurTextureUnsupported),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )
@@ -3458,6 +3597,55 @@ impl SettingsWidget for WindowBlurTextureWidget {
             }
         }
         col.finish()
+    }
+}
+
+#[derive(Default)]
+struct LanguageWidget;
+
+impl SettingsWidget for LanguageWidget {
+    type View = AppearanceSettingsPageView;
+
+    fn search_terms(&self) -> &str {
+        "general language locale localization system english simplified chinese 语言 本地化 跟随系统 简体中文"
+    }
+
+    fn render(
+        &self,
+        view: &Self::View,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
+        let dropdown_subtext = (*LocalizationSettings::as_ref(app).locale_preference
+            == LocalePreference::System)
+            .then(|| {
+                Container::new(
+                    FormattedTextElement::from_str(
+                        tr(app, Message::SettingsLanguageSystemDisplaysEnglish),
+                        appearance.ui_font_family(),
+                        appearance.ui_font_size(),
+                    )
+                    .with_color(appearance.theme().disabled_ui_text_color().into_solid())
+                    .finish(),
+                )
+                .with_margin_top(4.)
+                .finish()
+            });
+
+        render_dropdown_item(
+            appearance,
+            tr(app, Message::SettingsLanguageLabel),
+            Some(tr(app, Message::SettingsLanguageDescription)),
+            dropdown_subtext,
+            LocalOnlyIconState::for_setting(
+                LocalePreferenceSetting::storage_key(),
+                LocalePreferenceSetting::sync_to_cloud(),
+                &mut view.local_only_icon_tooltip_states.borrow_mut(),
+                app,
+            ),
+            None,
+            &view.language_dropdown,
+        )
     }
 }
 
