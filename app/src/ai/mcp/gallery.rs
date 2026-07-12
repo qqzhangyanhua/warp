@@ -6,6 +6,7 @@ use warpui::{Entity, ModelContext, SingletonEntity};
 use crate::ai::mcp::templatable::{
     GalleryData, JsonTemplate, TemplatableMCPServer, TemplateVariable,
 };
+use crate::local_mode;
 use crate::server::cloud_objects::update_manager::{UpdateManager, UpdateManagerEvent};
 
 #[derive(Clone, Debug)]
@@ -103,13 +104,15 @@ impl MCPGalleryManager {
             templatable_mcp_servers: Default::default(),
         };
 
-        // Subscribe to UpdateManager events to receive MCP gallery updates
-        let update_manager = UpdateManager::handle(ctx);
-        ctx.subscribe_to_model(&update_manager, |me, _, event, ctx| {
-            if let UpdateManagerEvent::MCPGalleryUpdated { templates } = event {
-                me.update_gallery_items(templates.clone(), ctx);
-            }
-        });
+        if !local_mode::is_local_only_custom_provider_mode() {
+            // Subscribe to UpdateManager events to receive MCP gallery updates
+            let update_manager = UpdateManager::handle(ctx);
+            ctx.subscribe_to_model(&update_manager, |me, _, event, ctx| {
+                if let UpdateManagerEvent::MCPGalleryUpdated { templates } = event {
+                    me.update_gallery_items(templates.clone(), ctx);
+                }
+            });
+        }
 
         gallery_manager
     }

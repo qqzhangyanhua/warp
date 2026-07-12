@@ -11,6 +11,7 @@ use warpui::{Entity, ModelContext, ModelHandle, RequestState, SingletonEntity};
 
 use super::update_manager::UpdateManager;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
+use crate::local_mode;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::server::retry_strategies::LISTENER_RETRY_STRATEGY;
 use crate::server::server_api::object::ObjectClient;
@@ -74,7 +75,7 @@ pub struct Listener {
 
 impl Listener {
     pub fn new(cloud_objects_client: Arc<dyn ObjectClient>, ctx: &mut ModelContext<Self>) -> Self {
-        if crate::local_mode::is_local_only_custom_provider_mode() {
+        if local_mode::is_local_only_custom_provider_mode() {
             return Self::new_disabled(cloud_objects_client);
         }
 

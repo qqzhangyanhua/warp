@@ -19,13 +19,14 @@ fn local_only_tui_starts_logged_in_without_auth_flow() {
                 TuiLoginModel::as_ref(ctx).phase(),
                 TuiLoginPhase::LoggedIn
             ));
+            assert!(!should_create_anonymous_session(false));
         });
     });
 }
 
 #[test]
 #[serial_test::serial]
-fn anonymous_only_tui_still_starts_logged_in() {
+fn anonymous_only_tui_still_starts_logged_in_and_requests_anonymous_session() {
     let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
     let _anonymous_flag = FeatureFlag::AnonymousOnlyMode.override_enabled(true);
 
@@ -33,4 +34,6 @@ fn anonymous_only_tui_still_starts_logged_in() {
         initial_login_phase(false),
         TuiLoginPhase::LoggedIn
     ));
+    assert!(should_create_anonymous_session(false));
+    assert!(!should_create_anonymous_session(true));
 }

@@ -11,7 +11,7 @@ use warpui::{AppContext, Entity, SingletonEntity};
 
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
-use crate::TuiMountFn;
+use crate::{local_mode, TuiMountFn};
 
 /// Login state of the headless TUI, observed by the `warp_tui` root view to
 /// decide whether to show the login placeholder or the input UI.
@@ -63,11 +63,11 @@ pub(crate) fn init(mount: TuiMountFn, ctx: &mut AppContext) {
     // login placeholder until the model flips to `LoggedIn`.
     mount(ctx);
 
-    if logged_in || crate::local_mode::is_local_only_custom_provider_mode() {
+    if logged_in || local_mode::is_local_only_custom_provider_mode() {
         return;
     }
 
-    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+    if should_create_anonymous_session(logged_in) {
         AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
             auth_manager.create_anonymous_user(None, ctx);
         });
@@ -112,7 +112,7 @@ pub(crate) fn init(mount: TuiMountFn, ctx: &mut AppContext) {
 }
 
 fn initial_login_phase(logged_in: bool) -> TuiLoginPhase {
-    let local_only = crate::local_mode::is_local_only_custom_provider_mode();
+    let local_only = local_mode::is_local_only_custom_provider_mode();
     let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled() && !local_only;
 
     if logged_in || anonymous_only || local_only {
@@ -123,6 +123,12 @@ fn initial_login_phase(logged_in: bool) -> TuiLoginPhase {
             user_code: None,
         }
     }
+}
+
+fn should_create_anonymous_session(logged_in: bool) -> bool {
+    !logged_in
+        && FeatureFlag::AnonymousOnlyMode.is_enabled()
+        && !local_mode::is_local_only_custom_provider_mode()
 }
 
 /// Updates the shared [`TuiLoginModel`] phase and notifies observers, so the

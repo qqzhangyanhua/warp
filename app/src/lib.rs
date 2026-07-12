@@ -2150,22 +2150,20 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(FileMCPWatcher::new);
     ctx.add_singleton_model(FileBasedMCPManager::new);
 
-    if !local_only {
-        // TemplatableMCPServerManager must be registered after UpdateManager and MCPServerManager so it can migrate legacy MCPs on start up
-        // It should also be registered after FileBasedMCPManager so it can receive file-based server updates.
-        ctx.add_singleton_model(|ctx| {
-            TemplatableMCPServerManager::new(
-                persisted_mcp_server_installations,
-                mcp_servers_to_restore,
-                running_mcp_servers,
-                ctx,
-            )
-        });
+    // TemplatableMCPServerManager must be registered after UpdateManager and MCPServerManager so it can migrate legacy MCPs on start up
+    // It should also be registered after FileBasedMCPManager so it can receive file-based server updates.
+    ctx.add_singleton_model(|ctx| {
+        TemplatableMCPServerManager::new(
+            persisted_mcp_server_installations,
+            mcp_servers_to_restore,
+            running_mcp_servers,
+            ctx,
+        )
+    });
 
-        // MCPGalleryManager subscribes to UpdateManager so that it can be notified when gallery items are updated.
-        // The registration of this singleton must be after UpdateManager is registered.
-        ctx.add_singleton_model(MCPGalleryManager::new);
-    }
+    // MCPGalleryManager subscribes to UpdateManager so that it can be notified when gallery items are updated.
+    // The registration of this singleton must be after UpdateManager is registered.
+    ctx.add_singleton_model(MCPGalleryManager::new);
 
     // SkillManager is used to cache SKILL.md files for all active terminal views and their working directories
     ctx.add_singleton_model(SkillManager::new);

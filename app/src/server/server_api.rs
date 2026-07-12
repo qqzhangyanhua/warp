@@ -456,9 +456,16 @@ impl ServerApi {
     fn new_for_test() -> Self {
         let (tx, _) = async_channel::unbounded();
         let auth_state = Arc::new(AuthState::new_for_test());
-        let client = Arc::new(http_client::Client::new_for_test());
+        let mut client = http_client::Client::new_for_test();
+        let mut telemetry_api = TelemetryApi::new();
+        #[cfg(any(test, feature = "test-util"))]
+        if crate::local_mode::is_local_only_custom_provider_mode() {
+            install_local_only_forbidden_warp_request_guard(&mut client);
+            install_local_only_forbidden_warp_request_guard(&mut telemetry_api.client);
+        }
+        let client = Arc::new(client);
 
-        Self::new_with_parts(client, auth_state, tx, None, None, TelemetryApi::new())
+        Self::new_with_parts(client, auth_state, tx, None, None, telemetry_api)
     }
 
     #[cfg(all(test, feature = "skip_login"))]
@@ -1362,11 +1369,7 @@ impl ServerApiProvider {
 #[cfg(any(test, feature = "test-util"))]
 fn install_local_only_forbidden_warp_request_guard(client: &mut http_client::Client) {
     client.set_before_request_fn(Box::new(|request, _| {
-        let Some(host) = request.url().host_str() else {
-            return;
-        };
-
-        if host == "warp.dev" || host.ends_with(".warp.dev") {
+        if is_forbidden_local_only_request_url(request.url()) {
             panic!(
                 "Local-only Mode attempted forbidden Warp request: {} {}",
                 request.method(),
@@ -1374,6 +1377,32 @@ fn install_local_only_forbidden_warp_request_guard(client: &mut http_client::Cli
             );
         }
     }));
+}
+
+#[cfg(any(test, feature = "test-util"))]
+fn is_forbidden_local_only_request_url(url: &Url) -> bool {
+    let Some(host) = url.host_str() else {
+        return false;
+    };
+
+    host == "warp.dev"
+        || host.ends_with(".warp.dev")
+        || host.ends_with(".firebaseapp.com")
+        || host.ends_with(".sentry.io")
+        || host.contains("rudderstack")
+        || is_configured_rudderstack_host(host)
+}
+
+#[cfg(any(test, feature = "test-util"))]
+fn is_configured_rudderstack_host(host: &str) -> bool {
+    [
+        ChannelState::rudderstack_non_ugc_destination().root_url,
+        ChannelState::rudderstack_ugc_destination().root_url,
+    ]
+    .iter()
+    .filter_map(|root| Url::parse(root.as_ref()).ok())
+    .filter_map(|url| url.host_str().map(str::to_owned))
+    .any(|rudder_host| host == rudder_host || host.ends_with(&format!(".{rudder_host}")))
 }
 
 impl Entity for ServerApiProvider {

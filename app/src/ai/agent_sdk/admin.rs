@@ -10,12 +10,13 @@ use warpui::{AppContext, SingletonEntity};
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::user::PrincipalType;
 use crate::auth::AuthStateProvider;
+use crate::local_mode;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// Kick off a device authorization login flow and handle auth events.
 pub fn login(ctx: &mut AppContext) -> Result<()> {
-    if crate::local_mode::is_local_only_custom_provider_mode() {
-        anyhow::bail!(crate::local_mode::account_sign_in_unavailable_message());
+    if local_mode::is_local_only_custom_provider_mode() {
+        anyhow::bail!(local_mode::account_sign_in_unavailable_message());
     }
 
     if FeatureFlag::AnonymousOnlyMode.is_enabled() {
@@ -125,7 +126,7 @@ pub(super) struct WhoamiOutput {
 
 pub(super) fn local_whoami_output(ctx: &AppContext) -> Result<WhoamiOutput> {
     Ok(WhoamiOutput {
-        uid: crate::local_mode::get_or_create_local_identity(ctx)?.as_uid(),
+        uid: local_mode::get_or_create_local_identity(ctx)?.as_uid(),
         principal_type: "local",
         display_name: None,
         email: None,
@@ -159,7 +160,7 @@ impl SingletonEntity for WhoamiRunner {}
 
 /// Print information about the currently authenticated principal.
 pub fn whoami(ctx: &mut AppContext, output_format: OutputFormat) -> Result<()> {
-    if crate::local_mode::is_local_only_custom_provider_mode() {
+    if local_mode::is_local_only_custom_provider_mode() {
         let info = local_whoami_output(ctx)?;
         println!("{}", format_local_whoami_output(&info, output_format)?);
         ctx.terminate_app(TerminationMode::ForceTerminate, None);
@@ -292,8 +293,8 @@ pub fn whoami(ctx: &mut AppContext, output_format: OutputFormat) -> Result<()> {
 
 /// Log out of Warp using the same logic as the app.
 pub fn logout(ctx: &mut AppContext) -> Result<()> {
-    if crate::local_mode::is_local_only_custom_provider_mode() {
-        anyhow::bail!(crate::local_mode::account_logout_unavailable_message());
+    if local_mode::is_local_only_custom_provider_mode() {
+        anyhow::bail!(local_mode::account_logout_unavailable_message());
     }
 
     if FeatureFlag::AnonymousOnlyMode.is_enabled() {

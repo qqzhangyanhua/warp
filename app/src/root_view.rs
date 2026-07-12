@@ -100,8 +100,8 @@ use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 use crate::{
-    send_telemetry_from_app_ctx, send_telemetry_from_ctx, ChannelState, GlobalResourceHandles,
-    GlobalResourceHandlesProvider, UpdateQuakeModeEventArg,
+    local_mode, send_telemetry_from_app_ctx, send_telemetry_from_ctx, ChannelState,
+    GlobalResourceHandles, GlobalResourceHandlesProvider, UpdateQuakeModeEventArg,
 };
 
 const WINDOW_TITLE: &str = crate::product::PRODUCT_DISPLAY_NAME;
@@ -1711,7 +1711,7 @@ impl RootView {
                     let should_show_pre_login_onboarding = FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
                         && FeatureFlag::AgentOnboarding.is_enabled()
                         && !has_completed_local_onboarding;
-                    if crate::local_mode::is_local_only_custom_provider_mode() {
+                    if local_mode::is_local_only_custom_provider_mode() {
                         AuthOnboardingState::Terminal(workspace_args.create_workspace(ctx))
                     } else if FeatureFlag::AnonymousOnlyMode.is_enabled() {
                         if should_show_pre_login_onboarding {
@@ -1778,7 +1778,7 @@ impl RootView {
         };
 
         if FeatureFlag::AnonymousOnlyMode.is_enabled()
-            && !crate::local_mode::is_local_only_custom_provider_mode()
+            && !local_mode::is_local_only_custom_provider_mode()
             && !auth_state.is_logged_in()
         {
             AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
