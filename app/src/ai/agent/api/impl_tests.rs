@@ -59,6 +59,50 @@ fn request_params_for_remote(host_id: Option<HostId>) -> RequestParams {
     params
 }
 
+fn custom_model_providers(config_keys: &[&str]) -> api::request::settings::CustomModelProviders {
+    api::request::settings::CustomModelProviders {
+        providers: vec![
+            api::request::settings::custom_model_providers::CustomModelProvider {
+                base_url: "http://localhost:8080/v1".to_string(),
+                api_key: "key".to_string(),
+                models: config_keys
+                    .iter()
+                    .map(|config_key| {
+                        api::request::settings::custom_model_providers::CustomModel {
+                            slug: format!("model-{config_key}"),
+                            config_key: (*config_key).to_string(),
+                        }
+                    })
+                    .collect(),
+            },
+        ],
+    }
+}
+
+#[test]
+fn model_config_is_not_backed_by_custom_providers_when_base_model_is_hosted() {
+    let custom_model = LLMId::from("custom-model");
+    let mut params = request_params_with_ask_user_question_enabled(false);
+    params.model = LLMId::from("hosted-model");
+    params.cli_agent_model = custom_model.clone();
+    params.computer_use_model = custom_model;
+    params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
+
+    assert!(!params.model_config_is_backed_by_custom_providers());
+}
+
+#[test]
+fn model_config_is_backed_by_custom_providers_when_all_request_models_are_custom() {
+    let custom_model = LLMId::from("custom-model");
+    let mut params = request_params_with_ask_user_question_enabled(false);
+    params.model = custom_model.clone();
+    params.cli_agent_model = custom_model.clone();
+    params.computer_use_model = custom_model;
+    params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
+
+    assert!(params.model_config_is_backed_by_custom_providers());
+}
+
 #[test]
 fn api_keys_with_warp_credit_fallback_setting_returns_none_without_keys_or_fallback() {
     let api_keys = api_keys_with_warp_credit_fallback_setting(None, false);

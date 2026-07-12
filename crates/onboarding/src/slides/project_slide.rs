@@ -20,6 +20,7 @@ use warpui_core::{
 };
 
 use super::OnboardingSlide;
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::OnboardingStateModel;
 use crate::slides::{bottom_nav, layout, slide_content};
 use crate::telemetry::OnboardingEvent;
@@ -61,6 +62,7 @@ pub enum ProjectSlideAction {
 
 pub struct ProjectSlide {
     onboarding_state: ModelHandle<OnboardingStateModel>,
+    locale: Locale,
     open_folder_mouse_state: MouseStateHandle,
     back_button: button::Button,
     next_button: button::Button,
@@ -69,9 +71,10 @@ pub struct ProjectSlide {
 }
 
 impl ProjectSlide {
-    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>) -> Self {
+    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>, locale: Locale) -> Self {
         Self {
             onboarding_state,
+            locale,
             open_folder_mouse_state: MouseStateHandle::default(),
             back_button: button::Button::default(),
             next_button: button::Button::default(),
@@ -95,7 +98,7 @@ impl ProjectSlide {
             Align::new(self.render_open_folder_button(appearance, settings)).finish(),
         ];
 
-        // Only show the "Initialize project automatically" checkbox when AgentView is NOT enabled.
+        // Only show the i18n::tr(OnboardingMessage::InitializeProjectAutomatically, self.locale) checkbox when AgentView is NOT enabled.
         // When AgentView is enabled, initialization is handled differently through the callout flow.
         if !agent_modality_enabled {
             if let ProjectOnboardingSettings::Project {
@@ -124,7 +127,7 @@ impl ProjectSlide {
     fn render_header(&self, appearance: &Appearance) -> Box<dyn Element> {
         let title = appearance
             .ui_builder()
-            .paragraph("Open a project")
+            .paragraph(i18n::tr(OnboardingMessage::OpenAProject, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -135,7 +138,7 @@ impl ProjectSlide {
 
         let subtitle = appearance
             .ui_builder()
-            .paragraph("Set up a project to optimize it for coding in Warp.")
+            .paragraph(i18n::tr(OnboardingMessage::ProjectSubtitle, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(20.),
                 font_weight: Some(Weight::Normal),
@@ -213,7 +216,7 @@ impl ProjectSlide {
                 let folder_text = Container::new(
                     appearance
                         .ui_builder()
-                        .paragraph("Open local folder")
+                        .paragraph(i18n::tr(OnboardingMessage::OpenLocalFolder, self.locale))
                         .with_style(UiComponentStyles {
                             font_color: Some(text_color),
                             ..Default::default()
@@ -280,7 +283,7 @@ impl ProjectSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Back".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -297,15 +300,15 @@ impl ProjectSlide {
         let (label, keystroke, action) = match settings {
             ProjectOnboardingSettings::Project { .. } => (
                 if theme_picker_last {
-                    "Next"
+                    i18n::tr(OnboardingMessage::Next, self.locale)
                 } else {
-                    "Get Warping"
+                    i18n::tr(OnboardingMessage::GetWarping, self.locale)
                 },
                 Keystroke::parse("enter").unwrap_or_default(),
                 ProjectSlideAction::NextClicked,
             ),
             ProjectOnboardingSettings::NoProject => (
-                "Skip",
+                i18n::tr(OnboardingMessage::Skip, self.locale),
                 Keystroke::parse("cmdorctrl-enter").unwrap_or_default(),
                 ProjectSlideAction::SkipClicked,
             ),
@@ -408,8 +411,8 @@ impl ProjectSlide {
             appearance,
             self.initialize_projects_automatically_mouse_state.clone(),
             initialize_projects_automatically,
-            "Initialize project automatically",
-            "Prepares the project environment, builds an index of your code, and generates project rules—giving the agent deeper understanding and better performance.",
+            i18n::tr(OnboardingMessage::InitializeProjectAutomatically, self.locale),
+            i18n::tr(OnboardingMessage::InitializeProjectDescription, self.locale),
             ProjectSlideAction::ToggleInitializeProjectsAutomatically,
         );
 

@@ -5,6 +5,8 @@
 - [docs/testing.md](docs/testing.md)
 - [docs/dangerous-areas.md](docs/dangerous-areas.md)
 - [docs/debugging.md](docs/debugging.md)
+- [CONTEXT.md](CONTEXT.md) — domain vocabulary; use these terms and avoid the listed synonyms.
+- [docs/adr/](docs/adr/) — architectural decision records for the area you are about to change.
 
 ## Default Workflow
 1. Understand the task and current workspace state.

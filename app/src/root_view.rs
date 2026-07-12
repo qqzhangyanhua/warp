@@ -1981,6 +1981,10 @@ impl RootView {
 
             let auth_state = current_onboarding_auth_state(ctx);
 
+            let locale = match crate::i18n::active_locale(ctx) {
+                crate::i18n::Locale::En => onboarding::i18n::Locale::En,
+                crate::i18n::Locale::ZhCn => onboarding::i18n::Locale::ZhCn,
+            };
             AgentOnboardingView::new(
                 themes.clone(),
                 false, // Always use unskippable onboarding.
@@ -1989,6 +1993,7 @@ impl RootView {
                 workspace_enforces_autonomy,
                 FeatureFlag::AgentView.is_enabled(),
                 auth_state,
+                locale,
                 ctx,
             )
         });

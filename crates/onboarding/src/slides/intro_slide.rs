@@ -2,6 +2,7 @@ use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use ui_components::{button, Component as _, Options as _};
 use warp_core::send_telemetry_from_ctx;
+use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::Icon;
@@ -22,6 +23,7 @@ use warpui_core::{
 };
 
 use super::OnboardingSlide;
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::OnboardingStateModel;
 use crate::OnboardingEvent;
 
@@ -38,15 +40,20 @@ pub enum IntroSlideAction {
 
 pub struct IntroSlide {
     onboarding_state: ModelHandle<OnboardingStateModel>,
+    locale: Locale,
     get_started_button: button::Button,
     shimmering_title_handle: ShimmeringTextStateHandle,
     login_mouse_state: MouseStateHandle,
 }
 
 impl IntroSlide {
-    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>) -> Self {
+    pub(crate) fn new(
+        onboarding_state: ModelHandle<OnboardingStateModel>,
+        locale: Locale,
+    ) -> Self {
         Self {
             onboarding_state,
+            locale,
             get_started_button: button::Button::default(),
             shimmering_title_handle: ShimmeringTextStateHandle::new(),
             login_mouse_state: MouseStateHandle::default(),
@@ -82,7 +89,7 @@ impl View for IntroSlide {
         let login_row = Flex::row()
             .with_child(
                 ui_builder
-                    .span("Already have an account? ")
+                    .span(i18n::tr(OnboardingMessage::AlreadyHaveAccount, self.locale))
                     .with_style(disclaimer_styles)
                     .build()
                     .finish(),
@@ -90,7 +97,7 @@ impl View for IntroSlide {
             .with_child(
                 ui_builder
                     .link(
-                        "Log in".into(),
+                        i18n::tr(OnboardingMessage::LogIn, self.locale).into(),
                         None,
                         Some(Box::new(|ctx| {
                             ctx.dispatch_typed_action(IntroSlideAction::LoginClicked);
@@ -109,15 +116,17 @@ impl View for IntroSlide {
 
         let mut stack = Stack::new();
         stack.add_child(centered);
-        stack.add_positioned_child(
-            login_row,
-            OffsetPositioning::offset_from_parent(
-                vec2f(0., -28.),
-                ParentOffsetBounds::ParentBySize,
-                ParentAnchor::BottomMiddle,
-                ChildAnchor::BottomMiddle,
-            ),
-        );
+        if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            stack.add_positioned_child(
+                login_row,
+                OffsetPositioning::offset_from_parent(
+                    vec2f(0., -28.),
+                    ParentOffsetBounds::ParentBySize,
+                    ParentAnchor::BottomMiddle,
+                    ChildAnchor::BottomMiddle,
+                ),
+            );
+        }
         stack.finish()
     }
 }
@@ -151,7 +160,7 @@ impl IntroSlide {
         let base_color: ColorU = internal_colors::fg_overlay_4(theme).into();
         let shimmer_color: ColorU = theme.foreground().into();
         let title = ShimmeringTextElement::new(
-            "Welcome to Warp",
+            i18n::tr(OnboardingMessage::WelcomeToWarp, self.locale),
             appearance.ui_font_family(),
             32.,
             base_color,
@@ -163,7 +172,10 @@ impl IntroSlide {
 
         let subtitle_color = internal_colors::text_sub(theme, theme.background().into_solid());
         let subtitle = FormattedTextElement::from_str(
-            "A modern terminal with state of the art agents built in.",
+            i18n::tr(
+                OnboardingMessage::ModernTerminalDescription,
+                self.locale,
+            ),
             appearance.ui_font_family(),
             16.,
         )
@@ -176,7 +188,7 @@ impl IntroSlide {
         let get_started_button = self.get_started_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Get started".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::GetStarted, self.locale).into()),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),

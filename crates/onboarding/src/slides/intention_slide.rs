@@ -21,10 +21,11 @@ use warpui_core::{
 };
 
 use super::OnboardingSlide;
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::{NoAiConfirmationSource, OnboardingStateModel};
 use crate::slides::{bottom_nav, layout, slide_content};
 use crate::visuals::{intention_terminal_visual, intention_visual};
-use crate::{OnboardingIntention, AI_FEATURES};
+use crate::OnboardingIntention;
 
 #[derive(Debug, Clone)]
 pub enum IntentionSlideAction {
@@ -35,6 +36,7 @@ pub enum IntentionSlideAction {
 
 pub struct IntentionSlide {
     onboarding_state: ModelHandle<OnboardingStateModel>,
+    locale: Locale,
     agent_driven_development_mouse_state: MouseStateHandle,
     classic_terminal_mouse_state: MouseStateHandle,
     back_button: button::Button,
@@ -43,9 +45,10 @@ pub struct IntentionSlide {
 }
 
 impl IntentionSlide {
-    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>) -> Self {
+    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>, locale: Locale) -> Self {
         Self {
             onboarding_state,
+            locale,
             agent_driven_development_mouse_state: MouseStateHandle::default(),
             classic_terminal_mouse_state: MouseStateHandle::default(),
             back_button: button::Button::default(),
@@ -83,7 +86,7 @@ impl IntentionSlide {
 
         let title = appearance
             .ui_builder()
-            .paragraph("Welcome to Warp")
+            .paragraph(i18n::tr(OnboardingMessage::WelcomeToWarp, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -93,7 +96,7 @@ impl IntentionSlide {
             .finish();
 
         let subtitle = FormattedTextElement::from_str(
-            "How do you want to work?",
+            i18n::tr(OnboardingMessage::HowDoYouWantToWork, self.locale),
             appearance.ui_font_family(),
             16.,
         )
@@ -202,7 +205,7 @@ impl IntentionSlide {
         let header_row = {
             let label = appearance
                 .ui_builder()
-                .paragraph("Build faster with agents")
+                .paragraph(i18n::tr(OnboardingMessage::BuildFasterWithAgents, self.locale))
                 .with_style(UiComponentStyles {
                     font_size: Some(16.),
                     font_weight: Some(Weight::Semibold),
@@ -240,7 +243,7 @@ impl IntentionSlide {
         };
 
         let description = FormattedTextElement::from_str(
-            "Get AI features to accelerate terminal and agent-driven workflows:",
+            i18n::tr(OnboardingMessage::AgentCardDescription, self.locale),
             appearance.ui_font_family(),
             14.,
         )
@@ -251,7 +254,7 @@ impl IntentionSlide {
         .finish();
 
         let checklist = {
-            let items = AI_FEATURES;
+            let items = crate::ai_features(self.locale);
             // When the agent card is selected, use the theme's green to match the
             // "Blended ANSI/green_fg" token in the design.
             let check_fill = if is_selected {
@@ -321,7 +324,7 @@ impl IntentionSlide {
 
         let label = appearance
             .ui_builder()
-            .paragraph("Just use the terminal")
+            .paragraph(i18n::tr(OnboardingMessage::JustUseTheTerminal, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(16.),
                 font_weight: Some(Weight::Semibold),
@@ -334,7 +337,7 @@ impl IntentionSlide {
         let badge = {
             let badge_text = appearance
                 .ui_builder()
-                .paragraph("No AI features")
+                .paragraph(i18n::tr(OnboardingMessage::NoAiFeatures, self.locale))
                 .with_style(UiComponentStyles {
                     font_size: Some(12.),
                     font_weight: Some(Weight::Semibold),
@@ -360,7 +363,7 @@ impl IntentionSlide {
             .finish();
 
         let description = FormattedTextElement::from_str(
-            "A modern terminal optimized for speed, context, and control without AI.",
+            i18n::tr(OnboardingMessage::TerminalCardDescription, self.locale),
             appearance.ui_font_family(),
             14.,
         )
@@ -388,7 +391,7 @@ impl IntentionSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Back".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -401,9 +404,9 @@ impl IntentionSlide {
 
         let new_settings_modes = FeatureFlag::OpenWarpNewSettingsModes.is_enabled();
         let next_text = if !new_settings_modes && selected_index == 1 {
-            "Get Warping"
+            i18n::tr(OnboardingMessage::GetWarping, self.locale)
         } else {
-            "Next"
+            i18n::tr(OnboardingMessage::Next, self.locale)
         };
         let enter = Keystroke::parse("enter").unwrap_or_default();
         let next_button = self.next_button.render(

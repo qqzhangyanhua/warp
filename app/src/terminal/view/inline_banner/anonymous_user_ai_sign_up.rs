@@ -11,14 +11,10 @@ use super::{
     INLINE_BANNER_MARGIN_BETWEEN_BUTTONS, INLINE_BANNER_RIGHT_MARGIN,
 };
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::view::{InlineBannerId, TerminalAction};
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon as UiIcon;
-
-const TITLE: &str = "Login for AI";
-const CONTENT: &str =
-    "AI features are unavailable for logged-out users. Create an account to use AI.";
-const SIGN_UP_BUTTON_TEXT: &str = "Sign Up";
 
 // Layout constants for three-column banner
 const ICON_SIZE_OFFSET: f32 = 3.0;
@@ -51,9 +47,9 @@ impl AnonymousUserAISignUpBannerState {
     pub fn render(&self, appearance: &Appearance) -> Box<dyn Element> {
         render_three_column_inline_banner(
             appearance,
-            TITLE,
-            CONTENT,
-            SIGN_UP_BUTTON_TEXT,
+            tr_cached(Message::TerminalLoginForAi),
+            tr_cached(Message::TerminalAiUnavailableLoggedOut),
+            tr_cached(Message::TerminalSignUp),
             self.sign_up_button_mouse_state.clone(),
             self.close_button_mouse_state.clone(),
         )

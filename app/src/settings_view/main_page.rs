@@ -35,6 +35,7 @@ use super::settings_page::{
 };
 use super::{flags, SettingsAction, SettingsSection, ToggleSettingActionPair};
 use crate::appearance::Appearance;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::auth::auth_manager::{AuthManager, LoginGatedFeature};
 use crate::auth::auth_state::AuthState;
 use crate::auth::auth_view_modal::AuthViewVariant;
@@ -49,10 +50,8 @@ use crate::workspaces::workspace::CustomerType;
 use crate::{send_telemetry_from_ctx, TelemetryEvent};
 
 const PHOTO_SIZE: f32 = 40.;
-const REFERRAL_CTA: &str = "Earn rewards by sharing Warp with friends & colleagues";
 const REGULAR_TEXT_FONT_SIZE: f32 = 12.;
 const VERTICAL_MARGIN: f32 = 24.;
-const LOG_OUT_TEXT: &str = "Log out";
 lazy_static! {
     static ref SETTINGS_SYNC_BINDINGS_ADDED: Arc<Mutex<bool>> = Default::default();
 }
@@ -143,7 +142,7 @@ impl From<&MainPageAction> for LoginGatedFeature {
     fn from(val: &MainPageAction) -> LoginGatedFeature {
         use MainPageAction::*;
         match val {
-            Upgrade { .. } => "Upgrade Plan",
+            Upgrade { .. } => tr_cached(Message::AccountUpgradePlan),
             GenerateStripeBillingPortalLink { .. } => "Generate Stripe Billing Portal Link",
             ToggleSettingsSync => "Toggle Settings Sync",
             _ => "Unknown reason",
@@ -298,7 +297,7 @@ impl MainSettingsPageView {
 
         widgets.push(Box::new(LogoutWidget::default()));
 
-        let page = PageType::new_uncategorized(widgets, Some("Account"));
+        let page = PageType::new_uncategorized(widgets, Some(tr_cached(Message::SettingsSectionAccount)));
 
         MainSettingsPageView { page, auth_state }
     }
@@ -351,7 +350,7 @@ impl AccountWidget {
                 self.ui_state_handles.anonymous_user_sign_up_button.clone(),
             )
             .with_style(button_styles)
-            .with_text_label("Sign up".to_owned())
+            .with_text_label(tr_cached(Message::AccountSignUp).to_owned())
             .build()
             .on_click(move |ctx, _, _| {
                 ctx.dispatch_typed_action(MainPageAction::SignupAnonymousUser);
@@ -375,7 +374,7 @@ impl AccountWidget {
                     .with_text_and_icon_label(
                         TextAndIcon::new(
                             TextAndIconAlignment::IconFirst,
-                            "Compare plans",
+                            tr_cached(Message::AccountComparePlans),
                             Icon::CoinsStacked.to_warpui_icon(appearance.theme().accent()),
                             MainAxisSize::Min,
                             MainAxisAlignment::Center,
@@ -511,7 +510,7 @@ impl AccountWidget {
                         appearance
                             .ui_builder()
                             .link(
-                                "Contact support".into(),
+                                tr_cached(Message::AccountContactSupport).into(),
                                 Some("mailto:support@warp.dev".into()),
                                 None,
                                 self.ui_state_handles.enterprise_contact_us_link.clone(),
@@ -528,7 +527,7 @@ impl AccountWidget {
                             appearance
                                 .ui_builder()
                                 .link(
-                                    "Manage billing".into(),
+                                    tr_cached(Message::AccountManageBilling).into(),
                                     None,
                                     Some(Box::new(move |ctx| {
                                         ctx.dispatch_typed_action(
@@ -549,9 +548,9 @@ impl AccountWidget {
                     // If the team is upgradeable to self-serve tier, show them the upgrade link.
                     if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
                         let description = match team.billing_metadata.customer_type {
-                            CustomerType::Prosumer => "Upgrade to Turbo plan",
-                            CustomerType::Turbo => "Upgrade to Lightspeed plan",
-                            _ => "Compare plans",
+                            CustomerType::Prosumer => tr_cached(Message::AccountUpgradeToTurbo),
+                            CustomerType::Turbo => tr_cached(Message::AccountUpgradeToLightspeed),
+                            _ => tr_cached(Message::AccountComparePlans),
                         };
                         let team_uid = team.uid;
                         plan_info.add_child(
@@ -584,7 +583,7 @@ impl AccountWidget {
                 appearance
                     .ui_builder()
                     .link(
-                        "Compare plans".into(),
+                        tr_cached(Message::AccountComparePlans).into(),
                         None,
                         Some(Box::new(move |ctx| {
                             ctx.dispatch_typed_action(MainPageAction::Upgrade {
@@ -714,7 +713,7 @@ impl SettingsWidget for SettingsSyncWidget {
         };
 
         Container::new(render_body_item::<MainPageAction>(
-            "Settings sync".to_string(),
+            tr_cached(Message::AccountSettingsSync).to_string(),
             Some(label_info),
             // Cloud prefs are always synced, so no need to show the local-only icon.
             LocalOnlyIconState::Hidden,
@@ -794,11 +793,11 @@ impl SettingsWidget for EarnRewardsWidget {
         Container::new(
             self.render_row(
                 appearance,
-                REFERRAL_CTA,
+                tr_cached(Message::AccountReferralCta),
                 appearance
                     .ui_builder()
                     .link(
-                        "Refer a friend".into(),
+                        tr_cached(Message::AccountReferAFriend).into(),
                         None,
                         Some(Box::new(move |ctx| {
                             ctx.dispatch_typed_action(WorkspaceAction::ShowReferralSettingsPage);
@@ -848,11 +847,11 @@ impl VersionInfoWidget {
                 match autoupdate::get_update_state(app) {
                     AutoupdateStage::NoUpdateAvailable => (
                         Some(StatusContent {
-                            text: "Up to date",
+                            text: tr_cached(Message::AccountUpToDate),
                             color: faded_text_color,
                         }),
                         Some(CallToActionContent {
-                            text: "Check for updates",
+                            text: tr_cached(Message::AccountCheckForUpdates),
                             action: MainPageAction::CheckForUpdate,
                         }),
                     ),
@@ -872,49 +871,49 @@ impl VersionInfoWidget {
                     ),
                     AutoupdateStage::UpdateReady { .. } => (
                         Some(StatusContent {
-                            text: "Update available",
+                            text: tr_cached(Message::AccountUpdateAvailable),
                             color: ansi_red,
                         }),
                         Some(CallToActionContent {
-                            text: "Relaunch Warp",
+                            text: tr_cached(Message::AccountRelaunchWarp),
                             action: MainPageAction::Relaunch,
                         }),
                     ),
                     AutoupdateStage::Updating { .. } => (
                         Some(StatusContent {
-                            text: "Updating...",
+                            text: tr_cached(Message::AccountUpdating),
                             color: faded_text_color,
                         }),
                         None,
                     ),
                     AutoupdateStage::UpdatedPendingRestart { .. } => (
                         Some(StatusContent {
-                            text: "Installed update",
+                            text: tr_cached(Message::AccountInstalledUpdate),
                             color: faded_text_color,
                         }),
                         Some(CallToActionContent {
-                            text: "Relaunch Warp",
+                            text: tr_cached(Message::AccountRelaunchWarp),
                             action: MainPageAction::Relaunch,
                         }),
                     ),
                     AutoupdateStage::UnableToUpdateToNewVersion { .. } => (
                         Some(StatusContent {
-                            text: "A new version of Warp is available but can't be installed",
+                            text: tr_cached(Message::AccountNewVersionCantInstall),
                             color: ansi_red,
                         }),
                         Some(CallToActionContent {
-                            text: "Update Warp manually",
+                            text: tr_cached(Message::AccountUpdateWarpManually),
                             // note: the handler for this action is a no-op
                             action: MainPageAction::DownloadUpdate,
                         }),
                     ),
                     AutoupdateStage::UnableToLaunchNewVersion { .. } => (
                         Some(StatusContent {
-                            text: "A new version of Warp is installed but can't be launched.",
+                            text: tr_cached(Message::AccountNewVersionCantLaunch),
                             color: ansi_red,
                         }),
                         Some(CallToActionContent {
-                            text: "Update Warp manually",
+                            text: tr_cached(Message::AccountUpdateWarpManually),
                             // note: the handler for this action is a no-op
                             action: MainPageAction::DownloadUpdate,
                         }),
@@ -931,7 +930,7 @@ impl VersionInfoWidget {
                     1.0,
                     Align::new(
                         Text::new_inline(
-                            "Version".to_string(),
+                            tr_cached(Message::AccountVersion).to_string(),
                             appearance.ui_font_family(),
                             REGULAR_TEXT_FONT_SIZE,
                         )
@@ -1059,7 +1058,7 @@ impl LogoutWidget {
         appearance
             .ui_builder()
             .button(ButtonVariant::Secondary, self.mouse_state.clone())
-            .with_text_label(LOG_OUT_TEXT.into())
+            .with_text_label(tr_cached(Message::AccountLogOut).into())
             .with_style(UiComponentStyles {
                 font_size: Some(14.),
                 padding: Some(Coords::uniform(8.).left(32.).right(32.)),
@@ -1104,8 +1103,8 @@ impl SettingsWidget for IapCredentialsWidget {
         let disabled: ColorU = appearance.theme().disabled_ui_text_color().into();
         let active: ColorU = appearance.theme().active_ui_text_color().into();
         let (status_text, status_color): (String, ColorU) = match &state {
-            IapCredentialsState::Missing => ("Not yet loaded".to_string(), disabled),
-            IapCredentialsState::Refreshing { .. } => ("Refreshing…".to_string(), active),
+            IapCredentialsState::Missing => (tr_cached(Message::AccountNotYetLoaded).to_string(), disabled),
+            IapCredentialsState::Refreshing { .. } => (tr_cached(Message::AccountRefreshing).to_string(), active),
             IapCredentialsState::Loaded(cached) => {
                 let remaining = cached
                     .expires_at
@@ -1113,7 +1112,7 @@ impl SettingsWidget for IapCredentialsWidget {
                 let mins = remaining.as_secs() / 60;
                 (format!("Loaded (refreshes in ~{mins}m)"), active)
             }
-            IapCredentialsState::Failed { message, .. } => (format!("Failed: {message}"), ansi_red),
+            IapCredentialsState::Failed { message, .. } => (tr_cached(Message::AccountFailedWithMessage).replace("{message}", message), ansi_red),
             IapCredentialsState::EnvInjected { .. } => {
                 ("Using injected token (WARP_IAP_TOKEN)".to_string(), active)
             }
@@ -1123,7 +1122,7 @@ impl SettingsWidget for IapCredentialsWidget {
 
         let label = Align::new(
             Text::new_inline(
-                "Staging IAP credentials".to_string(),
+                tr_cached(Message::AccountStagingIapCredentials).to_string(),
                 appearance.ui_font_family(),
                 REGULAR_TEXT_FONT_SIZE,
             )
@@ -1155,9 +1154,9 @@ impl SettingsWidget for IapCredentialsWidget {
                 self.refresh_button_mouse_state.clone(),
             )
             .with_text_label(if is_refreshing {
-                "Refreshing…".into()
+                tr_cached(Message::AccountRefreshing).into()
             } else {
-                "Refresh".into()
+                tr_cached(Message::AccountRefresh).into()
             })
             .with_style(UiComponentStyles {
                 font_size: Some(12.),

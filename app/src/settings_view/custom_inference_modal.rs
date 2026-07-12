@@ -1,5 +1,3 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-
 use ::ai::api_keys::CustomEndpoint;
 use url::Url;
 use warp_editor::editor::NavigationKey;
@@ -22,6 +20,7 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
+use crate::i18n::{tr, Message};
 use crate::modal::{Modal, ModalViewState};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, DangerSecondaryTheme};
@@ -114,6 +113,7 @@ impl CustomEndpointModal {
         let font_family = Appearance::as_ref(ctx).ui_font_family();
         let text_colors = crate::settings_view::editor_text_colors(Appearance::as_ref(ctx));
 
+        let name_placeholder = tr(ctx, Message::CustomInferenceEndpointNamePlaceholder);
         let endpoint_name_text_colors = text_colors.clone();
         let endpoint_name_editor = ctx.add_typed_action_view(move |ctx| {
             let options = SingleLineEditorOptions {
@@ -127,13 +127,14 @@ impl CustomEndpointModal {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("e.g., Zach's external models", ctx);
+            editor.set_placeholder_text(name_placeholder, ctx);
             if let Some(ep) = endpoint {
                 editor.set_buffer_text(&ep.name, ctx);
             }
             editor
         });
 
+        let url_placeholder = tr(ctx, Message::CustomInferenceEndpointUrlPlaceholder);
         let endpoint_url_text_colors = text_colors.clone();
         let endpoint_url_editor = ctx.add_typed_action_view(move |ctx| {
             let options = SingleLineEditorOptions {
@@ -147,13 +148,14 @@ impl CustomEndpointModal {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("Please include 'https://'", ctx);
+            editor.set_placeholder_text(url_placeholder, ctx);
             if let Some(ep) = endpoint {
                 editor.set_buffer_text(&ep.url, ctx);
             }
             editor
         });
 
+        let api_key_placeholder = tr(ctx, Message::CustomInferenceApiKeyPlaceholder);
         let api_key_text_colors = text_colors.clone();
         let api_key_editor = ctx.add_typed_action_view(move |ctx| {
             let options = SingleLineEditorOptions {
@@ -168,7 +170,7 @@ impl CustomEndpointModal {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("e.g., sk-...", ctx);
+            editor.set_placeholder_text(api_key_placeholder, ctx);
             if let Some(ep) = endpoint {
                 editor.set_buffer_text(&ep.api_key, ctx);
             }
@@ -221,8 +223,9 @@ impl CustomEndpointModal {
                 me.handle_model_editor_event(&editor, event, ctx);
             });
         }
+        let remove_label = tr(ctx, Message::CustomInferenceRemove);
         let remove_endpoint_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Remove", DangerSecondaryTheme)
+            ActionButton::new(remove_label, DangerSecondaryTheme)
                 .with_icon(Icon::Trash)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(CustomEndpointModalAction::RemoveEndpoint);
@@ -252,6 +255,7 @@ impl CustomEndpointModal {
         text_colors: &crate::editor::TextColors,
         ctx: &mut ViewContext<Self>,
     ) -> ModelRow {
+        let model_placeholder = tr(ctx, Message::CustomInferenceModelNamePlaceholder);
         let tc = text_colors.clone();
         let name_editor = ctx.add_typed_action_view(move |ctx| {
             let options = SingleLineEditorOptions {
@@ -265,13 +269,14 @@ impl CustomEndpointModal {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("e.g., GLM-5-FP8", ctx);
+            editor.set_placeholder_text(model_placeholder, ctx);
             if let Some(n) = name {
                 editor.set_buffer_text(n, ctx);
             }
             editor
         });
 
+        let alias_placeholder = tr(ctx, Message::CustomInferenceModelAliasPlaceholder);
         let tc = text_colors.clone();
         let alias_editor = ctx.add_typed_action_view(move |ctx| {
             let options = SingleLineEditorOptions {
@@ -285,7 +290,7 @@ impl CustomEndpointModal {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("e.g., GLM-5", ctx);
+            editor.set_placeholder_text(alias_placeholder, ctx);
             if let Some(a) = alias {
                 editor.set_buffer_text(a, ctx);
             }
@@ -693,7 +698,7 @@ impl View for CustomEndpointModal {
         column.add_child(
             Container::new(
                 Text::new(
-                    "Provide your endpoint details below. You can add as many models from the endpoint as you'd like and can also provide aliases for the model picker in your input.",
+                    tr(app, Message::CustomInferenceDescription),
                     appearance.ui_font_family(),
                     LABEL_FONT_SIZE,
                 )
@@ -707,10 +712,12 @@ impl View for CustomEndpointModal {
 
         // Endpoint name
         column.add_child(
-            Container::new(label("Endpoint name"))
+            Container::new(label(tr(app, Message::CustomInferenceEndpointName)))
                 .with_margin_bottom(4.)
                 .finish(),
         );
+        let endpoint_url = self.endpoint_url_editor.as_ref(app).buffer_text(app);
+        let show_http_warning = is_insecure_http_url(&endpoint_url);
         column.add_child(
             SavePosition::new(
                 Container::new(
@@ -721,16 +728,32 @@ impl View for CustomEndpointModal {
                         .build()
                         .finish(),
                 )
-                .with_margin_bottom(16.)
+                .with_margin_bottom(if show_http_warning { 4. } else { 16. })
                 .finish(),
                 ENDPOINT_NAME_SCROLL_POSITION_ID,
             )
             .finish(),
         );
+        if show_http_warning {
+            column.add_child(
+                Container::new(
+                    Text::new(
+                        tr(app, Message::CustomInferenceHttpPlaintextWarning),
+                        appearance.ui_font_family(),
+                        LABEL_FONT_SIZE,
+                    )
+                    .with_color(theme.ui_warning_color())
+                    .soft_wrap(true)
+                    .finish(),
+                )
+                .with_margin_bottom(16.)
+                .finish(),
+            );
+        }
 
         // Endpoint URL
         column.add_child(
-            Container::new(label("Endpoint URL"))
+            Container::new(label(tr(app, Message::CustomInferenceEndpointUrl)))
                 .with_margin_bottom(4.)
                 .finish(),
         );
@@ -760,7 +783,7 @@ impl View for CustomEndpointModal {
 
         // API key
         column.add_child(
-            Container::new(label("API key"))
+            Container::new(label(tr(app, Message::CustomInferenceApiKey)))
                 .with_margin_bottom(4.)
                 .finish(),
         );
@@ -791,12 +814,12 @@ impl View for CustomEndpointModal {
                 Flex::row()
                     .with_spacing(MODEL_ROW_SPACING)
                     .with_child(
-                        ConstrainedBox::new(label("Model name"))
+                        ConstrainedBox::new(label(tr(app, Message::CustomInferenceModelName)))
                             .with_width(MODEL_INPUT_WIDTH)
                             .finish(),
                     )
                     .with_child(
-                        ConstrainedBox::new(label("Model alias (optional)"))
+                        ConstrainedBox::new(label(tr(app, Message::CustomInferenceModelAliasOptional)))
                             .with_width(MODEL_INPUT_WIDTH)
                             .finish(),
                     )
@@ -885,7 +908,7 @@ impl View for CustomEndpointModal {
                 ButtonVariant::Secondary,
                 self.add_model_button_mouse_state.clone(),
             )
-            .with_text_label("+ Add model".to_string())
+            .with_text_label(tr(app, Message::CustomInferenceAddModel).to_string())
             .with_style(UiComponentStyles {
                 font_size: Some(14.),
                 padding: Some(Coords::uniform(6.).left(8.).right(8.)),
@@ -922,7 +945,7 @@ impl View for CustomEndpointModal {
                     ButtonVariant::Secondary,
                     self.cancel_button_mouse_state.clone(),
                 )
-                .with_text_label("Cancel".to_string())
+                .with_text_label(tr(app, Message::CustomInferenceCancel).to_string())
                 .with_style(button_style)
                 .build()
                 .on_click(move |ctx, _, _| {
@@ -935,9 +958,9 @@ impl View for CustomEndpointModal {
             .ui_builder()
             .button(ButtonVariant::Accent, self.save_button_mouse_state.clone())
             .with_text_label(if is_editing {
-                "Save".to_string()
+                tr(app, Message::CustomInferenceSave).to_string()
             } else {
-                "Add endpoint".to_string()
+                tr(app, Message::CustomInferenceAddEndpoint).to_string()
             })
             .with_style(button_style);
         if !is_valid {
@@ -993,16 +1016,17 @@ fn validate_url(url: &str) -> Result<(), &'static str> {
         return Ok(());
     }
     let parsed = Url::parse(url).map_err(|_| "Invalid URL")?;
-    if parsed.scheme() != "https" {
-        return Err("URL must use HTTPS");
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return Err("URL must use HTTP or HTTPS");
     }
-    let Some(host) = parsed.host_str().filter(|h| !h.is_empty()) else {
+    let Some(_host) = parsed.host_str().filter(|h| !h.is_empty()) else {
         return Err("URL must include a host");
     };
-    if is_restricted_host(host) {
-        return Err("URL must not use a local or private host");
-    }
     Ok(())
+}
+
+fn is_insecure_http_url(url: &str) -> bool {
+    Url::parse(url).is_ok_and(|url| url.scheme() == "http")
 }
 
 fn is_endpoint_form_valid(name: &str, url: &str, api_key: &str, has_models: bool) -> bool {
@@ -1013,46 +1037,6 @@ fn is_endpoint_form_valid(name: &str, url: &str, api_key: &str, has_models: bool
         && validate_url(url).is_ok()
 }
 
-fn is_restricted_host(host: &str) -> bool {
-    let host = host
-        .strip_prefix('[')
-        .and_then(|host| host.strip_suffix(']'))
-        .unwrap_or(host);
-    if host.eq_ignore_ascii_case("localhost") {
-        return true;
-    }
-    host.parse::<IpAddr>().is_ok_and(is_restricted_ip)
-}
-
-fn is_restricted_ip(ip: IpAddr) -> bool {
-    match ip {
-        IpAddr::V4(ip) => is_restricted_ipv4(ip),
-        IpAddr::V6(ip) => is_restricted_ipv6(ip),
-    }
-}
-
-fn is_restricted_ipv4(ip: Ipv4Addr) -> bool {
-    ip.is_loopback() || ip.is_unspecified() || ip.is_private() || ip.is_link_local()
-}
-
-fn is_restricted_ipv6(ip: Ipv6Addr) -> bool {
-    if ip.is_loopback() || ip.is_unspecified() || is_ipv6_unique_local(ip) || is_ipv6_link_local(ip)
-    {
-        return true;
-    }
-    if let Some(ipv4) = ip.to_ipv4_mapped() {
-        return is_restricted_ipv4(ipv4);
-    }
-    false
-}
-
-fn is_ipv6_unique_local(ip: Ipv6Addr) -> bool {
-    ip.segments()[0] & 0xfe00 == 0xfc00
-}
-
-fn is_ipv6_link_local(ip: Ipv6Addr) -> bool {
-    ip.segments()[0] & 0xffc0 == 0xfe80
-}
 impl TypedActionView for CustomEndpointModal {
     type Action = CustomEndpointModalAction;
 

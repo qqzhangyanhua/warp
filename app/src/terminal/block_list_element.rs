@@ -66,6 +66,7 @@ use crate::ai_assistant::{AI_ASSISTANT_SVG_PATH, ASK_AI_ASSISTANT_TEXT};
 use crate::appearance::Appearance;
 use crate::drive::settings::WarpDriveSettings;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::SplitPaneState;
 use crate::settings::{
     AISettings, DebugSettings, EnforceMinimumContrast, PrivacySettings, TerminalSpacing,
@@ -1162,7 +1163,7 @@ impl BlockListElement {
                 if has_active_long_running_command && active_block.index() == block_index {
                     (
                         Some(TerminalAction::SetInputModeAgent),
-                        TAG_AGENT_FOR_ASSISTANCE_TEXT,
+                        tr_cached(Message::TerminalTagAgentForAssistance),
                     )
                 } else {
                     (
@@ -1223,7 +1224,7 @@ impl BlockListElement {
                 render_hoverable_block_button(
                     icon,
                     Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_SECRETS_TEXT.to_owned(),
+                        label: tr_cached(Message::TerminalBlocksWithSecretsCannotSave).to_owned(),
                         tool_tip_below_button: should_render_tooltip_below_button,
                     }),
                     false,
@@ -1243,7 +1244,7 @@ impl BlockListElement {
                 render_hoverable_block_button(
                     icon,
                     Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_TEXT.to_owned(),
+                        label: tr_cached(Message::TerminalSaveAsWorkflow).to_owned(),
                         tool_tip_below_button: should_render_tooltip_below_button,
                     }),
                     false,
@@ -3399,9 +3400,9 @@ impl Element for BlockListElement {
                     // we want to show different text in the separator if this is an individual conversation
                     // restored from the command palette
                     let banner_intro_text = if is_historical_conversation_restoration {
-                        "Conversation restored".to_string()
+                        tr_cached(Message::TerminalConversationRestored).to_string()
                     } else {
-                        "Previous session".to_string()
+                        tr_cached(Message::TerminalPreviousSession).to_string()
                     };
 
                     let separator_text =

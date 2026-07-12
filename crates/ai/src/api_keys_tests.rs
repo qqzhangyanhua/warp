@@ -200,6 +200,54 @@ fn has_any_key_false_for_endpoint_with_empty_api_key() {
     assert!(!keys.has_any_key());
 }
 
+// ── has_valid_custom_endpoint ──────────────────────────────────
+
+#[test]
+fn has_valid_custom_endpoint_true_for_complete_endpoint() {
+    let keys = ApiKeys {
+        custom_endpoints: vec![endpoint("ep", "http://localhost:8080/v1", "key", &[("m", None)])],
+        ..Default::default()
+    };
+    assert!(keys.has_valid_custom_endpoint());
+}
+
+#[test]
+fn has_valid_custom_endpoint_false_without_endpoint() {
+    assert!(!ApiKeys::default().has_valid_custom_endpoint());
+}
+
+#[test]
+fn has_valid_custom_endpoint_false_for_missing_required_fields() {
+    for custom_endpoints in [
+        vec![endpoint("ep", "", "key", &[("m", None)])],
+        vec![endpoint("ep", "https://a.io", "   ", &[("m", None)])],
+        vec![endpoint("ep", "https://a.io", "key", &[("", None)])],
+        vec![endpoint_with_keys(
+            "ep",
+            "https://a.io",
+            "key",
+            &[("m", None, "   ")],
+        )],
+    ] {
+        let keys = ApiKeys {
+            custom_endpoints,
+            ..Default::default()
+        };
+        assert!(!keys.has_valid_custom_endpoint());
+    }
+}
+
+#[test]
+fn has_valid_custom_endpoint_false_for_invalid_url() {
+    for url in ["not a url", "ftp://a.io/v1", "file:///tmp/model"] {
+        let keys = ApiKeys {
+            custom_endpoints: vec![endpoint("ep", url, "key", &[("m", None)])],
+            ..Default::default()
+        };
+        assert!(!keys.has_valid_custom_endpoint(), "{url} should be invalid");
+    }
+}
+
 // ── provider_key_count ─────────────────────────────────────────
 
 #[test]

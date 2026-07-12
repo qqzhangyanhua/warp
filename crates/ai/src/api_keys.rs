@@ -3,6 +3,7 @@ use std::time::{Duration, SystemTime};
 #[cfg(not(target_family = "wasm"))]
 use futures::channel::oneshot;
 use serde::{Deserialize, Serialize};
+use url::Url;
 use uuid::Uuid;
 use warp_errors::report_error;
 use warp_multi_agent_api as api;
@@ -71,6 +72,21 @@ impl CustomEndpointModel {
             _ => &self.name,
         }
     }
+
+    pub fn is_valid_for_request(&self) -> bool {
+        !self.name.trim().is_empty() && !self.config_key.trim().is_empty()
+    }
+}
+
+impl CustomEndpoint {
+    pub fn is_valid_for_request(&self) -> bool {
+        is_valid_custom_endpoint_url(&self.url)
+            && !self.api_key.trim().is_empty()
+            && self
+                .models
+                .iter()
+                .any(CustomEndpointModel::is_valid_for_request)
+    }
 }
 
 impl ApiKeys {
@@ -101,14 +117,17 @@ impl ApiKeys {
     }
 
     pub fn has_valid_custom_endpoint(&self) -> bool {
-        self.custom_endpoints.iter().any(|endpoint| {
-            !endpoint.url.trim().is_empty()
-                && !endpoint.api_key.trim().is_empty()
-                && endpoint.models.iter().any(|model| {
-                    !model.name.trim().is_empty() && !model.config_key.trim().is_empty()
-                })
-        })
+        self.custom_endpoints
+            .iter()
+            .any(CustomEndpoint::is_valid_for_request)
     }
+}
+
+fn is_valid_custom_endpoint_url(url: &str) -> bool {
+    let Ok(parsed) = Url::parse(url) else {
+        return false;
+    };
+    matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some_and(|h| !h.is_empty())
 }
 
 /// OAuth tokens for a connected xAI / Grok subscription (e.g. SuperGrok).
@@ -436,7 +455,7 @@ impl ApiKeyManager {
             .keys
             .custom_endpoints
             .iter()
-            .filter(|endpoint| !endpoint.url.trim().is_empty() && !endpoint.api_key.is_empty())
+            .filter(|endpoint| endpoint.is_valid_for_request())
             .map(
                 |endpoint| api::request::settings::custom_model_providers::CustomModelProvider {
                     base_url: endpoint.url.clone(),
@@ -444,7 +463,7 @@ impl ApiKeyManager {
                     models: endpoint
                         .models
                         .iter()
-                        .filter(|m| !m.name.trim().is_empty() && !m.config_key.is_empty())
+                        .filter(|m| m.is_valid_for_request())
                         .map(
                             |m| api::request::settings::custom_model_providers::CustomModel {
                                 slug: m.name.clone(),

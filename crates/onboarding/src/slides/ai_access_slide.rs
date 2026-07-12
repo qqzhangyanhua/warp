@@ -1,4 +1,5 @@
 use ui_components::{button, Component as _, Options as _};
+use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::icons::Icon;
 use warp_core::ui::theme::color::internal_colors;
@@ -20,6 +21,7 @@ use warpui_core::{
 };
 
 use super::OnboardingSlide;
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::{AiAccessChoice, OnboardingAuthState, OnboardingStateModel};
 use crate::slides::{bottom_nav, layout, slide_content};
 
@@ -47,6 +49,7 @@ pub enum AiAccessSlideEvent {
 /// built-in AI before committing to a plan.
 pub struct AiAccessSlide {
     onboarding_state: ModelHandle<OnboardingStateModel>,
+    locale: Locale,
     subscription_mouse_state: MouseStateHandle,
     set_up_later_mouse_state: MouseStateHandle,
     back_button: button::Button,
@@ -58,9 +61,10 @@ pub struct AiAccessSlide {
 }
 
 impl AiAccessSlide {
-    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>) -> Self {
+    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>, locale: Locale) -> Self {
         Self {
             onboarding_state,
+            locale,
             subscription_mouse_state: MouseStateHandle::default(),
             set_up_later_mouse_state: MouseStateHandle::default(),
             back_button: button::Button::default(),
@@ -105,7 +109,11 @@ impl AiAccessSlide {
 
         let title = appearance
             .ui_builder()
-            .paragraph("Get AI access")
+            .paragraph(if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                i18n::tr(OnboardingMessage::ConfigureAi, self.locale)
+            } else {
+                i18n::tr(OnboardingMessage::GetAiAccess, self.locale)
+            })
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -115,7 +123,11 @@ impl AiAccessSlide {
             .finish();
 
         let subtitle = FormattedTextElement::from_str(
-            "Save with a recurring plan, or explore Warp's AI before committing.",
+            if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                i18n::tr(OnboardingMessage::AiAccessSubtitleAnonymous, self.locale)
+            } else {
+                i18n::tr(OnboardingMessage::AiAccessSubtitleLoggedIn, self.locale)
+            },
             appearance.ui_font_family(),
             16.,
         )
@@ -137,6 +149,12 @@ impl AiAccessSlide {
     }
 
     fn render_options(&self, appearance: &Appearance, choice: AiAccessChoice) -> Box<dyn Element> {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return Container::new(self.render_set_up_later_card(appearance, true))
+                .with_margin_top(38.)
+                .finish();
+        }
+
         let subscription_card = self
             .render_subscription_card(appearance, matches!(choice, AiAccessChoice::Subscription));
 
@@ -215,7 +233,7 @@ impl AiAccessSlide {
 
         let label = appearance
             .ui_builder()
-            .paragraph("Subscription")
+            .paragraph(i18n::tr(OnboardingMessage::Subscription, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(16.),
                 font_weight: Some(Weight::Semibold),
@@ -229,7 +247,7 @@ impl AiAccessSlide {
             let green = theme.ansi_fg_green();
             let badge_text = appearance
                 .ui_builder()
-                .paragraph("Best value")
+                .paragraph(i18n::tr(OnboardingMessage::BestValue, self.locale))
                 .with_style(UiComponentStyles {
                     font_size: Some(12.),
                     font_weight: Some(Weight::Normal),
@@ -298,7 +316,7 @@ impl AiAccessSlide {
 
         let label = appearance
             .ui_builder()
-            .paragraph("Set up later")
+            .paragraph(i18n::tr(OnboardingMessage::SetUpLater, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(16.),
                 font_weight: Some(Weight::Semibold),
@@ -340,7 +358,7 @@ impl AiAccessSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Back".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -355,7 +373,7 @@ impl AiAccessSlide {
         let next_button = self.next_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Next".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Next, self.locale).into()),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),
@@ -418,7 +436,7 @@ impl AiAccessSlide {
 
         let copy_url_link = ui_builder
             .link(
-                "copy the URL".into(),
+                i18n::tr(OnboardingMessage::CopyTheUrl, self.locale).into(),
                 None,
                 Some(Box::new(|ctx| {
                     ctx.dispatch_typed_action(AiAccessSlideAction::CopyUpgradeUrlClicked);
@@ -432,7 +450,7 @@ impl AiAccessSlide {
 
         let paste_token_link = ui_builder
             .link(
-                "Click here".into(),
+                i18n::tr(OnboardingMessage::ClickHere, self.locale).into(),
                 None,
                 Some(Box::new(|ctx| {
                     ctx.dispatch_typed_action(
@@ -452,7 +470,7 @@ impl AiAccessSlide {
             .with_child(
                 Container::new(
                     ui_builder
-                        .span("If your browser hasn't launched, ")
+                        .span(i18n::tr(OnboardingMessage::IfBrowserHasntLaunched, self.locale))
                         .with_style(text_styles)
                         .build()
                         .finish(),
@@ -463,7 +481,7 @@ impl AiAccessSlide {
             .with_child(copy_url_link)
             .with_child(
                 ui_builder
-                    .span(" and open the page manually. ")
+                    .span(i18n::tr(OnboardingMessage::AndOpenThePageManually, self.locale))
                     .with_style(text_styles)
                     .build()
                     .finish(),
@@ -471,7 +489,7 @@ impl AiAccessSlide {
             .with_child(paste_token_link)
             .with_child(
                 ui_builder
-                    .span(" to paste your token from the browser.")
+                    .span(i18n::tr(OnboardingMessage::ToPasteYourToken, self.locale))
                     .with_style(text_styles)
                     .build()
                     .finish(),
@@ -555,6 +573,10 @@ impl AiAccessSlide {
     /// (the slide auto-advances once billing flips to a paying plan). The "Set
     /// up later" path always advances.
     fn advance_or_upgrade(&mut self, ctx: &mut ViewContext<Self>) {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            self.next(ctx);
+            return;
+        }
         match self.choice(ctx) {
             AiAccessChoice::Subscription => {
                 if matches!(

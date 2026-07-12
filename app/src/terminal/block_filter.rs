@@ -18,6 +18,7 @@ use warpui::{
 
 use super::model::find::{FindConfig, RegexDFAs};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditOrigin, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys,
     SingleLineEditorOptions, TextOptions, ValidInputType,
@@ -186,7 +187,7 @@ impl BlockFilterEditor {
                 },
                 ctx,
             );
-            editor.set_placeholder_text(FILTER_BLOCK_PLACEHOLDER_TEXT, ctx);
+            editor.set_placeholder_text(tr_cached(Message::TerminalFilterBlockOutput), ctx);
             editor
         });
 
@@ -535,7 +536,7 @@ impl View for BlockFilterEditor {
             self.mouse_state_handles.regex_mouse_state_handle.clone(),
             BlockFilterEditorAction::ToggleRegex,
             editor_height,
-            Some(REGEX_TOOLTIP_LABEL),
+            Some(tr_cached(Message::TerminalRegexToggle)),
         );
         let case_sensitive_icon = self.render_hoverable_icon(
             appearance,
@@ -546,7 +547,7 @@ impl View for BlockFilterEditor {
                 .clone(),
             BlockFilterEditorAction::ToggleCaseSensitivity,
             editor_height,
-            Some(CASE_SENSITIVITY_TOOLTIP_LABEL),
+            Some(tr_cached(Message::TerminalCaseSensitiveSearch)),
         );
         let invert_filter_icon = self.render_hoverable_icon(
             appearance,
@@ -557,7 +558,7 @@ impl View for BlockFilterEditor {
                 .clone(),
             BlockFilterEditorAction::ToggleInvertFilter,
             editor_height,
-            Some(INVERT_FILTER_TOOLTIP_LABEL),
+            Some(tr_cached(Message::TerminalInvertFilter)),
         );
 
         let query_editor = Shrinkable::new(
@@ -657,7 +658,7 @@ impl View for BlockFilterEditor {
                 if state.is_hovered() {
                     let tool_tip = appearance
                         .ui_builder()
-                        .tool_tip(CONTEXT_LINE_EDITOR_TOOLTIP_LABEL.to_string())
+                        .tool_tip(tr_cached(Message::TerminalShowContextLines).to_string())
                         .build()
                         .finish();
                     stack.add_positioned_child(

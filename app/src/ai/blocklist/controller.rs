@@ -62,6 +62,7 @@ use crate::ai::llms::{LLMId, LLMPreferences};
 use crate::ai::AIRequestUsageModel;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr, Message};
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
 use crate::network::NetworkStatus;
 use crate::notebooks::editor::model::FileLinkResolutionContext;
@@ -71,6 +72,7 @@ use crate::server::server_api::AIApiError;
 #[cfg(not(target_family = "wasm"))]
 use crate::server::server_api::ServerApiProvider;
 use crate::server::telemetry::TelemetryEvent;
+use crate::settings_view::SettingsSection;
 use crate::terminal::model::block::{
     formatted_terminal_contents_for_input, BlockId, CURSOR_MARKER,
 };
@@ -189,6 +191,8 @@ pub enum BlocklistAIControllerEvent {
     ExecuteLocalHarnessCommand {
         command: String,
     },
+
+    OpenSettings(SettingsSection),
 }
 
 #[derive(Debug)]
@@ -2429,6 +2433,18 @@ impl BlocklistAIController {
         );
         request_params.parent_agent_id = parent_agent_id;
         request_params.agent_name = agent_name;
+
+        if FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && !request_params.model_config_is_backed_by_custom_providers()
+        {
+            ctx.emit(BlocklistAIControllerEvent::OpenSettings(
+                SettingsSection::WarpAgent,
+            ));
+            return Err(anyhow!(
+                "{}",
+                tr(ctx, Message::AnonymousOnlyRequiresCustomEndpoint)
+            ));
+        }
 
         let server_conversation_token_for_identifiers =
             conversation_data.server_conversation_token.clone();

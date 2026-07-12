@@ -2,6 +2,7 @@
 
 mod agent_onboarding_view;
 pub mod callout;
+pub mod i18n;
 mod model;
 pub mod slides;
 pub mod telemetry;
@@ -24,10 +25,19 @@ impl std::fmt::Display for OnboardingIntention {
 
 pub use callout::{OnboardingCalloutView, OnboardingKeybindings};
 
+use i18n::Locale;
+
 /// User-facing descriptions of the AI features enabled when the agent intention is selected.
 /// Shared by the intention slide's agent card checklist and the login slide's
 /// skip-login confirmation dialog so the two always stay in sync.
-pub const AI_FEATURES: &[&str] = &[
+pub fn ai_features(locale: Locale) -> &'static [&'static str] {
+    match locale {
+        Locale::En => &AI_FEATURES_EN,
+        Locale::ZhCn => &AI_FEATURES_ZH_CN,
+    }
+}
+
+const AI_FEATURES_EN: &[&str] = &[
     "Use frontier and open-weight models with Warp Agent",
     "Hand off agent work to cloud agents",
     "Automatically diagnose and fix terminal errors",
@@ -36,11 +46,29 @@ pub const AI_FEATURES: &[&str] = &[
     "Remote control for Claude Code, Codex, and other agents",
 ];
 
+const AI_FEATURES_ZH_CN: &[&str] = &[
+    "使用 Warp Agent 驱动前沿模型和开源模型",
+    "将 Agent 工作交给云端 Agent 处理",
+    "自动诊断和修复终端错误",
+    "对长时间运行的命令和 TUI 进行 Agent 控制",
+    "审查代码差异并直接向 Agent 发送评论",
+    "远程控制 Claude Code、Codex 等 Agent",
+];
+
 /// User-facing names of the Warp Drive features enabled when the terminal
 /// intention is selected with Warp Drive turned on. Shared by the login slide's
 /// skip-login confirmation dialog so the list stays in sync with any future
 /// surfaces that need it.
-pub const WARP_DRIVE_FEATURES: &[&str] = &["Warp Drive", "Session Sharing"];
+pub fn warp_drive_features(locale: Locale) -> &'static [&'static str] {
+    match locale {
+        Locale::En => &WARP_DRIVE_FEATURES_EN,
+        Locale::ZhCn => &WARP_DRIVE_FEATURES_ZH_CN,
+    }
+}
+
+const WARP_DRIVE_FEATURES_EN: &[&str] = &["Warp Drive", "Session Sharing"];
+
+const WARP_DRIVE_FEATURES_ZH_CN: &[&str] = &["Warp Drive", "会话共享"];
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "bin")] {

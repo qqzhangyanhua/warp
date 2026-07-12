@@ -20,6 +20,7 @@ use warpui_core::{
 };
 
 use super::OnboardingSlide;
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::{OnboardingStateEvent, OnboardingStateModel};
 use crate::slides::{bottom_nav, layout, slide_content};
 use crate::telemetry::OnboardingEvent;
@@ -63,6 +64,7 @@ struct ThemeOption {
 
 pub struct ThemePickerSlide {
     onboarding_state: ModelHandle<OnboardingStateModel>,
+    locale: Locale,
     theme_options: [ThemeOption; 4],
     selected_theme_index: usize,
     sync_with_os: bool,
@@ -78,6 +80,7 @@ impl ThemePickerSlide {
     pub(crate) fn new(
         themes: [WarpTheme; 4],
         onboarding_state: ModelHandle<OnboardingStateModel>,
+        locale: Locale,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let theme_options = themes.map(|theme| ThemeOption {
@@ -112,6 +115,7 @@ impl ThemePickerSlide {
 
         Self {
             onboarding_state,
+            locale,
             theme_options,
             selected_theme_index,
             sync_with_os: false,
@@ -194,7 +198,7 @@ impl ThemePickerSlide {
     fn render_header_text(&self, appearance: &Appearance) -> Box<dyn Element> {
         let title = appearance
             .ui_builder()
-            .paragraph("Choose a theme")
+            .paragraph(i18n::tr(OnboardingMessage::ChooseATheme, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -204,7 +208,7 @@ impl ThemePickerSlide {
             .finish();
 
         let subtitle = FormattedTextElement::from_str(
-            "Click or use arrow keys to select, Enter to confirm.",
+            i18n::tr(OnboardingMessage::ThemeSubtitle, self.locale),
             appearance.ui_font_family(),
             16.,
         )
@@ -261,7 +265,7 @@ impl ThemePickerSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Back".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -274,9 +278,9 @@ impl ThemePickerSlide {
 
         let theme_picker_last = FeatureFlag::OpenWarpNewSettingsModes.is_enabled();
         let next_label = if theme_picker_last {
-            "Get Warping"
+            i18n::tr(OnboardingMessage::GetWarping, self.locale)
         } else {
-            "Next"
+            i18n::tr(OnboardingMessage::Next, self.locale)
         };
 
         let enter = Keystroke::parse("enter").unwrap_or_default();
@@ -532,7 +536,7 @@ impl ThemePickerSlide {
             .finish();
 
         let label = Text::new(
-            "Sync light/dark theme with OS",
+            i18n::tr(OnboardingMessage::SyncWithOs, self.locale),
             appearance.ui_font_family(),
             14.0,
         )
@@ -576,7 +580,7 @@ impl ThemePickerSlide {
         let privacy_line = Flex::row()
             .with_child(
                 ui_builder
-                    .span("If you'd like to opt out of analytics, you can adjust your ")
+                    .span(i18n::tr(OnboardingMessage::OptOutAnalytics, self.locale))
                     .with_style(disclaimer_styles)
                     .build()
                     .finish(),
@@ -584,7 +588,7 @@ impl ThemePickerSlide {
             .with_child(
                 ui_builder
                     .link(
-                        "Privacy Settings".into(),
+                        i18n::tr(OnboardingMessage::PrivacySettings, self.locale).into(),
                         None,
                         Some(Box::new(|ctx| {
                             ctx.dispatch_typed_action(
@@ -603,7 +607,7 @@ impl ThemePickerSlide {
         let tos_line = Flex::row()
             .with_child(
                 ui_builder
-                    .span("By continuing, you agree to Warp's ")
+                    .span(i18n::tr(OnboardingMessage::ByContinuingAgreeTo, self.locale))
                     .with_style(disclaimer_styles)
                     .build()
                     .finish(),
@@ -611,7 +615,7 @@ impl ThemePickerSlide {
             .with_child(
                 ui_builder
                     .link(
-                        "Terms of Service".into(),
+                        i18n::tr(OnboardingMessage::TermsOfService, self.locale).into(),
                         Some(TOS_URL.into()),
                         None,
                         self.tos_mouse_state.clone(),

@@ -11,6 +11,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
@@ -218,7 +219,7 @@ impl View for AddRegexModal {
                 ButtonVariant::Accent,
                 self.submit_button_mouse_state.clone(),
             )
-            .with_text_label("Add regex".to_string())
+            .with_text_label(tr_cached(Message::PrivacyAddRegex).to_string())
             .with_style(button_style);
 
         if !is_submit_enabled {
@@ -233,7 +234,7 @@ impl View for AddRegexModal {
                     1.,
                     Container::new(if !is_valid_regex && !pattern_text.trim().is_empty() {
                         Text::new(
-                            "Invalid regex",
+                            tr_cached(Message::PrivacyInvalidRegexPattern),
                             appearance.ui_font_family(),
                             LABEL_FONT_SIZE,
                         )

@@ -67,6 +67,8 @@ pub enum AuthManagerEvent {
     AttemptedLoginGatedFeature {
         auth_view_variant: AuthViewVariant,
     },
+    /// An account-only entry point was reached while the build is locked to anonymous mode.
+    AccountSignInUnavailable,
     // The current user is anonymous and the client has received a browser intent to sign in with a different Warp account.
     // Holds an auth payload from the received browser intent.
     LoginOverrideDetected(AuthRedirectPayload),
@@ -644,6 +646,10 @@ impl AuthManager {
         auth_view_variant: AuthViewVariant,
         ctx: &mut ModelContext<Self>,
     ) {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            ctx.emit(AuthManagerEvent::AccountSignInUnavailable);
+            return;
+        }
         if self.auth_state.is_anonymous_or_logged_out() {
             send_telemetry_from_ctx!(
                 TelemetryEvent::AnonymousUserAttemptLoginGatedFeature { feature },
@@ -654,6 +660,10 @@ impl AuthManager {
     }
 
     pub fn anonymous_user_hit_drive_object_limit(&self, ctx: &mut ModelContext<Self>) {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            ctx.emit(AuthManagerEvent::AccountSignInUnavailable);
+            return;
+        }
         if self.auth_state.is_anonymous_or_logged_out() {
             send_telemetry_from_ctx!(TelemetryEvent::AnonymousUserHitCloudObjectLimit, ctx);
             ctx.emit(AuthManagerEvent::AttemptedLoginGatedFeature {

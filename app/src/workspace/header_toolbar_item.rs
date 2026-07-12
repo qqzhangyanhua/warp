@@ -3,6 +3,7 @@ use settings::Setting as _;
 use warpui::{AppContext, SingletonEntity};
 
 use crate::auth::AuthStateProvider;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::features::FeatureFlag;
 use crate::settings::AISettings;
 use crate::ui_components::icons::Icon;
@@ -36,11 +37,11 @@ pub enum HeaderToolbarItemKind {
 impl HeaderToolbarItemKind {
     pub fn display_label(&self) -> &'static str {
         match self {
-            Self::TabsPanel => "Tabs Panel",
-            Self::ToolsPanel => "Tools Panel",
-            Self::AgentManagement => "Agent Management",
-            Self::CodeReview => "Code Review",
-            Self::NotificationsMailbox => "Notifications",
+            Self::TabsPanel => tr_cached(Message::WorkspaceTabsPanel),
+            Self::ToolsPanel => tr_cached(Message::WorkspaceToolsPanel),
+            Self::AgentManagement => tr_cached(Message::WorkspaceAgentManagement),
+            Self::CodeReview => tr_cached(Message::WorkspaceCodeReview),
+            Self::NotificationsMailbox => tr_cached(Message::WorkspaceNotifications),
         }
     }
 

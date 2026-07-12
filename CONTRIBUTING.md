@@ -165,7 +165,12 @@ If a review (from Oz or a maintainer) leaves your PR with **changes requested** 
 
 ## Development Setup
 
-See [README.md](README.md) and [AGENTS.md](AGENTS.md) for the full engineering guide. Quick start:
+See [README.md](README.md) for a quick start, and [AGENTS.md](AGENTS.md) for the agent workflow entrypoint. Engineering details live under [`docs/`](docs/):
+[project map](docs/project-map.md) (architecture and coding style),
+[testing](docs/testing.md),
+[debugging](docs/debugging.md),
+and [dangerous areas](docs/dangerous-areas.md).
+Domain vocabulary is in [CONTEXT.md](CONTEXT.md); architectural decisions are in [`docs/adr/`](docs/adr/). Quick start:
 
 ```bash
 ./script/bootstrap   # platform-specific setup
@@ -180,7 +185,7 @@ Tests are required for most code changes:
 ### Manual Testing
 Manual testing is required for changes that can be manually tested, and almost all changes can be manually tested. For small, isolated, and visual changes, you should include **before and after screenshots**. For larger, broad, or interactive changes, you should also include a **narrated screen recording**.
 
-You can run the app locally using `./script/run` - see [AGENTS.md](AGENTS.md) for more details on how to get set up.
+You can run the app locally using `./script/run` — see [docs/testing.md](docs/testing.md) and [docs/debugging.md](docs/debugging.md) for verified commands and local-server options.
 
 ### Automated Tests
 - **Bug fixes** should include a regression test that would have caught the bug.
@@ -193,7 +198,7 @@ Run unit tests with `cargo nextest run`.
 
 - `./script/format --check` and `cargo clippy --workspace --all-targets --all-features --tests -- -D warnings` must pass.
 - Prefer imports over path qualifiers, inline format args (`println!("{x}")`), and exhaustive `match` over `_` wildcards.
-- See [AGENTS.md](AGENTS.md) for the full style guide, including WarpUI patterns and terminal model locking rules.
+- See [docs/project-map.md](docs/project-map.md) for the full style guide, including WarpUI patterns and terminal model locking rules. High-risk areas are listed in [docs/dangerous-areas.md](docs/dangerous-areas.md).
 
 ## Commit and Branch Conventions
 

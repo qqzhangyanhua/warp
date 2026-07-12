@@ -20,6 +20,7 @@ use crate::ai::blocklist::agent_view::{
     ENTER_AGENT_VIEW_NEW_CONVERSATION_KEYSTROKE, ENTER_CLOUD_AGENT_VIEW_NEW_CONVERSATION_KEYSTROKE,
 };
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::settings::{AISettings, AISettingsChangedEvent, InputModeSettings};
 use crate::terminal::event::BlockType;
 use crate::terminal::input::message_bar::common::render_standard_message;
@@ -161,7 +162,7 @@ impl View for TerminalViewZeroStateBlock {
             )
             .with_child(
                 Text::new(
-                    "New terminal session",
+                    tr_cached(I18nMessage::TerminalNewTerminalSession),
                     appearance.ui_font_family(),
                     title_font_size,
                 )
@@ -295,7 +296,7 @@ impl View for TerminalViewZeroStateBlock {
                 theme.disabled_text_color(theme.background())
             };
             Text::new(
-                "Don't show again",
+                tr_cached(I18nMessage::TerminalDontShowAgain),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size() - 4.,
             )

@@ -1,3 +1,4 @@
+use crate::i18n::{tr, tr_cached, Message};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -78,17 +79,6 @@ const SUB_SECTION_MARGIN: f32 = 8.;
 const STATUS_ICON_SIZE: f32 = 16.;
 const LSP_STATUS_INDICATOR_SIZE: f32 = 8.;
 const CODE_FEATURE_NAME: &str = "Code";
-const INITIALIZATION_SETTINGS_HEADER: &str = "Initialization Settings";
-const CODEBASE_INDEXING_LABEL: &str = "Codebase indexing";
-const CODEBASE_INDEX_DESCRIPTION: &str = "Warp can automatically index code repositories as you navigate them, helping agents quickly understand context and provide solutions. Code is never stored on the server. If a codebase is unable to be indexed, Warp can still navigate your codebase and gain insights via grep and find tool calling.";
-const WARP_INDEXING_IGNORE_DESCRIPTION: &str = "To exclude specific files or directories from indexing, add them to the .warpindexingignore file in your repository directory. These files will still be accessible to AI features, but they won't be included in codebase embeddings.";
-const AUTO_INDEX_FEATURE_NAME: &str = "Index new folders by default";
-const AUTO_INDEX_DESCRIPTION: &str = "When set to true, Warp will automatically index code repositories as you navigate them - helping agents quickly understand context and provide targeted solutions.";
-const INDEXING_DISABLED_ADMIN_TEXT: &str = "Team admins have disabled codebase indexing.";
-const INDEXING_WORKSPACE_ENABLED_ADMIN_TEXT: &str = "Team admins have enabled codebase indexing.";
-const INDEXING_DISABLED_GLOBAL_AI_TEXT: &str =
-    "AI Features must be enabled to use codebase indexing.";
-const CODEBASE_INDEX_LIMIT_REACHED: &str = "You have reached the maximum number of codebase indices for your plan. Delete existing indices to auto-index new codebases.";
 #[cfg(not(target_family = "wasm"))]
 const REMOTE_CODEBASE_INDEX_LIMIT_REACHED_FAILURE: &str =
     "maximum number of codebase indexes has been reached";
@@ -328,8 +318,8 @@ impl CodeSettingsPageView {
             }
         });
 
-        let manual_add_directory_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Index new folder", SecondaryTheme)
+        let manual_add_directory_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::SettingsIndexNewFolder), SecondaryTheme)
                 .with_icon(Icon::FindAll)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(CodeSettingsPageAction::ManualAddDirectory);
@@ -375,8 +365,10 @@ impl CodeSettingsPageView {
                 Box::new(FormatOnSaveToggleWidget::default()),
             ]);
             let categories = vec![
-                Category::new("Codebase Indexing", codebase_indexing_widgets),
-                Category::new("Code Editor and Review", code_editor_review_widgets),
+                Category::new(tr_cached(Message::CodeCodebaseIndexing), codebase_indexing_widgets)
+                    .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
+                Category::new(tr_cached(Message::SettingsCodeEditorAndReviewCategory), code_editor_review_widgets)
+                    .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
             ];
             PageType::new_categorized(categories, None)
         } else {
@@ -425,8 +417,8 @@ impl CodeSettingsPageView {
             // Rebuild the page with the relevant widgets for the selected subpage,
             // or the full categorized page when subpage is None.
             if let Some(subpage) = subpage {
-                let manual_add_directory_button = ctx.add_typed_action_view(|_| {
-                    ActionButton::new("Index new folder", SecondaryTheme)
+                let manual_add_directory_button = ctx.add_typed_action_view(|ctx| {
+                    ActionButton::new(tr(ctx, Message::SettingsIndexNewFolder), SecondaryTheme)
                         .with_icon(Icon::FindAll)
                         .on_click(|ctx| {
                             ctx.dispatch_typed_action(CodeSettingsPageAction::ManualAddDirectory);
@@ -476,8 +468,8 @@ impl CodeSettingsPageView {
     /// Used for the default/legacy view and when resetting to all-widgets mode for search.
     fn build_full_page(ctx: &mut ViewContext<Self>) -> PageType<Self> {
         if FeatureFlag::OpenWarpNewSettingsModes.is_enabled() {
-            let manual_add_directory_button = ctx.add_typed_action_view(|_| {
-                ActionButton::new("Index new folder", SecondaryTheme)
+            let manual_add_directory_button = ctx.add_typed_action_view(|ctx| {
+                ActionButton::new(tr(ctx, Message::SettingsIndexNewFolder), SecondaryTheme)
                     .with_icon(Icon::FindAll)
                     .on_click(|ctx| {
                         ctx.dispatch_typed_action(CodeSettingsPageAction::ManualAddDirectory);
@@ -511,13 +503,15 @@ impl CodeSettingsPageView {
                 Box::new(FormatOnSaveToggleWidget::default()),
             ]);
             let categories = vec![
-                Category::new("Codebase Indexing", codebase_indexing_widgets),
-                Category::new("Code Editor and Review", code_editor_review_widgets),
+                Category::new(tr_cached(Message::CodeCodebaseIndexing), codebase_indexing_widgets)
+                    .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
+                Category::new(tr_cached(Message::SettingsCodeEditorAndReviewCategory), code_editor_review_widgets)
+                    .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
             ];
             PageType::new_categorized(categories, None)
         } else {
-            let manual_add_directory_button = ctx.add_typed_action_view(|_| {
-                ActionButton::new("Index new folder", SecondaryTheme)
+            let manual_add_directory_button = ctx.add_typed_action_view(|ctx| {
+                ActionButton::new(tr(ctx, Message::SettingsIndexNewFolder), SecondaryTheme)
                     .with_icon(Icon::FindAll)
                     .on_click(|ctx| {
                         ctx.dispatch_typed_action(CodeSettingsPageAction::ManualAddDirectory);
@@ -1046,12 +1040,12 @@ impl SettingsWidget for CodePageWidget {
         ));
         content.add_child(self.render_settings_subtext(
             global_ai_enabled,
-            CODEBASE_INDEX_DESCRIPTION,
+            tr_cached(Message::CodeCodebaseIndexDescription),
             appearance,
         ));
         content.add_child(self.render_settings_subtext(
             global_ai_enabled,
-            WARP_INDEXING_IGNORE_DESCRIPTION,
+            tr_cached(Message::CodeWarpIndexingIgnoreDescription),
             appearance,
         ));
 
@@ -1098,7 +1092,7 @@ impl CodePageWidget {
 
         let mut rows = vec![
             self.render_autoindex_row(
-                AUTO_INDEX_FEATURE_NAME,
+                tr_cached(Message::CodeIndexNewFoldersByDefault),
                 self.auto_index_switch_state.clone(),
                 auto_indexing_enabled,
                 CodeSettingsPageAction::ToggleAutoIndexing,
@@ -1107,7 +1101,7 @@ impl CodePageWidget {
             // Use subtext styling for description (gray color per Figma)
             self.render_settings_subtext(
                 codebase_indexing_enabled,
-                AUTO_INDEX_DESCRIPTION,
+                tr_cached(Message::CodeAutoIndexDescription),
                 appearance,
             ),
         ];
@@ -1116,7 +1110,7 @@ impl CodePageWidget {
         {
             rows.push(self.render_settings_subtext(
                 false,
-                CODEBASE_INDEX_LIMIT_REACHED,
+                tr_cached(Message::CodeIndexLimitReached),
                 appearance,
             ));
         }
@@ -1226,7 +1220,7 @@ impl CodePageWidget {
 
         Container::new(
             ui_builder
-                .span(INITIALIZATION_SETTINGS_HEADER)
+                .span(tr_cached(Message::CodeInitializationSettings))
                 .with_style(UiComponentStyles {
                     font_size: Some(18.0),
                     font_weight: Some(Weight::Semibold),
@@ -1253,7 +1247,7 @@ impl CodePageWidget {
         let admin_setting = UserWorkspaces::as_ref(app).team_allows_codebase_context();
 
         let label = ui_builder
-            .span(CODEBASE_INDEXING_LABEL)
+            .span(tr_cached(Message::CodeCodebaseIndexing))
             .with_style(UiComponentStyles {
                 font_size: Some(16.0),
                 font_weight: Some(Weight::Semibold),
@@ -1268,10 +1262,10 @@ impl CodePageWidget {
             .check(UserWorkspaces::as_ref(app).is_codebase_context_enabled(app));
 
         let disabled_tooltip_text = match admin_setting {
-            AdminEnablementSetting::Enable => Some(INDEXING_WORKSPACE_ENABLED_ADMIN_TEXT),
-            AdminEnablementSetting::Disable => Some(INDEXING_DISABLED_ADMIN_TEXT),
+            AdminEnablementSetting::Enable => Some(tr_cached(Message::CodeIndexingEnabledByAdmins)),
+            AdminEnablementSetting::Disable => Some(tr_cached(Message::CodeIndexingDisabledByAdmins)),
             AdminEnablementSetting::RespectUserSetting if !global_ai_enabled => {
-                Some(INDEXING_DISABLED_GLOBAL_AI_TEXT)
+                Some(tr_cached(Message::CodeAiFeaturesRequiredForIndexing))
             }
             AdminEnablementSetting::RespectUserSetting => None,
         };
@@ -1344,7 +1338,7 @@ impl CodePageWidget {
                     .with_cross_axis_alignment(CrossAxisAlignment::Center)
                     .with_child(
                         ui_builder
-                            .span("Initialized / indexed folders")
+                            .span(tr_cached(Message::CodeInitializedIndexedFolders))
                             .with_style(UiComponentStyles {
                                 font_size: Some(16.0),
                                 font_weight: Some(Weight::Semibold),
@@ -1468,7 +1462,7 @@ impl CodePageWidget {
                 Container::new(
                     appearance
                         .ui_builder()
-                        .paragraph("No folders have been initialized yet.")
+                        .paragraph(tr(app, Message::SettingsNoFoldersInitialized))
                         .build()
                         .finish(),
                 )
@@ -1501,7 +1495,7 @@ impl CodePageWidget {
 
         let mut workspace_content = Flex::column().with_spacing(MAIN_SECTION_MARGIN);
 
-        // Workspace path header with "Open project rules" button
+        // Workspace path header with tr_cached(Message::CodeOpenProjectRules) button
         let home_dir =
             dirs::home_dir().and_then(|home_dir| home_dir.to_str().map(|s| s.to_owned()));
         let user_friendly = user_friendly_path(
@@ -1535,7 +1529,7 @@ impl CodePageWidget {
                 .with_text_and_icon_label(
                     warpui::ui_components::button::TextAndIcon::new(
                         warpui::ui_components::button::TextAndIconAlignment::IconFirst,
-                        "Open project rules",
+                        tr_cached(Message::CodeOpenProjectRules),
                         warpui::elements::Icon::new(
                             "bundled/svg/file-code-02.svg",
                             theme.foreground(),
@@ -1699,7 +1693,7 @@ impl CodePageWidget {
         let mut column = Flex::column().with_spacing(SUB_SECTION_MARGIN);
         column.add_child(
             ui_builder
-                .span("INDEXING")
+                .span(tr_cached(Message::CodeIndexingHeader))
                 .with_style(UiComponentStyles {
                     font_size: Some(11.0),
                     font_weight: Some(Weight::Semibold),
@@ -1738,7 +1732,7 @@ impl CodePageWidget {
         let theme = appearance.theme();
         let Some(index_state) = index_state else {
             return IndexingStatusPresentation {
-                text: Cow::from("No index created"),
+                text: Cow::from(tr_cached(Message::CodeNoIndexCreated)),
                 color: theme.disabled_ui_text_color().into_solid(),
                 icon: Some(Icon::SlashCircle),
                 refresh_action: None,
@@ -1749,13 +1743,13 @@ impl CodePageWidget {
         if index_state.has_pending() {
             let text = match index_state.sync_progress() {
                 Some(SyncProgress::Discovering { total_nodes }) => {
-                    Cow::from(format!("Discovered {total_nodes} chunks"))
+                    Cow::from(tr_cached(Message::CodeDiscoveredChunks).replace("{total}", &total_nodes.to_string()))
                 }
                 Some(SyncProgress::Syncing {
                     completed_nodes,
                     total_nodes,
-                }) => Cow::from(format!("Syncing - {completed_nodes} / {total_nodes}")),
-                None => Cow::from("Syncing..."),
+                }) => Cow::from(tr_cached(Message::CodeSyncingProgress).replace("{completed}", &completed_nodes.to_string()).replace("{total}", &total_nodes.to_string())),
+                None => Cow::from(tr_cached(Message::CodeSyncing)),
             };
 
             return IndexingStatusPresentation {
@@ -1769,14 +1763,14 @@ impl CodePageWidget {
 
         if let Some(completed_successfully) = index_state.last_sync_successful() {
             let (text, color, icon) = if completed_successfully {
-                ("Synced", theme.ansi_fg_green(), Icon::Check)
+                (tr_cached(Message::CodeSynced), theme.ansi_fg_green(), Icon::Check)
             } else if let Some(CodebaseIndexFinishedStatus::Failed(
                 CodebaseIndexingError::ExceededMaxFileLimit
                 | CodebaseIndexingError::MaxDepthExceeded,
             )) = index_state.last_sync_result()
             {
                 (
-                    "Codebase too large",
+                    tr_cached(Message::CodebaseTooLarge),
                     theme.ui_warning_color(),
                     Icon::AlertTriangle,
                 )
@@ -1801,7 +1795,7 @@ impl CodePageWidget {
 
         log::warn!("No index state for codebase");
         IndexingStatusPresentation {
-            text: Cow::from("No index built"),
+            text: Cow::from(tr_cached(Message::CodeNoIndexBuilt)),
             color: theme.nonactive_ui_text_color().into_solid(),
             icon: None,
             refresh_action: None,
@@ -1819,7 +1813,7 @@ impl CodePageWidget {
 
         match status.state {
             RemoteCodebaseIndexState::NotEnabled => IndexingStatusPresentation {
-                text: Cow::from("No index created"),
+                text: Cow::from(tr_cached(Message::CodeNoIndexCreated)),
                 color: theme.disabled_ui_text_color().into_solid(),
                 icon: Some(Icon::SlashCircle),
                 refresh_action: Some(IndexingRefreshAction::RequestRemote),
@@ -1848,14 +1842,14 @@ impl CodePageWidget {
                 }
             }
             RemoteCodebaseIndexState::Disabled => IndexingStatusPresentation {
-                text: Cow::from("Disabled"),
+                text: Cow::from(tr_cached(Message::CodeDisabled)),
                 color: theme.disabled_ui_text_color().into_solid(),
                 icon: Some(Icon::SlashCircle),
                 refresh_action: Some(IndexingRefreshAction::RequestRemote),
                 show_delete: true,
             },
             RemoteCodebaseIndexState::Queued => IndexingStatusPresentation {
-                text: Cow::from("Queued"),
+                text: Cow::from(tr_cached(Message::CodeQueued)),
                 color: theme.disabled_ui_text_color().into_solid(),
                 icon: None,
                 refresh_action: None,
@@ -1864,11 +1858,11 @@ impl CodePageWidget {
             RemoteCodebaseIndexState::Indexing => {
                 let text = match (status.progress_completed, status.progress_total) {
                     (Some(completed), Some(total)) => {
-                        Cow::from(format!("Indexing - {completed} / {total}"))
+                        Cow::from(tr_cached(Message::CodeIndexingProgress).replace("{completed}", &completed.to_string()).replace("{total}", &total.to_string()))
                     }
-                    (Some(completed), None) => Cow::from(format!("Indexing - {completed}")),
-                    (None, Some(total)) => Cow::from(format!("Indexing - 0 / {total}")),
-                    (None, None) => Cow::from("Indexing..."),
+                    (Some(completed), None) => Cow::from(tr_cached(Message::CodeIndexingProgressCompletedOnly).replace("{completed}", &completed.to_string())),
+                    (None, Some(total)) => Cow::from(tr_cached(Message::CodeIndexingProgressTotalOnly).replace("{total}", &total.to_string())),
+                    (None, None) => Cow::from(tr_cached(Message::CodeIndexing)),
                 };
 
                 IndexingStatusPresentation {
@@ -1880,21 +1874,21 @@ impl CodePageWidget {
                 }
             }
             RemoteCodebaseIndexState::Ready => IndexingStatusPresentation {
-                text: Cow::from("Synced"),
+                text: Cow::from(tr_cached(Message::CodeSynced)),
                 color: theme.ansi_fg_green(),
                 icon: Some(Icon::Check),
                 refresh_action: Some(IndexingRefreshAction::Resync),
                 show_delete: true,
             },
             RemoteCodebaseIndexState::Stale => IndexingStatusPresentation {
-                text: Cow::from("Stale"),
+                text: Cow::from(tr_cached(Message::CodeStale)),
                 color: theme.nonactive_ui_detail().into_solid(),
                 icon: Some(Icon::ClockRefresh),
                 refresh_action: Some(IndexingRefreshAction::Resync),
                 show_delete: true,
             },
             RemoteCodebaseIndexState::Failed => IndexingStatusPresentation {
-                text: Cow::from("Failed"),
+                text: Cow::from(tr_cached(Message::CodeFailed)),
                 color: theme.ui_error_color(),
                 icon: Some(Icon::AlertTriangle),
                 refresh_action: Some(IndexingRefreshAction::Resync),
@@ -2049,7 +2043,7 @@ impl CodePageWidget {
         // "LSP SERVERS" label
         content.add_child(
             ui_builder
-                .span("LSP SERVERS")
+                .span(tr_cached(Message::CodeLspServers))
                 .with_style(UiComponentStyles {
                     font_size: Some(11.0),
                     font_weight: Some(Weight::Semibold),
@@ -2347,7 +2341,7 @@ impl CodePageWidget {
                         background: Some(theme.surface_3().into()),
                         ..Default::default()
                     })
-                    .with_text_label("Restart server".to_owned())
+                    .with_text_label(tr_cached(Message::SettingsRestartServer).to_owned())
                     .build()
                     .with_cursor(Cursor::PointingHand)
                     .on_click(move |ctx, _, _| {
@@ -2378,7 +2372,7 @@ impl CodePageWidget {
                         font_size: Some(12.),
                         ..Default::default()
                     })
-                    .with_text_label("View logs".to_owned())
+                    .with_text_label(tr_cached(Message::SettingsViewLogs).to_owned())
                     .build()
                     .with_cursor(Cursor::PointingHand)
                     .on_click(move |ctx, _, _| {
@@ -2512,10 +2506,10 @@ impl SettingsWidget for CodebaseIndexingCategorizedWidget {
             .check(codebase_context_enabled);
 
         let disabled_tooltip_text = match admin_setting {
-            AdminEnablementSetting::Enable => Some(INDEXING_WORKSPACE_ENABLED_ADMIN_TEXT),
-            AdminEnablementSetting::Disable => Some(INDEXING_DISABLED_ADMIN_TEXT),
+            AdminEnablementSetting::Enable => Some(tr_cached(Message::CodeIndexingEnabledByAdmins)),
+            AdminEnablementSetting::Disable => Some(tr_cached(Message::CodeIndexingDisabledByAdmins)),
             AdminEnablementSetting::RespectUserSetting if !global_ai_enabled => {
-                Some(INDEXING_DISABLED_GLOBAL_AI_TEXT)
+                Some(tr_cached(Message::CodeAiFeaturesRequiredForIndexing))
             }
             AdminEnablementSetting::RespectUserSetting => None,
         };
@@ -2539,13 +2533,13 @@ impl SettingsWidget for CodebaseIndexingCategorizedWidget {
         };
 
         content.add_child(render_body_item::<CodeSettingsPageAction>(
-            CODEBASE_INDEXING_LABEL.into(),
+            tr_cached(Message::CodeCodebaseIndexing).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
             appearance,
             toggle_element,
-            Some(CODEBASE_INDEX_DESCRIPTION.into()),
+            Some(tr_cached(Message::CodeCodebaseIndexDescription).into()),
         ));
 
         // Auto-indexing toggle (only shown when codebase indexing is enabled)
@@ -2553,7 +2547,7 @@ impl SettingsWidget for CodebaseIndexingCategorizedWidget {
             let auto_indexing_enabled = *CodeSettings::as_ref(app).auto_indexing_enabled;
 
             content.add_child(render_body_item::<CodeSettingsPageAction>(
-                AUTO_INDEX_FEATURE_NAME.into(),
+                tr_cached(Message::CodeIndexNewFoldersByDefault).into(),
                 None,
                 LocalOnlyIconState::Hidden,
                 ToggleState::Enabled,
@@ -2566,13 +2560,13 @@ impl SettingsWidget for CodebaseIndexingCategorizedWidget {
                         ctx.dispatch_typed_action(CodeSettingsPageAction::ToggleAutoIndexing);
                     })
                     .finish(),
-                Some(AUTO_INDEX_DESCRIPTION.into()),
+                Some(tr_cached(Message::CodeAutoIndexDescription).into()),
             ));
 
             if !CodebaseIndexManager::as_ref(app).can_create_new_indices() {
                 content.add_child(
                     ui_builder
-                        .paragraph(CODEBASE_INDEX_LIMIT_REACHED)
+                        .paragraph(tr_cached(Message::CodeIndexLimitReached))
                         .with_style(UiComponentStyles {
                             font_color: Some(appearance.theme().disabled_ui_text_color().into()),
                             ..Default::default()
@@ -2651,7 +2645,7 @@ impl SettingsWidget for AutoOpenCodeReviewPaneCodeWidget {
     ) -> Box<dyn Element> {
         let general_settings = GeneralSettings::as_ref(app);
         render_body_item::<CodeSettingsPageAction>(
-            "Auto open code review panel".into(),
+            tr(app, Message::SettingsAutoOpenCodeReviewPanel).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -2665,7 +2659,7 @@ impl SettingsWidget for AutoOpenCodeReviewPaneCodeWidget {
                     ctx.dispatch_typed_action(CodeSettingsPageAction::ToggleAutoOpenCodeReviewPane);
                 })
                 .finish(),
-            Some("When this setting is on, the code review panel will open on the first accepted diff of a conversation".into()),
+            Some(tr(app, Message::SettingsWhenThisSettingIsOnTheCodeReviewPanelWillOpenOnTheFirstAcceptedDiffOfAConversation).into()),
         )
     }
 }
@@ -2728,7 +2722,7 @@ impl SettingsWidget for CodeReviewPanelToggleWidget {
         let tab_settings = TabSettings::as_ref(app);
 
         render_body_item::<CodeSettingsPageAction>(
-            "Show code review button".into(),
+            tr(app, Message::SettingsShowCodeReviewButton).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -2771,7 +2765,7 @@ impl SettingsWidget for CodeReviewDiffStatsToggleWidget {
         let tab_settings = TabSettings::as_ref(app);
 
         render_body_item::<CodeSettingsPageAction>(
-            "Show diff stats on code review button".into(),
+            tr(app, Message::SettingsShowDiffStatsOnCodeReviewButton).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -2787,7 +2781,7 @@ impl SettingsWidget for CodeReviewDiffStatsToggleWidget {
                     );
                 })
                 .finish(),
-            Some("Show lines added and removed counts on the code review button.".into()),
+            Some(tr(app, Message::SettingsShowLinesAddedAndRemovedCountsOnTheCodeReviewButton).into()),
         )
     }
 }
@@ -2813,7 +2807,7 @@ impl SettingsWidget for ProjectExplorerToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<CodeSettingsPageAction>(
-            "Project explorer".into(),
+            tr(app, Message::SettingsProjectExplorer).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -2856,7 +2850,7 @@ impl SettingsWidget for GlobalSearchToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<CodeSettingsPageAction>(
-            "Global file search".into(),
+            tr(app, Message::SettingsGlobalFileSearch).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -2870,7 +2864,7 @@ impl SettingsWidget for GlobalSearchToggleWidget {
                     ctx.dispatch_typed_action(CodeSettingsPageAction::ToggleGlobalSearch);
                 })
                 .finish(),
-            Some("Adds global file search to the left side tools panel.".into()),
+            Some(tr(app, Message::SettingsAddsGlobalFileSearchToTheLeftSideToolsPanel).into()),
         )
     }
 }
@@ -2896,7 +2890,7 @@ impl SettingsWidget for ShowHiddenFilesToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<CodeSettingsPageAction>(
-            "Show hidden files in project explorer".into(),
+            tr(app, Message::SettingsShowHiddenFilesInProjectExplorer).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -2911,7 +2905,7 @@ impl SettingsWidget for ShowHiddenFilesToggleWidget {
                 })
                 .finish(),
             Some(
-                "Show dotfiles and hidden files (starting with .) in the project explorer.".into(),
+                tr(app, Message::SettingsShowDotfilesAndHiddenFilesStartingWithInTheProjectExplorer).into(),
             ),
         )
     }
@@ -2938,7 +2932,7 @@ impl SettingsWidget for FormatOnSaveToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<CodeSettingsPageAction>(
-            "Format on save (requires an active language server)".into(),
+            tr(app, Message::SettingsFormatOnSaveRequiresAnActiveLanguageServer).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,

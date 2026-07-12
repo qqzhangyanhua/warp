@@ -4,7 +4,7 @@ use onboarding::components::feature_optout_dialog::{
     render_feature_optout_dialog, FeatureOptOutDialog,
 };
 use onboarding::slides::{layout, slide_content};
-use onboarding::{OnboardingIntention, WARP_DRIVE_FEATURES};
+use onboarding::OnboardingIntention;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use ui_components::{button, Component as _, Options as _};
@@ -30,6 +30,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::auth_view_modal::AuthRedirectPayload;
 use crate::auth::auth_view_shared_helpers::{
@@ -465,8 +466,8 @@ impl LoginSlideView {
     ) -> Box<dyn Element> {
         match self.step {
             LoginStep::SelectAuthPathway => {
-                let children = self.render_select_auth_content(appearance);
-                let bottom_nav = self.render_select_auth_bottom_nav(appearance);
+                let children = self.render_select_auth_content(appearance, app);
+                let bottom_nav = self.render_select_auth_bottom_nav(appearance, app);
                 slide_content::onboarding_slide_content(
                     children,
                     bottom_nav,
@@ -475,7 +476,7 @@ impl LoginSlideView {
                 )
             }
             LoginStep::BrowserOpen => {
-                let children = self.render_browser_open_content(appearance, editor_rendered);
+                let children = self.render_browser_open_content(appearance, editor_rendered, app);
                 let bottom_nav = self.render_browser_open_bottom_nav(appearance);
                 slide_content::onboarding_slide_content(
                     children,
@@ -525,7 +526,7 @@ impl LoginSlideView {
         }
     }
 
-    fn render_select_auth_content(&self, appearance: &Appearance) -> Vec<Box<dyn Element>> {
+    fn render_select_auth_content(&self, appearance: &Appearance, app: &AppContext) -> Vec<Box<dyn Element>> {
         let theme = appearance.theme();
         let sub_text_color = internal_colors::text_sub(theme, theme.background().into_solid());
         let ui_builder = appearance.ui_builder();
@@ -605,7 +606,7 @@ impl LoginSlideView {
             .with_child(
                 ui_builder
                     .link(
-                        "Privacy Settings".into(),
+                        tr(app, Message::AuthPrivacySettings).into(),
                         None,
                         Some(Box::new(|ctx| {
                             ctx.dispatch_typed_action(LoginSlideAction::ShowPrivacySettings);
@@ -642,7 +643,7 @@ impl LoginSlideView {
         vec![header]
     }
 
-    fn render_select_auth_bottom_nav(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_select_auth_bottom_nav(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
@@ -660,8 +661,8 @@ impl LoginSlideView {
         let cmd_enter = Keystroke::parse("cmdorctrl-enter").unwrap_or_default();
         let skip_label = match self.login_purpose() {
             LoginPurpose::WarpDrive => "Disable Warp Drive",
-            LoginPurpose::WarpAgent => "Skip for now",
-            LoginPurpose::ThirdParty => "Skip for now",
+            LoginPurpose::WarpAgent => tr(app, Message::AuthSkipForNow),
+            LoginPurpose::ThirdParty => tr(app, Message::AuthSkipForNow),
         };
         let skip_button = self.skip_button.render(
             appearance,
@@ -717,6 +718,7 @@ impl LoginSlideView {
         &self,
         appearance: &Appearance,
         editor_rendered: &Cell<bool>,
+        app: &AppContext,
     ) -> Vec<Box<dyn Element>> {
         let theme = appearance.theme();
         let sub_text_color = internal_colors::text_sub(theme, theme.background().into_solid());
@@ -728,7 +730,7 @@ impl LoginSlideView {
         };
 
         let title = FormattedTextElement::from_str(
-            "Sign in on your browser to continue",
+            tr(app, Message::AuthSignInOnYourBrowser),
             appearance.ui_font_family(),
             36.,
         )
@@ -887,7 +889,7 @@ impl LoginSlideView {
         let theme = appearance.theme();
 
         let title =
-            FormattedTextElement::from_str("Privacy Settings", appearance.ui_font_family(), 36.)
+            FormattedTextElement::from_str(tr(app, Message::AuthPrivacySettings), appearance.ui_font_family(), 36.)
                 .with_color(internal_colors::text_main(
                     theme,
                     theme.background().into_solid(),
@@ -948,7 +950,7 @@ impl LoginSlideView {
     // Rendering — skip confirmation dialog
     // ------------------------------------------------------------------
 
-    fn render_skip_dialog(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_skip_dialog(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
         let (title, body, features, cancel_label): (
             &'static str,
             &'static str,
@@ -958,7 +960,7 @@ impl LoginSlideView {
             LoginPurpose::WarpDrive => (
                 "Are you sure you want to disable Warp Drive?",
                 "Warp Drive lets you save workflows and knowledge across devices and share them with your team. By continuing, you won't have access to the following features:",
-                WARP_DRIVE_FEATURES,
+                onboarding::warp_drive_features(onboarding::i18n::Locale::En),
                 "Enable Warp Drive",
             ),
             LoginPurpose::WarpAgent | LoginPurpose::ThirdParty => (
@@ -1004,7 +1006,7 @@ impl LoginSlideView {
         let confirm_button = self.dialog_skip_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Skip for now".into()),
+                content: button::Content::Label(tr(app, Message::AuthSkipForNow).into()),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(dialog_enter),
@@ -1092,7 +1094,7 @@ impl View for LoginSlideView {
 
         // Skip dialog overlay
         if matches!(self.active_overlay, Some(LoginSlideOverlay::SkipDialog)) {
-            let dialog = self.render_skip_dialog(appearance);
+            let dialog = self.render_skip_dialog(appearance, app);
             stack.add_child(
                 warpui::elements::Rect::new()
                     .with_background(

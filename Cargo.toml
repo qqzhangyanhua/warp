@@ -388,6 +388,7 @@ warp-command-signatures = { git = "https://github.com/warpdotdev/command-signatu
 winit = { git = "https://github.com/warpdotdev/winit.git", rev = "a4e0ecb5f9626ccac9445a73dc28354b52423abc" }
 x11rb = "0.13.0"
 mockito = "1.7.0"
+sys-locale = "0.3.2"
 sysinfo = { version = "0.37.0", default-features = false, features = [
   "system",
   "multithread",

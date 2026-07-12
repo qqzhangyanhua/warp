@@ -327,6 +327,7 @@ use crate::env_vars::env_var_collection_block::{
 };
 use crate::env_vars::{CloudEnvVarCollection, EnvVar, EnvVarExt};
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::{
@@ -13020,10 +13021,10 @@ impl TerminalView {
                         } => "Installing...".to_string(),
                         RemoteServerSetupState::Updating => "Updating...".to_string(),
                         RemoteServerSetupState::Initializing => "Initializing...".to_string(),
-                        _ => "Starting shell...".to_string(),
+                        _ => tr_cached(Message::TerminalStartingShell).to_string(),
                     })
             })
-            .unwrap_or_else(|| "Starting shell...".to_string());
+            .unwrap_or_else(|| tr_cached(Message::TerminalStartingShell).to_string());
 
         let shimmer_element = shimmering_warp_loading_text(
             message,
@@ -23365,7 +23366,7 @@ impl TerminalView {
             render_hoverable_block_button(
                 icon,
                 Some(ToolbeltButtonTooltip {
-                    label: "Filter block output".to_string(),
+                    label: tr_cached(Message::TerminalFilterBlockOutput).to_string(),
                     tool_tip_below_button,
                 }),
                 should_disable_filter_button,
@@ -23951,7 +23952,7 @@ impl TerminalView {
                             .finish(),
                     )
                     .with_child(
-                        Text::new_inline("Loading session...", appearance.ui_font_family(), 14.)
+                        Text::new_inline(tr_cached(Message::TerminalLoadingSession), appearance.ui_font_family(), 14.)
                             .with_color(color.into())
                             .finish(),
                     )

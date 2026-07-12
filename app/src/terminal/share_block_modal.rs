@@ -37,6 +37,7 @@ use super::grid_renderer::CellGlyphCache;
 use super::model::grid::RespectDisplayedOutput;
 use crate::ai::generate_block_title::api::GenerateBlockTitleRequest;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditOrigin, EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions,
 };
@@ -197,7 +198,7 @@ impl ShareBlockModal {
                 },
                 ctx,
             );
-            editor.set_placeholder_text(BLOCK_TITLE_PLACEHOLDER, ctx);
+            editor.set_placeholder_text(tr_cached(Message::TerminalTitleOptional), ctx);
             editor
         });
         ctx.subscribe_to_view(&block_title_editor, move |me, _, event, ctx| {
@@ -384,7 +385,7 @@ impl ShareBlockModal {
 
     fn display_failure_toast(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.emit(ShareBlockModalEvent::ShowToast {
-            message: BLOCK_CREATION_FAILED_MESSAGE.to_string(),
+            message: tr_cached(Message::TerminalSomethingWentWrong).to_string(),
             flavor: ToastFlavor::Error,
         });
     }
@@ -501,7 +502,7 @@ impl ShareBlockModal {
             );
             ctx.clipboard().write(ClipboardContent::plain_text(link));
             ctx.emit(ShareBlockModalEvent::ShowToast {
-                message: "Link copied.".to_string(),
+                message: tr_cached(Message::TerminalLinkCopied).to_string(),
                 flavor: ToastFlavor::Default,
             });
         }
@@ -547,7 +548,7 @@ impl ShareBlockModal {
         ctx.clipboard()
             .write(ClipboardContent::plain_text(embed_snippet));
         ctx.emit(ShareBlockModalEvent::ShowToast {
-            message: "Embed code copied.".to_string(),
+            message: tr_cached(Message::TerminalEmbedCodeCopied).to_string(),
             flavor: ToastFlavor::Success,
         });
     }
@@ -627,7 +628,7 @@ impl ShareBlockModal {
     fn render_create_block_buttons_row(&self, appearance: &Appearance) -> Box<dyn Element> {
         let create_link_button = self.render_create_block_button(
             appearance,
-            "Create link",
+            tr_cached(Message::TerminalCreateLink),
             Icon::Link,
             ButtonVariant::Accent,
             self.mouse_state_handles
@@ -637,7 +638,7 @@ impl ShareBlockModal {
         );
         let get_embed_button = self.render_create_block_button(
             appearance,
-            "Get embed",
+            tr_cached(Message::TerminalGetEmbed),
             Icon::Code1,
             ButtonVariant::Basic,
             self.mouse_state_handles
@@ -664,7 +665,7 @@ impl ShareBlockModal {
             TextAndIconAlignment::TextFirst,
             if let ShareRequestState::Pending(pending_share_type) = self.request_state {
                 if pending_share_type == share_type {
-                    "Creating block...".to_string()
+                    tr_cached(Message::TerminalCreatingBlock).to_string()
                 } else {
                     text_label.to_string()
                 }
@@ -765,7 +766,7 @@ impl ShareBlockModal {
                     .manage_permalinks_mouse_state
                     .clone(),
             )
-            .with_centered_text_label("Manage shared blocks".to_string())
+            .with_centered_text_label(tr_cached(Message::TerminalManageSharedBlocks).to_string())
             .with_style(
                 self.button_style_overrides(appearance)
                     .set_font_size(12.)
@@ -871,7 +872,7 @@ impl ShareBlockModal {
             if link_generated {
                 self.block_title_editor.as_ref(app).buffer_text(app)
             } else {
-                "Share block".to_string()
+                tr_cached(Message::TerminalShareBlock).to_string()
             },
             appearance.ui_font_family(),
             24.,
@@ -959,7 +960,7 @@ impl ShareBlockModal {
                 .finish();
             let show_prompt_description = appearance
                 .ui_builder()
-                .span("Show prompt".to_string())
+                .span(tr_cached(Message::TerminalShowPrompt).to_string())
                 .build()
                 .with_margin_left(2.)
                 .finish();
@@ -1060,7 +1061,7 @@ impl ShareBlockModal {
 
             let redact_secrets_description = appearance
                 .ui_builder()
-                .span("Redact secrets (API keys, passwords, IP addresses, PII etc.)".to_string())
+                .span(tr_cached(Message::TerminalRedactSecrets).to_string())
                 .build()
                 .with_margin_left(4.)
                 .finish();

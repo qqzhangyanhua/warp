@@ -10,6 +10,7 @@ use warpui_core::windowing::state::{ApplicationStage, StateEvent};
 use warpui_core::windowing::WindowManager;
 
 use crate::components::feature_optout_dialog::{render_feature_optout_dialog, FeatureOptOutDialog};
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::{
     OnboardingAuthState, OnboardingStateEvent, OnboardingStateModel, OnboardingStep,
     SelectedSettings,
@@ -82,6 +83,7 @@ pub struct AgentOnboardingView {
     ai_access_slide: ViewHandle<AiAccessSlide>,
     third_party_slide: ViewHandle<ThirdPartySlide>,
     project_slide: ViewHandle<ProjectSlide>,
+    locale: Locale,
     skippable: bool,
     close_button: button::Button,
     no_ai_confirm_button: button::Button,
@@ -142,6 +144,7 @@ impl AgentOnboardingView {
         workspace_enforces_autonomy: bool,
         agent_modality_enabled: bool,
         auth_state: OnboardingAuthState,
+        locale: Locale,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let onboarding_state = ctx.add_model(|_| {
@@ -179,7 +182,9 @@ impl AgentOnboardingView {
 
         let intro_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| IntroSlide::new(onboarding_state))
+            ctx.add_typed_action_view(move |_| {
+                IntroSlide::new(onboarding_state.clone(), locale)
+            })
         };
 
         ctx.subscribe_to_view(&intro_slide, |_me, _view, event, ctx| match event {
@@ -192,23 +197,29 @@ impl AgentOnboardingView {
             let themes = theme_picker_themes.clone();
             let onboarding_state = onboarding_state.clone();
             ctx.add_typed_action_view(move |ctx| {
-                ThemePickerSlide::new(themes.clone(), onboarding_state, ctx)
+                ThemePickerSlide::new(themes.clone(), onboarding_state.clone(), locale, ctx)
             })
         };
 
         let intention_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| IntentionSlide::new(onboarding_state))
+            ctx.add_typed_action_view(move |_| {
+                IntentionSlide::new(onboarding_state.clone(), locale)
+            })
         };
 
         let ai_setup_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| AiSetupSlide::new(onboarding_state))
+            ctx.add_typed_action_view(move |_| {
+                AiSetupSlide::new(onboarding_state.clone(), locale)
+            })
         };
 
         let customize_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |ctx| CustomizeUISlide::new(onboarding_state, ctx))
+            ctx.add_typed_action_view(move |ctx| {
+                CustomizeUISlide::new(onboarding_state.clone(), locale, ctx)
+            })
         };
 
         ctx.subscribe_to_view(&theme_picker_slide, |me, _view, event, ctx| {
@@ -217,12 +228,16 @@ impl AgentOnboardingView {
 
         let agent_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |ctx| AgentSlide::new(onboarding_state, ctx))
+            ctx.add_typed_action_view(move |ctx| {
+                AgentSlide::new(onboarding_state.clone(), locale, ctx)
+            })
         };
 
         let ai_access_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| AiAccessSlide::new(onboarding_state))
+            ctx.add_typed_action_view(move |_| {
+                AiAccessSlide::new(onboarding_state.clone(), locale)
+            })
         };
 
         ctx.subscribe_to_view(&ai_access_slide, |_me, _view, event, ctx| match event {
@@ -236,12 +251,16 @@ impl AgentOnboardingView {
 
         let third_party_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |ctx| ThirdPartySlide::new(onboarding_state, ctx))
+            ctx.add_typed_action_view(move |ctx| {
+                ThirdPartySlide::new(onboarding_state.clone(), locale, ctx)
+            })
         };
 
         let project_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| ProjectSlide::new(onboarding_state))
+            ctx.add_typed_action_view(move |_| {
+                ProjectSlide::new(onboarding_state.clone(), locale)
+            })
         };
 
         // When the app regains focus (e.g. user returning from the upgrade page in the
@@ -274,6 +293,7 @@ impl AgentOnboardingView {
             ai_access_slide,
             third_party_slide,
             project_slide,
+            locale,
             skippable,
             close_button: button::Button::default(),
             no_ai_confirm_button: button::Button::default(),
@@ -393,7 +413,9 @@ impl AgentOnboardingView {
         let cancel_button = self.no_ai_cancel_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Give me AI features".into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::GiveMeAiFeatures, self.locale).into(),
+                ),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -408,7 +430,9 @@ impl AgentOnboardingView {
         let confirm_button = self.no_ai_confirm_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("I don't want AI".into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::IDontWantAi, self.locale).into(),
+                ),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),
@@ -423,9 +447,8 @@ impl AgentOnboardingView {
         render_feature_optout_dialog(
             appearance,
             FeatureOptOutDialog {
-                title: "Are you sure you don't want AI?",
-                body: "Without AI, you'll still get Warp's terminal experience, but you'll miss \
-                       our agentic features like automatic fixes for terminal errors.",
+                title: i18n::tr(OnboardingMessage::AreYouSureNoAi, self.locale),
+                body: i18n::tr(OnboardingMessage::NoAiWarningBody, self.locale),
                 features: &[],
                 close_button,
                 cancel_button,
@@ -490,7 +513,10 @@ impl AgentOnboardingView {
         .finish();
 
         let text = ui_builder
-            .span("Plan successfully activated!")
+            .span(i18n::tr(
+                OnboardingMessage::PlanSuccessfullyActivated,
+                self.locale,
+            ))
             .with_style(UiComponentStyles {
                 font_color: Some(text_color),
                 font_size: Some(FONT_SIZE),

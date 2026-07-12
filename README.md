@@ -80,7 +80,12 @@ To build and run Warp from source:
 ./script/presubmit   # fmt, clippy, and tests
 ```
 
-See [AGENTS.md](AGENTS.md) for the full engineering guide, including coding style, testing, and platform-specific notes.
+See [AGENTS.md](AGENTS.md) for the agent workflow entrypoint. Engineering details live under [`docs/`](docs/):
+[project map](docs/project-map.md) (architecture and coding style),
+[testing](docs/testing.md),
+[debugging](docs/debugging.md),
+and [dangerous areas](docs/dangerous-areas.md).
+Domain vocabulary is in [CONTEXT.md](CONTEXT.md); architectural decisions are in [`docs/adr/`](docs/adr/).
 
 ## Joining the Team
 

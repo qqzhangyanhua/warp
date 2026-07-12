@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -31,6 +32,7 @@ use crate::appearance::Appearance;
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
 use crate::settings::{ReuseExistingSshControlMaster, SshSettings};
+use crate::i18n::Message;
 use crate::terminal::warpify::settings::{
     EnableSshWarpification, SshExtensionInstallMode, SshExtensionInstallModeSetting,
     WarpifySettings, WarpifySettingsChangedEvent,
@@ -152,7 +154,8 @@ impl WarpifyPageView {
         let mut categories = vec![
             Category::new("", vec![Box::new(TitleWidget::default())]),
             Category::new("Subshells", vec![Box::new(SubshellsWidget::default())])
-                .with_subtitle("Subshells supported: bash, zsh, and fish."),
+                .with_subtitle("Subshells supported: bash, zsh, and fish.")
+                .with_localized_title(Message::SettingsWarpifySubshellsCategory),
         ];
 
         let warpify_settings = WarpifySettings::as_ref(ctx);
@@ -162,7 +165,8 @@ impl WarpifyPageView {
         {
             categories.push(
                 Category::new("SSH", vec![Box::new(SSHWidget::default())])
-                    .with_subtitle("Warpify your interactive SSH sessions."),
+                    .with_subtitle("Warpify your interactive SSH sessions.")
+                    .with_localized_title(Message::SettingsWarpifySSHCategory),
             );
         }
         PageType::new_categorized(categories, None)
@@ -628,7 +632,7 @@ impl SettingsWidget for SSHWidget {
             &WarpifySettings::as_ref(app).enable_ssh_warpification,
             move || {
                 render_body_item::<WarpifyPageAction>(
-                    "Warpify SSH Sessions".into(),
+                    tr(app, Message::SettingsWarpifySshSessions).into(),
                     None,
                     LocalOnlyIconState::for_setting(
                         EnableSshWarpification::storage_key(),
@@ -690,7 +694,7 @@ impl SettingsWidget for SSHWidget {
             move || {
                 let mut column = Flex::column();
                 column.add_child(render_body_item::<WarpifyPageAction>(
-                    "Reuse existing SSH ControlMaster".into(),
+                    tr(app, Message::SettingsReuseExistingSshControlmaster).into(),
                     None,
                     LocalOnlyIconState::for_setting(
                         ReuseExistingSshControlMaster::storage_key(),

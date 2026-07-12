@@ -3,6 +3,7 @@ mod convert_from;
 mod convert_to;
 mod r#impl;
 
+use std::collections::HashSet;
 use std::path::Path;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -158,6 +159,23 @@ pub struct ConversationData {
 }
 
 impl RequestParams {
+    pub fn model_config_is_backed_by_custom_providers(&self) -> bool {
+        let Some(custom_model_providers) = &self.custom_model_providers else {
+            return false;
+        };
+
+        let provider_model_keys = custom_model_providers
+            .providers
+            .iter()
+            .flat_map(|provider| provider.models.iter())
+            .map(|model| model.config_key.as_str())
+            .collect::<HashSet<_>>();
+
+        provider_model_keys.contains(self.model.as_str())
+            && provider_model_keys.contains(self.cli_agent_model.as_str())
+            && provider_model_keys.contains(self.computer_use_model.as_str())
+    }
+
     #[cfg(test)]
     pub fn new_for_test() -> Self {
         Self {

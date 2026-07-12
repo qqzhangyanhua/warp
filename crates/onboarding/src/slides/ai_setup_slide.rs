@@ -20,16 +20,31 @@ use warpui_core::{
 };
 
 use super::OnboardingSlide;
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::{AiSetupChoice, OnboardingStateModel};
 use crate::slides::{bottom_nav, layout, slide_content};
 
 /// Checklist shown on the "Use Warp agent" card.
-const WARP_AGENT_FEATURES: &[&str] = &[
+const WARP_AGENT_FEATURES_EN: &[&str] = &[
     "Best harness for terminal tasks and agentic coding",
     "Frontier models from OpenAI, Anthropic, and Google",
     "Model routing across frontier and open-weight models",
     "Multi-agent orchestration",
 ];
+
+const WARP_AGENT_FEATURES_ZH_CN: &[&str] = &[
+    "终端任务和 Agent 编码的最佳框架",
+    "来自 OpenAI、Anthropic 和 Google 的前沿模型",
+    "跨前沿模型和开源模型的路由",
+    "多 Agent 编排",
+];
+
+fn warp_agent_features(locale: Locale) -> &'static [&'static str] {
+    match locale {
+        Locale::En => WARP_AGENT_FEATURES_EN,
+        Locale::ZhCn => WARP_AGENT_FEATURES_ZH_CN,
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum AiSetupSlideAction {
@@ -44,6 +59,7 @@ pub enum AiSetupSlideAction {
 /// agent (paid-plan path) and third-party agents (works on Free).
 pub struct AiSetupSlide {
     onboarding_state: ModelHandle<OnboardingStateModel>,
+    locale: Locale,
     warp_agent_mouse_state: MouseStateHandle,
     third_party_mouse_state: MouseStateHandle,
     back_button: button::Button,
@@ -52,9 +68,10 @@ pub struct AiSetupSlide {
 }
 
 impl AiSetupSlide {
-    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>) -> Self {
+    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>, locale: Locale) -> Self {
         Self {
             onboarding_state,
+            locale,
             warp_agent_mouse_state: MouseStateHandle::default(),
             third_party_mouse_state: MouseStateHandle::default(),
             back_button: button::Button::default(),
@@ -106,7 +123,7 @@ impl AiSetupSlide {
 
         let title = appearance
             .ui_builder()
-            .paragraph("Choose your AI setup")
+            .paragraph(i18n::tr(OnboardingMessage::ChooseYourAiSetup, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -116,7 +133,7 @@ impl AiSetupSlide {
             .finish();
 
         let subtitle = FormattedTextElement::from_str(
-            "Choose if you'd like to use Warp Agent or third party agents.",
+            i18n::tr(OnboardingMessage::ChooseYourAiSetupDescription, self.locale),
             appearance.ui_font_family(),
             16.,
         )
@@ -227,7 +244,7 @@ impl AiSetupSlide {
         let header_row = {
             let label = appearance
                 .ui_builder()
-                .paragraph("Use Warp Agent")
+                .paragraph(i18n::tr(OnboardingMessage::UseWarpAgent, self.locale))
                 .with_style(UiComponentStyles {
                     font_size: Some(16.),
                     font_weight: Some(Weight::Semibold),
@@ -241,7 +258,7 @@ impl AiSetupSlide {
                 let green = theme.ansi_fg_green();
                 let badge_text = appearance
                     .ui_builder()
-                    .paragraph("Access more models")
+                    .paragraph(i18n::tr(OnboardingMessage::AccessMoreModels, self.locale))
                     .with_style(UiComponentStyles {
                         font_size: Some(12.),
                         font_weight: Some(Weight::Normal),
@@ -268,7 +285,7 @@ impl AiSetupSlide {
         };
 
         let description = FormattedTextElement::from_str(
-            "State of the art agent harness deeply integrated into the terminal.",
+            i18n::tr(OnboardingMessage::WarpAgentDescription, self.locale),
             appearance.ui_font_family(),
             14.,
         )
@@ -289,14 +306,14 @@ impl AiSetupSlide {
             let mut col = Flex::column()
                 .with_main_axis_size(MainAxisSize::Min)
                 .with_cross_axis_alignment(CrossAxisAlignment::Start);
-            for &item in WARP_AGENT_FEATURES {
+            for &item in warp_agent_features(self.locale) {
                 let icon_el = ConstrainedBox::new(Icon::Check.to_warpui_icon(check_fill).finish())
                     .with_width(16.)
                     .with_height(16.)
                     .finish();
                 let text_el = appearance
                     .ui_builder()
-                    .paragraph(item.to_string())
+                    .paragraph(item)
                     .with_style(UiComponentStyles {
                         font_size: Some(14.),
                         font_weight: Some(Weight::Normal),
@@ -354,7 +371,7 @@ impl AiSetupSlide {
 
         let label = appearance
             .ui_builder()
-            .paragraph("Use third party agents")
+            .paragraph(i18n::tr(OnboardingMessage::UseThirdPartyAgents, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(16.),
                 font_weight: Some(Weight::Semibold),
@@ -365,7 +382,7 @@ impl AiSetupSlide {
             .finish();
 
         let description = FormattedTextElement::from_str(
-            "Use agents like Claude Code, Codex, and Gemini.",
+            i18n::tr(OnboardingMessage::ThirdPartyDescription, self.locale),
             appearance.ui_font_family(),
             14.,
         )
@@ -395,7 +412,7 @@ impl AiSetupSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Back".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -410,7 +427,7 @@ impl AiSetupSlide {
         let next_button = self.next_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Next".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Next, self.locale).into()),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),

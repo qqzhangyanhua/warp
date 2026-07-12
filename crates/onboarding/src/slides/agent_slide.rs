@@ -25,6 +25,7 @@ use warpui_core::{
 
 use super::two_line_button::{render_two_line_button, TwoLineButtonSpec};
 use super::OnboardingSlide;
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::model::{OnboardingStateEvent, OnboardingStateModel};
 use crate::slides::{bottom_nav, layout, slide_content};
 use crate::visuals::agent_visual;
@@ -101,6 +102,7 @@ pub enum AgentSlideAction {
 
 pub struct AgentSlide {
     onboarding_state: warpui_core::ModelHandle<OnboardingStateModel>,
+    locale: Locale,
 
     /// Mouse state handles for each model row.
     model_mouse_states: Vec<MouseStateHandle>,
@@ -130,6 +132,7 @@ fn model_row_position_id(index: usize) -> String {
 impl AgentSlide {
     pub(crate) fn new(
         onboarding_state: warpui_core::ModelHandle<OnboardingStateModel>,
+        locale: Locale,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let model_count = onboarding_state.as_ref(ctx).models().len();
@@ -163,6 +166,7 @@ impl AgentSlide {
 
         Self {
             onboarding_state,
+            locale,
             model_mouse_states,
             chip_mouse_state: MouseStateHandle::default(),
             autonomy_full_mouse_state: MouseStateHandle::default(),
@@ -223,7 +227,7 @@ impl AgentSlide {
     fn render_header(&self, appearance: &Appearance) -> Box<dyn Element> {
         let title = appearance
             .ui_builder()
-            .paragraph("Customize your Warp Agent")
+            .paragraph(i18n::tr(OnboardingMessage::CustomizeYourWarpAgent, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -233,7 +237,7 @@ impl AgentSlide {
             .finish();
 
         let subtitle = FormattedTextElement::from_str(
-            "Select your Warp Agent's defaults.",
+            i18n::tr(OnboardingMessage::AgentSlideSubtitle, self.locale),
             appearance.ui_font_family(),
             16.,
         )
@@ -319,7 +323,7 @@ impl AgentSlide {
         settings: &AgentDevelopmentSettings,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let header = self.render_section_header("Default model", appearance);
+        let header = self.render_section_header(i18n::tr(OnboardingMessage::DefaultModel, self.locale), appearance);
 
         let expanded = self.is_model_list_expanded;
         let chip = self.render_collapsed_model_chip(appearance, settings, app, expanded);
@@ -471,7 +475,7 @@ impl AgentSlide {
 
     /// Renders the vertical list of model rows shown inside the floating dropdown
     /// overlay. Each row shows a provider icon + title on the left, with a
-    /// "Recommended" pill on the right for the default model.
+    /// i18n::tr(OnboardingMessage::Recommended, self.locale) pill on the right for the default model.
     fn render_model_list_rows(
         &self,
         appearance: &Appearance,
@@ -597,7 +601,7 @@ impl AgentSlide {
                 .with_child(Container::new(title_el).with_margin_left(8.).finish())
                 .finish();
 
-            // "Recommended" pill on the server-designated default model.
+            // i18n::tr(OnboardingMessage::Recommended, self.locale) pill on the server-designated default model.
             let make_pill = |label: &'static str| -> Box<dyn Element> {
                 let badge = Text::new(label.to_string(), ui_font_family, 11.0)
                     .with_color(internal_colors::text_sub(theme, background_for_text))
@@ -618,7 +622,7 @@ impl AgentSlide {
             };
 
             let trailing: Box<dyn Element> = if is_default {
-                make_pill("Recommended")
+                make_pill(i18n::tr(OnboardingMessage::Recommended, self.locale))
             } else {
                 Empty::new().finish()
             };
@@ -665,7 +669,7 @@ impl AgentSlide {
     }
 
     fn render_autonomy_workspace_enforced(&self, appearance: &Appearance) -> Box<dyn Element> {
-        let header = self.render_section_header("Autonomy", appearance);
+        let header = self.render_section_header(i18n::tr(OnboardingMessage::Autonomy, self.locale), appearance);
 
         let theme = appearance.theme();
         let background_for_text = theme.background().into_solid();
@@ -674,7 +678,7 @@ impl AgentSlide {
         let title_color = internal_colors::text_main(theme, background_for_text);
         let subtitle_color = internal_colors::text_sub(theme, background_for_text);
 
-        let title_el = Text::new("Set by Team Workspace", ui_font_family, 14.0)
+        let title_el = Text::new(i18n::tr(OnboardingMessage::SetByTeamWorkspace, self.locale), ui_font_family, 14.0)
             .with_color(title_color)
             .with_style(Properties {
                 weight: Weight::Normal,
@@ -684,7 +688,7 @@ impl AgentSlide {
             .finish();
 
         let subtitle_el = Text::new(
-            "Autonomy settings are configured as part of your team workspace.",
+            i18n::tr(OnboardingMessage::AutonomyTeamWorkspaceDescription, self.locale),
             ui_font_family,
             12.0,
         )
@@ -720,7 +724,7 @@ impl AgentSlide {
         appearance: &Appearance,
         settings: &AgentDevelopmentSettings,
     ) -> Box<dyn Element> {
-        let header = self.render_section_header("Autonomy", appearance);
+        let header = self.render_section_header(i18n::tr(OnboardingMessage::Autonomy, self.locale), appearance);
 
         // The rows now take the full column width (vs. the previous three-across layout),
         // so they no longer need the extra height that came from cramped subtitle wrapping.
@@ -735,20 +739,20 @@ impl AgentSlide {
         let autonomy_options: [(AgentAutonomy, &str, &str, MouseStateHandle); 3] = [
             (
                 AgentAutonomy::Full,
-                "Full",
-                "Warp Agent runs commands, writes code, and reads files without asking.",
+                i18n::tr(OnboardingMessage::Full, self.locale),
+                i18n::tr(OnboardingMessage::FullAutonomyDescription, self.locale),
                 self.autonomy_full_mouse_state.clone(),
             ),
             (
                 AgentAutonomy::Partial,
-                "Partial",
-                "Warp Agent can plan, read files, and execute low-risk commands. Asks before making any changes or executing sensitive commands.",
+                i18n::tr(OnboardingMessage::Partial, self.locale),
+                i18n::tr(OnboardingMessage::PartialAutonomyDescription, self.locale),
                 self.autonomy_partial_mouse_state.clone(),
             ),
             (
                 AgentAutonomy::None,
-                "None",
-                "Warp Agent takes no actions without your approval.",
+                i18n::tr(OnboardingMessage::NoneAutonomy, self.locale),
+                i18n::tr(OnboardingMessage::NoneAutonomyDescription, self.locale),
                 self.autonomy_none_mouse_state.clone(),
             ),
         ];
@@ -798,7 +802,7 @@ impl AgentSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Back".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -813,7 +817,7 @@ impl AgentSlide {
         let next_button = self.next_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label("Next".into()),
+                content: button::Content::Label(i18n::tr(OnboardingMessage::Next, self.locale).into()),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),

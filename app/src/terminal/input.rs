@@ -226,6 +226,7 @@ use crate::editor::{
 };
 use crate::env_vars::EnvVarCollectionExt;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::input_suggestions::{
     Event as InputSuggestionsEvent, HistoryInputSuggestion, InputSuggestions,
     TabCompletionsPreselectOption,
@@ -6487,7 +6488,7 @@ impl Input {
             input_model.should_run_input_autodetection(app),
         ) {
             (InputType::Shell, false) => {
-                AGENT_MODE_AI_DISABLED_AUTODETECTION_DISABLED_HINT_TEXT.to_owned()
+                tr_cached(Message::TerminalRunCommands).to_owned()
             }
             (InputType::Shell, true) => {
                 // Ensure hint text is cached for new conversations
@@ -6521,21 +6522,21 @@ impl Input {
                     Some(status) if status.is_in_progress() => {
                         if is_queue_next_prompt_enabled {
                             if is_udi_enabled {
-                                AGENT_MODE_AI_ENABLED_QUEUE_HINT_TEXT_UDI.to_owned()
+                                tr_cached(Message::TerminalQueueFollowUp).to_owned()
                             } else {
-                                AGENT_MODE_AI_ENABLED_QUEUE_HINT_TEXT_CLASSIC.to_owned()
+                                tr_cached(Message::TerminalQueueFollowUpOrBackspace).to_owned()
                             }
                         } else if is_udi_enabled {
-                            AGENT_MODE_AI_ENABLED_STEER_HINT_TEXT_UDI.to_owned()
+                            tr_cached(Message::TerminalSteerRunningAgent).to_owned()
                         } else {
-                            AGENT_MODE_AI_ENABLED_STEER_HINT_TEXT_CLASSIC.to_owned()
+                            tr_cached(Message::TerminalSteerRunningAgentOrBackspace).to_owned()
                         }
                     }
                     Some(_) => {
                         if is_udi_enabled {
-                            AGENT_MODE_AI_ENABLED_FOLLOW_UP_HINT_TEXT_UDI.to_owned()
+                            tr_cached(Message::TerminalAskFollowUp).to_owned()
                         } else {
-                            AGENT_MODE_AI_ENABLED_FOLLOW_UP_HINT_TEXT_CLASSIC.to_owned()
+                            tr_cached(Message::TerminalAskFollowUpOrBackspace).to_owned()
                         }
                     }
                     None => {
@@ -6965,19 +6966,19 @@ impl Input {
     }
     fn cli_agent_rich_input_hint_text(&self, ctx: &ViewContext<Self>) -> Cow<'static, str> {
         if self.is_locked_in_shell_mode(ctx) {
-            return Cow::Borrowed(AGENT_MODE_AI_DISABLED_AUTODETECTION_DISABLED_HINT_TEXT);
+            return Cow::Borrowed(tr_cached(Message::TerminalRunCommands));
         }
 
         CLIAgentSessionsModel::as_ref(ctx)
             .session(self.terminal_view_id)
             .map(|session| match session.agent {
-                CLIAgent::Unknown => Cow::Borrowed(CLI_AGENT_RICH_INPUT_HINT_TEXT),
+                CLIAgent::Unknown => Cow::Borrowed(tr_cached(Message::TerminalTellAgentWhatToBuild)),
                 _ => Cow::Owned(format!(
                     "Enter prompt for {}...",
                     session.agent.display_name()
                 )),
             })
-            .unwrap_or(Cow::Borrowed(CLI_AGENT_RICH_INPUT_HINT_TEXT))
+            .unwrap_or(Cow::Borrowed(tr_cached(Message::TerminalTellAgentWhatToBuild)))
     }
 
     pub fn set_zero_state_hint_text(&mut self, ctx: &mut ViewContext<Self>) {
@@ -6993,7 +6994,7 @@ impl Input {
                 .active_conversation(self.terminal_view_id)
                 .is_none_or(|c| c.is_empty());
             let hint = if conversation_is_empty {
-                CLOUD_MODE_V2_HINT_TEXT.to_owned()
+                tr_cached(Message::TerminalKickOffCloudAgent).to_owned()
             } else {
                 self.handoff_compose_state
                     .as_ref(ctx)
@@ -7012,7 +7013,7 @@ impl Input {
             let show_hint = *InputSettings::as_ref(ctx).show_hint_text;
             self.editor.update(ctx, |editor, ctx| {
                 if show_hint {
-                    editor.set_placeholder_text(CLOUD_MODE_V2_HINT_TEXT, ctx);
+                    editor.set_placeholder_text(tr_cached(Message::TerminalKickOffCloudAgent), ctx);
                 } else {
                     editor.clear_placeholder_text(ctx);
                 }
@@ -7062,7 +7063,7 @@ impl Input {
                 });
             } else {
                 self.editor.update(ctx, |editor, ctx| {
-                    editor.set_placeholder_text(AI_COMMAND_SEARCH_HINT_TEXT, ctx);
+                    editor.set_placeholder_text(tr_cached(Message::TerminalTypeHashForAiSuggestions), ctx);
                 });
             }
         } else {

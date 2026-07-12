@@ -45,7 +45,7 @@ use super::warp_drive_page::WarpDriveSettingsPageView;
 use super::warpify_page::WarpifyPageView;
 use super::SettingsSection;
 use crate::appearance::Appearance;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::settings::CloudPreferencesSettings;
 use crate::themes::theme::Fill;
 use crate::ui_components::blended_colors;
@@ -552,9 +552,9 @@ pub fn render_info_icon<T: Clone + Action>(
     appearance: &Appearance,
     additional_info: AdditionalInfo<T>,
 ) -> Box<dyn Element> {
-    let tooltip_text = additional_info
-        .tooltip_override_text
-        .unwrap_or("Click to learn more in docs".to_owned());
+    let tooltip_text = additional_info.tooltip_override_text.unwrap_or_else(|| {
+        tr_cached(Message::SettingsClickToLearnMoreInDocs).to_owned()
+    });
     let icon = Container::new(
         ConstrainedBox::new(
             Icon::Info
@@ -612,7 +612,9 @@ pub fn render_local_only_icon(
         .ui_builder()
         .local_only_icon_with_tooltip(
             13.,
-            custom_tooltip.unwrap_or("This setting is not synced to your other devices".to_owned()),
+            custom_tooltip.unwrap_or_else(|| {
+                tr_cached(Message::SettingsNotSyncedToOtherDevices).to_owned()
+            }),
             mouse_state.clone(),
         )
         .finish();
@@ -1941,5 +1943,5 @@ pub(super) fn build_reset_button(
             font_size: Some(appearance.ui_font_size() * 0.8),
             ..Default::default()
         })
-        .with_text_label("Reset to default".to_owned())
+        .with_text_label(tr_cached(Message::SettingsResetToDefault).to_owned())
 }
