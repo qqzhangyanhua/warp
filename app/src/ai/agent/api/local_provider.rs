@@ -271,8 +271,7 @@ async fn send_chat_completion_request(
 
     let status = response.status();
     if !status.is_success() {
-        let body = response.text().await.unwrap_or_default();
-        return Err(provider_status_error(status, body));
+        return Err(provider_status_error(status));
     }
 
     Ok(response)
@@ -293,25 +292,26 @@ fn chat_completions_url(base_url: &str) -> Result<Url, AIApiError> {
     Ok(url)
 }
 
-fn provider_status_error(status: StatusCode, body: String) -> AIApiError {
-    if matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN) {
-        return AIApiError::ErrorStatus(status, sanitized_provider_error_body(body));
-    }
-
-    let body = sanitized_provider_error_body(body);
-    if status == StatusCode::TOO_MANY_REQUESTS {
-        AIApiError::ErrorStatus(status, format!("Provider rate limit: {body}"))
-    } else {
-        AIApiError::ErrorStatus(status, body)
-    }
-}
-
-fn sanitized_provider_error_body(body: String) -> String {
-    if body.trim().is_empty() {
-        "(empty provider response body)".to_string()
-    } else {
-        body
-    }
+fn provider_status_error(status: StatusCode) -> AIApiError {
+    let message = match status {
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
+            "Provider authentication failed. Check the API Key and Provider permissions."
+        }
+        StatusCode::NOT_FOUND => {
+            "Provider returned not found. Check the Base URL and configured model name."
+        }
+        StatusCode::REQUEST_TIMEOUT => {
+            "Provider timed out while processing the request. Try again."
+        }
+        StatusCode::TOO_MANY_REQUESTS => {
+            "Provider rate limit reached. Wait for the Provider limit to reset and try again."
+        }
+        status if status.is_server_error() => {
+            "Provider server error. Check the Provider status and try again."
+        }
+        _ => "Provider rejected the request. Check the Provider configuration and model settings.",
+    };
+    AIApiError::ErrorStatus(status, message.to_string())
 }
 
 impl SseDataParser {
@@ -352,7 +352,11 @@ impl SseDataParser {
 }
 
 fn content_deltas_from_sse_data(data: &str) -> Result<Vec<String>, AIApiError> {
-    let chunk: ChatCompletionChunk = serde_json::from_str(data).map_err(AIApiError::from)?;
+    let chunk: ChatCompletionChunk = serde_json::from_str(data).map_err(|_| {
+        AIApiError::Other(anyhow!(
+            "Provider returned a malformed Chat Completions stream. Check OpenAI compatibility."
+        ))
+    })?;
     Ok(chunk
         .choices
         .into_iter()

@@ -148,12 +148,60 @@ data: [DONE]
 
 #[test]
 fn provider_rate_limit_is_not_warp_quota() {
-    let error = provider_status_error(http::StatusCode::TOO_MANY_REQUESTS, "slow down".to_string());
+    let error = provider_status_error(http::StatusCode::TOO_MANY_REQUESTS);
 
     assert!(
         matches!(error, AIApiError::ErrorStatus(status, _) if status == http::StatusCode::TOO_MANY_REQUESTS)
     );
     assert!(!matches!(error, AIApiError::QuotaLimit { .. }));
+}
+
+#[test]
+fn provider_status_errors_are_distinct_and_actionable() {
+    let cases = [
+        (
+            http::StatusCode::UNAUTHORIZED,
+            "Provider authentication failed. Check the API Key and Provider permissions.",
+        ),
+        (
+            http::StatusCode::NOT_FOUND,
+            "Provider returned not found. Check the Base URL and configured model name.",
+        ),
+        (
+            http::StatusCode::REQUEST_TIMEOUT,
+            "Provider timed out while processing the request. Try again.",
+        ),
+        (
+            http::StatusCode::TOO_MANY_REQUESTS,
+            "Provider rate limit reached. Wait for the Provider limit to reset and try again.",
+        ),
+        (
+            http::StatusCode::BAD_GATEWAY,
+            "Provider server error. Check the Provider status and try again.",
+        ),
+    ];
+
+    for (status, expected_message) in cases {
+        let AIApiError::ErrorStatus(actual_status, actual_message) = provider_status_error(status)
+        else {
+            panic!("expected status error");
+        };
+        assert_eq!(actual_status, status);
+        assert_eq!(actual_message, expected_message);
+    }
+}
+
+#[test]
+fn malformed_provider_stream_does_not_expose_response_content() {
+    let sensitive_response = r#"{"error":"secret-token-123""#;
+    let error = content_deltas_from_sse_data(sensitive_response).unwrap_err();
+    let message = error.to_string();
+
+    assert_eq!(
+        message,
+        "Provider returned a malformed Chat Completions stream. Check OpenAI compatibility."
+    );
+    assert!(!message.contains("secret-token-123"));
 }
 
 #[test]
