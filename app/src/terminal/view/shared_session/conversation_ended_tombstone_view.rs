@@ -24,6 +24,7 @@ use crate::ai::ambient_agents::{
 use crate::ai::artifacts::{Artifact, ArtifactButtonsRow, ArtifactButtonsRowEvent};
 use crate::ai::blocklist::{format_credits, BlocklistAIHistoryModel};
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::server::ids::SyncId;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::ai::{AISettings, AISettingsChangedEvent};
@@ -190,7 +191,7 @@ impl ConversationEndedTombstoneView {
             })
             .unwrap_or_default();
         if display_data.is_error && task_id.is_none() && !display_data.conversation_is_transcript {
-            display_data.title = Some("Cloud agent failed to start".to_string());
+            display_data.title = Some(tr(ctx, Message::SharedCloudAgentFailedStart).to_string());
             display_data.credits = None;
         }
 
@@ -198,9 +199,9 @@ impl ConversationEndedTombstoneView {
             ctx.add_typed_action_view(|ctx| ArtifactButtonsRow::new(&display_data.artifacts, ctx));
         let continue_in_cloud_button = match tombstone_cta {
             Some(TombstoneCta::ContinueInCloud { task_id }) => {
-                Some(ctx.add_typed_action_view(move |_| {
-                    ActionButton::new("Continue", PrimaryTheme)
-                        .with_tooltip("Continue this cloud conversation")
+                Some(ctx.add_typed_action_view(move |ctx| {
+                    ActionButton::new(tr(ctx, Message::SharedContinue), PrimaryTheme)
+                        .with_tooltip(tr(ctx, Message::SharedContinueCloudConversation))
                         .on_click(move |ctx| {
                             ctx.dispatch_typed_action(
                                 ConversationEndedTombstoneAction::ContinueInCloud { task_id },
@@ -214,9 +215,9 @@ impl ConversationEndedTombstoneView {
         #[cfg(not(target_family = "wasm"))]
         let continue_locally_button = match tombstone_cta {
             Some(TombstoneCta::ContinueLocally { conversation_id }) => {
-                Some(ctx.add_typed_action_view(move |_| {
-                    ActionButton::new("Continue locally", PrimaryTheme)
-                        .with_tooltip("Fork this conversation locally")
+                Some(ctx.add_typed_action_view(move |ctx| {
+                    ActionButton::new(tr(ctx, Message::SharedContinueLocally), PrimaryTheme)
+                        .with_tooltip(tr(ctx, Message::SharedForkConversationLocally))
                         .on_click(move |ctx| {
                             ctx.dispatch_typed_action(
                                 ConversationEndedTombstoneAction::ContinueLocally(conversation_id),
@@ -235,9 +236,9 @@ impl ConversationEndedTombstoneView {
                 None
             } else {
                 conversation_id.map(|conv_id| {
-                    ctx.add_typed_action_view(move |_| {
-                        ActionButton::new("Open in Warp", PrimaryTheme)
-                            .with_tooltip("Open this conversation in the Warp desktop app")
+                    ctx.add_typed_action_view(move |ctx| {
+                        ActionButton::new(tr(ctx, Message::SharedOpenInWarp), PrimaryTheme)
+                            .with_tooltip(tr(ctx, Message::SharedOpenConversationInWarp))
                             .on_click(move |ctx| {
                                 ctx.dispatch_typed_action(
                                     ConversationEndedTombstoneAction::OpenInWarp(conv_id),

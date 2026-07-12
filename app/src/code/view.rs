@@ -43,6 +43,7 @@ use crate::code::global_buffer_model::GlobalBufferModel;
 use crate::code::local_code_editor::ShowFindReferencesCard;
 use crate::code::{EditorTabBarDropTargetData, ImmediateSaveError, SaveOutcome, SaveStatus};
 use crate::editor::InteractionState;
+use crate::i18n::{tr, Message};
 use crate::input::Vector2F;
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::notebooks::file::{renders_in_warp_notebook_viewer, MarkdownDisplayMode};
@@ -921,7 +922,7 @@ impl CodeView {
 
     fn display_load_failure(window_id: WindowId, ctx: &mut ViewContext<Self>) {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::error(String::from("Failed to load file."))
+            let toast = DismissibleToast::error(String::from(tr(ctx, Message::CodeFailedLoadFile)))
                 .with_object_id("failed_to_load_file".to_string());
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
@@ -929,7 +930,7 @@ impl CodeView {
 
     fn display_save_failure(window_id: WindowId, ctx: &mut ViewContext<Self>) {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::error(String::from("Failed to save file."))
+            let toast = DismissibleToast::error(String::from(tr(ctx, Message::CodeFailedSaveFile)))
                 .with_object_id("failed_to_save_file".to_string());
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
@@ -937,16 +938,18 @@ impl CodeView {
 
     fn display_remote_disconnected_save_failure(window_id: WindowId, ctx: &mut ViewContext<Self>) {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast =
-                DismissibleToast::error(String::from("Cannot save — remote session disconnected."))
-                    .with_object_id("failed_to_save_file_remote_disconnected".to_string());
+            let toast = DismissibleToast::error(String::from(tr(
+                ctx,
+                Message::CodeCannotSaveRemoteDisconnected,
+            )))
+            .with_object_id("failed_to_save_file_remote_disconnected".to_string());
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
     }
 
     fn display_save_success(window_id: WindowId, ctx: &mut ViewContext<Self>) {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::success(String::from("File saved."))
+            let toast = DismissibleToast::success(String::from(tr(ctx, Message::CodeFileSaved)))
                 .with_object_id("file_saved".to_string());
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
@@ -2022,9 +2025,12 @@ impl CodeView {
         };
 
         let mut items = vec![
-            MenuItemFields::new_with_label("Close saved", &format!("{modifier_keys} U"))
-                .with_on_select_action(CodeViewAction::CloseSaved)
-                .into_item(),
+            MenuItemFields::new_with_label(
+                tr(ctx, Message::CodeCloseSaved),
+                &format!("{modifier_keys} U"),
+            )
+            .with_on_select_action(CodeViewAction::CloseSaved)
+            .into_item(),
             MenuItemFields::toggle_pane_action(is_maximized)
                 .with_on_select_action(CodeViewAction::ToggleMaximized)
                 .into_item(),
@@ -2040,7 +2046,7 @@ impl CodeView {
             if active_location.is_some() {
                 items.push(MenuItem::Separator);
                 items.push(
-                    MenuItemFields::new("Copy file path")
+                    MenuItemFields::new(tr(ctx, Message::CodeCopyFilePath))
                         .with_on_select_action(CodeViewAction::CopyFilePath)
                         .into_item(),
                 );
@@ -2048,11 +2054,11 @@ impl CodeView {
 
             if local_path.is_some() {
                 let reveal_label = if cfg!(target_os = "macos") {
-                    "Reveal in Finder"
+                    tr(ctx, Message::CodeRevealInFinder)
                 } else if cfg!(target_os = "windows") {
-                    "Reveal in Explorer"
+                    tr(ctx, Message::CodeRevealInExplorer)
                 } else {
-                    "Reveal in file manager"
+                    tr(ctx, Message::CodeRevealInFileManager)
                 };
                 items.push(
                     MenuItemFields::new(reveal_label)
@@ -2075,7 +2081,7 @@ impl CodeView {
                 });
             if renders_in_notebook_viewer {
                 items.push(
-                    MenuItemFields::new("View Markdown preview")
+                    MenuItemFields::new(tr(ctx, Message::CodeViewMarkdownPreview))
                         .with_on_select_action(CodeViewAction::RenderMarkdown)
                         .into_item(),
                 );

@@ -1,4 +1,3 @@
-use crate::i18n::{tr, tr_cached, Message};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -56,6 +55,7 @@ use crate::editor::{
 };
 use crate::features::FeatureFlag;
 use crate::gpu_state::{GPUState, GPUStateEvent};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::root_view::QuakeModePinPosition;
 use crate::search::command_search::settings::{
     CommandSearchSettings, ShowGlobalWorkflowsInUniversalSearch,

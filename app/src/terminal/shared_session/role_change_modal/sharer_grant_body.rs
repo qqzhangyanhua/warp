@@ -10,6 +10,7 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View
 
 use super::{MODAL_PADDING, TEXT_FONT_SIZE};
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::ui_components::blended_colors;
 const BUTTON_HEIGHT: f32 = 40.;
 const BUTTON_WIDTH: f32 = 172.;
@@ -44,7 +45,7 @@ impl SharerGrantBody {
         }
     }
 
-    fn render_button_row(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_button_row(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
         let cancel_button = Container::new(
             appearance
                 .ui_builder()
@@ -59,7 +60,7 @@ impl SharerGrantBody {
                     width: Some(BUTTON_WIDTH),
                     ..Default::default()
                 })
-                .with_centered_text_label(String::from("Cancel"))
+                .with_centered_text_label(String::from(tr(app, Message::SharedCancel)))
                 .build()
                 .with_cursor(Cursor::PointingHand)
                 .on_click(move |ctx, _, _| ctx.dispatch_typed_action(SharerGrantBodyAction::Cancel))
@@ -82,7 +83,7 @@ impl SharerGrantBody {
                 width: Some(BUTTON_WIDTH),
                 ..Default::default()
             })
-            .with_centered_text_label(String::from("Make Editor"))
+            .with_centered_text_label(String::from(tr(app, Message::SharedMakeEditorTitle)))
             .build()
             .with_cursor(Cursor::PointingHand)
             .on_click(move |ctx, _, _| {
@@ -108,7 +109,7 @@ impl View for SharerGrantBody {
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
-        let button_row = self.render_button_row(appearance);
+        let button_row = self.render_button_row(appearance, app);
 
         let text1 = "This grants the ability to execute commands on your";
         let text2 = "behalf. Use with caution.";
@@ -145,7 +146,10 @@ impl View for SharerGrantBody {
                     self.dont_show_again_mouse_state.clone(),
                     Some(TEXT_FONT_SIZE),
                 )
-                .with_label(Span::new("Don't show again.", Default::default()))
+                .with_label(Span::new(
+                    tr(app, Message::SharedDontShowAgain),
+                    Default::default(),
+                ))
                 .check(self.dont_show_again)
                 .build()
                 .with_cursor(Cursor::PointingHand)

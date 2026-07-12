@@ -28,6 +28,7 @@ use crate::editor::{
     SingleLineEditorOptions, TextOptions,
 };
 use crate::features::FeatureFlag;
+use crate::i18n::{tr, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::{FindOption, TelemetryEvent};
 use crate::settings::AppEditorSettings;
@@ -173,8 +174,8 @@ impl CodeEditorFind {
         // - 5px: Additional spacing to account for button border width
         let editor_height = line_height + (2. * FIND_EDITOR_PADDING) + 5.;
 
-        let select_all_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Select all", SecondaryTheme)
+        let select_all_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeSelectAll), SecondaryTheme)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(FindAction::SelectAll);
                 })
@@ -184,7 +185,7 @@ impl CodeEditorFind {
         });
 
         let replace_all_button = ctx.add_typed_action_view(|ctx| {
-            let mut button = ActionButton::new("Replace all", SecondaryTheme)
+            let mut button = ActionButton::new(tr(ctx, Message::CodeReplaceAll), SecondaryTheme)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(FindAction::ReplaceAll);
                 })

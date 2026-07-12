@@ -21,6 +21,7 @@ use crate::code::editor::comments::{EditorCommentsModel, PendingCommentEvent};
 use crate::code::editor::line::EditorLineLocation;
 use crate::code_review::comments::{CommentId, CommentOrigin};
 use crate::editor::InteractionState;
+use crate::i18n::{tr, Message};
 use crate::notebooks::editor::model::NotebooksEditorModel;
 use crate::notebooks::editor::rich_text_styles;
 use crate::notebooks::editor::view::{EditorViewEvent, RichTextEditorConfig, RichTextEditorView};
@@ -182,16 +183,16 @@ impl CommentEditor {
             button.set_disabled(true, ctx);
         });
 
-        let close_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Cancel", NakedTheme)
+        let close_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeCancel), NakedTheme)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(CommentEditorAction::CloseEditor);
                 })
                 .with_size(ButtonSize::Small)
         });
 
-        let remove_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Remove", DangerNakedTheme)
+        let remove_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeRemove), DangerNakedTheme)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(CommentEditorAction::RemoveComment);
                 })

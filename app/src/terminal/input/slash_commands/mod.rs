@@ -43,6 +43,7 @@ use crate::ai::blocklist::{
 use crate::ai::conversation_rename::rename_conversation;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
+use crate::i18n::{tr, Message as I18nMessage};
 use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
 use crate::search::slash_command_menu::static_commands::Availability;
 use crate::search::slash_command_menu::{SlashCommandId, StaticCommand};
@@ -434,7 +435,10 @@ impl Input {
         if command.availability.contains(Availability::AI_ENABLED)
             && !AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
         {
-            show_error_toast(format!("{} requires AI to be enabled", command.name), ctx);
+            show_error_toast(
+                tr(ctx, I18nMessage::TerminalRequiresAiEnabled).replace("{command}", command.name),
+                ctx,
+            );
             return true;
         }
 
@@ -732,7 +736,10 @@ impl Input {
                     .as_ref(ctx)
                     .active_conversation(self.terminal_view_id)
                 else {
-                    show_error_toast("No active conversation to export".to_owned(), ctx);
+                    show_error_toast(
+                        tr(ctx, I18nMessage::TerminalNoActiveConversationToExport).to_owned(),
+                        ctx,
+                    );
                     return true;
                 };
 
@@ -745,9 +752,10 @@ impl Input {
                 // Show a toast to confirm the export
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(String::from(
-                        "Conversation exported to clipboard",
-                    ));
+                    let toast = DismissibleToast::default(String::from(tr(
+                        ctx,
+                        I18nMessage::TerminalConversationExportedToClipboard,
+                    )));
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }
@@ -948,7 +956,10 @@ impl Input {
                     .shared_session_status()
                     .is_sharer_or_viewer()
                 {
-                    show_error_toast("Session is already being shared".to_owned(), ctx);
+                    show_error_toast(
+                        tr(ctx, I18nMessage::TerminalSessionAlreadyShared).to_owned(),
+                        ctx,
+                    );
                     return true;
                 }
                 ctx.emit(Event::StartRemoteControl);
@@ -960,17 +971,17 @@ impl Input {
                     .active_conversation(self.terminal_view_id);
                 if conversation.is_none() {
                     show_error_toast(
-                        "Cannot show conversation cost: no active conversation".to_owned(),
+                        tr(ctx, I18nMessage::TerminalCannotShowCostNoConversation).to_owned(),
                         ctx,
                     );
                 } else if conversation.is_some_and(|c| c.is_empty()) {
                     show_error_toast(
-                        "Cannot show conversation cost: conversation is empty".to_owned(),
+                        tr(ctx, I18nMessage::TerminalCannotShowCostEmptyConversation).to_owned(),
                         ctx,
                     );
                 } else if conversation.is_some_and(|c| !c.status().is_done()) {
                     show_error_toast(
-                        "Cannot show conversation cost: conversation is in progress".to_owned(),
+                        tr(ctx, I18nMessage::TerminalCannotShowCostInProgress).to_owned(),
                         ctx,
                     );
                 } else {
@@ -1032,7 +1043,10 @@ impl Input {
                     .as_ref(ctx)
                     .selected_conversation_id(ctx)
                 else {
-                    show_error_toast("/fork requires an active conversation".to_owned(), ctx);
+                    show_error_toast(
+                        tr(ctx, I18nMessage::TerminalForkRequiresActiveConversation).to_owned(),
+                        ctx,
+                    );
                     return true;
                 };
 
@@ -1181,12 +1195,18 @@ impl Input {
                     .as_ref(ctx)
                     .selected_conversation_id(ctx)
                 else {
-                    show_error_toast("/queue requires an active conversation".to_owned(), ctx);
+                    show_error_toast(
+                        tr(ctx, I18nMessage::TerminalQueueRequiresActiveConversation).to_owned(),
+                        ctx,
+                    );
                     return true;
                 };
 
                 let Some(prompt) = argument.filter(|a| !a.is_empty()).cloned() else {
-                    show_error_toast("/queue requires a prompt argument".to_owned(), ctx);
+                    show_error_toast(
+                        tr(ctx, I18nMessage::TerminalQueueRequiresPromptArgument).to_owned(),
+                        ctx,
+                    );
                     return true;
                 };
 

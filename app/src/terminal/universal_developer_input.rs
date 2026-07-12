@@ -39,6 +39,7 @@ use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::llms::LLMPreferences;
 use crate::ai::AIRequestUsageModel;
 use crate::cloud_object::model::generic_string_model::StringModel;
+use crate::i18n::{tr, Message};
 use crate::network::NetworkStatus;
 #[cfg(not(target_family = "wasm"))]
 use crate::search::ai_context_menu::view::AIContextMenu;
@@ -185,8 +186,6 @@ impl AtContextMenuDisabledReason {
         None
     }
 }
-
-const AT_CONTEXT_TOOLTIP: &str = "Attach context";
 
 const BLURRED_OPACITY: Opacity = 50;
 
@@ -339,11 +338,11 @@ impl UniversalDeveloperInputButtonBar {
     ) -> Self {
         let button_size = ButtonSize::UDIButton;
 
-        let mic_button_view = ctx.add_typed_action_view(|_ctx| {
+        let mic_button_view = ctx.add_typed_action_view(|ctx| {
             #[cfg_attr(not(feature = "voice_input"), allow(unused_mut))]
             let mut button = ActionButton::new("", PromptIconButtonTheme::new(false))
                 .with_icon(Icon::Microphone)
-                .with_tooltip("Voice input")
+                .with_tooltip(tr(ctx, Message::TerminalVoiceInput))
                 .with_size(button_size)
                 .with_tooltip_alignment(TooltipAlignment::Left);
             #[cfg(feature = "voice_input")]
@@ -357,10 +356,10 @@ impl UniversalDeveloperInputButtonBar {
             button
         });
 
-        let at_button_view = ctx.add_typed_action_view(|_ctx| {
+        let at_button_view = ctx.add_typed_action_view(|ctx| {
             ActionButton::new("", PromptIconButtonTheme::new(false))
                 .with_icon(Icon::AtSign)
-                .with_tooltip(AT_CONTEXT_TOOLTIP)
+                .with_tooltip(tr(ctx, Message::TerminalAttachContext))
                 .with_size(button_size)
                 .with_disabled_theme(UDIDisabledButtonTheme)
                 .with_tooltip_alignment(TooltipAlignment::Left)
@@ -371,10 +370,10 @@ impl UniversalDeveloperInputButtonBar {
                 })
         });
 
-        let file_button_view = ctx.add_typed_action_view(|_ctx| {
+        let file_button_view = ctx.add_typed_action_view(|ctx| {
             ActionButton::new("", PromptIconButtonTheme::new(false))
                 .with_icon(Icon::Plus)
-                .with_tooltip("Attach file")
+                .with_tooltip(tr(ctx, Message::TerminalAttachFile))
                 .with_size(button_size)
                 .with_disabled_theme(UDIDisabledButtonTheme)
                 .with_tooltip_alignment(TooltipAlignment::Left)
@@ -383,10 +382,10 @@ impl UniversalDeveloperInputButtonBar {
                 })
         });
 
-        let slash_command_menu_view = ctx.add_typed_action_view(|_ctx| {
+        let slash_command_menu_view = ctx.add_typed_action_view(|ctx| {
             ActionButton::new("", PromptIconButtonTheme::new(false))
                 .with_icon(Icon::SlashCommands)
-                .with_tooltip("Slash commands")
+                .with_tooltip(tr(ctx, Message::TerminalSlashCommands))
                 .with_size(button_size)
                 .with_disabled_theme(UDIDisabledButtonTheme)
                 .with_tooltip_alignment(TooltipAlignment::Left)
@@ -701,7 +700,7 @@ impl UniversalDeveloperInputButtonBar {
             button.set_tooltip(
                 disable_reason
                     .map(|reason| reason.tooltip_text())
-                    .or(Some(AT_CONTEXT_TOOLTIP.to_string())),
+                    .or(Some(tr(ctx, Message::TerminalAttachContext).to_string())),
                 ctx,
             );
             ctx.notify();

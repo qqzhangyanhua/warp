@@ -13,6 +13,7 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
+use crate::i18n::{tr, Message};
 use crate::modal::Modal;
 use crate::ui_components::blended_colors;
 
@@ -167,7 +168,11 @@ impl InactivityModalBody {
         .finish()
     }
 
-    fn render_stop_sharing_button(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_stop_sharing_button(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         Container::new(
             appearance
                 .ui_builder()
@@ -179,7 +184,7 @@ impl InactivityModalBody {
                     font_weight: Some(Weight::Bold),
                     ..Default::default()
                 })
-                .with_centered_text_label(String::from("Stop sharing"))
+                .with_centered_text_label(String::from(tr(app, Message::SharedStopSharing)))
                 .build()
                 .with_cursor(Cursor::PointingHand)
                 .on_click(move |ctx, _, _| {
@@ -191,7 +196,11 @@ impl InactivityModalBody {
         .finish()
     }
 
-    fn render_continue_sharing_button(&self, appearance: &Appearance) -> Box<dyn Element> {
+    fn render_continue_sharing_button(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         appearance
             .ui_builder()
             .button(
@@ -205,7 +214,7 @@ impl InactivityModalBody {
                 font_weight: Some(Weight::Bold),
                 ..Default::default()
             })
-            .with_centered_text_label(String::from("Continue sharing"))
+            .with_centered_text_label(String::from(tr(app, Message::SharedContinueSharing)))
             .build()
             .with_cursor(Cursor::PointingHand)
             .on_click(move |ctx, _, _| {
@@ -226,8 +235,8 @@ impl View for InactivityModalBody {
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
-        let stop_sharing_button = self.render_stop_sharing_button(appearance);
-        let continue_sharing_button = self.render_continue_sharing_button(appearance);
+        let stop_sharing_button = self.render_stop_sharing_button(appearance, app);
+        let continue_sharing_button = self.render_continue_sharing_button(appearance, app);
         let countdown = self.render_countdown(appearance);
 
         let header = Container::new(

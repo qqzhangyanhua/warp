@@ -50,6 +50,7 @@ use crate::context_chips::github_pr_display_text_from_url;
 use crate::drive::cloud_object_styling::warp_drive_icon_color;
 use crate::drive::DriveObjectType;
 use crate::editor::EditorView;
+use crate::i18n::{tr, Message};
 use crate::pane_group::pane::IPaneType;
 use crate::pane_group::{
     CodePane, NotebookPane, PaneGroup, PaneId, TabBarHoverIndex, TerminalPane, WorkflowPane,
@@ -1753,9 +1754,13 @@ fn render_groups(
 
     if workspace.tabs.is_empty() {
         return Container::new(
-            Text::new_inline("No tabs open", appearance.ui_font_family(), 12.)
-                .with_color(theme.sub_text_color(theme.background()).into())
-                .finish(),
+            Text::new_inline(
+                tr(app, Message::WorkspaceNoTabsOpen),
+                appearance.ui_font_family(),
+                12.,
+            )
+            .with_color(theme.sub_text_color(theme.background()).into())
+            .finish(),
         )
         .with_padding(Padding::uniform(12.))
         .finish();

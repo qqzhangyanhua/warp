@@ -1,4 +1,3 @@
-use crate::i18n::{tr, tr_cached};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -29,7 +28,7 @@ use super::settings_page::{
 };
 use super::{flags, SettingsAction, SettingsSection, ToggleSettingActionPair};
 use crate::appearance::Appearance;
-use crate::i18n::Message;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
 use crate::settings::{ReuseExistingSshControlMaster, SshSettings};

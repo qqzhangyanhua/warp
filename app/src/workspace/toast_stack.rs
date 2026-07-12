@@ -1,5 +1,6 @@
 use warpui::{Entity, ModelContext, SingletonEntity, WindowId};
 
+use crate::i18n::{tr_cached, Message};
 use crate::view_components::{DismissibleToast, ToastType};
 use crate::workspace::WorkspaceAction;
 
@@ -12,9 +13,9 @@ pub struct ToastStack;
 impl From<ToastType> for DismissibleToast<WorkspaceAction> {
     fn from(value: ToastType) -> Self {
         match value {
-            ToastType::CloudObjectNotFound => {
-                DismissibleToast::error(String::from("Resource not found or access denied"))
-            }
+            ToastType::CloudObjectNotFound => DismissibleToast::error(String::from(tr_cached(
+                Message::WorkspaceResourceNotFoundOrAccessDenied,
+            ))),
         }
     }
 }

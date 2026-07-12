@@ -1,11 +1,11 @@
 mod message;
 mod table;
 
-use settings::Setting as _;
 use std::sync::atomic::{AtomicU8, Ordering};
-use warpui::{AppContext, SingletonEntity};
 
 pub use message::Message;
+use settings::Setting as _;
+use warpui::{AppContext, SingletonEntity};
 
 use crate::settings::{LocalePreference, LocalizationSettings};
 

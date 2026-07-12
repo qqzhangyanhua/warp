@@ -33,6 +33,7 @@ use crate::ai::llms::{
 };
 use crate::auth::AuthStateProvider;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::search::data_source::{Query, QueryFilter, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::result_renderer::ItemHighlightState;
@@ -572,7 +573,7 @@ impl SearchItem for ModelSearchItem {
                     ButtonVariant::Outlined,
                     self.manage_api_key_mouse_state.clone(),
                 )
-                .with_text_label("Manage".to_string())
+                .with_text_label(tr_cached(I18nMessage::TerminalManage).to_string())
                 .with_style(UiComponentStyles {
                     height: Some(24.),
                     padding: Some(Coords {

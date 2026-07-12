@@ -2,9 +2,10 @@ use std::collections::HashSet;
 
 use itertools::{Either, Itertools};
 use warp_core::features::FeatureFlag;
-use warpui::{EntityId, UpdateView, ViewContext};
+use warpui::{AppContext, EntityId, UpdateView, ViewContext};
 
 use super::{group_member_indices, Workspace};
+use crate::i18n::{tr, Message};
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::tab::{TabData, MOVE_TO_GROUP_LABEL};
 use crate::workspace::action::{TabContextMenuAnchor, WorkspaceAction};
@@ -462,16 +463,19 @@ impl Workspace {
     /// the selection: "Create group from tabs" is always there; "Remove from
     /// group" only when the selection has an unambiguous group; "Move to
     /// group" only when there's a destination group worth offering.
-    fn tab_selection_menu_items(&self) -> Vec<MenuItem<WorkspaceAction>> {
+    fn tab_selection_menu_items(&self, app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
         let shared_group = self.selection_shared_group();
-        let mut menu_items = vec![MenuItemFields::new("Create group from tabs")
-            .with_on_select_action(WorkspaceAction::NewTabGroupFromSelectedTabs)
-            .into_item()];
+        let mut menu_items =
+            vec![
+                MenuItemFields::new(tr(app, Message::WorkspaceCreateGroupFromTabs))
+                    .with_on_select_action(WorkspaceAction::NewTabGroupFromSelectedTabs)
+                    .into_item(),
+            ];
 
         // Only single-group selections have an unambiguous group to leave.
         if shared_group.is_some() {
             menu_items.push(
-                MenuItemFields::new("Remove from group")
+                MenuItemFields::new(tr(app, Message::WorkspaceRemoveFromGroup))
                     .with_on_select_action(WorkspaceAction::RemoveSelectedTabsFromGroup)
                     .into_item(),
             );
@@ -504,7 +508,7 @@ impl Workspace {
             return;
         }
 
-        let menu_items = self.tab_selection_menu_items();
+        let menu_items = self.tab_selection_menu_items(ctx);
         ctx.update_view(&self.tab_right_click_menu, |context_menu, view_ctx| {
             context_menu.set_items(menu_items, view_ctx);
         });

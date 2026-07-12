@@ -1,8 +1,7 @@
 use warpui::keymap::{BindingDescription, PerPlatformKeystroke};
 
-use crate::search::slash_command_menu::static_commands::localized_command_description;
-
 use super::StaticCommand;
+use crate::search::slash_command_menu::static_commands::localized_command_description;
 
 pub enum DefaultSlashCommandBinding {
     None,

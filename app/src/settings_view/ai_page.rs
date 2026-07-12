@@ -1,4 +1,3 @@
-use crate::i18n::{tr, tr_cached, Message};
 use ::ai::api_keys::{ApiKeyManager, ApiKeyManagerEvent, ApiKeys};
 #[cfg(not(target_family = "wasm"))]
 use ::ai::grok_subscription::oauth::{self, ManualCodeExchange};
@@ -86,6 +85,7 @@ use crate::editor::{
     EditorOptions, InteractionState, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextColors,
 };
+use crate::i18n::{tr, tr_cached, Message};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::settings::{
     AIAutoDetectionEnabled, AICommandDenylist, AISettingsChangedEvent,

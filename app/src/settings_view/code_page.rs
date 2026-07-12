@@ -1,4 +1,3 @@
-use crate::i18n::{tr, tr_cached, Message};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -55,6 +54,7 @@ use crate::ai::persisted_workspace::{
 use crate::appearance::Appearance;
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::lsp_telemetry::{LspControlActionType, LspEnablementSource, LspTelemetryEvent};
+use crate::i18n::{tr, tr_cached, Message};
 #[cfg(not(target_family = "wasm"))]
 use crate::remote_server::codebase_index_model::{
     RemoteCodebaseIndexModel, RemoteCodebaseIndexModelEvent, RemoteCodebaseIndexSettingsEntry,

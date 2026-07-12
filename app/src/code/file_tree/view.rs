@@ -43,6 +43,7 @@ use crate::code::active_file::{ActiveFileEvent, ActiveFileModel};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::editor::{EditorOptions, EditorView, TextOptions};
+use crate::i18n::{tr, Message};
 use crate::menu::{Menu, MenuItem, MenuItemFields};
 #[cfg(feature = "local_fs")]
 use crate::server::telemetry::CodePanelsFileOpenEntrypoint;
@@ -2334,6 +2335,7 @@ impl FileTreeView {
         &self,
         item: &FileTreeItem,
         id: &FileTreeIdentifier,
+        ctx: &AppContext,
     ) -> Vec<MenuItem<FileTreeAction>> {
         let is_remote = self.is_remote_item(id);
 
@@ -2350,12 +2352,12 @@ impl FileTreeView {
                     let path_local = item.path().to_local_path_lossy();
                     if !is_file_content_binary(&path_local) {
                         items.extend([
-                            MenuItemFields::new("Open in new pane")
+                            MenuItemFields::new(tr(ctx, Message::CodeOpenInNewPane))
                                 .with_on_select_action(FileTreeAction::OpenInNewPane {
                                     id: id.clone(),
                                 })
                                 .into_item(),
-                            MenuItemFields::new("Open in new tab")
+                            MenuItemFields::new(tr(ctx, Message::CodeOpenInNewTab))
                                 .with_on_select_action(FileTreeAction::OpenInNewTab {
                                     id: id.clone(),
                                 })
@@ -2363,7 +2365,7 @@ impl FileTreeView {
                         ]);
                     } else {
                         items.push(
-                            MenuItemFields::new("Open file")
+                            MenuItemFields::new(tr(ctx, Message::CodeOpenFile))
                                 .with_on_select_action(FileTreeAction::ItemClicked {
                                     id: id.clone(),
                                 })
@@ -2373,7 +2375,7 @@ impl FileTreeView {
                 }
                 FileTreeItem::DirectoryHeader { .. } => {
                     items.push(
-                        MenuItemFields::new("New file")
+                        MenuItemFields::new(tr(ctx, Message::CodeNewFile))
                             .with_on_select_action(FileTreeAction::NewFileBelowDirectory {
                                 id: id.clone(),
                             })
@@ -2382,7 +2384,7 @@ impl FileTreeView {
                     items.push(MenuItem::Separator);
                     if self.has_terminal_session {
                         items.push(
-                            MenuItemFields::new("cd to directory")
+                            MenuItemFields::new(tr(ctx, Message::CodeCdToDirectory))
                                 .with_on_select_action(FileTreeAction::CDToDirectory {
                                     id: id.clone(),
                                 })
@@ -2390,7 +2392,7 @@ impl FileTreeView {
                         );
                     }
                     items.push(
-                        MenuItemFields::new("Open in new tab")
+                        MenuItemFields::new(tr(ctx, Message::CodeOpenInNewTab))
                             .with_on_select_action(FileTreeAction::OpenInNewTab { id: id.clone() })
                             .into_item(),
                     );
@@ -2398,11 +2400,11 @@ impl FileTreeView {
             };
 
             let open_text = if cfg!(target_os = "macos") {
-                "Reveal in Finder"
+                tr(ctx, Message::CodeRevealInFinder)
             } else if cfg!(target_os = "windows") {
-                "Reveal in Explorer"
+                tr(ctx, Message::CodeRevealInExplorer)
             } else {
-                "Reveal in file manager"
+                tr(ctx, Message::CodeRevealInFileManager)
             };
             items.push(
                 MenuItemFields::new(open_text)
@@ -2415,12 +2417,12 @@ impl FileTreeView {
             let is_repo_root_dir = id.index == 0;
             if !is_repo_root_dir {
                 items.push(
-                    MenuItemFields::new("Rename")
+                    MenuItemFields::new(tr(ctx, Message::CodeRename))
                         .with_on_select_action(FileTreeAction::Rename { id: id.clone() })
                         .into_item(),
                 );
                 items.push(
-                    MenuItemFields::new("Delete")
+                    MenuItemFields::new(tr(ctx, Message::CodeDelete))
                         .with_on_select_action(FileTreeAction::Delete { id: id.clone() })
                         .into_item(),
                 );
@@ -2432,7 +2434,7 @@ impl FileTreeView {
                 items.push(MenuItem::Separator);
             }
             items.push(
-                MenuItemFields::new("Attach as context")
+                MenuItemFields::new(tr(ctx, Message::CodeAttachAsContext))
                     .with_on_select_action(FileTreeAction::AttachAsContext { id: id.clone() })
                     .into_item(),
             );
@@ -2442,10 +2444,10 @@ impl FileTreeView {
             items.push(MenuItem::Separator);
         }
         items.extend([
-            MenuItemFields::new("Copy path")
+            MenuItemFields::new(tr(ctx, Message::CodeCopyPath))
                 .with_on_select_action(FileTreeAction::CopyPath { id: id.clone() })
                 .into_item(),
-            MenuItemFields::new("Copy relative path")
+            MenuItemFields::new(tr(ctx, Message::CodeCopyRelativePath))
                 .with_on_select_action(FileTreeAction::CopyRelativePath { id: id.clone() })
                 .into_item(),
         ]);
@@ -3086,7 +3088,7 @@ impl TypedActionView for FileTreeView {
                 self.context_menu_state = Some(ContextMenuState {
                     position: *position,
                 });
-                let menu_items = self.context_menu_items(item, id);
+                let menu_items = self.context_menu_items(item, id, ctx);
                 self.context_menu.update(ctx, move |menu, ctx| {
                     menu.set_items(menu_items, ctx);
                     ctx.notify();

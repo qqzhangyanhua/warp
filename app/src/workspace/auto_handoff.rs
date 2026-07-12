@@ -15,6 +15,7 @@ use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::ambient_agents::telemetry::CloudAgentTelemetryEvent;
 use crate::ai::blocklist::orchestration_topology::has_local_orchestrated_children;
 use crate::ai::llms::LLMPreferences;
+use crate::i18n::{tr, Message};
 use crate::settings::AISettings;
 use crate::system::{SystemStats, SystemStatsEvent};
 use crate::terminal::view::TerminalView;
@@ -219,7 +220,9 @@ impl AutoCloudHandoffController {
         log::info!("auto handoff: showing success toast in window {window_id:?}");
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             toast_stack.add_ephemeral_toast(
-                DismissibleToast::success("Handed session off to the cloud".to_owned()),
+                DismissibleToast::success(
+                    tr(ctx, Message::WorkspaceHandedSessionOffCloud).to_owned(),
+                ),
                 window_id,
                 ctx,
             );

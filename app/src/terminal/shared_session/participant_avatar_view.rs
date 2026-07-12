@@ -19,6 +19,7 @@ use warpui::{
 
 use super::render_util::non_hoverable_participant_avatar;
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::{PaneHeaderAction, PaneHeaderCustomAction};
 use crate::terminal::view::TerminalAction;
@@ -156,25 +157,29 @@ impl ParticipantAvatarView {
         self.is_menu_open
     }
 
-    fn context_menu_items(&self) -> Vec<MenuItem<ParticipantAvatarAction>> {
+    fn context_menu_items(&self, ctx: &AppContext) -> Vec<MenuItem<ParticipantAvatarAction>> {
         let participant_id = self.participant_id.clone();
         let mut items = vec![MenuItemFields::new(self.display_name.clone())
             .with_disabled(true)
             .into_item()];
 
         match self.role {
-            Some(Role::Reader) => items.extend([MenuItemFields::new("Make editor")
-                .with_on_select_action(ParticipantAvatarAction::UpdateRole {
-                    participant_id,
-                    role: Role::Executor,
-                })
-                .into_item()]),
-            Some(Role::Executor) => items.extend([MenuItemFields::new("Make viewer")
-                .with_on_select_action(ParticipantAvatarAction::UpdateRole {
-                    participant_id,
-                    role: Role::Reader,
-                })
-                .into_item()]),
+            Some(Role::Reader) => {
+                items.extend([MenuItemFields::new(tr(ctx, Message::SharedMakeEditor))
+                    .with_on_select_action(ParticipantAvatarAction::UpdateRole {
+                        participant_id,
+                        role: Role::Executor,
+                    })
+                    .into_item()])
+            }
+            Some(Role::Executor) => {
+                items.extend([MenuItemFields::new(tr(ctx, Message::SharedMakeViewer))
+                    .with_on_select_action(ParticipantAvatarAction::UpdateRole {
+                        participant_id,
+                        role: Role::Reader,
+                    })
+                    .into_item()])
+            }
             // Sharer does not have context menu
             _ => {}
         }
@@ -191,7 +196,7 @@ impl ParticipantAvatarView {
     pub fn open_context_menu(&mut self, ctx: &mut ViewContext<Self>) {
         self.is_menu_open = true;
         self.menu.update(ctx, |menu, ctx| {
-            let items = self.context_menu_items();
+            let items = self.context_menu_items(ctx);
             menu.set_items(items, ctx);
         });
         ctx.notify();

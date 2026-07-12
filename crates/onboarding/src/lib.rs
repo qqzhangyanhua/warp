@@ -24,7 +24,6 @@ impl std::fmt::Display for OnboardingIntention {
 }
 
 pub use callout::{OnboardingCalloutView, OnboardingKeybindings};
-
 use i18n::Locale;
 
 /// User-facing descriptions of the AI features enabled when the agent intention is selected.

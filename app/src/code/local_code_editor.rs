@@ -67,6 +67,7 @@ use crate::code::footer::{CodeFooterView, CodeFooterViewEvent};
 use crate::code::global_buffer_model::{BufferState, GlobalBufferModel, GlobalBufferModelEvent};
 use crate::code::{SaveOutcome, ShowFindReferencesCardProvider};
 use crate::code_review::comments::CommentId;
+use crate::i18n::{tr, Message};
 use crate::menu::{Event, Menu, MenuItem, MenuItemFields};
 use crate::settings::{AISettings, CodeSettings};
 use crate::terminal::TerminalView;
@@ -1963,12 +1964,12 @@ impl LocalCodeEditorView {
     }
 
     /// Creates menu items for the context menu
-    fn context_menu_items(&self) -> Vec<MenuItem<LocalCodeEditorAction>> {
+    fn context_menu_items(&self, ctx: &AppContext) -> Vec<MenuItem<LocalCodeEditorAction>> {
         vec![
-            MenuItemFields::new("Go to definition")
+            MenuItemFields::new(tr(ctx, Message::CodeGoToDefinition))
                 .with_on_select_action(LocalCodeEditorAction::GotoDefinition)
                 .into_item(),
-            MenuItemFields::new("Find references")
+            MenuItemFields::new(tr(ctx, Message::CodeFindReferences))
                 .with_on_select_action(LocalCodeEditorAction::FindReferences)
                 .into_item(),
         ]
@@ -2336,7 +2337,7 @@ impl TypedActionView for LocalCodeEditorView {
                 // Only show context menu if LSP is available
                 if self.is_lsp_server_available(ctx) {
                     self.context_menu_state.is_open = true;
-                    let menu_items = self.context_menu_items();
+                    let menu_items = self.context_menu_items(ctx);
                     self.context_menu.update(ctx, move |menu, ctx| {
                         menu.set_items(menu_items, ctx);
                         ctx.notify();
