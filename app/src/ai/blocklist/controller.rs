@@ -24,6 +24,7 @@ use pending_response_streams::PendingResponseStreams;
 use session_sharing_protocol::common::ParticipantId;
 pub use slash_command::*;
 use warp_core::assertions::safe_assert;
+use warp_core::safe_info;
 use warp_errors::report_error;
 use warp_multi_agent_api::{message, Task, ToolType};
 use warpui::r#async::{SpawnedFutureHandle, Timer};
@@ -2434,6 +2435,18 @@ impl BlocklistAIController {
         );
         request_params.parent_agent_id = parent_agent_id;
         request_params.agent_name = agent_name;
+
+        // Custom-endpoint requests must not ask the server to fall back to Warp credits.
+        // They are backed by user-provided inference, so quota should not be part of the
+        // request path even in standard builds where Warp-credit fallback is enabled.
+        request_params.use_base_custom_model_for_unbacked_auxiliary_models();
+        request_params.disable_warp_credit_fallback_when_backed_by_custom_providers();
+        let (base_is_custom, coding_is_custom, cli_agent_is_custom, computer_use_is_custom) =
+            request_params.selected_model_custom_provider_backing();
+        safe_info!(
+            safe: ("Agent request custom inference routing: base_is_custom={base_is_custom} coding_is_custom={coding_is_custom} cli_agent_is_custom={cli_agent_is_custom} computer_use_is_custom={computer_use_is_custom} custom_model_count={} warp_credit_fallback={}", request_params.custom_provider_model_count(), request_params.allow_use_of_warp_credits),
+            full: ("Agent request custom inference routing: base_model={} coding_model={} cli_agent_model={} computer_use_model={} base_is_custom={base_is_custom} coding_is_custom={coding_is_custom} cli_agent_is_custom={cli_agent_is_custom} computer_use_is_custom={computer_use_is_custom} custom_model_count={} warp_credit_fallback={}", request_params.model, request_params.coding_model, request_params.cli_agent_model, request_params.computer_use_model, request_params.custom_provider_model_count(), request_params.allow_use_of_warp_credits)
+        );
 
         if FeatureFlag::AnonymousOnlyMode.is_enabled()
             && !request_params.model_config_is_backed_by_custom_providers()

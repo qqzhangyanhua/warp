@@ -8,6 +8,7 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View
 
 use crate::appearance::Appearance;
 use crate::auth::UserUid;
+use crate::i18n::{tr_cached, Message};
 use crate::server::ids::ServerId;
 
 pub struct TransferOwnershipConfirmationModal {
@@ -87,7 +88,7 @@ impl View for TransferOwnershipConfirmationModal {
                     appearance
                         .ui_builder()
                         .button(ButtonVariant::Accent, self.confirm_mouse_state.clone())
-                        .with_text_label("Transfer".to_string())
+                        .with_text_label(tr_cached(Message::TeamsTransfer).to_string())
                         .with_style(button_style)
                         .build()
                         .on_click(|ctx, _, _| {

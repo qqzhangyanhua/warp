@@ -159,22 +159,70 @@ pub struct ConversationData {
 }
 
 impl RequestParams {
+    fn custom_provider_model_keys(&self) -> Option<HashSet<String>> {
+        self.custom_model_providers.as_ref().map(|providers| {
+            providers
+                .providers
+                .iter()
+                .flat_map(|provider| provider.models.iter())
+                .map(|model| model.config_key.clone())
+                .collect()
+        })
+    }
+
     pub fn model_config_is_backed_by_custom_providers(&self) -> bool {
-        let Some(custom_model_providers) = &self.custom_model_providers else {
+        let Some(provider_model_keys) = self.custom_provider_model_keys() else {
             return false;
         };
 
-        let provider_model_keys = custom_model_providers
-            .providers
-            .iter()
-            .flat_map(|provider| provider.models.iter())
-            .map(|model| model.config_key.as_str())
-            .collect::<HashSet<_>>();
-
         provider_model_keys.contains(self.model.as_str())
+            && provider_model_keys.contains(self.coding_model.as_str())
             && provider_model_keys.contains(self.cli_agent_model.as_str())
-            && (!self.computer_use_enabled
-                || provider_model_keys.contains(self.computer_use_model.as_str()))
+            && provider_model_keys.contains(self.computer_use_model.as_str())
+    }
+
+    pub fn selected_model_custom_provider_backing(&self) -> (bool, bool, bool, bool) {
+        let Some(provider_model_keys) = self.custom_provider_model_keys() else {
+            return (false, false, false, false);
+        };
+
+        (
+            provider_model_keys.contains(self.model.as_str()),
+            provider_model_keys.contains(self.coding_model.as_str()),
+            provider_model_keys.contains(self.cli_agent_model.as_str()),
+            provider_model_keys.contains(self.computer_use_model.as_str()),
+        )
+    }
+
+    pub fn custom_provider_model_count(&self) -> usize {
+        self.custom_provider_model_keys()
+            .map(|keys| keys.len())
+            .unwrap_or_default()
+    }
+
+    pub fn use_base_custom_model_for_unbacked_auxiliary_models(&mut self) {
+        let Some(provider_model_keys) = self.custom_provider_model_keys() else {
+            return;
+        };
+        if !provider_model_keys.contains(self.model.as_str()) {
+            return;
+        }
+
+        if !provider_model_keys.contains(self.coding_model.as_str()) {
+            self.coding_model = self.model.clone();
+        }
+        if !provider_model_keys.contains(self.cli_agent_model.as_str()) {
+            self.cli_agent_model = self.model.clone();
+        }
+        if !provider_model_keys.contains(self.computer_use_model.as_str()) {
+            self.computer_use_model = self.model.clone();
+        }
+    }
+
+    pub fn disable_warp_credit_fallback_when_backed_by_custom_providers(&mut self) {
+        if self.model_config_is_backed_by_custom_providers() {
+            self.allow_use_of_warp_credits = false;
+        }
     }
 
     #[cfg(test)]

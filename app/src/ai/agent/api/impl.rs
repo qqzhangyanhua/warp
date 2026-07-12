@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use warp_core::features::FeatureFlag;
+use warp_core::{features::FeatureFlag, safe_info};
 use warp_multi_agent_api as api;
 
 use super::convert_to::convert_input;
@@ -22,7 +22,7 @@ pub async fn generate_multi_agent_output(
         .unwrap_or_else(|| get_supported_tools(&params));
     let supported_cli_agent_tools = get_supported_cli_agent_tools(&params);
     let mut logging_metadata = HashMap::new();
-    if let Some(metadata) = params.metadata {
+    if let Some(ref metadata) = params.metadata {
         logging_metadata.insert(
             "is_autodetected_user_query".to_owned(),
             prost_types::Value {
@@ -53,9 +53,32 @@ pub async fn generate_multi_agent_output(
         redaction::redact_inputs(&mut params.input);
     }
 
+    let model_config_is_backed_by_custom_providers =
+        params.model_config_is_backed_by_custom_providers();
+    let custom_model_provider_count = params
+        .custom_model_providers
+        .as_ref()
+        .map(|providers| providers.providers.len())
+        .unwrap_or_default();
+    let custom_model_count = params
+        .custom_model_providers
+        .as_ref()
+        .map(|providers| {
+            providers
+                .providers
+                .iter()
+                .map(|provider| provider.models.len())
+                .sum::<usize>()
+        })
+        .unwrap_or_default();
     let api_keys = api_keys_with_warp_credit_fallback_setting(
         params.api_keys,
         params.allow_use_of_warp_credits,
+        model_config_is_backed_by_custom_providers,
+    );
+    safe_info!(
+        safe: ("Agent request final settings: custom_backed={model_config_is_backed_by_custom_providers} custom_provider_count={custom_model_provider_count} custom_model_count={custom_model_count} api_keys_present={} warp_credit_fallback={}", api_keys.is_some(), api_keys.as_ref().is_some_and(|keys| keys.allow_use_of_warp_credits)),
+        full: ("Agent request final settings: custom_backed={model_config_is_backed_by_custom_providers} custom_provider_count={custom_model_provider_count} custom_model_count={custom_model_count} api_keys_present={} warp_credit_fallback={}", api_keys.is_some(), api_keys.as_ref().is_some_and(|keys| keys.allow_use_of_warp_credits))
     );
 
     let request = api::Request {
@@ -66,6 +89,7 @@ pub async fn generate_multi_agent_output(
         settings: Some(api::request::Settings {
             model_config: Some(api::request::settings::ModelConfig {
                 base: params.model.into(),
+                coding: params.coding_model.into(),
                 cli_agent: params.cli_agent_model.into(),
                 computer_use_agent: params.computer_use_model.into(),
                 base_model_context_window_limit: params.context_window_limit.unwrap_or(0),
@@ -182,16 +206,19 @@ async fn convert_multi_agent_client_error(
 fn api_keys_with_warp_credit_fallback_setting(
     api_keys: Option<api::request::settings::ApiKeys>,
     allow_use_of_warp_credits: bool,
+    model_config_is_backed_by_custom_providers: bool,
 ) -> Option<api::request::settings::ApiKeys> {
     match api_keys {
         Some(mut api_keys) => {
             api_keys.allow_use_of_warp_credits = allow_use_of_warp_credits;
             Some(api_keys)
         }
-        None if allow_use_of_warp_credits => Some(api::request::settings::ApiKeys {
-            allow_use_of_warp_credits: true,
-            ..Default::default()
-        }),
+        None if allow_use_of_warp_credits || model_config_is_backed_by_custom_providers => {
+            Some(api::request::settings::ApiKeys {
+                allow_use_of_warp_credits,
+                ..Default::default()
+            })
+        }
         None => None,
     }
 }

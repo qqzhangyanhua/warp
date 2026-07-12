@@ -92,43 +92,103 @@ fn model_config_is_not_backed_by_custom_providers_when_base_model_is_hosted() {
 }
 
 #[test]
-fn model_config_is_backed_by_custom_providers_when_required_request_models_are_custom() {
+fn model_config_is_backed_by_custom_providers_when_all_request_models_are_custom() {
     let custom_model = LLMId::from("custom-model");
     let mut params = request_params_with_ask_user_question_enabled(false);
     params.model = custom_model.clone();
+    params.coding_model = custom_model.clone();
     params.cli_agent_model = custom_model.clone();
-    params.computer_use_model = LLMId::from("hosted-computer-use-model");
+    params.computer_use_model = custom_model;
     params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
 
     assert!(params.model_config_is_backed_by_custom_providers());
 }
 
 #[test]
-fn model_config_is_not_backed_by_custom_providers_when_enabled_computer_use_is_hosted() {
+fn model_config_is_not_backed_by_custom_providers_when_computer_use_is_hosted() {
     let custom_model = LLMId::from("custom-model");
     let mut params = request_params_with_ask_user_question_enabled(false);
     params.model = custom_model.clone();
+    params.coding_model = custom_model.clone();
     params.cli_agent_model = custom_model.clone();
     params.computer_use_model = LLMId::from("hosted-computer-use-model");
-    params.computer_use_enabled = true;
     params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
 
     assert!(!params.model_config_is_backed_by_custom_providers());
 }
 
 #[test]
+fn use_base_custom_model_for_unbacked_auxiliary_models_rewrites_hosted_models() {
+    let custom_model = LLMId::from("custom-model");
+    let mut params = request_params_with_ask_user_question_enabled(false);
+    params.model = custom_model.clone();
+    params.coding_model = LLMId::from("hosted-coding-model");
+    params.cli_agent_model = LLMId::from("hosted-cli-model");
+    params.computer_use_model = LLMId::from("hosted-computer-use-model");
+    params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
+
+    params.use_base_custom_model_for_unbacked_auxiliary_models();
+
+    assert_eq!(params.coding_model, custom_model);
+    assert_eq!(params.cli_agent_model, custom_model);
+    assert_eq!(params.computer_use_model, custom_model);
+    assert!(params.model_config_is_backed_by_custom_providers());
+}
+
+#[test]
+fn disables_warp_credit_fallback_when_model_config_is_custom_backed() {
+    let custom_model = LLMId::from("custom-model");
+    let mut params = request_params_with_ask_user_question_enabled(false);
+    params.model = custom_model.clone();
+    params.coding_model = custom_model.clone();
+    params.cli_agent_model = custom_model.clone();
+    params.computer_use_model = custom_model;
+    params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
+    params.allow_use_of_warp_credits = true;
+
+    params.disable_warp_credit_fallback_when_backed_by_custom_providers();
+
+    assert!(!params.allow_use_of_warp_credits);
+}
+
+#[test]
+fn keeps_warp_credit_fallback_when_model_config_is_not_custom_backed() {
+    let mut params = request_params_with_ask_user_question_enabled(false);
+    params.model = LLMId::from("hosted-model");
+    params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
+    params.allow_use_of_warp_credits = true;
+
+    params.disable_warp_credit_fallback_when_backed_by_custom_providers();
+
+    assert!(params.allow_use_of_warp_credits);
+}
+
+#[test]
 fn api_keys_with_warp_credit_fallback_setting_returns_none_without_keys_or_fallback() {
-    let api_keys = api_keys_with_warp_credit_fallback_setting(None, false);
+    let api_keys = api_keys_with_warp_credit_fallback_setting(None, false, false);
 
     assert!(api_keys.is_none());
 }
 
 #[test]
 fn api_keys_with_warp_credit_fallback_setting_creates_fallback_only_api_keys() {
-    let api_keys = api_keys_with_warp_credit_fallback_setting(None, true)
+    let api_keys = api_keys_with_warp_credit_fallback_setting(None, true, false)
         .expect("fallback setting should create ApiKeys");
 
     assert!(api_keys.allow_use_of_warp_credits);
+    assert!(api_keys.anthropic.is_empty());
+    assert!(api_keys.openai.is_empty());
+    assert!(api_keys.google.is_empty());
+    assert!(api_keys.open_router.is_empty());
+    assert!(api_keys.aws_credentials.is_none());
+}
+
+#[test]
+fn api_keys_with_warp_credit_fallback_setting_creates_custom_endpoint_marker() {
+    let api_keys = api_keys_with_warp_credit_fallback_setting(None, false, true)
+        .expect("custom endpoint requests should still send ApiKeys settings");
+
+    assert!(!api_keys.allow_use_of_warp_credits);
     assert!(api_keys.anthropic.is_empty());
     assert!(api_keys.openai.is_empty());
     assert!(api_keys.google.is_empty());
@@ -150,6 +210,7 @@ fn api_keys_with_warp_credit_fallback_setting_preserves_existing_keys() {
             google_cloud_credentials: None,
         }),
         true,
+        false,
     )
     .expect("existing ApiKeys should be preserved");
 

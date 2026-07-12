@@ -237,7 +237,9 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [x] Convert Tools panel "Agent conversations" label via Message
 - [x] Convert workspace search placeholder "Search sessions, agents, files..." via Message
 - [ ] "Warp Drive" kept as product name (plan: untranslated)
-- [ ] Tab empty states (`No tabs open`, etc.) — minor
+- [x] Tab empty states (`No tabs open`, `No tabs match your search`, `View as`, `Tab item`) — via Message
+- [x] Billing: `No usage history` — wired via existing `BillingNoUsageHistory` Message
+- [x] Transfer ownership modal button — wired via `TeamsTransfer` Message
 
 ### Terminal context menu (B1)
 

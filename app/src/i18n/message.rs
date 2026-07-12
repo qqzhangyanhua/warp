@@ -871,6 +871,9 @@ pub enum Message {
     WorkspaceCancel,
     WorkspaceDelete,
     WorkspaceNoTabsOpen,
+    WorkspaceNoTabsMatchSearch,
+    WorkspaceViewAs,
+    WorkspaceTabItem,
     WorkspaceCreateGroupFromTabs,
     WorkspaceRemoveFromGroup,
 
@@ -1021,6 +1024,7 @@ pub enum Message {
     TeamsYourNewTeamName,
     TeamsTransferOwnershipQuestion,
     TeamsCancelInvite,
+    TeamsTransfer,
     TeamsTransferOwnership,
     TeamsDemoteFromAdmin,
     TeamsPromoteToAdmin,
