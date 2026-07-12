@@ -9,6 +9,7 @@ use warp_multi_agent_api as api;
 use super::convert_to::convert_input;
 use super::{ConvertToAPITypeError, RequestParams, ResponseStream};
 use crate::ai::agent::redaction;
+use crate::local_mode;
 use crate::server::server_api::{AIApiError, ServerApi};
 use crate::terminal::model::session::SessionType;
 
@@ -17,6 +18,11 @@ pub async fn generate_multi_agent_output(
     mut params: RequestParams,
     cancellation_rx: futures::channel::oneshot::Receiver<()>,
 ) -> Result<ResponseStream, ConvertToAPITypeError> {
+    if local_mode::is_local_only_custom_provider_mode() {
+        return super::local_provider::generate_local_provider_output(params, cancellation_rx)
+            .await;
+    }
+
     let supported_tools = params
         .supported_tools_override
         .take()

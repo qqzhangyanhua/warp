@@ -6,6 +6,7 @@ use chrono::{DateTime, Local, Utc};
 use itertools::Itertools;
 use uuid::Uuid;
 use warp_cli::agent::Harness;
+use warp_core::features::FeatureFlag;
 use warpui::{App, EntityId, ModelHandle};
 
 use super::{
@@ -2818,6 +2819,78 @@ fn test_initialize_output_for_response_stream_persists_updated_conversation_stat
             Some(server_token.as_str())
         );
         assert_eq!(restored.run_id().as_deref(), Some(run_id.as_str()));
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn test_local_only_initialize_output_does_not_store_server_conversation_token() {
+    let _flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+
+        let global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_view_id = EntityId::new();
+        let now = Local::now();
+
+        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
+            history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
+        });
+
+        let stream_id = ResponseStreamId::new_for_test();
+        history_model.update(&mut app, |history_model, ctx| {
+            let exchange = create_exchange_with_query("query", now, None);
+            let task_id = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .get_root_task_id()
+                .clone();
+            let request_input = RequestInput {
+                conversation_id,
+                input_messages: HashMap::from([(task_id, exchange.input)]),
+                working_directory: exchange.working_directory,
+                model_id: exchange.model_id,
+                coding_model_id: exchange.coding_model_id,
+                cli_agent_model_id: exchange.cli_agent_model_id,
+                computer_use_model_id: exchange.computer_use_model_id,
+                shared_session_response_initiator: exchange.response_initiator,
+                request_start_ts: exchange.start_time,
+                supported_tools_override: None,
+            };
+            history_model
+                .update_conversation_for_new_request_input(
+                    request_input,
+                    stream_id.clone(),
+                    terminal_view_id,
+                    ctx,
+                )
+                .unwrap();
+
+            history_model.initialize_output_for_response_stream(
+                &stream_id,
+                conversation_id,
+                terminal_view_id,
+                warp_multi_agent_api::response_event::StreamInit {
+                    request_id: "request-1".to_string(),
+                    conversation_id: "local-stream-token".to_string(),
+                    run_id: String::new(),
+                },
+                ctx,
+            );
+        });
+
+        let token = history_model.read(&app, |history_model, _app| {
+            history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .server_conversation_token()
+                .cloned()
+        });
+        assert!(token.is_none());
     });
 }
 

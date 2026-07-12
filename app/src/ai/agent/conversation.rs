@@ -76,7 +76,7 @@ use crate::terminal::model::block::{
 };
 use crate::ui_components::icons::Icon;
 use crate::workspaces::user_profiles::UserProfileWithUID;
-use crate::{BlocklistAIHistoryModel, GlobalResourceHandlesProvider};
+use crate::{local_mode, BlocklistAIHistoryModel, GlobalResourceHandlesProvider};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TodoStatus {
@@ -2132,8 +2132,10 @@ impl AIConversation {
             });
         }
 
-        self.server_conversation_token =
-            Some(ServerConversationToken::new(init_event.conversation_id));
+        if !local_mode::is_local_only_custom_provider_mode() {
+            self.server_conversation_token =
+                Some(ServerConversationToken::new(init_event.conversation_id));
+        }
         let run_id = Some(init_event.run_id).filter(|s| !s.is_empty());
         self.task_id = run_id.as_deref().and_then(|id| id.parse().ok());
         Ok(())
