@@ -542,7 +542,7 @@ impl LoginSlideView {
             ),
             LoginPurpose::ThirdParty => (
                 "Create an account",
-                "Create a Warp account to enable AI-powered planning, coding, and automations.",
+                "Create a ZYH account to enable AI-powered planning, coding, and automations.",
             ),
         };
         let title = FormattedTextElement::from_str(title_text, appearance.ui_font_family(), 36.)
@@ -965,7 +965,7 @@ impl LoginSlideView {
             ),
             LoginPurpose::WarpAgent | LoginPurpose::ThirdParty => (
                 "Continue without signing in?",
-                "Without an account, you won't have access to Warp's AI features. Sign in anytime to unlock agents and other AI features.",
+                "Without an account, you won't have access to ZYH's AI features. Sign in anytime to unlock agents and other AI features.",
                 &[],
                 "Sign in",
             ),

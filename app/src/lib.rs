@@ -61,6 +61,7 @@ mod prefix;
 #[cfg(target_os = "macos")]
 mod preview_config_migration;
 mod pricing;
+mod product;
 mod profiling;
 mod projects;
 mod prompt;

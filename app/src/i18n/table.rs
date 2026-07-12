@@ -79,7 +79,7 @@ fn en_text(message: Message) -> &'static str {
         Message::SettingsAutoOpenCodeReviewPanel => "Auto open code review panel",
         Message::SettingsWhenThisSettingIsOnTheCodeReviewPanelWillOpenOnTheFirstAcceptedDiffOfAConversation => "When this setting is on, the code review panel will open on the first accepted diff of a conversation",
         Message::SettingsMaximumRowsInABlock => "Maximum rows in a block",
-        Message::SettingsReceiveDesktopNotificationsFromWarp => "Receive desktop notifications from Warp",
+        Message::SettingsReceiveDesktopNotificationsFromWarp => "Receive desktop notifications from ZYH",
         Message::SettingsShowInappAgentNotifications => "Show in-app agent notifications",
         Message::SettingsConfirmBeforeClosingSharedSession => "Confirm before closing shared session",
         Message::SettingsAutocompleteQuotesParenthesesAndBrackets => "Autocomplete quotes, parentheses, and brackets",
@@ -148,7 +148,7 @@ fn en_text(message: Message) -> &'static str {
 
 
         Message::SettingsLanguageLabel => "Language",
-        Message::SettingsLanguageDescription => "Choose the display language for Warp.",
+        Message::SettingsLanguageDescription => "Choose the display language for ZYH.",
         Message::SettingsLanguageSystemOption => "System",
         Message::SettingsLanguageEnglishOption => "English",
         Message::SettingsLanguageSimplifiedChineseOption => "Simplified Chinese",
@@ -222,8 +222,8 @@ fn en_text(message: Message) -> &'static str {
         Message::AiSignUp => "Sign up",
         Message::AiToUseAiCreateAccount => "To use AI features, please create an account.",
 
-        Message::FeaturesStartWarpAtLogin => "Start Warp at login",
-        Message::FeaturesStartWarpAtLoginMacos13 => "Start Warp at login (requires macOS 13+)",
+        Message::FeaturesStartWarpAtLogin => "Start ZYH at login",
+        Message::FeaturesStartWarpAtLoginMacos13 => "Start ZYH at login (requires macOS 13+)",
         Message::FeaturesTabKeyBehavior => "Tab key behavior",
         Message::FeaturesLeftOptionKeyIsMeta => "Left Option key is Meta",
         Message::FeaturesRightOptionKeyIsMeta => "Right Option key is Meta",
@@ -288,9 +288,9 @@ fn en_text(message: Message) -> &'static str {
         Message::AiShowConversationHistoryInToolsPanel => "Show conversation history in tools panel",
         Message::AiShowCodingAgentToolbar => "Show coding agent toolbar",
 
-        Message::CodeCodebaseIndexDescription => "Warp can automatically index code repositories as you navigate them, helping agents quickly understand context and provide solutions. Code is never stored on the server. If a codebase is unable to be indexed, Warp can still navigate your codebase and gain insights via grep and find tool calling.",
+        Message::CodeCodebaseIndexDescription => "ZYH can automatically index code repositories as you navigate them, helping agents quickly understand context and provide solutions. Code is never stored on the server. If a codebase is unable to be indexed, ZYH can still navigate your codebase and gain insights via grep and find tool calling.",
         Message::CodeWarpIndexingIgnoreDescription => "To exclude specific files or directories from indexing, add them to the .warpindexingignore file in your repository directory. These files will still be accessible to AI features, but they won't be included in codebase embeddings.",
-        Message::CodeAutoIndexDescription => "When set to true, Warp will automatically index code repositories as you navigate them - helping agents quickly understand context and provide targeted solutions.",
+        Message::CodeAutoIndexDescription => "When set to true, ZYH will automatically index code repositories as you navigate them - helping agents quickly understand context and provide targeted solutions.",
         Message::CodeIndexLimitReached => "You have reached the maximum number of codebase indices for your plan. Delete existing indices to auto-index new codebases.",
 
         Message::FeaturesWidthPercent => "Width %",
@@ -362,7 +362,7 @@ fn en_text(message: Message) -> &'static str {
         Message::AiEncounteredIncorrectDetection => "Encountered an incorrect detection? ",
         Message::AiLetUsKnow => "Let us know",
         Message::AiSeeSupportedProviders => "See supported providers.",
-        Message::AiVoiceInputDescriptionPrefix => "Voice input allows you to control Warp by speaking directly to your terminal (powered by ",
+        Message::AiVoiceInputDescriptionPrefix => "Voice input allows you to control ZYH by speaking directly to your terminal (powered by ",
         Message::AiWisprFlow => "Wispr Flow",
         Message::AiKeyForActivatingVoiceInput => "Key for Activating Voice Input",
         Message::AiPressAndHoldToActivate => "Press and hold to activate.",
@@ -388,7 +388,7 @@ fn en_text(message: Message) -> &'static str {
         Message::AiAgentAttributionDescription => "Oz can add attribution to commit messages and pull requests it creates",
         Message::AiComputerUseInCloudAgents => "Computer use in Cloud Agents",
         Message::AiExperimental => "Experimental",
-        Message::AiComputerUseInCloudDescription => "Enable computer use in cloud agent conversations started from the Warp app.",
+        Message::AiComputerUseInCloudDescription => "Enable computer use in cloud agent conversations started from the ZYH app.",
         Message::AiCloudHandoffRequiresCloudConversations => "Cloud handoff requires cloud conversations to be enabled.",
         Message::AiCloudHandoff => "Cloud handoff",
         Message::AiCloudHandoffTitle => "Cloud Handoff",
@@ -402,10 +402,10 @@ fn en_text(message: Message) -> &'static str {
         Message::AiOpenaiApiKey => "OpenAI API key",
         Message::AiAnthropicApiKey => "Anthropic API key",
         Message::AiGoogleApiKey => "Google API key",
-        Message::AiApiKeysStoredOnlyOnDevice => "API keys added here are stored only on this device, not on Warp's servers.",
+        Message::AiApiKeysStoredOnlyOnDevice => "API keys added here are stored only on this device, not on ZYH's servers.",
         Message::AiCustomInferenceManagedByOrg => "Custom inference settings are managed by your organization.",
         Message::AiByokAgreePrefix => "By using BYOK or custom endpoints, you agree to use them only as permitted by ",
-        Message::AiWarpsTermsOfService => "Warp's Terms of Service",
+        Message::AiWarpsTermsOfService => "ZYH's Terms of Service",
         Message::AiUseYour => "Use your",
         Message::AiPremiumOrSuperGrokSubscription => "Premium or SuperGrok subscription",
         Message::AiConnectSuperGrokDescription => "Connect your SuperGrok subscription to use Grok models in the Warp Agent through your xAI account.",
@@ -418,8 +418,8 @@ fn en_text(message: Message) -> &'static str {
         Message::AiUpgradeToBuildPlan => "Upgrade to the Build plan",
         Message::AiAskAdminUpgradeToBuildPlan => "Ask your team's admin to upgrade to the Build plan to use your own API keys.",
 
-        Message::FeaturesMakeWarpDefaultTerminal => "Make Warp the default terminal",
-        Message::FeaturesWarpIsDefaultTerminal => "Warp is the default terminal",
+        Message::FeaturesMakeWarpDefaultTerminal => "Make ZYH the default terminal",
+        Message::FeaturesWarpIsDefaultTerminal => "ZYH is the default terminal",
         Message::FeaturesAutohidesOnLossOfFocus => "Autohides on loss of keyboard focus",
         Message::FeaturesKeybinding => "Keybinding",
         Message::FeaturesActiveScreen => "Active Screen",
@@ -458,11 +458,11 @@ fn en_text(message: Message) -> &'static str {
 
         Message::PrivacySecretRedaction => "Secret redaction",
         Message::PrivacyCustomSecretRedaction => "Custom secret redaction",
-        Message::PrivacyHelpImproveWarp => "Help improve Warp",
+        Message::PrivacyHelpImproveWarp => "Help improve ZYH",
         Message::PrivacyManageYourData => "Manage your data",
         Message::PrivacyVisitDataManagementPage => "Visit the data management page",
         Message::PrivacyPolicyTitle => "Privacy policy",
-        Message::PrivacyReadWarpsPrivacyPolicy => "Read Warp's privacy policy",
+        Message::PrivacyReadWarpsPrivacyPolicy => "Read ZYH's privacy policy",
         Message::PrivacyAddRegexPattern => "Add regex pattern",
         Message::PrivacyPageTitle => "Privacy",
         Message::PrivacyInvalidRegexPattern => "Invalid regex pattern",
@@ -476,9 +476,9 @@ fn en_text(message: Message) -> &'static str {
         Message::PrivacySecretVisualRedactionMode => "Secret visual redaction mode",
         Message::PrivacyAddRegex => "Add regex",
         Message::PrivacySettingManagedByOrg => "This setting is managed by your organization.",
-        Message::PrivacyReadMoreAboutData => "Read more about Warp's use of data",
+        Message::PrivacyReadMoreAboutData => "Read more about ZYH's use of data",
 
-        Message::AccountReferralCta => "Earn rewards by sharing Warp with friends & colleagues",
+        Message::AccountReferralCta => "Earn rewards by sharing ZYH with friends & colleagues",
         Message::AccountLogOut => "Log out",
         Message::AccountUpgradePlan => "Upgrade Plan",
         Message::AccountSignUp => "Sign up",
@@ -492,12 +492,12 @@ fn en_text(message: Message) -> &'static str {
         Message::AccountUpToDate => "Up to date",
         Message::AccountCheckForUpdates => "Check for updates",
         Message::AccountUpdateAvailable => "Update available",
-        Message::AccountRelaunchWarp => "Relaunch Warp",
+        Message::AccountRelaunchWarp => "Relaunch ZYH",
         Message::AccountUpdating => "Updating...",
         Message::AccountInstalledUpdate => "Installed update",
-        Message::AccountNewVersionCantInstall => "A new version of Warp is available but can't be installed",
-        Message::AccountUpdateWarpManually => "Update Warp manually",
-        Message::AccountNewVersionCantLaunch => "A new version of Warp is installed but can't be launched.",
+        Message::AccountNewVersionCantInstall => "A new version of ZYH is available but can't be installed",
+        Message::AccountUpdateWarpManually => "Update ZYH manually",
+        Message::AccountNewVersionCantLaunch => "A new version of ZYH is installed but can't be launched.",
         Message::AccountVersion => "Version",
         Message::AccountNotYetLoaded => "Not yet loaded",
         Message::AccountRefreshing => "Refreshing…",
@@ -505,7 +505,7 @@ fn en_text(message: Message) -> &'static str {
         Message::AccountFailedWithMessage => "Failed: {message}",
         Message::AccountStagingIapCredentials => "Staging IAP credentials",
 
-        Message::WorkspaceUpdateWarp => "Update Warp",
+        Message::WorkspaceUpdateWarp => "Update ZYH",
         Message::WorkspaceAccessTabConfigsHere => "Access your tab configs here.",
         Message::WorkspaceSearchRepos => "Search repos",
         Message::WorkspaceSearchTabs => "Search tabs...",
@@ -624,9 +624,9 @@ fn en_text(message: Message) -> &'static str {
         },
         Message::AppearanceCustomizeAppIcon => "Customize your app icon",
         Message::AppearanceAppIconBundleRequired => "Changing the app icon requires the app to be bundled.",
-        Message::AppearanceShowWarpInDock => "Show Warp in Dock",
+        Message::AppearanceShowWarpInDock => "Show ZYH in Dock",
         Message::AppearanceRestartForAppIcon => {
-            "You may need to restart Warp for MacOS to apply the preferred icon style."
+            "You may need to restart ZYH for MacOS to apply the preferred icon style."
         },
         Message::AppearanceAppIconDefault => "Default",
         Message::AppearanceOpenNewWindowsWithCustomSize => "Open new windows with custom size",
@@ -646,8 +646,8 @@ fn en_text(message: Message) -> &'static str {
             "The selected hardware may not support rendering transparent windows."
         },
 
-        Message::AuthWelcomeToWarp => "Welcome to Warp!",
-        Message::AuthSignUpForWarp => "Sign up for Warp",
+        Message::AuthWelcomeToWarp => "Welcome to ZYH!",
+        Message::AuthSignUpForWarp => "Sign up for ZYH",
         Message::AuthSignUp => "Sign up",
         Message::AuthSignIn => "Sign in",
         Message::AuthAlreadyHaveAccount => "Already have an account? ",
@@ -659,7 +659,7 @@ fn en_text(message: Message) -> &'static str {
         },
         Message::AuthOnlyAvailableToLoggedIn => "are only available to logged-in users. ",
         Message::AuthYesSkipLogin => "Yes, skip login",
-        Message::AuthByContinuingAgreeToTos => "By continuing, you agree to Warp's ",
+        Message::AuthByContinuingAgreeToTos => "By continuing, you agree to ZYH's ",
         Message::AuthTermsOfService => "Terms of Service",
         Message::AuthPrivacySettings => "Privacy Settings",
         Message::AuthIfYoudLikeToOptOut => {
@@ -686,7 +686,7 @@ fn en_text(message: Message) -> &'static str {
             "Connect your account to enable AI-powered planning, coding, and automation."
         },
         Message::AuthThirdPartySubtitle => {
-            "Create a Warp account to enable AI-powered planning, coding, and automations."
+            "Create a ZYH account to enable AI-powered planning, coding, and automations."
         },
         Message::AuthContinue => "Continue",
         Message::AuthCancel => "Cancel",
@@ -702,11 +702,11 @@ fn en_text(message: Message) -> &'static str {
         },
         Message::AuthContinueWithoutSigningIn => "Continue without signing in?",
         Message::AuthWithoutAccountNoAi => {
-            "Without an account, you won't have access to Warp's AI features. Sign in anytime to \
+            "Without an account, you won't have access to ZYH's AI features. Sign in anytime to \
              unlock agents and other AI features."
         },
         Message::AuthForceLoginAi => {
-            "In order to use Warp's AI features or collaborate with others, please create an account."
+            "In order to use ZYH's AI features or collaborate with others, please create an account."
         },
         Message::AuthForceLoginWarpDrive => {
             "In order to create more objects in Warp Drive, please create an account."
@@ -733,7 +733,7 @@ fn en_text(message: Message) -> &'static str {
             "Your organization has enabled SSO for your account"
         },
         Message::AuthSsoClickToLink => {
-            "Click the button below to link your Warp account to your SSO provider."
+            "Click the button below to link your ZYH account to your SSO provider."
         },
         Message::AuthLoading => "Loading...",
         Message::AuthErrorAuthenticatingRefresh => {
@@ -754,17 +754,17 @@ fn en_text(message: Message) -> &'static str {
             "The redirect URL pasted did not originate from this app. Please click the button \
              below to try again."
         },
-        Message::AuthUsingWarpOffline => "Using Warp Offline",
+        Message::AuthUsingWarpOffline => "Using ZYH Offline",
         Message::AuthOfflineRequiredFirstTime => {
-            "You are currently offline. An internet connection is required to use Warp for the \
+            "You are currently offline. An internet connection is required to use ZYH for the \
              first time."
         },
         Message::AuthOfflineFeaturesWork => {
-            "All of Warp's non-cloud features work offline."
+            "All of ZYH's non-cloud features work offline."
         },
         Message::AuthOfflineRequireFirstTimeExplanation => {
-            "However, we require users to be online when using Warp for the first time in order \
-             to enable Warp's AI and cloud features."
+            "However, we require users to be online when using ZYH for the first time in order \
+             to enable ZYH's AI and cloud features."
         },
         Message::AuthOfflineCloudFeaturesExplanation => {
             "We offer cloud features to all users, and so we need an internet connection to meter \
@@ -772,19 +772,19 @@ fn en_text(message: Message) -> &'static str {
              Warp logged-out, a unique ID will be attached to an anonymous user account in order \
              to support these features."
         },
-        Message::AuthHelpImproveWarp => "Help improve Warp",
+        Message::AuthHelpImproveWarp => "Help improve ZYH",
         Message::AuthHighLevelFeatureUsage => {
-            "High-level feature usage data helps Warp's product team prioritize the roadmap."
+            "High-level feature usage data helps ZYH's product team prioritize the roadmap."
         },
         Message::AuthSendCrashReports => "Send crash reports",
         Message::AuthCrashReportingHelps => {
-            "Crash reporting helps Warp's engineering team understand stability and improve \
+            "Crash reporting helps ZYH's engineering team understand stability and improve \
              performance."
         },
         Message::AuthStoreAiConversations => "Store AI conversations in the cloud",
         Message::AuthStoreAiConversationsEnabled => {
             "Agent conversations can be shared with others and are retained when you log in on \
-             different devices. This data is only stored for product functionality, and Warp will \
+             different devices. This data is only stored for product functionality, and ZYH will \
              not use it for analytics."
         },
         Message::AuthStoreAiConversationsDisabled => {
@@ -873,7 +873,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::SettingsAutoOpenCodeReviewPanel => "自动打开代码审查面板",
         Message::SettingsWhenThisSettingIsOnTheCodeReviewPanelWillOpenOnTheFirstAcceptedDiffOfAConversation => "开启此设置后，代码审查面板将在对话的首个被采纳的 diff 时打开",
         Message::SettingsMaximumRowsInABlock => "单个区块的最大行数",
-        Message::SettingsReceiveDesktopNotificationsFromWarp => "接收来自 Warp 的桌面通知",
+        Message::SettingsReceiveDesktopNotificationsFromWarp => "接收来自 ZYH 的桌面通知",
         Message::SettingsShowInappAgentNotifications => "显示应用内 Agent 通知",
         Message::SettingsConfirmBeforeClosingSharedSession => "关闭共享会话前确认",
         Message::SettingsAutocompleteQuotesParenthesesAndBrackets => "自动补全引号、圆括号和方括号",
@@ -941,7 +941,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::SettingsReuseExistingSshControlmaster => "复用现有的 SSH ControlMaster",
 
         Message::SettingsLanguageLabel => "语言",
-        Message::SettingsLanguageDescription => "选择 Warp 的界面显示语言。",
+        Message::SettingsLanguageDescription => "选择 ZYH 的界面显示语言。",
         Message::SettingsLanguageSystemOption => "跟随系统",
         Message::SettingsLanguageEnglishOption => "English",
         Message::SettingsLanguageSimplifiedChineseOption => "简体中文",
@@ -1015,8 +1015,8 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AiSignUp => "注册",
         Message::AiToUseAiCreateAccount => "要使用 AI 功能，请先创建账户。",
 
-        Message::FeaturesStartWarpAtLogin => "登录时启动 Warp",
-        Message::FeaturesStartWarpAtLoginMacos13 => "登录时启动 Warp（需要 macOS 13+）",
+        Message::FeaturesStartWarpAtLogin => "登录时启动 ZYH",
+        Message::FeaturesStartWarpAtLoginMacos13 => "登录时启动 ZYH（需要 macOS 13+）",
         Message::FeaturesTabKeyBehavior => "Tab 键行为",
         Message::FeaturesLeftOptionKeyIsMeta => "左 Option 键作为 Meta",
         Message::FeaturesRightOptionKeyIsMeta => "右 Option 键作为 Meta",
@@ -1081,9 +1081,9 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AiShowConversationHistoryInToolsPanel => "在工具面板中显示对话历史",
         Message::AiShowCodingAgentToolbar => "显示编码 Agent 工具栏",
 
-        Message::CodeCodebaseIndexDescription => "Warp 会在你浏览代码仓库时自动建立索引，帮助 Agent 快速理解上下文并提供方案。代码不会存储在服务器上。即便无法完成索引，Warp 仍可通过 grep 和 find 等工具浏览代码库。",
+        Message::CodeCodebaseIndexDescription => "ZYH 会在你浏览代码仓库时自动建立索引，帮助 Agent 快速理解上下文并提供方案。代码不会存储在服务器上。即便无法完成索引，ZYH 仍可通过 grep 和 find 等工具浏览代码库。",
         Message::CodeWarpIndexingIgnoreDescription => "若要排除特定文件或目录，请在仓库目录中的 .warpindexingignore 中添加它们。这些文件仍可供 AI 功能访问，但不会纳入代码库嵌入。",
-        Message::CodeAutoIndexDescription => "开启后，Warp 会在你浏览代码仓库时自动索引，帮助 Agent 更快理解上下文并给出更有针对性的方案。",
+        Message::CodeAutoIndexDescription => "开启后，ZYH 会在你浏览代码仓库时自动索引，帮助 Agent 更快理解上下文并给出更有针对性的方案。",
         Message::CodeIndexLimitReached => "你已达到当前计划允许的代码库索引数量上限。请删除现有索引后，再自动索引新的代码库。",
 
         Message::FeaturesWidthPercent => "宽度 %",
@@ -1155,7 +1155,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AiEncounteredIncorrectDetection => "检测到不正确的识别？",
         Message::AiLetUsKnow => "告诉我们",
         Message::AiSeeSupportedProviders => "查看支持的提供商。",
-        Message::AiVoiceInputDescriptionPrefix => "语音输入可让你通过语音直接控制 Warp 终端（由 ",
+        Message::AiVoiceInputDescriptionPrefix => "语音输入可让你通过语音直接控制 ZYH 终端（由 ",
         Message::AiWisprFlow => "Wispr Flow",
         Message::AiKeyForActivatingVoiceInput => "激活语音输入的按键",
         Message::AiPressAndHoldToActivate => "按住以激活。",
@@ -1181,7 +1181,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AiAgentAttributionDescription => "Oz 可为其创建的提交信息和 Pull Request 添加署名",
         Message::AiComputerUseInCloudAgents => "云端 Agent 的计算机使用",
         Message::AiExperimental => "实验性",
-        Message::AiComputerUseInCloudDescription => "在从 Warp 应用启动的云端 Agent 对话中启用计算机使用。",
+        Message::AiComputerUseInCloudDescription => "在从 ZYH 应用启动的云端 Agent 对话中启用计算机使用。",
         Message::AiCloudHandoffRequiresCloudConversations => "云端交接需要启用云端对话。",
         Message::AiCloudHandoff => "云端交接",
         Message::AiCloudHandoffTitle => "云端交接",
@@ -1195,10 +1195,10 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AiOpenaiApiKey => "OpenAI API 密钥",
         Message::AiAnthropicApiKey => "Anthropic API 密钥",
         Message::AiGoogleApiKey => "Google API 密钥",
-        Message::AiApiKeysStoredOnlyOnDevice => "此处添加的 API 密钥仅存储在此设备上，不会上传到 Warp 服务器。",
+        Message::AiApiKeysStoredOnlyOnDevice => "此处添加的 API 密钥仅存储在此设备上，不会上传到 ZYH 服务器。",
         Message::AiCustomInferenceManagedByOrg => "自定义推理设置由你的组织管理。",
         Message::AiByokAgreePrefix => "使用 BYOK 或自定义端点，即表示你同意仅按以下条款允许的方式使用它们：",
-        Message::AiWarpsTermsOfService => "Warp 服务条款",
+        Message::AiWarpsTermsOfService => "ZYH 服务条款",
         Message::AiUseYour => "使用你的",
         Message::AiPremiumOrSuperGrokSubscription => "Premium 或 SuperGrok 订阅",
         Message::AiConnectSuperGrokDescription => "连接 SuperGrok 订阅，以便通过 xAI 账户在 Warp Agent 中使用 Grok 模型。",
@@ -1211,8 +1211,8 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AiUpgradeToBuildPlan => "升级到 Build 方案",
         Message::AiAskAdminUpgradeToBuildPlan => "请让团队管理员升级到 Build 方案，以使用你自己的 API 密钥。",
 
-        Message::FeaturesMakeWarpDefaultTerminal => "将 Warp 设为默认终端",
-        Message::FeaturesWarpIsDefaultTerminal => "Warp 已是默认终端",
+        Message::FeaturesMakeWarpDefaultTerminal => "将 ZYH 设为默认终端",
+        Message::FeaturesWarpIsDefaultTerminal => "ZYH 已是默认终端",
         Message::FeaturesAutohidesOnLossOfFocus => "失去键盘焦点时自动隐藏",
         Message::FeaturesKeybinding => "快捷键",
         Message::FeaturesActiveScreen => "当前屏幕",
@@ -1251,11 +1251,11 @@ fn zh_cn_text(message: Message) -> &'static str {
 
         Message::PrivacySecretRedaction => "密钥脱敏",
         Message::PrivacyCustomSecretRedaction => "自定义密钥脱敏",
-        Message::PrivacyHelpImproveWarp => "帮助改进 Warp",
+        Message::PrivacyHelpImproveWarp => "帮助改进 ZYH",
         Message::PrivacyManageYourData => "管理你的数据",
         Message::PrivacyVisitDataManagementPage => "访问数据管理页面",
         Message::PrivacyPolicyTitle => "隐私政策",
-        Message::PrivacyReadWarpsPrivacyPolicy => "阅读 Warp 隐私政策",
+        Message::PrivacyReadWarpsPrivacyPolicy => "阅读 ZYH 隐私政策",
         Message::PrivacyAddRegexPattern => "添加正则表达式",
         Message::PrivacyPageTitle => "隐私",
         Message::PrivacyInvalidRegexPattern => "无效的正则表达式",
@@ -1269,9 +1269,9 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::PrivacySecretVisualRedactionMode => "密钥视觉脱敏模式",
         Message::PrivacyAddRegex => "添加正则",
         Message::PrivacySettingManagedByOrg => "此设置由你的组织管理。",
-        Message::PrivacyReadMoreAboutData => "了解更多 Warp 的数据使用方式",
+        Message::PrivacyReadMoreAboutData => "了解更多 ZYH 的数据使用方式",
 
-        Message::AccountReferralCta => "通过与朋友和同事分享 Warp 赚取奖励",
+        Message::AccountReferralCta => "通过与朋友和同事分享 ZYH 赚取奖励",
         Message::AccountLogOut => "退出登录",
         Message::AccountUpgradePlan => "升级方案",
         Message::AccountSignUp => "注册",
@@ -1285,11 +1285,11 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AccountUpToDate => "已是最新",
         Message::AccountCheckForUpdates => "检查更新",
         Message::AccountUpdateAvailable => "有可用更新",
-        Message::AccountRelaunchWarp => "重新启动 Warp",
+        Message::AccountRelaunchWarp => "重新启动 ZYH",
         Message::AccountUpdating => "正在更新…",
         Message::AccountInstalledUpdate => "已安装更新",
         Message::AccountNewVersionCantInstall => "有新版本可用，但无法安装",
-        Message::AccountUpdateWarpManually => "手动更新 Warp",
+        Message::AccountUpdateWarpManually => "手动更新 ZYH",
         Message::AccountNewVersionCantLaunch => "已安装新版本，但无法启动。",
         Message::AccountVersion => "版本",
         Message::AccountNotYetLoaded => "尚未加载",
@@ -1298,7 +1298,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AccountFailedWithMessage => "失败：{message}",
         Message::AccountStagingIapCredentials => "Staging IAP 凭据",
 
-        Message::WorkspaceUpdateWarp => "更新 Warp",
+        Message::WorkspaceUpdateWarp => "更新 ZYH",
         Message::WorkspaceAccessTabConfigsHere => "在这里访问你的标签配置。",
         Message::WorkspaceSearchRepos => "搜索仓库",
         Message::WorkspaceSearchTabs => "搜索标签页…",
@@ -1341,7 +1341,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::TerminalStartingShell => "正在启动 shell…",
         Message::TerminalInstallingSshExtension => "正在安装 Warp SSH 扩展…",
         Message::TerminalInstallingSshExtensionPct => "正在安装 Warp SSH 扩展…（{p}%）",
-        Message::TerminalUpdatingSshExtension => "正在更新 Warp SSH 扩展…",
+        Message::TerminalUpdatingSshExtension => "正在更新 ZYH SSH 扩展…",
         Message::TerminalInitializing => "正在初始化…",
         Message::TerminalStartingNamedShell => "正在启动 {}…",
         Message::TerminalLoadingPrompt => "正在加载提示…",
@@ -1415,8 +1415,8 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AppearanceSyncWithOsDescription => "当系统切换浅色或深色模式时，自动切换主题。",
         Message::AppearanceCustomizeAppIcon => "自定义 App 图标",
         Message::AppearanceAppIconBundleRequired => "更改 App 图标需要使用已打包的 App。",
-        Message::AppearanceShowWarpInDock => "在 Dock 中显示 Warp",
-        Message::AppearanceRestartForAppIcon => "你可能需要重启 Warp，macOS 才会应用首选图标样式。",
+        Message::AppearanceShowWarpInDock => "在 Dock 中显示 ZYH",
+        Message::AppearanceRestartForAppIcon => "你可能需要重启 ZYH，macOS 才会应用首选图标样式。",
         Message::AppearanceAppIconDefault => "默认",
         Message::AppearanceOpenNewWindowsWithCustomSize => "新窗口使用自定义尺寸打开",
         Message::AppearanceCustomWindowColumns => "列数",
@@ -1433,8 +1433,8 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AppearanceWindowBlurTexture => "使用窗口模糊（亚克力纹理）",
         Message::AppearanceWindowBlurTextureUnsupported => "当前硬件可能不支持渲染透明窗口。",
 
-        Message::AuthWelcomeToWarp => "欢迎使用 Warp！",
-        Message::AuthSignUpForWarp => "注册 Warp",
+        Message::AuthWelcomeToWarp => "欢迎使用 ZYH！",
+        Message::AuthSignUpForWarp => "注册 ZYH",
         Message::AuthSignUp => "注册",
         Message::AuthSignIn => "登录",
         Message::AuthAlreadyHaveAccount => "已有账户？",
@@ -1444,7 +1444,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AuthYouCanSignUpLater => "你可以稍后注册，但部分功能（如 AI）",
         Message::AuthOnlyAvailableToLoggedIn => "仅对已登录用户开放。",
         Message::AuthYesSkipLogin => "是的，跳过登录",
-        Message::AuthByContinuingAgreeToTos => "继续即表示你同意 Warp 的",
+        Message::AuthByContinuingAgreeToTos => "继续即表示你同意 ZYH 的",
         Message::AuthTermsOfService => "服务条款",
         Message::AuthPrivacySettings => "隐私设置",
         Message::AuthIfYoudLikeToOptOut => "如果你想退出数据分析和 AI 功能，",
@@ -1462,7 +1462,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AuthCreateAnAccount => "创建账户",
         Message::AuthWarpDriveSubtitle => "连接你的账户以跨设备保存和共享笔记本、工作流等内容。",
         Message::AuthAiSubtitle => "连接你的账户以启用 AI 驱动的规划、编码和自动化。",
-        Message::AuthThirdPartySubtitle => "创建一个 Warp 账户以启用 AI 驱动的规划、编码和自动化。",
+        Message::AuthThirdPartySubtitle => "创建一个 ZYH 账户以启用 AI 驱动的规划、编码和自动化。",
         Message::AuthContinue => "继续",
         Message::AuthCancel => "取消",
         Message::AuthBack => "返回",
@@ -1474,15 +1474,15 @@ fn zh_cn_text(message: Message) -> &'static str {
         },
         Message::AuthContinueWithoutSigningIn => "不登录继续？",
         Message::AuthWithoutAccountNoAi => {
-            "没有账户，你将无法使用 Warp 的 AI 功能。随时登录以解锁 Agent 和其他 AI 功能。"
+            "没有账户，你将无法使用 ZYH 的 AI 功能。随时登录以解锁 Agent 和其他 AI 功能。"
         },
-        Message::AuthForceLoginAi => "要使用 Warp 的 AI 功能或与他人协作，请先创建账户。",
+        Message::AuthForceLoginAi => "要使用 ZYH 的 AI 功能或与他人协作，请先创建账户。",
         Message::AuthForceLoginWarpDrive => "要在 Warp Drive 中创建更多对象，请先创建账户。",
         Message::AuthForceLoginShare => "要共享内容，请先创建账户。",
         Message::AuthPasteAuthTokenBelow => "在下方粘贴你的认证令牌",
         Message::AuthPasteAuthTokenSubtitle => "粘贴来自浏览器的认证令牌以完成登录。",
         Message::AuthOverrideWarningDescription => {
-            "检测到你通过网页浏览器登录了一个 Warp 账户。如果继续，此匿名会话中的所有个人 Warp Drive \
+            "检测到你通过网页浏览器登录了一个 ZYH 账户。如果继续，此匿名会话中的所有个人 Warp Drive \
              对象和偏好设置将被永久删除。"
         },
         Message::AuthNewLoginDetected => "检测到新登录",
@@ -1492,7 +1492,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AuthThisCannotBeUndone => "此操作不可撤销。",
         Message::AuthLinkSso => "关联 SSO",
         Message::AuthSsoEnabledForAccount => "你的组织已为你的账户启用了 SSO",
-        Message::AuthSsoClickToLink => "点击下方按钮将你的 Warp 账户关联到 SSO 提供商。",
+        Message::AuthSsoClickToLink => "点击下方按钮将你的 ZYH 账户关联到 SSO 提供商。",
         Message::AuthLoading => "加载中...",
         Message::AuthErrorAuthenticatingRefresh => "认证出错 - 请刷新页面",
         Message::AuthLoginFailedRequest => "登录请求失败。",
@@ -1506,23 +1506,23 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AuthRedirectUrlInvalid => {
             "粘贴的重定向 URL 并非来自此应用。请点击下方按钮重试。"
         },
-        Message::AuthUsingWarpOffline => "离线使用 Warp",
-        Message::AuthOfflineRequiredFirstTime => "你当前处于离线状态。首次使用 Warp 需要网络连接。",
-        Message::AuthOfflineFeaturesWork => "Warp 的所有非云功能均可离线使用。",
+        Message::AuthUsingWarpOffline => "离线使用 ZYH",
+        Message::AuthOfflineRequiredFirstTime => "你当前处于离线状态。首次使用 ZYH 需要网络连接。",
+        Message::AuthOfflineFeaturesWork => "ZYH 的所有非云功能均可离线使用。",
         Message::AuthOfflineRequireFirstTimeExplanation => {
-            "但我们要求用户在首次使用 Warp 时保持在线，以启用 Warp 的 AI 和云功能。"
+            "但我们要求用户在首次使用 ZYH 时保持在线，以启用 ZYH 的 AI 和云功能。"
         },
         Message::AuthOfflineCloudFeaturesExplanation => {
             "我们向所有用户提供云功能，因此需要网络连接来计量 AI 使用量、防止滥用并将云对象与用户关联。\
-             如果你选择不登录使用 Warp，系统会为你分配一个唯一 ID 并关联到匿名用户账户以支持这些功能。"
+             如果你选择不登录使用 ZYH，系统会为你分配一个唯一 ID 并关联到匿名用户账户以支持这些功能。"
         },
-        Message::AuthHelpImproveWarp => "帮助改进 Warp",
-        Message::AuthHighLevelFeatureUsage => "高层次功能使用数据帮助 Warp 产品团队优化路线图。",
+        Message::AuthHelpImproveWarp => "帮助改进 ZYH",
+        Message::AuthHighLevelFeatureUsage => "高层次功能使用数据帮助 ZYH 产品团队优化路线图。",
         Message::AuthSendCrashReports => "发送崩溃报告",
-        Message::AuthCrashReportingHelps => "崩溃报告帮助 Warp 工程团队了解稳定性并改进性能。",
+        Message::AuthCrashReportingHelps => "崩溃报告帮助 ZYH 工程团队了解稳定性并改进性能。",
         Message::AuthStoreAiConversations => "在云端存储 AI 对话",
         Message::AuthStoreAiConversationsEnabled => {
-            "Agent 对话可与他人共享，并在不同设备登录时保留。此数据仅用于产品功能，Warp 不会将其用于数据分析。"
+            "Agent 对话可与他人共享，并在不同设备登录时保留。此数据仅用于产品功能，ZYH 不会将其用于数据分析。"
         },
         Message::AuthStoreAiConversationsDisabled => {
             "Agent 对话仅存储在本地机器上，退出登录后丢失且无法共享。注意：环境 Agent 的对话数据仍会存储在云端。"
