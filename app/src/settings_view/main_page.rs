@@ -271,17 +271,17 @@ impl MainSettingsPageView {
             ctx.notify();
         });
 
-        let mut widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
-            Box::new(AccountWidget::default()),
-            Box::new(DividerWidget {}),
-        ];
+        let mut widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = Vec::new();
 
-        widgets.push(Box::new(SettingsSyncWidget::default()));
-
-        widgets.push(Box::new(EarnRewardsWidget::default()));
+        if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            widgets.push(Box::new(AccountWidget::default()));
+            widgets.push(Box::new(DividerWidget {}));
+            widgets.push(Box::new(SettingsSyncWidget::default()));
+            widgets.push(Box::new(EarnRewardsWidget::default()));
+        }
 
         #[cfg(not(target_family = "wasm"))]
-        if IapManager::as_ref(ctx).is_enabled() {
+        if !FeatureFlag::AnonymousOnlyMode.is_enabled() && IapManager::as_ref(ctx).is_enabled() {
             widgets.push(Box::new(IapCredentialsWidget::default()));
             let iap_manager_handle = IapManager::handle(ctx);
             ctx.subscribe_to_model(&iap_manager_handle, |_, _, e, ctx| {
@@ -295,7 +295,9 @@ impl MainSettingsPageView {
             widgets.push(Box::new(VersionInfoWidget::default()));
         }
 
-        widgets.push(Box::new(LogoutWidget::default()));
+        if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            widgets.push(Box::new(LogoutWidget::default()));
+        }
 
         let page =
             PageType::new_uncategorized(widgets, Some(tr_cached(Message::SettingsSectionAccount)));
@@ -622,12 +624,20 @@ impl SettingsWidget for AccountWidget {
         "account sign up"
     }
 
+    fn should_render(&self, _app: &AppContext) -> bool {
+        !FeatureFlag::AnonymousOnlyMode.is_enabled()
+    }
+
     fn render(
         &self,
         view: &Self::View,
         appearance: &Appearance,
         app: &AppContext,
     ) -> Box<dyn Element> {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return Empty::new().finish();
+        }
+
         let account_info = if view.auth_state.is_anonymous_or_logged_out() {
             self.render_anonymous_account_info(view.auth_state.as_ref(), appearance)
         } else {
@@ -1203,9 +1213,10 @@ impl SettingsWidget for LogoutWidget {
     }
 
     fn should_render(&self, app: &AppContext) -> bool {
-        !AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out()
+        !FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && !AuthStateProvider::as_ref(app)
+                .get()
+                .is_anonymous_or_logged_out()
     }
 
     fn render(
@@ -1230,7 +1241,7 @@ impl SettingsPageMeta for MainSettingsPageView {
     }
 
     fn should_render(&self, _ctx: &AppContext) -> bool {
-        true
+        !FeatureFlag::AnonymousOnlyMode.is_enabled()
     }
 
     fn on_page_selected(&mut self, _: bool, ctx: &mut ViewContext<Self>) {

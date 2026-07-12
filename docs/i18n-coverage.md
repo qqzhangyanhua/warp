@@ -8,10 +8,10 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **835** |
-| English table (`en_text`) | **835** complete |
-| Chinese table (`zh_cn_text`) | **835** complete |
-| Call sites | Almost only `app/src/settings_view/*` |
+| `Message` variants | **1101** |
+| English table (`en_text`) | **1101** complete |
+| Chinese table (`zh_cn_text`) | **1101** complete |
+| Call sites | ~1000+ across 75+ files |
 
 ### What the 157 messages cover
 
@@ -197,12 +197,12 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 ### Workspace
 
-- [ ] Tools panel: Project explorer / Global search / Warp Drive / Agent conversations
+- [x] Tools panel: Project explorer / Global search / Warp Drive / Agent conversations
 - [ ] Vertical tabs: No tabs open / No tabs match… / View as / Tab item / Additional metadata
 - [ ] Conversation list: No conversations yet / New conversation / No matching conversations
 - [ ] Search: Search tabs… / Search sessions, agents, files… / Search repos
 - [ ] Toasts: Please sign in again… / Your app is out of date… / Failed to load conversation…
-- [ ] Rename pane / Reset pane name
+- [x] Rename pane / Reset pane name (ActivePane branch aligned with Message)
 - [ ] Launch / feature-intro modals (deferrable; mostly marketing)
 
 ### Terminal input & agent
@@ -231,6 +231,30 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [ ] Working directory: Home directory / Previous session’s directory / Custom directory
 - [x] Warpify SSH install policy: Always ask / Always install / Never install
 
+### Conversation list / Tools panel / Search (P3c)
+
+- [x] Convert conversation list empty states (`No conversations yet`, `No matching conversations`, `New conversation`) via Message
+- [x] Convert Tools panel "Agent conversations" label via Message
+- [x] Convert workspace search placeholder "Search sessions, agents, files..." via Message
+- [ ] "Warp Drive" kept as product name (plan: untranslated)
+- [ ] Tab empty states (`No tabs open`, etc.) — minor
+
+### Terminal context menu (B1)
+
+- [x] Wire `context_menu.rs` through `terminal_menu_fields` bridge
+- [x] Add missing arms: Copy output as Markdown, Save as prompt, Copy share link, Share conversation, Copy conversation text, Fork, Fork from here
+- [x] Route dynamic `button_text`/`fork_label` through `terminal_menu_text`
+
+### AI context menu categories (B2)
+
+- [x] Add `localized_name()` to `AIContextMenuCategory`
+- [x] Wire display call sites to use localized category names
+
+### Agent tips (B4)
+
+- [x] Add `localized_tip_description` match bridge (37 descriptions)
+- [x] "Tip: " prefix → "提示：" in ZhCn
+
 ---
 
 ## P4 — Defer or do not translate
@@ -250,12 +274,12 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 | Bucket | Status | Rough user-visible strings |
 |--------|--------|----------------------------|
-| Already i18n (157 `Message`s) | Done | ~150–200 |
-| P0 first-run / login / anonymous | Open | ~80–120 |
-| P1 Settings residuals | Partial | ~80–120 |
-| P2 full Settings pages | Open | ~250–400 |
-| P3 Workspace / Terminal | Open | ~300–500 |
-| **Remaining** | | **~700–1100+** (somewhat less after dedupe) |
+| Already i18n (1101 `Message`s) | Done | ~1000+ |
+| P0 first-run / login / anonymous | Done | ~80–120 |
+| P1 Settings residuals | Done | ~80–120 |
+| P2 full Settings pages | Mostly done | ~250–400 |
+| P3 Workspace / Terminal | **Started** (context menu/categories/tips/rename) | ~300–500 |
+| **Remaining** | | **~300–600** (Teams/Billing/schema/空态/banner)
 
 ---
 
@@ -321,4 +345,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-12. Generated from a repo scan of `app/src/i18n`, `app/src/settings_view`, `crates/onboarding`, `app/src/auth`, `app/src/workspace`, and `app/src/terminal`. Re-scan after large UI string migrations._
+_Last updated: 2026-07-12. Updated after B0-B4 P3 i18n batch (context menu bridge, AI context categories, agent tips, ActivePane). Message catalog at 1101 variants._

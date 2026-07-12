@@ -2923,6 +2923,9 @@ impl TypedActionView for SettingsView {
                 }
             }
             SettingsAction::MainPageToggle(main_page_action) => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 if let Some(main_page) = self.settings_page(SettingsSection::Account) {
                     if let SettingsPageViewHandle::Main(view) = &main_page.view_handle {
                         view.update(ctx, |view, ctx| {

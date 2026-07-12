@@ -677,6 +677,10 @@ impl AuthManager {
         entrypoint: AnonymousUserSignupEntrypoint,
         ctx: &mut ModelContext<Self>,
     ) {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            ctx.emit(AuthManagerEvent::AccountSignInUnavailable);
+            return;
+        }
         let auth_client = self.auth_client.clone();
         let _ = ctx.spawn(
             async move { auth_client.fetch_new_custom_token().await },
@@ -756,6 +760,10 @@ impl AuthManager {
     }
 
     pub fn copy_anonymous_user_linking_url_to_clipboard(&self, ctx: &mut ModelContext<Self>) {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            ctx.emit(AuthManagerEvent::AccountSignInUnavailable);
+            return;
+        }
         if !self.auth_state.is_user_anonymous().unwrap_or_default() {
             return;
         }

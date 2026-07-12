@@ -3708,6 +3708,9 @@ impl Input {
         let buy_credits_banner = ctx.add_typed_action_view(BuyCreditsBanner::new);
         ctx.subscribe_to_view(&buy_credits_banner, |me, _, event, ctx| match event {
             BuyCreditsBannerEvent::OpenBillingAndUsage => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
             }
             BuyCreditsBannerEvent::RefocusInput => {
@@ -6725,14 +6728,23 @@ impl Input {
     ) {
         match prompt_alert {
             PromptAlertEvent::SignupAnonymousUser => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(Event::SignupAnonymousUser {
                     entrypoint: AnonymousUserSignupEntrypoint::SignUpAIPrompt,
                 });
             }
             PromptAlertEvent::OpenBillingAndUsagePage => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
             }
             PromptAlertEvent::OpenBillingPortal { team_uid } => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 UserWorkspaces::handle(ctx).update(ctx, |user_workspaces, ctx| {
                     user_workspaces.generate_stripe_billing_portal_link(*team_uid, ctx);
                 });
@@ -15948,13 +15960,24 @@ impl Input {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            PromptSuggestionsEvent::SignupAnonymousUser => ctx.emit(Event::SignupAnonymousUser {
-                entrypoint: AnonymousUserSignupEntrypoint::SignUpAIPrompt,
-            }),
+            PromptSuggestionsEvent::SignupAnonymousUser => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
+                ctx.emit(Event::SignupAnonymousUser {
+                    entrypoint: AnonymousUserSignupEntrypoint::SignUpAIPrompt,
+                });
+            }
             PromptSuggestionsEvent::OpenBillingAndUsagePage => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage))
             }
             PromptSuggestionsEvent::OpenBillingPortal { team_uid } => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 UserWorkspaces::handle(ctx).update(ctx, |user_workspaces, ctx| {
                     user_workspaces.generate_stripe_billing_portal_link(*team_uid, ctx);
                 });

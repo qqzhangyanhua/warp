@@ -632,7 +632,9 @@ impl SearchItem for ModelSearchItem {
             .with_child(Container::new(header).with_margin_bottom(12.).finish())
             .with_child(scores);
 
-        if self.disable_reason.as_ref() == Some(&DisableReason::RequiresUpgrade) {
+        if self.disable_reason.as_ref() == Some(&DisableReason::RequiresUpgrade)
+            && !FeatureFlag::AnonymousOnlyMode.is_enabled()
+        {
             let upgrade_url = if let Some(team) = UserWorkspaces::as_ref(app).current_team() {
                 UserWorkspaces::upgrade_link_for_team(team.uid)
             } else {

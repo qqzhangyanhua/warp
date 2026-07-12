@@ -193,6 +193,7 @@ pub enum BlocklistAIControllerEvent {
     },
 
     OpenSettings(SettingsSection),
+    ShowError(String),
 }
 
 #[derive(Debug)]
@@ -2437,13 +2438,12 @@ impl BlocklistAIController {
         if FeatureFlag::AnonymousOnlyMode.is_enabled()
             && !request_params.model_config_is_backed_by_custom_providers()
         {
+            let message = tr(ctx, Message::AnonymousOnlyRequiresCustomEndpoint).to_string();
+            ctx.emit(BlocklistAIControllerEvent::ShowError(message.clone()));
             ctx.emit(BlocklistAIControllerEvent::OpenSettings(
                 SettingsSection::WarpAgent,
             ));
-            return Err(anyhow!(
-                "{}",
-                tr(ctx, Message::AnonymousOnlyRequiresCustomEndpoint)
-            ));
+            return Err(anyhow!("{message}"));
         }
 
         let server_conversation_token_for_identifiers =

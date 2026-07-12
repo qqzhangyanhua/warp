@@ -439,6 +439,9 @@ impl LoginSlideView {
     /// Starts the browser sign-up flow. Shared by the Continue button and the
     /// skip dialog's cancel button.
     fn start_login(&mut self, ctx: &mut ViewContext<Self>) {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return;
+        }
         send_telemetry_from_ctx!(
             TelemetryEvent::LoginButtonClicked {
                 source: LoginEventSource::OnboardingSlide,
@@ -1063,6 +1066,10 @@ impl View for LoginSlideView {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return warpui::elements::Empty::new().finish();
+        }
+
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();
 
@@ -1153,6 +1160,9 @@ impl TypedActionView for LoginSlideView {
     fn handle_action(&mut self, action: &LoginSlideAction, ctx: &mut ViewContext<Self>) {
         match action {
             LoginSlideAction::Enter => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 // When the skip dialog is open, Enter should confirm skip instead.
                 if self.active_overlay.is_some() {
                     self.active_overlay = None;
@@ -1177,6 +1187,9 @@ impl TypedActionView for LoginSlideView {
                 self.handle_login_later(ctx);
             }
             LoginSlideAction::LoginFromSkipDialog => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 self.active_overlay = None;
                 self.start_login(ctx);
             }
@@ -1311,6 +1324,9 @@ impl TypedActionView for LoginSlideView {
                 ctx.notify();
             }
             LoginSlideAction::PasteAuthUrl => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 self.last_login_failure_reason = None;
                 let clipboard_content = ctx.clipboard().read();
                 if !clipboard_content.plain_text.is_empty() {

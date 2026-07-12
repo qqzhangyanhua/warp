@@ -23,6 +23,7 @@ use crate::ai::agent_conversations_model::{
 };
 use crate::ai::conversation_status_ui::STATUS_ELEMENT_PADDING;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::drive::sharing::dialog::SharingDialog;
 use crate::editor::EditorView;
 use crate::menu::Menu;
@@ -131,7 +132,7 @@ pub fn render_static_item(props: StaticItemProps<'_>, app: &AppContext) -> Box<d
     .finish();
 
     let title_text = Text::new_inline(
-        "New conversation",
+        tr_cached(Message::WorkspaceNewConversation),
         appearance.ui_font_family(),
         appearance.ui_font_size() + 2.,
     )

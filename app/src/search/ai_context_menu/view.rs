@@ -127,6 +127,36 @@ impl AIContextMenuCategory {
         }
     }
 
+    pub fn localized_name(&self, ctx: &AppContext) -> &'static str {
+        let en = self.name();
+        if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+            return en;
+        }
+
+        match en {
+            "Files and folders" => "文件和文件夹",
+            "Commands" => "命令",
+            "Blocks" => "块",
+            "Workflows" => "工作流",
+            "Notebooks" => "笔记本",
+            "Plans" => "计划",
+            "Diffs" => "差异",
+            "Docs" => "文档",
+            "Past tasks" => "历史任务",
+            "Rules" => "规则",
+            "Servers and integrations" => "服务器与集成",
+            "Terminal" => "终端",
+            "Web" => "网页",
+            "Most recent diff" => "最近差异",
+            "Most recent block" => "最近块",
+            "Code" => "代码",
+            "Diff sets" => "差异组",
+            "Conversations" => "对话",
+            "Skills" => "技能",
+            _ => en,
+        }
+    }
+
     pub fn icon(&self) -> &'static str {
         match self {
             AIContextMenuCategory::CurrentFolderFiles => "bundled/svg/folder.svg",
@@ -1288,7 +1318,7 @@ impl AIContextMenu {
 
             let text = Container::new(
                 Text::new(
-                    category.name(),
+                    category.localized_name(app),
                     appearance.ui_font_family(),
                     appearance.monospace_font_size() - 1.0,
                 )
@@ -1556,7 +1586,7 @@ impl AIContextMenu {
 
         let title = Container::new(
             Text::new(
-                category.name(),
+                category.localized_name(app),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size() - 2.0,
             )

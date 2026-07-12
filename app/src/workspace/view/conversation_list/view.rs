@@ -51,6 +51,7 @@ use crate::workspace::view::conversation_list::item::{
     render_item, render_static_item, ItemProps, ItemState, OverflowMenuDisplay, StaticItemProps,
     STATIC_ITEM_MIN_HEIGHT,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::workspace::{ToastStack, WorkspaceAction};
 
 const VIEW_ALL_LABEL: &str = "View all";
@@ -792,7 +793,7 @@ fn render_zero_state(
         .with_cross_axis_alignment(CrossAxisAlignment::Center)
         .with_spacing(4.)
         .with_child(
-            Text::new("No conversations yet", appearance.ui_font_family(), 14.)
+            Text::new(tr_cached(Message::WorkspaceNoConversationsYet), appearance.ui_font_family(), 14.)
                 .with_color(theme.sub_text_color(theme.background()).into_solid())
                 .with_style(Properties::default().weight(Weight::Semibold))
                 .finish(),
@@ -815,7 +816,7 @@ fn render_zero_state(
 
     let new_conversation_button =
         Hoverable::new(zero_state_button_mouse_state, move |mouse_state| {
-            let label = Text::new_inline("New conversation", appearance.ui_font_family(), 12.)
+            let label = Text::new_inline(tr_cached(Message::WorkspaceNewConversation), appearance.ui_font_family(), 12.)
                 .with_color(theme.main_text_color(theme.background()).into_solid())
                 .finish();
 
@@ -1301,7 +1302,7 @@ impl View for ConversationListView {
         } else if self.item_count() == 0 {
             Container::new(
                 Text::new_inline(
-                    "No matching conversations",
+                    tr_cached(Message::WorkspaceNoMatchingConversations),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )

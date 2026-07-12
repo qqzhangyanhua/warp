@@ -339,6 +339,10 @@ impl View for AuthView {
     }
 
     fn render(&self, ctx: &AppContext) -> Box<dyn Element> {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return warpui::elements::Empty::new().finish();
+        }
+
         let appearance = Appearance::as_ref(ctx);
         let mut stack = Stack::new();
         stack.add_child(ChildView::new(&self.auth_screen_modal).finish());
@@ -384,6 +388,9 @@ impl TypedActionView for AuthView {
     fn handle_action(&mut self, action: &AuthViewAction, ctx: &mut ViewContext<Self>) {
         match action {
             AuthViewAction::PasteAuthUrl => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 self.last_login_failure_reason = None;
                 self.update_auth_body(ctx, |body, ctx| body.handle_paste(ctx));
 

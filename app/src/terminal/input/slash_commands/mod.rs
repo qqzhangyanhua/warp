@@ -942,6 +942,9 @@ impl Input {
                 });
             }
             usage if command.name == commands::USAGE.name => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return false;
+                }
                 ctx.dispatch_typed_action(&TerminalAction::OpenBillingAndUsagePane);
             }
             remote_control if command.name == commands::REMOTE_CONTROL.name => {

@@ -7834,8 +7834,9 @@ impl Workspace {
             },
             VerticalTabsPaneContextMenuTarget::ActivePane(locator) => PaneNameMenuTarget {
                 locator,
-                rename_label: "Rename active pane",
-                reset_label: "Reset active pane name",
+                // Reuse the same Message keys as ClickedPane; "active" is contextual, not a separate product string.
+                rename_label: tr_cached(Message::WorkspaceRenamePane),
+                reset_label: tr_cached(Message::WorkspaceResetPaneName),
             },
         };
         let can_move_left = self.can_move_tab(tab_index, TabMovement::Left);
@@ -9715,48 +9716,50 @@ impl Workspace {
             MenuItem::Separator,
         ]);
 
-        if self.auth_state.is_anonymous_or_logged_out() {
+        if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            if self.auth_state.is_anonymous_or_logged_out() {
+                items.push(
+                    workspace_menu_fields(app, "Sign up")
+                        .with_on_select_action(WorkspaceAction::SignupAnonymousUser)
+                        .into_item(),
+                );
+            }
+
+            // Check if the user is on any paid plan to determine whether to show "Billing and Usage" or "Upgrade"
+            let is_on_paid_plan = UserWorkspaces::as_ref(app)
+                .current_workspace()
+                .map(|workspace| workspace.billing_metadata.is_user_on_paid_plan())
+                .unwrap_or(false);
+
+            if is_on_paid_plan {
+                items.push(
+                    workspace_menu_fields(app, "Billing and usage")
+                        .with_on_select_action(WorkspaceAction::ShowSettingsPage(
+                            SettingsSection::BillingAndUsage,
+                        ))
+                        .into_item(),
+                );
+            } else {
+                items.push(
+                    workspace_menu_fields(app, "Upgrade")
+                        .with_on_select_action(WorkspaceAction::ShowUpgrade)
+                        .into_item(),
+                );
+            }
+
             items.push(
-                workspace_menu_fields(app, "Sign up")
-                    .with_on_select_action(WorkspaceAction::SignupAnonymousUser)
+                workspace_menu_fields(app, "Invite a friend")
+                    .with_on_select_action(WorkspaceAction::ShowReferralSettingsPage)
                     .into_item(),
             );
-        }
 
-        // Check if the user is on any paid plan to determine whether to show "Billing and Usage" or "Upgrade"
-        let is_on_paid_plan = UserWorkspaces::as_ref(app)
-            .current_workspace()
-            .map(|workspace| workspace.billing_metadata.is_user_on_paid_plan())
-            .unwrap_or(false);
-
-        if is_on_paid_plan {
-            items.push(
-                workspace_menu_fields(app, "Billing and usage")
-                    .with_on_select_action(WorkspaceAction::ShowSettingsPage(
-                        SettingsSection::BillingAndUsage,
-                    ))
-                    .into_item(),
-            );
-        } else {
-            items.push(
-                workspace_menu_fields(app, "Upgrade")
-                    .with_on_select_action(WorkspaceAction::ShowUpgrade)
-                    .into_item(),
-            );
-        }
-
-        items.push(
-            workspace_menu_fields(app, "Invite a friend")
-                .with_on_select_action(WorkspaceAction::ShowReferralSettingsPage)
-                .into_item(),
-        );
-
-        if !self.auth_state.is_anonymous_or_logged_out() {
-            items.push(
-                workspace_menu_fields(app, "Log out")
-                    .with_on_select_action(WorkspaceAction::LogOut)
-                    .into_item(),
-            );
+            if !self.auth_state.is_anonymous_or_logged_out() {
+                items.push(
+                    workspace_menu_fields(app, "Log out")
+                        .with_on_select_action(WorkspaceAction::LogOut)
+                        .into_item(),
+                );
+            }
         }
         items
     }
@@ -20436,7 +20439,7 @@ impl Workspace {
                             tr_cached(Message::WorkspaceGlobalSearch)
                         }
                         ToolPanelView::WarpDrive => "Warp Drive",
-                        ToolPanelView::ConversationListView => "Agent conversations",
+                        ToolPanelView::ConversationListView => tr_cached(Message::WorkspaceAgentConversations),
                     }
                 } else {
                     "Tools panel"
@@ -20490,7 +20493,7 @@ impl Workspace {
                 ToolPanelView::ProjectExplorer => tr_cached(Message::WorkspaceProjectExplorer),
                 ToolPanelView::GlobalSearch { .. } => tr_cached(Message::WorkspaceGlobalSearch),
                 ToolPanelView::WarpDrive => "Warp Drive",
-                ToolPanelView::ConversationListView => "Agent conversations",
+                ToolPanelView::ConversationListView => tr_cached(Message::WorkspaceAgentConversations),
             }
         } else {
             "Tools panel"
@@ -20743,7 +20746,7 @@ impl Workspace {
                         Shrinkable::new(
                             1.,
                             Text::new_inline(
-                                "Search sessions, agents, files...",
+                                tr_cached(Message::WorkspaceSearchSessionsPlaceholder),
                                 appearance.ui_font_family(),
                                 14.,
                             )
@@ -21308,6 +21311,7 @@ impl Workspace {
 
         if self.auth_state.is_anonymous_or_logged_out()
             && !FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
+            && !FeatureFlag::AnonymousOnlyMode.is_enabled()
         {
             if is_web_anonymous_user {
                 target.add_child(
@@ -24335,6 +24339,9 @@ impl TypedActionView for Workspace {
             AutoupdateFailureLink => self.open_autoupdate_failure_link(ctx),
             ApplyUpdate => self.apply_update(ctx),
             LogOut => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 // Need to dispatch global action, or else we will not be able to retrieve
                 // the currently active session in the log out modal.
                 ctx.dispatch_global_action("app:maybe_log_out", ());
@@ -24348,11 +24355,31 @@ impl TypedActionView for Workspace {
                 self.show_keyboard_settings(keybinding_name.as_deref(), ctx)
             }
             ShowSettings => self.show_settings(ctx),
-            ShowSettingsPage(section) => self.show_settings_with_section(Some(*section), ctx),
+            ShowSettingsPage(section) => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled()
+                    && matches!(
+                        section,
+                        SettingsSection::BillingAndUsage | SettingsSection::Referrals
+                    )
+                {
+                    return;
+                }
+                self.show_settings_with_section(Some(*section), ctx)
+            }
             ShowSettingsPageWithSearch {
                 search_query,
                 section,
-            } => self.show_settings_with_search(search_query, *section, ctx),
+            } => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled()
+                    && matches!(
+                        section,
+                        Some(SettingsSection::BillingAndUsage | SettingsSection::Referrals)
+                    )
+                {
+                    return;
+                }
+                self.show_settings_with_search(search_query, *section, ctx)
+            }
             OpenPromptSuggestionsUnavailableModal => {
                 self.open_prompt_suggestions_unavailable_modal(ctx)
             }
@@ -24374,6 +24401,9 @@ impl TypedActionView for Workspace {
                 source,
             } => self.toggle_palette(*palette_mode, *source, ctx),
             ShowUpgrade => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 send_telemetry_from_ctx!(TelemetryEvent::UserMenuUpgradeClicked, ctx);
 
                 let auth_state = AuthStateProvider::as_ref(ctx).get();
@@ -24389,6 +24419,9 @@ impl TypedActionView for Workspace {
                 ctx.open_url(&upgrade_url);
             }
             ShowReferralSettingsPage => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 self.show_settings_with_section(Some(SettingsSection::Referrals), ctx);
             }
             JoinSlack => self.join_slack(ctx),
@@ -25169,9 +25202,15 @@ impl TypedActionView for Workspace {
                 send_telemetry_from_ctx!(TelemetryEvent::InitiateReauth, ctx);
             }
             SignupAnonymousUser => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 self.initiate_user_signup(AnonymousUserSignupEntrypoint::SignUpButton, ctx);
             }
             SignInAnonymousWebUser => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 self.redirect_to_sign_in();
             }
             HandleConflictingWorkflow(workflow_id) => {

@@ -653,7 +653,7 @@ const P10K_UPDATE_INSTRUCTIONS_URL: &str =
 
 const CONTEXT_MENU_WIDTH: f32 = 280.;
 
-fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+pub(super) fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
     if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
         return Cow::Borrowed(text);
     }
@@ -672,8 +672,13 @@ fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
         "Share block..." => "共享块...",
         "Share..." => "共享...",
         "Save as workflow" => "保存为工作流",
+        "Save as prompt" => "保存为提示词",
+        "Copy share link" => "复制分享链接",
+        "Share conversation" => "分享对话",
+        "Copy conversation text" => "复制对话文本",
         "Ask Warp AI" => "询问 Warp AI",
         "Copy output" => "复制输出",
+        "Copy output as Markdown" => "以 Markdown 格式复制输出",
         "Copy filtered output" => "复制筛选后的输出",
         "Find within block" => "在块内查找",
         "Find within blocks" => "在块内查找",
@@ -684,6 +689,8 @@ fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
         "Scroll to bottom of block" => "滚动到块底部",
         "Scroll to bottom of blocks" => "滚动到块底部",
         "Fork from here (dev only)" => "从这里分叉（仅开发）",
+        "Fork from here" => "从这里分叉",
+        "Fork" => "分叉",
         "Rewind to before here" => "回退到此处之前",
         "Clear Blocks" => "清除块",
         "Copy prompt" => "复制提示符",
@@ -712,7 +719,10 @@ fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
     })
 }
 
-fn terminal_menu_fields(ctx: &AppContext, label: &'static str) -> MenuItemFields<TerminalAction> {
+pub(super) fn terminal_menu_fields(
+    ctx: &AppContext,
+    label: &'static str,
+) -> MenuItemFields<TerminalAction> {
     MenuItemFields::new(terminal_menu_text(ctx, label).into_owned())
 }
 
@@ -5373,6 +5383,15 @@ impl TerminalView {
         }
         if let BlocklistAIControllerEvent::ExecuteLocalHarnessCommand { command } = event {
             self.execute_command_or_set_pending(command, ctx);
+        }
+        if let BlocklistAIControllerEvent::ShowError(message) = event {
+            ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
+                toast_stack.add_ephemeral_toast(
+                    DismissibleToast::error(message.clone()),
+                    self.window_id,
+                    ctx,
+                );
+            });
         }
         if let BlocklistAIControllerEvent::FinishedReceivingOutput {
             conversation_id, ..
@@ -27396,6 +27415,9 @@ impl TypedActionView for TerminalView {
                 });
             }
             OpenBillingAndUsagePane => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
             }
             OpenAddRulePane => {

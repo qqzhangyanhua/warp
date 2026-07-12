@@ -1,6 +1,7 @@
 //! Loading screen UI for cloud mode initialization.
 
 use markdown_parser::{FormattedText, FormattedTextFragment, FormattedTextLine};
+use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::AnsiColorIdentifier;
 use warp_core::ui::Icon;
@@ -136,6 +137,10 @@ fn render_tier_limits_footer(
 ) -> Option<Box<dyn Element>> {
     let theme = appearance.theme();
     let footer_font_size = appearance.monospace_font_size() - 2.;
+
+    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        return None;
+    }
 
     // Get tier info and billing metadata from UserWorkspaces
     let workspace = UserWorkspaces::as_ref(app).current_workspace()?;

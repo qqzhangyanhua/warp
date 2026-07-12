@@ -219,11 +219,14 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         ))
     }
 
-    menu_items.extend([
-        MenuItem::Separator,
-        updateable_custom_item_without_checkmark(CustomAction::ReferAFriend, ctx),
-        MenuItem::Separator,
-    ]);
+    menu_items.push(MenuItem::Separator);
+    if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        menu_items.push(updateable_custom_item_without_checkmark(
+            CustomAction::ReferAFriend,
+            ctx,
+        ));
+        menu_items.push(MenuItem::Separator);
+    }
 
     let preferences_menu_items = vec![
         updateable_custom_item_without_checkmark(CustomAction::ShowSettings, ctx),
@@ -298,21 +301,23 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         None,
     )));
     menu_items.push(MenuItem::Separator);
-    menu_items.push(MenuItem::Custom(CustomMenuItem::new(
-        app_menu_text(ctx, "Log out").as_ref(),
-        auth::maybe_log_out,
-        move |_, ctx| {
-            let is_anonymous = AuthStateProvider::handle(ctx)
-                .as_ref(ctx)
-                .get()
-                .is_anonymous_or_logged_out();
-            MenuItemPropertyChanges {
-                disabled: Some(is_anonymous),
-                ..Default::default()
-            }
-        },
-        None,
-    )));
+    if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        menu_items.push(MenuItem::Custom(CustomMenuItem::new(
+            app_menu_text(ctx, "Log out").as_ref(),
+            auth::maybe_log_out,
+            move |_, ctx| {
+                let is_anonymous = AuthStateProvider::handle(ctx)
+                    .as_ref(ctx)
+                    .get()
+                    .is_anonymous_or_logged_out();
+                MenuItemPropertyChanges {
+                    disabled: Some(is_anonymous),
+                    ..Default::default()
+                }
+            },
+            None,
+        )));
+    }
     menu_items.push(MenuItem::Standard(StandardAction::Quit));
     Menu::new(crate::product::PRODUCT_DISPLAY_NAME, menu_items)
 }
@@ -674,11 +679,15 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
         CustomAction::NewTeamEnvVars,
         ctx,
     ));
+    items.push(MenuItem::Separator);
+    if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        items.extend([
+            updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
+            updateable_custom_item_without_checkmark(CustomAction::SearchDrive, ctx),
+            updateable_custom_item_without_checkmark(CustomAction::OpenTeamSettings, ctx),
+        ]);
+    }
     items.extend([
-        MenuItem::Separator,
-        updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::SearchDrive, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::OpenTeamSettings, ctx),
         updateable_custom_item_without_checkmark(CustomAction::OpenAIFactCollection, ctx),
         updateable_custom_item_without_checkmark(CustomAction::OpenMCPServerCollection, ctx),
     ]);

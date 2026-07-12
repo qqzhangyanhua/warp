@@ -2,11 +2,11 @@ use warp_core::send_telemetry_from_ctx;
 use warpui::{SingletonEntity, UpdateView};
 
 use super::{
-    fork_label_for_query, mark_feature_used_and_write_to_user_defaults, AIAgentExchangeId,
-    AIConversationId, AgentModeRewindEntrypoint, AppContext, BlocklistAIHistoryModel, ChannelState,
-    ClipboardContent, ContextMenuAction, ContextMenuInfo, ContextMenuState, ContextMenuType,
-    EntityId, FeatureFlag, ForkAIConversationParams, ForkFromExchange,
-    ForkedConversationDestination, MenuItem, MenuItemFields, RichContentLink,
+    fork_label_for_query, mark_feature_used_and_write_to_user_defaults, terminal_menu_fields,
+    terminal_menu_text, AIAgentExchangeId, AIConversationId, AgentModeRewindEntrypoint, AppContext,
+    BlocklistAIHistoryModel, ChannelState, ClipboardContent, ContextMenuAction, ContextMenuInfo,
+    ContextMenuState, ContextMenuType, EntityId, FeatureFlag, ForkAIConversationParams,
+    ForkFromExchange, ForkedConversationDestination, MenuItem, MenuItemFields, RichContentLink,
     ServerConversationToken, ServerOutputId, ShareableObject, TelemetryEvent, TerminalAction,
     TerminalModel, TerminalView, Tip, TipHint, Vector2F, ViewContext, CONTEXT_MENU_WIDTH,
 };
@@ -21,17 +21,17 @@ impl TerminalView {
         ctx: &mut ViewContext<Self>,
     ) -> Vec<MenuItem<TerminalAction>> {
         let mut items = vec![
-            MenuItemFields::new("Copy")
+            terminal_menu_fields(ctx, "Copy")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::CopyAIBlock { ai_block_view_id },
                 ))
                 .into_item(),
-            MenuItemFields::new("Copy prompt")
+            terminal_menu_fields(ctx, "Copy prompt")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::CopyAIBlockQuery { ai_block_view_id },
                 ))
                 .into_item(),
-            MenuItemFields::new("Copy output as Markdown")
+            terminal_menu_fields(ctx, "Copy output as Markdown")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::CopyAIBlockOutput { ai_block_view_id },
                 ))
@@ -42,7 +42,7 @@ impl TerminalView {
             match link {
                 RichContentLink::Url(url) => {
                     items.push(
-                        MenuItemFields::new("Copy URL")
+                        terminal_menu_fields(ctx, "Copy URL")
                             .with_on_select_action(TerminalAction::ContextMenu(
                                 ContextMenuAction::CopyUrl { url_content: url },
                             ))
@@ -52,7 +52,7 @@ impl TerminalView {
                 #[cfg(feature = "local_fs")]
                 RichContentLink::FilePath { absolute_path, .. } => {
                     items.push(
-                        MenuItemFields::new("Copy path")
+                        terminal_menu_fields(ctx, "Copy path")
                             .with_on_select_action(TerminalAction::ContextMenu(
                                 ContextMenuAction::CopyUrl {
                                     url_content: absolute_path.to_string_lossy().into_owned(),
@@ -78,7 +78,7 @@ impl TerminalView {
 
         if num_requested_commands > 0 {
             items.push(
-                MenuItemFields::new(String::from("Copy command"))
+                terminal_menu_fields(ctx, "Copy command")
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::CopyAgentCommand { ai_block_view_id },
                     ))
@@ -112,7 +112,7 @@ impl TerminalView {
         });
         if has_git_branch {
             items.push(
-                MenuItemFields::new(String::from("Copy git branch"))
+                terminal_menu_fields(ctx, "Copy git branch")
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::CopyAgentGitBranch { ai_block_view_id },
                     ))
@@ -121,7 +121,7 @@ impl TerminalView {
         }
         items.push(MenuItem::Separator);
         items.push(
-            MenuItemFields::new("Save as prompt")
+            terminal_menu_fields(ctx, "Save as prompt")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::SavePromptAsAgentModeWorkflow { ai_block_view_id },
                 ))
@@ -133,7 +133,7 @@ impl TerminalView {
             let history_model = BlocklistAIHistoryModel::as_ref(ctx);
             if history_model.can_conversation_be_shared(&ai_conversation_id) {
                 items.push(
-                    MenuItemFields::new("Copy share link")
+                    terminal_menu_fields(ctx, "Copy share link")
                         .with_on_select_action(TerminalAction::ContextMenu(
                             ContextMenuAction::CopyConversationShareLink {
                                 conversation_id: ai_conversation_id,
@@ -142,7 +142,7 @@ impl TerminalView {
                         .into_item(),
                 );
                 items.push(
-                    MenuItemFields::new("Share conversation")
+                    terminal_menu_fields(ctx, "Share conversation")
                         .with_on_select_action(TerminalAction::ContextMenu(
                             ContextMenuAction::OpenConversationShareDialog {
                                 conversation_id: ai_conversation_id,
@@ -154,7 +154,7 @@ impl TerminalView {
         }
 
         items.push(
-            MenuItemFields::new("Copy conversation text")
+            terminal_menu_fields(ctx, "Copy conversation text")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::CopyAIBlockConversation { ai_block_view_id },
                 ))
@@ -326,7 +326,7 @@ impl TerminalView {
                 .is_some()
         {
             items.push(
-                MenuItemFields::new("Copy share link")
+                terminal_menu_fields(ctx, "Copy share link")
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::CopyConversationShareLink { conversation_id },
                     ))
@@ -335,7 +335,7 @@ impl TerminalView {
         }
 
         items.push(
-            MenuItemFields::new("Copy conversation text")
+            terminal_menu_fields(ctx, "Copy conversation text")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::CopyConversationText { conversation_id },
                 ))
@@ -343,7 +343,7 @@ impl TerminalView {
         );
 
         items.push(
-            MenuItemFields::new("Fork")
+            terminal_menu_fields(ctx, "Fork")
                 .with_on_select_action(TerminalAction::ContextMenu(
                     ContextMenuAction::ForkAIConversation { conversation_id },
                 ))
@@ -360,7 +360,7 @@ impl TerminalView {
                 }
                 for (button_text, action) in debugging_items {
                     items.push(
-                        MenuItemFields::new(button_text)
+                        MenuItemFields::new(terminal_menu_text(ctx, &button_text).into_owned())
                             .with_on_select_action(TerminalAction::ContextMenu(action))
                             .into_item(),
                     );
@@ -425,7 +425,7 @@ impl TerminalView {
                     .unwrap_or_default(),
             );
             menu_items.push(
-                MenuItemFields::new(fork_label)
+                MenuItemFields::new(terminal_menu_text(ctx, &fork_label).into_owned())
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::ForkAIConversationFromBlock {
                             ai_block_view_id,
@@ -438,7 +438,7 @@ impl TerminalView {
 
             if ChannelState::channel().is_dogfood() {
                 menu_items.push(
-                    MenuItemFields::new("Fork from here")
+                    terminal_menu_fields(ctx, "Fork from here")
                         .with_on_select_action(TerminalAction::ContextMenu(
                             ContextMenuAction::ForkAIConversationFromExactExchange {
                                 ai_block_view_id,
@@ -454,7 +454,7 @@ impl TerminalView {
         // We can't revert restored blocks since we don't restore the full diff
         if FeatureFlag::RevertToCheckpoints.is_enabled() && !is_restored {
             menu_items.push(
-                MenuItemFields::new("Rewind to before here")
+                terminal_menu_fields(ctx, "Rewind to before here")
                     .with_on_select_action(TerminalAction::RewindAIConversation {
                         ai_block_view_id,
                         exchange_id: ai_exchange_id,
@@ -473,7 +473,7 @@ impl TerminalView {
             }
             for (button_text, action) in debugging_items {
                 menu_items.push(
-                    MenuItemFields::new(button_text)
+                    MenuItemFields::new(terminal_menu_text(ctx, &button_text).into_owned())
                         .with_on_select_action(TerminalAction::ContextMenu(action))
                         .into_item(),
                 );

@@ -825,6 +825,10 @@ impl View for BuyCreditsBanner {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return Container::new(warpui::elements::Empty::new().finish()).finish();
+        }
+
         let appearance = Appearance::as_ref(app);
         let ai_request_usage = AIRequestUsageModel::as_ref(app);
 
@@ -888,6 +892,9 @@ impl warpui::TypedActionView for BuyCreditsBanner {
                 ctx.notify();
             }
             Action::ManageBilling => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(BuyCreditsBannerEvent::OpenBillingAndUsage);
                 self.should_display_banner = false;
                 AIRequestUsageModel::handle(ctx).update(ctx, |model, ctx| {

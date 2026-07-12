@@ -664,6 +664,23 @@ impl CommandSearchView {
             .with_main_axis_size(warpui::elements::MainAxisSize::Max)
             .with_cross_axis_alignment(CrossAxisAlignment::Center);
 
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            row.add_child(
+                appearance
+                    .ui_builder()
+                    .span("Looks like you're out of credits.")
+                    .with_style(UiComponentStyles {
+                        font_size: Some(appearance.monospace_font_size()),
+                        font_family_id: Some(appearance.ui_font_family()),
+                        font_color: Some(appearance.theme().nonactive_ui_text_color().into()),
+                        ..Default::default()
+                    })
+                    .build()
+                    .finish(),
+            );
+            return row.finish();
+        }
+
         let upgrade_link = team_uid
             .map(UserWorkspaces::upgrade_link_for_team)
             .unwrap_or_else(|| UserWorkspaces::upgrade_link(user_id));

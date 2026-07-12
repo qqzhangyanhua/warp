@@ -1,5 +1,6 @@
 use ai::api_keys::ApiKeyManager;
 use markdown_parser::{FormattedText, FormattedTextFragment, FormattedTextLine};
+use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warpui::elements::{
     ConstrainedBox, Container, CrossAxisAlignment, Flex, FormattedTextElement,
@@ -237,6 +238,9 @@ impl PromptAlertView {
             PromptAlertState::NoConnection => {}
             PromptAlertState::AnonymousUserRequestLimitSoftGate
             | PromptAlertState::AnonymousUserRequestLimitHardGate => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 text_fragments.push(FormattedTextFragment::plain_text("  "));
                 text_fragments.push(FormattedTextFragment::hyperlink_action(
                     ANONYMOUS_USER_REQUEST_LIMIT_ACTION_TEXT,
@@ -244,6 +248,9 @@ impl PromptAlertView {
                 ));
             }
             PromptAlertState::DelinquentDueToPaymentIssue => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 // Check if user is team admin with billing history
                 let has_billing_history = current_team
                     .map(|team| team.has_billing_history)
@@ -263,6 +270,9 @@ impl PromptAlertView {
                 }
             }
             PromptAlertState::OveragesToggleableButNotEnabled => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 if has_admin_permissions {
                     text_fragments.push(FormattedTextFragment::plain_text("  "));
                     text_fragments.push(FormattedTextFragment::hyperlink_action(
@@ -276,6 +286,9 @@ impl PromptAlertView {
                 }
             }
             PromptAlertState::MonthlyOveragesSpendLimitReached => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 if has_admin_permissions {
                     text_fragments.push(FormattedTextFragment::plain_text("  "));
                     text_fragments.push(FormattedTextFragment::hyperlink_action(
@@ -289,6 +302,9 @@ impl PromptAlertView {
                 }
             }
             PromptAlertState::RequestLimitReached => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 text_fragments.push(FormattedTextFragment::plain_text("  "));
                 if let Some(team) = UserWorkspaces::as_ref(app).current_team() {
                     if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
@@ -379,7 +395,8 @@ impl View for PromptAlertView {
             .and_then(|team| team.billing_metadata.tier.purchase_add_on_credits_policy)
             .is_some_and(|policy| policy.enabled);
 
-        let suggest_buy_credits = can_purchase_addon_credits
+        let suggest_buy_credits = !FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && can_purchase_addon_credits
             && has_admin_permissions
             && matches!(
                 state,
@@ -460,12 +477,21 @@ impl TypedActionView for PromptAlertView {
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
             PromptAlertAction::SignUpClickedForAnonymousUser => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(PromptAlertEvent::SignupAnonymousUser);
             }
             PromptAlertAction::OpenSettingsClicked => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(PromptAlertEvent::OpenBillingAndUsagePage);
             }
             PromptAlertAction::ManageBillingClicked { team_uid } => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 ctx.emit(PromptAlertEvent::OpenBillingPortal {
                     team_uid: *team_uid,
                 });

@@ -173,7 +173,8 @@ impl RequestParams {
 
         provider_model_keys.contains(self.model.as_str())
             && provider_model_keys.contains(self.cli_agent_model.as_str())
-            && provider_model_keys.contains(self.computer_use_model.as_str())
+            && (!self.computer_use_enabled
+                || provider_model_keys.contains(self.computer_use_model.as_str()))
     }
 
     #[cfg(test)]

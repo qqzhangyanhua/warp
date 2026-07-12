@@ -862,6 +862,9 @@ impl TypedActionView for AuthViewBody {
     fn handle_action(&mut self, action: &AuthViewBodyAction, ctx: &mut ViewContext<Self>) {
         match action {
             AuthViewBodyAction::Login => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 send_telemetry_from_ctx!(
                     TelemetryEvent::LoginButtonClicked {
                         source: LoginEventSource::AuthModal,
@@ -903,6 +906,9 @@ impl TypedActionView for AuthViewBody {
                 ctx.notify();
             }
             AuthViewBodyAction::CopyLoginUrl => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 self.copy_url_click_count += 1;
                 if AuthStateProvider::as_ref(ctx)
                     .get()
@@ -924,6 +930,9 @@ impl TypedActionView for AuthViewBody {
                 }
             }
             AuthViewBodyAction::Signup => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 // Send synchronously since this is an important event in the sign up funnel and we
                 // don't want to lose events if the user quits before the event queue is flushed.
                 send_telemetry_sync_from_ctx!(TelemetryEvent::SignUpButtonClicked, ctx);
@@ -935,6 +944,9 @@ impl TypedActionView for AuthViewBody {
                 });
             }
             AuthViewBodyAction::SignupAnonymousUser => {
+                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    return;
+                }
                 let entrypoint = match self.variant {
                     AuthViewVariant::RequireLoginCloseable
                     | AuthViewVariant::ShareRequirementCloseable => {
@@ -1028,6 +1040,10 @@ impl View for AuthViewBody {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+            return warpui::elements::Empty::new().finish();
+        }
+
         let appearance = Appearance::as_ref(app);
         let ui_builder = UiBuilder::new(
             appearance.theme().clone(),

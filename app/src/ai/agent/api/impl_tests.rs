@@ -92,15 +92,28 @@ fn model_config_is_not_backed_by_custom_providers_when_base_model_is_hosted() {
 }
 
 #[test]
-fn model_config_is_backed_by_custom_providers_when_all_request_models_are_custom() {
+fn model_config_is_backed_by_custom_providers_when_required_request_models_are_custom() {
     let custom_model = LLMId::from("custom-model");
     let mut params = request_params_with_ask_user_question_enabled(false);
     params.model = custom_model.clone();
     params.cli_agent_model = custom_model.clone();
-    params.computer_use_model = custom_model;
+    params.computer_use_model = LLMId::from("hosted-computer-use-model");
     params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
 
     assert!(params.model_config_is_backed_by_custom_providers());
+}
+
+#[test]
+fn model_config_is_not_backed_by_custom_providers_when_enabled_computer_use_is_hosted() {
+    let custom_model = LLMId::from("custom-model");
+    let mut params = request_params_with_ask_user_question_enabled(false);
+    params.model = custom_model.clone();
+    params.cli_agent_model = custom_model.clone();
+    params.computer_use_model = LLMId::from("hosted-computer-use-model");
+    params.computer_use_enabled = true;
+    params.custom_model_providers = Some(custom_model_providers(&["custom-model"]));
+
+    assert!(!params.model_config_is_backed_by_custom_providers());
 }
 
 #[test]
