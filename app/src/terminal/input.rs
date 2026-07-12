@@ -245,6 +245,7 @@ use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::search::is_valid_search_query;
 use crate::search::ai_context_menu::view::AIContextMenuAction;
 use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
+use crate::search::slash_command_menu::static_commands::localized_hint_text;
 use crate::search::QueryFilter;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::SyncId;
@@ -399,6 +400,41 @@ pub const OPEN_COMPLETIONS_KEYBINDING_NAME: &str = "input:open_completion_sugges
 pub const INPUT_A11Y_LABEL: &str = "Command Input.";
 pub const INPUT_A11Y_HELPER: &str = "Input your shell command, press enter to execute. Press cmd-up to navigate to output of previously executed commands. Press cmd-l to re-focus command input.";
 pub const AI_COMMAND_SEARCH_HINT_TEXT: &str = "Type '#' for AI command suggestions";
+
+fn input_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+        return Cow::Borrowed(text);
+    }
+
+    Cow::Borrowed(match text {
+        "Command Input." => "命令输入。",
+        "Input your shell command, press enter to execute. Press cmd-up to navigate to output of previously executed commands. Press cmd-l to re-focus command input." => {
+            "输入 shell 命令，按 Enter 执行。按 cmd-up 导航到之前执行命令的输出。按 cmd-l 重新聚焦命令输入。"
+        }
+        "Type '#' for AI command suggestions" => "输入 '#' 获取 AI 命令建议",
+        "Search queries" => "搜索查询",
+        "Search queries to rewind to" => "搜索要回退到的查询",
+        "Search conversations" => "搜索对话",
+        "Search skills" => "搜索技能",
+        "Search models" => "搜索模型",
+        "Search profiles" => "搜索配置",
+        "Search commands" => "搜索命令",
+        "Search prompts" => "搜索提示词",
+        "Search indexed repos" => "搜索已索引仓库",
+        "Search plans" => "搜索计划",
+        "Handoff to cloud" => "移交到云端",
+        "No active conversation to export" => "没有可导出的活动对话",
+        _ => text,
+    })
+}
+
+fn localized_agent_mode_hint(ctx: &AppContext, hint: &'static str) -> Cow<'static, str> {
+    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+        return Cow::Borrowed(hint);
+    }
+
+    Cow::Owned(hint.replacen("Warp anything e.g. ", "让 Warp 做任何事，例如：", 1))
+}
 
 // Rotating hint text options for new Agent Mode conversations
 const AGENT_MODE_HINT_OPTIONS: &[&str] = &[
@@ -757,26 +793,26 @@ impl InputSuggestionsMode {
     }
 
     /// Returns the placeholder text for this mode, if it has a custom one.
-    pub fn placeholder_text(&self) -> Option<&'static str> {
+    pub fn placeholder_text(&self, ctx: &AppContext) -> Option<Cow<'static, str>> {
         match self {
             InputSuggestionsMode::UserQueryMenu {
                 action: UserQueryMenuAction::ForkFrom,
                 ..
-            } => Some("Search queries"),
+            } => Some(input_text(ctx, "Search queries")),
             InputSuggestionsMode::UserQueryMenu {
                 action: UserQueryMenuAction::Rewind,
                 ..
-            } => Some("Search queries to rewind to"),
-            InputSuggestionsMode::ConversationMenu => Some("Search conversations"),
-            InputSuggestionsMode::SkillMenu => Some("Search skills"),
-            InputSuggestionsMode::ModelSelector => Some("Search models"),
-            InputSuggestionsMode::ProfileSelector => Some("Search profiles"),
+            } => Some(input_text(ctx, "Search queries to rewind to")),
+            InputSuggestionsMode::ConversationMenu => Some(input_text(ctx, "Search conversations")),
+            InputSuggestionsMode::SkillMenu => Some(input_text(ctx, "Search skills")),
+            InputSuggestionsMode::ModelSelector => Some(input_text(ctx, "Search models")),
+            InputSuggestionsMode::ProfileSelector => Some(input_text(ctx, "Search profiles")),
             InputSuggestionsMode::SlashCommands if FeatureFlag::AgentView.is_enabled() => {
-                Some("Search commands")
+                Some(input_text(ctx, "Search commands"))
             }
-            InputSuggestionsMode::PromptsMenu => Some("Search prompts"),
-            InputSuggestionsMode::IndexedReposMenu => Some("Search indexed repos"),
-            InputSuggestionsMode::PlanMenu { .. } => Some("Search plans"),
+            InputSuggestionsMode::PromptsMenu => Some(input_text(ctx, "Search prompts")),
+            InputSuggestionsMode::IndexedReposMenu => Some(input_text(ctx, "Search indexed repos")),
+            InputSuggestionsMode::PlanMenu { .. } => Some(input_text(ctx, "Search plans")),
             _ => None,
         }
     }
@@ -5884,8 +5920,9 @@ impl Input {
         else {
             let window_id = ctx.window_id();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast =
-                    DismissibleToast::default(String::from("No active conversation to export"));
+                let toast = DismissibleToast::default(
+                    input_text(ctx, "No active conversation to export").into_owned(),
+                );
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
             return;
@@ -6476,7 +6513,11 @@ impl Input {
             (InputType::Shell, false) => tr_cached(Message::TerminalRunCommands).to_owned(),
             (InputType::Shell, true) => {
                 // Ensure hint text is cached for new conversations
-                get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text).to_owned()
+                localized_agent_mode_hint(
+                    app,
+                    get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text),
+                )
+                .into_owned()
             }
             (InputType::AI, _) => {
                 if let Some(conversation) =
@@ -6486,11 +6527,25 @@ impl Input {
                         let agent_name = conversation.agent_name().unwrap_or("child");
                         if conversation.status().is_in_progress() {
                             if is_queue_next_prompt_enabled {
-                                return format!("Queue a follow up for the {agent_name} agent");
+                                return if crate::i18n::active_locale(app)
+                                    == crate::i18n::Locale::ZhCn
+                                {
+                                    format!("为 {agent_name} agent 排队后续消息")
+                                } else {
+                                    format!("Queue a follow up for the {agent_name} agent")
+                                };
                             }
-                            return format!("Steer the {agent_name} agent");
+                            return if crate::i18n::active_locale(app) == crate::i18n::Locale::ZhCn {
+                                format!("引导 {agent_name} agent")
+                            } else {
+                                format!("Steer the {agent_name} agent")
+                            };
                         }
-                        return format!("Ask the {agent_name} agent a follow up");
+                        return if crate::i18n::active_locale(app) == crate::i18n::Locale::ZhCn {
+                            format!("向 {agent_name} agent 追问")
+                        } else {
+                            format!("Ask the {agent_name} agent a follow up")
+                        };
                     }
                 }
 
@@ -6525,8 +6580,11 @@ impl Input {
                     }
                     None => {
                         // Ensure hint text is cached for new conversations
-                        get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text)
-                            .to_owned()
+                        localized_agent_mode_hint(
+                            app,
+                            get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text),
+                        )
+                        .into_owned()
                     }
                 }
             }
@@ -6989,7 +7047,7 @@ impl Input {
                     .selected_environment_id()
                     .and_then(|id| CloudAmbientAgentEnvironment::get_by_id(id, ctx))
                     .map(|env| format!("Hand off to {}", env.model().string_model.display_name()))
-                    .unwrap_or_else(|| "Handoff to cloud".to_owned())
+                    .unwrap_or_else(|| input_text(ctx, "Handoff to cloud").into_owned())
             };
             self.editor.update(ctx, |editor, ctx| {
                 editor.set_placeholder_text(&hint, ctx);
@@ -7014,7 +7072,7 @@ impl Input {
             .suggestions_mode_model
             .as_ref(ctx)
             .mode()
-            .placeholder_text()
+            .placeholder_text(ctx)
         {
             self.editor.update(ctx, |editor, ctx| {
                 editor.set_placeholder_text(placeholder, ctx);
@@ -7034,7 +7092,7 @@ impl Input {
                 {
                     editor.set_placeholder_text_with_prefix(
                         format!("{} ", command.name),
-                        hint_text,
+                        localized_hint_text(ctx, hint_text),
                         ctx,
                     );
                 }
@@ -15924,14 +15982,14 @@ impl TypedActionView for Input {
     fn action_accessibility_contents(
         &mut self,
         action: &InputAction,
-        _: &mut ViewContext<Self>,
+        ctx: &mut ViewContext<Self>,
     ) -> ActionAccessibilityContent {
         match action {
             InputAction::FocusInputBox => {
                 ActionAccessibilityContent::Custom(AccessibilityContent::new(
-                    INPUT_A11Y_LABEL,
+                    input_text(ctx, INPUT_A11Y_LABEL),
                     // TODO (a11y) use bindings from user settings
-                    INPUT_A11Y_HELPER,
+                    input_text(ctx, INPUT_A11Y_HELPER),
                     WarpA11yRole::TextareaRole,
                 ))
             }
@@ -16145,11 +16203,11 @@ impl View for Input {
         "Input"
     }
 
-    fn accessibility_contents(&self, _: &AppContext) -> Option<AccessibilityContent> {
+    fn accessibility_contents(&self, ctx: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
-            INPUT_A11Y_LABEL,
+            input_text(ctx, INPUT_A11Y_LABEL),
             // TODO (a11y) use bindings from user settings
-            INPUT_A11Y_HELPER,
+            input_text(ctx, INPUT_A11Y_HELPER),
             WarpA11yRole::TextareaRole,
         ))
     }

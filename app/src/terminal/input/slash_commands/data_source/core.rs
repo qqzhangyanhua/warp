@@ -15,7 +15,9 @@ use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISuba
 use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::skills::{SkillDescriptor, SkillManager};
 use crate::search::slash_command_menu::fuzzy_match::SlashCommandFuzzyMatchResult;
-use crate::search::slash_command_menu::static_commands::{commands, Availability};
+use crate::search::slash_command_menu::static_commands::{
+    commands, localized_command_description, Availability,
+};
 use crate::search::slash_command_menu::{SlashCommandId, StaticCommand};
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::terminal::cli_agent_sessions::{
@@ -583,7 +585,7 @@ impl InlineItem {
             action: AcceptSlashCommandOrSavedPrompt::SlashCommand { id: *command_id },
             icon_path: command.icon_path,
             name: command.name.to_owned(),
-            description: Some(command.description.to_owned()),
+            description: Some(localized_command_description(app, command.description).to_owned()),
             font_family: appearance.monospace_font_family(),
             name_match_result: None,
             description_match_result: None,
