@@ -72,3 +72,8 @@ __pycache__/
 
 # Agent harness scan artifact
 .agent/
+
+# Local bundle/debug artifacts
+/cargo-bundle
+/cargo-bundle.zip
+/commit_diff.txt
