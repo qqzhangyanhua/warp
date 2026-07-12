@@ -265,7 +265,9 @@ impl ThemePickerSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Back, self.locale).into(),
+                ),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -607,7 +609,10 @@ impl ThemePickerSlide {
         let tos_line = Flex::row()
             .with_child(
                 ui_builder
-                    .span(i18n::tr(OnboardingMessage::ByContinuingAgreeTo, self.locale))
+                    .span(i18n::tr(
+                        OnboardingMessage::ByContinuingAgreeTo,
+                        self.locale,
+                    ))
                     .with_style(disclaimer_styles)
                     .build()
                     .finish(),

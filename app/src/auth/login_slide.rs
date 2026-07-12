@@ -30,7 +30,6 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
-use crate::i18n::{tr, Message};
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::auth_view_modal::AuthRedirectPayload;
 use crate::auth::auth_view_shared_helpers::{
@@ -38,6 +37,7 @@ use crate::auth::auth_view_shared_helpers::{
 };
 use crate::auth::login_failure_notification::{self, LoginFailureReason};
 use crate::editor::{EditorView, SingleLineEditorOptions, TextColors, TextOptions};
+use crate::i18n::{tr, Message};
 use crate::server::telemetry::{LoginEventSource, TelemetryEvent};
 use crate::settings::PrivacySettings;
 use crate::themes::theme::Fill as ThemeFill;
@@ -526,7 +526,11 @@ impl LoginSlideView {
         }
     }
 
-    fn render_select_auth_content(&self, appearance: &Appearance, app: &AppContext) -> Vec<Box<dyn Element>> {
+    fn render_select_auth_content(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Vec<Box<dyn Element>> {
         let theme = appearance.theme();
         let sub_text_color = internal_colors::text_sub(theme, theme.background().into_solid());
         let ui_builder = appearance.ui_builder();
@@ -643,7 +647,11 @@ impl LoginSlideView {
         vec![header]
     }
 
-    fn render_select_auth_bottom_nav(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
+    fn render_select_auth_bottom_nav(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
@@ -888,15 +896,18 @@ impl LoginSlideView {
     ) -> Vec<Box<dyn Element>> {
         let theme = appearance.theme();
 
-        let title =
-            FormattedTextElement::from_str(tr(app, Message::AuthPrivacySettings), appearance.ui_font_family(), 36.)
-                .with_color(internal_colors::text_main(
-                    theme,
-                    theme.background().into_solid(),
-                ))
-                .with_weight(Weight::Medium)
-                .with_alignment(TextAlignment::Left)
-                .finish();
+        let title = FormattedTextElement::from_str(
+            tr(app, Message::AuthPrivacySettings),
+            appearance.ui_font_family(),
+            36.,
+        )
+        .with_color(internal_colors::text_main(
+            theme,
+            theme.background().into_solid(),
+        ))
+        .with_weight(Weight::Medium)
+        .with_alignment(TextAlignment::Left)
+        .finish();
 
         let actions = PrivacySettingsActions {
             toggle_telemetry: LoginSlideAction::ToggleTelemetry,

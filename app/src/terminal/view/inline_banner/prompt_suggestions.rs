@@ -20,7 +20,6 @@ use warpui::{
 };
 
 use crate::ai::agent::api::ServerConversationToken;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{PassiveSuggestionTrigger, StaticQueryType};
 use crate::ai::blocklist::prompt::prompt_alert::{
@@ -30,6 +29,7 @@ use crate::ai::blocklist::BlocklistAIInputModel;
 use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
 use crate::ai::AIRequestUsageModel;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::server::ids::ServerId;
 use crate::server::telemetry::InteractionSource;
 use crate::settings::InputSettings;

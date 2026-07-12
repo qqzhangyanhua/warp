@@ -24,6 +24,7 @@ use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
 use crate::ai::mcp::{MCPServerState, TemplatableMCPServerManager};
 use crate::appearance::Appearance;
 use crate::cloud_object::{CloudObject, CloudObjectUuidLookup as _};
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::mcp_servers::{style, ServerCardItemId};
 use crate::ui_components::avatar::{Avatar, AvatarContent, StatusElementTypes};
 use crate::ui_components::blended_colors;
@@ -480,7 +481,7 @@ impl ServerCardView {
 
         if tools.is_empty() {
             return Text::new(
-                "No tools available".to_string(),
+                tr_cached(Message::McpServersNoToolsAvailable).to_string(),
                 appearance.ui_font_family(),
                 appearance.ui_font_size(),
             )

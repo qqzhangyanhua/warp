@@ -50,10 +50,10 @@ use crate::ai::llms::{
     ByoKeySource, LLMId, LLMInfo, LLMPreferences, LLMPreferencesEvent, LLMSpec,
 };
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::context_chips::display_chip::{udi_font_size, udi_icon_size};
 use crate::context_chips::spacing;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::settings_view::SettingsSection;
 use crate::terminal::input::{MenuPositioning, MenuPositioningProvider};
@@ -83,10 +83,6 @@ const MAX_PROFILE_NAME_WIDTH_SCALE_FACTOR: f32 = 10.0;
 
 const PROFILE_SELECTOR_POSITION_ID: &str = "profile_selector";
 
-const PROFILE_PICKER_TOOLTIP: &str = "Choose an AI execution profile";
-const MODEL_PICKER_TOOLTIP: &str = "Choose an agent model";
-const MODEL_LOCKED_FOR_FOLLOWUP_TOOLTIP: &str = "Follow-ups use the original run's model";
-const MODEL_REQUIRES_EDIT_ACCESS_TOOLTIP: &str = "Request edit access to change model";
 const HARNESS_DEFAULT_MODEL_LABEL: &str = "default";
 
 pub fn calculate_scaled_font_size(appearance: &warp_core::ui::appearance::Appearance) -> f32 {
@@ -841,12 +837,13 @@ impl ProfileModelSelector {
         let appearance = Appearance::as_ref(ctx);
         let mut menu_items = vec![
             MenuItem::Header {
-                fields: MenuItemFields::new(tr_cached(Message::TerminalProfiles)).with_override_text_color(
-                    appearance
-                        .theme()
-                        .sub_text_color(appearance.theme().background())
-                        .into_solid(),
-                ),
+                fields: MenuItemFields::new(tr_cached(Message::TerminalProfiles))
+                    .with_override_text_color(
+                        appearance
+                            .theme()
+                            .sub_text_color(appearance.theme().background())
+                            .into_solid(),
+                    ),
                 clickable: false,
                 right_side_fields: None,
             },
@@ -1083,12 +1080,13 @@ impl ProfileModelSelector {
                 items.push(MenuItem::Separator);
             }
             items.push(MenuItem::Header {
-                fields: MenuItemFields::new(tr_cached(Message::TerminalCustomModels)).with_override_text_color(
-                    appearance
-                        .theme()
-                        .sub_text_color(appearance.theme().background())
-                        .into_solid(),
-                ),
+                fields: MenuItemFields::new(tr_cached(Message::TerminalCustomModels))
+                    .with_override_text_color(
+                        appearance
+                            .theme()
+                            .sub_text_color(appearance.theme().background())
+                            .into_solid(),
+                    ),
                 clickable: false,
                 right_side_fields: None,
             });
@@ -2019,7 +2017,12 @@ impl ProfileModelSelector {
                 bg_bar_color,
                 app,
             ),
-            self.render_model_spec_value(tr_cached(Message::TerminalSpeed).to_string(), spec.speed, bg_bar_color, app),
+            self.render_model_spec_value(
+                tr_cached(Message::TerminalSpeed).to_string(),
+                spec.speed,
+                bg_bar_color,
+                app,
+            ),
         ];
         if let Some(byo_key_source) = byo_key_source {
             spec_values.push(self.render_model_spec_api_key(byo_key_source, app));

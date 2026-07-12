@@ -158,7 +158,6 @@ use super::util::{
 };
 use super::{util, ActiveSession, TabBarDropTargetData, TabBarLocation, WorkspaceRegistry};
 use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::ai::agent::api::ServerConversationToken;
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::agent::conversation::AIAgentHarness;
@@ -277,6 +276,7 @@ use crate::editor::{
 use crate::env_vars::manager::{EnvVarCollectionManager, EnvVarCollectionSource};
 use crate::env_vars::CloudEnvVarCollection;
 use crate::experiments::{BlockOnboarding, Experiment};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::launch_configs::launch_config::WindowTemplate;
 use crate::launch_configs::save_modal::{LaunchConfigModalEvent, LaunchConfigSaveModal};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuSelectionSource};
@@ -592,7 +592,6 @@ const WELCOME_TIPS_POSITION_ID: &str = "welcome_tips_pill";
 const ELLIPSE_SVG_PATH: &str = "bundled/svg/ellipse.svg";
 
 const AI_ASSISTANT_BUTTON_ID: &str = "workspace_view:ai_assistant_button";
-
 
 const VERSION_DEPRECATION_WITHOUT_PERMISSIONS_BANNER_TEXT: &str = "Some ZYH features may not work as expected without updating immediately, but ZYH is unable to perform the update.";
 
@@ -2692,12 +2691,11 @@ impl Workspace {
                         let toast = DismissibleToast::error(message)
                             .with_object_id(object_id.clone())
                             .with_link(
-                                ToastLink::new("Open file".to_string()).with_onclick_action(
-                                    WorkspaceAction::OpenTabConfigErrorFile {
+                                ToastLink::new(tr_cached(Message::SettingsOpenFile).to_string())
+                                    .with_onclick_action(WorkspaceAction::OpenTabConfigErrorFile {
                                         path,
                                         toast_object_id: object_id,
-                                    },
-                                ),
+                                    }),
                             );
                         toast_stack.update(ctx, |toast_stack, ctx| {
                             toast_stack.add_persistent_toast(toast, ctx);
@@ -2726,12 +2724,11 @@ impl Workspace {
                         let toast = DismissibleToast::error(message)
                             .with_object_id(object_id.clone())
                             .with_link(
-                                ToastLink::new("Open file".to_string()).with_onclick_action(
-                                    WorkspaceAction::OpenTabConfigErrorFile {
+                                ToastLink::new(tr_cached(Message::SettingsOpenFile).to_string())
+                                    .with_onclick_action(WorkspaceAction::OpenTabConfigErrorFile {
                                         path,
                                         toast_object_id: object_id,
-                                    },
-                                ),
+                                    }),
                             );
                         toast_stack.update(ctx, |toast_stack, ctx| {
                             toast_stack.add_persistent_toast(toast, ctx);
@@ -4583,7 +4580,9 @@ impl Workspace {
         ));
 
         self.toast_stack.update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::default(tr(ctx, Message::WorkspaceRemoteControlLinkCopied).to_string());
+            let toast = DismissibleToast::default(
+                tr(ctx, Message::WorkspaceRemoteControlLinkCopied).to_string(),
+            );
             toast_stack.add_ephemeral_toast(toast, ctx);
         });
     }
@@ -6077,9 +6076,11 @@ impl Workspace {
         if !FeatureFlag::ConfigurableToolbar.is_enabled() {
             return;
         }
-        let items = vec![MenuItemFields::new(tr_cached(Message::WorkspaceRearrangeToolbarItems))
-            .with_on_select_action(WorkspaceAction::OpenHeaderToolbarEditor)
-            .into_item()];
+        let items = vec![
+            MenuItemFields::new(tr_cached(Message::WorkspaceRearrangeToolbarItems))
+                .with_on_select_action(WorkspaceAction::OpenHeaderToolbarEditor)
+                .into_item(),
+        ];
         self.header_toolbar_context_menu
             .update(ctx, |menu, ctx| menu.set_items(items, ctx));
         self.show_header_toolbar_context_menu = Some(position);
@@ -6646,9 +6647,10 @@ impl Workspace {
 
         // 3b. Local Docker Sandbox
         if FeatureFlag::LocalDockerSandbox.is_enabled() {
-            let mut docker_item = MenuItemFields::new(tr_cached(Message::WorkspaceLocalDockerSandbox))
-                .with_on_select_action(WorkspaceAction::AddDockerSandboxTab)
-                .with_icon(icons::Icon::Docker);
+            let mut docker_item =
+                MenuItemFields::new(tr_cached(Message::WorkspaceLocalDockerSandbox))
+                    .with_on_select_action(WorkspaceAction::AddDockerSandboxTab)
+                    .with_icon(icons::Icon::Docker);
             if effective_default == DefaultSessionMode::DockerSandbox {
                 docker_item = docker_item.with_key_shortcut_label(shortcut_label.clone());
             }
@@ -20291,8 +20293,12 @@ impl Workspace {
                         .copied()
                         .unwrap_or(ToolPanelView::WarpDrive)
                     {
-                        ToolPanelView::ProjectExplorer => tr_cached(Message::WorkspaceProjectExplorer),
-                        ToolPanelView::GlobalSearch { .. } => tr_cached(Message::WorkspaceGlobalSearch),
+                        ToolPanelView::ProjectExplorer => {
+                            tr_cached(Message::WorkspaceProjectExplorer)
+                        }
+                        ToolPanelView::GlobalSearch { .. } => {
+                            tr_cached(Message::WorkspaceGlobalSearch)
+                        }
                         ToolPanelView::WarpDrive => "Warp Drive",
                         ToolPanelView::ConversationListView => "Agent conversations",
                     }
@@ -22049,7 +22055,7 @@ impl Workspace {
             AISettings::as_ref(app)
                 .is_any_ai_enabled(app)
                 .then(|| WorkspaceBannerButtonDetails {
-                    text: "Fix with Oz".to_owned(),
+                    text: tr_cached(Message::SettingsFixWithOz).to_owned(),
                     action: WorkspaceAction::FixSettingsWithOz {
                         error_description: error.to_string(),
                     },
@@ -22064,7 +22070,7 @@ impl Workspace {
             description,
             secondary_button,
             button: Some(WorkspaceBannerButtonDetails {
-                text: "Open file".to_owned(),
+                text: tr_cached(Message::SettingsOpenFile).to_owned(),
                 action: WorkspaceAction::OpenSettingsFile,
                 variant: BannerButtonVariant::Outlined,
                 icon: None,
@@ -22164,7 +22170,8 @@ impl Workspace {
                             banner_type: WorkspaceBanner::VersionDeprecated,
                             severity: BannerSeverity::Error,
                             heading: None,
-                            description: tr_cached(Message::WorkspaceAppOutOfDateBanner).to_string(),
+                            description: tr_cached(Message::WorkspaceAppOutOfDateBanner)
+                                .to_string(),
                             secondary_button: None,
                             button: Some(WorkspaceBannerButtonDetails {
                                 text: "Update now".to_string(),
@@ -22181,8 +22188,10 @@ impl Workspace {
                                     banner_type: WorkspaceBanner::VersionDeprecated,
                                     severity: BannerSeverity::Warning,
                                     heading: None,
-                                    description: tr_cached(Message::WorkspaceAppOutOfDateNeedsUpdate)
-                                        .to_string(),
+                                    description: tr_cached(
+                                        Message::WorkspaceAppOutOfDateNeedsUpdate,
+                                    )
+                                    .to_string(),
                                     secondary_button: None,
                                     button: Some(WorkspaceBannerButtonDetails {
                                         text: "Restart app and update now".to_string(),

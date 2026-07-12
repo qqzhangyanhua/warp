@@ -409,7 +409,9 @@ impl AIRequestUsageModel {
     /// Use this method as the starting point for AI availability checking.
     pub fn has_any_ai_remaining(&self, ctx: &AppContext) -> bool {
         if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-            return ApiKeyManager::as_ref(ctx).keys().has_valid_custom_endpoint();
+            return ApiKeyManager::as_ref(ctx)
+                .keys()
+                .has_valid_custom_endpoint();
         }
 
         let current_workspace = UserWorkspaces::as_ref(ctx).current_workspace();

@@ -4133,9 +4133,13 @@ impl FeaturesPageView {
                     Shrinkable::new(
                         2.,
                         Align::new(
-                            Text::new_inline(tr_cached(Message::FeaturesKeybinding), appearance.ui_font_family(), 13.)
-                                .with_color(appearance.theme().active_ui_text_color().into())
-                                .finish(),
+                            Text::new_inline(
+                                tr_cached(Message::FeaturesKeybinding),
+                                appearance.ui_font_family(),
+                                13.,
+                            )
+                            .with_color(appearance.theme().active_ui_text_color().into())
+                            .finish(),
                         )
                         .left()
                         .finish(),
@@ -4154,7 +4158,9 @@ impl FeaturesPageView {
                         } else {
                             appearance
                                 .ui_builder()
-                                .paragraph(tr_cached(Message::SettingsClickToSetGlobalHotkey).to_string())
+                                .paragraph(
+                                    tr_cached(Message::SettingsClickToSetGlobalHotkey).to_string(),
+                                )
                                 .build()
                                 .finish()
                         })
@@ -4296,9 +4302,13 @@ impl FeaturesPageView {
                 }
 
                 Container::new(
-                    Text::new_inline(tr_cached(Message::FeaturesChangeKeybinding), appearance.ui_font_family(), 12.)
-                        .with_color(button_color)
-                        .finish(),
+                    Text::new_inline(
+                        tr_cached(Message::FeaturesChangeKeybinding),
+                        appearance.ui_font_family(),
+                        12.,
+                    )
+                    .with_color(button_color)
+                    .finish(),
                 )
                 .with_border(border)
                 .finish()
@@ -4517,7 +4527,11 @@ impl SettingsWidget for NativeRedirectWidget {
                 on_click_action: None,
                 secondary_text: None,
                 tooltip_override_text: Some(
-                    tr(app, Message::SettingsAutomaticallyOpenLinksInDesktopAppWheneverPossible).into(),
+                    tr(
+                        app,
+                        Message::SettingsAutomaticallyOpenLinksInDesktopAppWheneverPossible,
+                    )
+                    .into(),
                 ),
             }),
             LocalOnlyIconState::for_setting(
@@ -5369,9 +5383,13 @@ impl SettingsWidget for DesktopNotificationsWidget {
                         .finish(),
                     )
                     .with_child(
-                        Text::new_inline(tr_cached(Message::FeaturesSeconds), appearance.ui_font_family(), font_size)
-                            .with_color(font_color.into())
-                            .finish(),
+                        Text::new_inline(
+                            tr_cached(Message::FeaturesSeconds),
+                            appearance.ui_font_family(),
+                            font_size,
+                        )
+                        .with_color(font_color.into())
+                        .finish(),
                     )
                     .finish();
 
@@ -5557,9 +5575,13 @@ impl SettingsWidget for ExtraMetaKeysWidget {
             .with_child(render_body_item::<FeaturesPageAction>(
                 {
                     #[cfg(target_os = "macos")]
-                    { tr(app, Message::FeaturesLeftOptionKeyIsMeta).to_string() }
+                    {
+                        tr(app, Message::FeaturesLeftOptionKeyIsMeta).to_string()
+                    }
                     #[cfg(not(target_os = "macos"))]
-                    { tr(app, Message::FeaturesLeftAltKeyIsMeta).to_string() }
+                    {
+                        tr(app, Message::FeaturesLeftAltKeyIsMeta).to_string()
+                    }
                 },
                 None,
                 LocalOnlyIconState::for_setting(
@@ -5583,9 +5605,13 @@ impl SettingsWidget for ExtraMetaKeysWidget {
             .with_child(render_body_item::<FeaturesPageAction>(
                 {
                     #[cfg(target_os = "macos")]
-                    { tr(app, Message::FeaturesRightOptionKeyIsMeta).to_string() }
+                    {
+                        tr(app, Message::FeaturesRightOptionKeyIsMeta).to_string()
+                    }
                     #[cfg(not(target_os = "macos"))]
-                    { tr(app, Message::FeaturesRightAltKeyIsMeta).to_string() }
+                    {
+                        tr(app, Message::FeaturesRightAltKeyIsMeta).to_string()
+                    }
                 },
                 None,
                 LocalOnlyIconState::for_setting(
@@ -5780,7 +5806,11 @@ impl SettingsWidget for AutocompleteSymbolsWidget {
     ) -> Box<dyn Element> {
         let ui_builder = appearance.ui_builder();
         render_body_item::<FeaturesPageAction>(
-            tr(app, Message::SettingsAutocompleteQuotesParenthesesAndBrackets).into(),
+            tr(
+                app,
+                Message::SettingsAutocompleteQuotesParenthesesAndBrackets,
+            )
+            .into(),
             None,
             LocalOnlyIconState::for_setting(
                 AutocompleteSymbols::storage_key(),
@@ -6637,10 +6667,8 @@ impl TabKeyBehaviorWidget {
                     Some(tr(app, Message::SettingsCompletionsOpenAsYouType).into())
                 } else {
                     Some(
-                        tr_cached(Message::FeaturesCompletionsOpenAsYouTypeOr).replace(
-                            "{}",
-                            &view.completions_keystroke.to_string(),
-                        ),
+                        tr_cached(Message::FeaturesCompletionsOpenAsYouTypeOr)
+                            .replace("{}", &view.completions_keystroke.to_string()),
                     )
                 }
             }
@@ -7363,7 +7391,11 @@ impl SettingsWidget for WorkflowsInCommandSearch {
         let ui_builder = appearance.ui_builder();
         let workflow_settings = CommandSearchSettings::as_ref(app);
         render_body_item::<FeaturesPageAction>(
-            tr(app, Message::SettingsShowGlobalWorkflowsInCommandSearchCtrlr).into(),
+            tr(
+                app,
+                Message::SettingsShowGlobalWorkflowsInCommandSearchCtrlr,
+            )
+            .into(),
             Some(AdditionalInfo {
                 mouse_state: self.additional_info_link.clone(),
                 on_click_action: Some(FeaturesPageAction::OpenUrl(
@@ -7424,7 +7456,11 @@ impl SettingsWidget for LinuxSelectionClipboardWidget {
                 on_click_action: None,
                 secondary_text: None,
                 tooltip_override_text: Some(
-                    tr(app, Message::SettingsWhetherTheLinuxPrimaryClipboardShouldBeSupported).into(),
+                    tr(
+                        app,
+                        Message::SettingsWhetherTheLinuxPrimaryClipboardShouldBeSupported,
+                    )
+                    .into(),
                 ),
             }),
             LocalOnlyIconState::for_setting(
@@ -7472,7 +7508,11 @@ impl SettingsWidget for GPUWidget {
     ) -> Box<dyn Element> {
         let gpu_settings = GPUSettings::as_ref(app);
         let mut col = Flex::column().with_child(render_body_item::<FeaturesPageAction>(
-            tr(app, Message::SettingsPreferRenderingNewWindowsWithIntegratedGpuLowPower).into(),
+            tr(
+                app,
+                Message::SettingsPreferRenderingNewWindowsWithIntegratedGpuLowPower,
+            )
+            .into(),
             None,
             LocalOnlyIconState::for_setting(
                 PreferLowPowerGPU::storage_key(),
@@ -7547,7 +7587,9 @@ impl SettingsWidget for WindowSystemWidget {
                 mouse_state: self.additional_info_link.clone(),
                 on_click_action: None,
                 secondary_text: None,
-                tooltip_override_text: Some(tr_cached(Message::FeaturesEnablesUseOfWayland).to_string()),
+                tooltip_override_text: Some(
+                    tr_cached(Message::FeaturesEnablesUseOfWayland).to_string(),
+                ),
             }),
             LocalOnlyIconState::for_setting(
                 ForceX11::storage_key(),
@@ -7639,7 +7681,11 @@ impl SettingsWidget for GraphicsBackendWidget {
             col.add_child(
                 appearance
                     .ui_builder()
-                    .wrappable_text(tr_cached(Message::FeaturesCurrentBackend).replace("{}", &backend.to_label()), true)
+                    .wrappable_text(
+                        tr_cached(Message::FeaturesCurrentBackend)
+                            .replace("{}", &backend.to_label()),
+                        true,
+                    )
                     .with_style(UiComponentStyles {
                         font_color: Some(theme.sub_text_color(theme.background()).into_solid()),
                         ..Default::default()

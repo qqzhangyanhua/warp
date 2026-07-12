@@ -61,6 +61,67 @@ const EXPORT_DEFAULT_SETTINGS_CSV_MENU_ITEM_NAME: &str =
 const SETTINGS_CSV_FILE_NAME: &str = "warp_default_settings.csv";
 const MAX_RECENT_REPOS_IN_MENU: usize = 10;
 
+fn app_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+        return Cow::Borrowed(text);
+    }
+
+    Cow::Borrowed(match text {
+        "New Window" => "新建窗口",
+        "Preferences" => "偏好设置",
+        "Privacy Policy..." => "隐私政策...",
+        "Debug" => "调试",
+        "Set Warp as Default Terminal" => "将 Warp 设为默认终端",
+        "Log out" => "退出登录",
+        "Open Recent" => "打开最近项目",
+        "File" => "文件",
+        "Use Warp's Prompt" => "使用 Warp 提示符",
+        "Copy on Select within the Terminal" => "在终端中选择即复制",
+        "Synchronize Inputs" => "同步输入",
+        "Edit" => "编辑",
+        "Toggle Mouse Reporting" => "切换鼠标事件报告",
+        "Toggle Scroll Reporting" => "切换滚动事件报告",
+        "Toggle Focus Reporting" => "切换焦点事件报告",
+        "Compact Mode" => "紧凑模式",
+        "View" => "视图",
+        "Tab" => "标签页",
+        "AI" => "AI",
+        "Blocks" => "块",
+        "Drive" => "Warp Drive",
+        "Show In-band Command Blocks" => "显示带内命令块",
+        "Hide In-band Command Blocks" => "隐藏带内命令块",
+        "Show Warpified SSH Blocks" => "显示 Warpified SSH 块",
+        "Hide Warpified SSH Blocks" => "隐藏 Warpified SSH 块",
+        "Show Initialization Block" => "显示初始化块",
+        "Hide Initialization Block" => "隐藏初始化块",
+        "Window" => "窗口",
+        "Enable Shell Debug Mode (-x) for New Sessions" => "为新会话启用 Shell 调试模式 (-x)",
+        "Disable Shell Debug Mode (-x) for New Sessions" => "为新会话禁用 Shell 调试模式 (-x)",
+        "Enable PTY Recording Mode (warp.pty.recording)" => {
+            "启用 PTY 录制模式 (warp.pty.recording)"
+        }
+        "Disable PTY Recording Mode (warp.pty.recording)" => {
+            "禁用 PTY 录制模式 (warp.pty.recording)"
+        }
+        "Enable In-band Generators for New Sessions" => "为新会话启用带内生成器",
+        "Disable in-band generators for new sessions" => "为新会话禁用带内生成器",
+        "Manually Toggle Network Status" => "手动切换网络状态",
+        "Export Default Settings as CSV to home dir" => "将默认设置以 CSV 导出到主目录",
+        "Create anonymous user" => "创建匿名用户",
+        "Send Feedback..." => "发送反馈...",
+        "Help" => "帮助",
+        "Warp Documentation..." => "Warp 文档...",
+        "GitHub Issues..." => "GitHub Issues...",
+        "Join our Slack community..." => "加入我们的 Slack 社区...",
+        "Save New..." => "新建保存...",
+        "New Terminal Tab" => "新建终端标签页",
+        "New Agent Tab" => "新建 Agent 标签页",
+        "Reopen closed session" => "重新打开已关闭会话",
+        "Launch Configurations" => "启动配置",
+        _ => text,
+    })
+}
+
 /// Creates the root app menu bar
 pub fn menu_bar(ctx: &mut AppContext) -> MenuBar {
     MenuBar::new(vec![
@@ -72,8 +133,8 @@ pub fn menu_bar(ctx: &mut AppContext) -> MenuBar {
         make_new_blocks_menu(ctx),
         make_new_ai_menu(ctx),
         make_new_drive_menu(ctx),
-        make_new_window_menu(),
-        make_new_help_menu(),
+        make_new_window_menu(ctx),
+        make_new_help_menu(ctx),
     ])
 }
 
@@ -89,7 +150,7 @@ pub fn dock_menu() -> Menu {
                 ctx.dispatch_global_action("root_view:open_new", &());
                 ctx.dispatch_global_action("workspace:save_app", &());
             },
-            no_updates,
+            localize_menu_item_name,
             Some(Keystroke::parse("cmd-n").expect("Valid keystroke")),
         ))],
     )
@@ -111,7 +172,7 @@ fn non_updateable_custom_item(action: CustomAction, ctx: &AppContext) -> MenuIte
     MenuItem::Custom(CustomMenuItem::new(
         &default_name(action, ctx),
         custom_action_dispatcher(action),
-        no_updates,
+        localize_menu_item_name,
         custom_shortcut(action),
     ))
 }
@@ -124,10 +185,17 @@ fn updateable_custom_item_with_checkmark(
     ctx: &AppContext,
     should_be_checked: Box<CheckmarkStatusGetter>,
 ) -> MenuItem {
+    let updater = custom_action_updater(action, should_be_checked);
     MenuItem::Custom(CustomMenuItem::new(
         &default_name(action, ctx),
         custom_action_dispatcher(action),
-        custom_action_updater(action, should_be_checked),
+        move |props, ctx| {
+            let mut changes = updater(props, ctx);
+            if changes.name.is_none() {
+                changes.name = Some(app_menu_text(ctx, &props.name).into_owned());
+            }
+            changes
+        },
         custom_shortcut(action),
     ))
 }
@@ -168,7 +236,7 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
     ];
 
     menu_items.push(MenuItem::Custom(CustomMenuItem::new_with_submenu(
-        "Preferences",
+        app_menu_text(ctx, "Preferences").as_ref(),
         |_| (),
         no_updates,
         None,
@@ -189,14 +257,15 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
 
     menu_items.push(MenuItem::Separator);
     menu_items.push(link_menu_item(
+        ctx,
         "Privacy Policy...",
         links::PRIVACY_POLICY_URL.into(),
     ));
 
-    let debug_menu_items = debug_menu_items();
+    let debug_menu_items = debug_menu_items(ctx);
     if !debug_menu_items.is_empty() {
         menu_items.push(MenuItem::Custom(CustomMenuItem::new_with_submenu(
-            "Debug",
+            app_menu_text(ctx, "Debug").as_ref(),
             |_| (),
             no_updates,
             None,
@@ -210,7 +279,7 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
     menu_items.push(MenuItem::Standard(StandardAction::ShowAllApps));
     menu_items.push(MenuItem::Separator);
     menu_items.push(MenuItem::Custom(CustomMenuItem::new(
-        "Set Warp as Default Terminal",
+        app_menu_text(ctx, "Set Warp as Default Terminal").as_ref(),
         move |ctx| {
             DefaultTerminal::handle(ctx).update(ctx, |default_terminal, ctx| {
                 default_terminal.make_warp_default(ctx)
@@ -230,7 +299,7 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
     )));
     menu_items.push(MenuItem::Separator);
     menu_items.push(MenuItem::Custom(CustomMenuItem::new(
-        "Log out",
+        app_menu_text(ctx, "Log out").as_ref(),
         auth::maybe_log_out,
         move |_, ctx| {
             let is_anonymous = AuthStateProvider::handle(ctx)
@@ -254,7 +323,7 @@ fn make_new_file_menu(ctx: &AppContext) -> Menu {
         MenuItem::Separator,
         updateable_custom_item_without_checkmark(CustomAction::OpenRepository, ctx),
         MenuItem::Custom(CustomMenuItem::new_with_submenu(
-            "Open Recent",
+            app_menu_text(ctx, "Open Recent").as_ref(),
             |_| (),
             |_props, ctx| {
                 let recent_repos = generate_recent_repos_for_menu(ctx);
@@ -272,7 +341,7 @@ fn make_new_file_menu(ctx: &AppContext) -> Menu {
         updateable_custom_item_without_checkmark(CustomAction::CloseWindow, ctx),
     ]);
 
-    Menu::new("File", file_menu_options)
+    Menu::new(app_menu_text(ctx, "File").into_owned(), file_menu_options)
 }
 
 fn make_new_edit_menu(ctx: &AppContext) -> Menu {
@@ -301,7 +370,7 @@ fn make_new_edit_menu(ctx: &AppContext) -> Menu {
     ];
     let group_5 = vec![
         MenuItem::Custom(CustomMenuItem::new(
-            "Use Warp's Prompt",
+            app_menu_text(ctx, "Use Warp's Prompt").as_ref(),
             move |ctx| ctx.dispatch_global_action("app:toggle_user_ps1", &()),
             move |_props, ctx| MenuItemPropertyChanges {
                 checked: Some(
@@ -314,7 +383,7 @@ fn make_new_edit_menu(ctx: &AppContext) -> Menu {
             None,
         )),
         MenuItem::Custom(CustomMenuItem::new(
-            "Copy on Select within the Terminal",
+            app_menu_text(ctx, "Copy on Select within the Terminal").as_ref(),
             move |ctx| {
                 ctx.dispatch_global_action("app:toggle_copy_on_select", &());
             },
@@ -340,7 +409,7 @@ fn make_new_edit_menu(ctx: &AppContext) -> Menu {
     edit_menu_items.push(MenuItem::Separator);
 
     edit_menu_items.push(MenuItem::Custom(CustomMenuItem::new_with_submenu(
-        "Synchronize Inputs",
+        app_menu_text(ctx, "Synchronize Inputs").as_ref(),
         |_| (),
         no_updates,
         None,
@@ -372,7 +441,7 @@ fn make_new_edit_menu(ctx: &AppContext) -> Menu {
 
     edit_menu_items.extend(group_5);
 
-    Menu::new("Edit", edit_menu_items)
+    Menu::new(app_menu_text(ctx, "Edit").into_owned(), edit_menu_items)
 }
 
 fn make_new_view_menu(ctx: &AppContext) -> Menu {
@@ -392,7 +461,7 @@ fn make_new_view_menu(ctx: &AppContext) -> Menu {
         updateable_custom_item_without_checkmark(CustomAction::Workflows, ctx),
         MenuItem::Separator,
         MenuItem::Custom(CustomMenuItem::new(
-            "Toggle Mouse Reporting",
+            app_menu_text(ctx, "Toggle Mouse Reporting").as_ref(),
             move |ctx| {
                 ctx.dispatch_global_action("workspace:toggle_mouse_reporting", &());
             },
@@ -409,7 +478,7 @@ fn make_new_view_menu(ctx: &AppContext) -> Menu {
             None,
         )),
         MenuItem::Custom(CustomMenuItem::new(
-            "Toggle Scroll Reporting",
+            app_menu_text(ctx, "Toggle Scroll Reporting").as_ref(),
             move |ctx| {
                 ctx.dispatch_global_action("workspace:toggle_scroll_reporting", &());
             },
@@ -424,7 +493,7 @@ fn make_new_view_menu(ctx: &AppContext) -> Menu {
             None,
         )),
         MenuItem::Custom(CustomMenuItem::new(
-            "Toggle Focus Reporting",
+            app_menu_text(ctx, "Toggle Focus Reporting").as_ref(),
             move |ctx| {
                 ctx.dispatch_global_action("workspace:toggle_focus_reporting", &());
             },
@@ -450,7 +519,7 @@ fn make_new_view_menu(ctx: &AppContext) -> Menu {
     items.extend([
         MenuItem::Separator,
         MenuItem::Custom(CustomMenuItem::new(
-            "Compact Mode",
+            app_menu_text(ctx, "Compact Mode").as_ref(),
             move |ctx| {
                 TerminalSettings::handle(ctx).update(ctx, |terminal_settings, ctx| {
                     let current_value = *terminal_settings.spacing_mode;
@@ -484,7 +553,7 @@ fn make_new_view_menu(ctx: &AppContext) -> Menu {
         ]);
     }
 
-    Menu::new("View", items)
+    Menu::new(app_menu_text(ctx, "View").into_owned(), items)
 }
 
 fn make_new_tab_menu(ctx: &AppContext) -> Menu {
@@ -511,7 +580,7 @@ fn make_new_tab_menu(ctx: &AppContext) -> Menu {
         updateable_custom_item_without_checkmark(CustomAction::CloseOtherTabs, ctx),
         updateable_custom_item_without_checkmark(CustomAction::CloseTabsRight, ctx),
     ];
-    Menu::new("Tab", items)
+    Menu::new(app_menu_text(ctx, "Tab").into_owned(), items)
 }
 
 fn make_new_ai_menu(ctx: &AppContext) -> Menu {
@@ -544,7 +613,7 @@ fn make_new_ai_menu(ctx: &AppContext) -> Menu {
         ));
     }
 
-    Menu::new("AI", items)
+    Menu::new(app_menu_text(ctx, "AI").into_owned(), items)
 }
 
 fn make_new_blocks_menu(ctx: &AppContext) -> Menu {
@@ -582,7 +651,7 @@ fn make_new_blocks_menu(ctx: &AppContext) -> Menu {
         items.extend(debug_items);
     }
 
-    Menu::new("Blocks", items)
+    Menu::new(app_menu_text(ctx, "Blocks").into_owned(), items)
 }
 
 fn make_new_drive_menu(ctx: &AppContext) -> Menu {
@@ -626,7 +695,7 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
         ])
     }
 
-    Menu::new("Drive", items)
+    Menu::new(app_menu_text(ctx, "Drive").into_owned(), items)
 }
 
 /// Returns [`MenuItem`]s that aid debugging to be included in the Block menu.
@@ -658,9 +727,9 @@ fn block_menu_debug_items() -> Vec<MenuItem> {
             let name = if BlockVisibilitySettings::handle(ctx).read(ctx, |settings, _ctx| {
                 *settings.should_show_in_band_command_blocks.value()
             }) {
-                HIDE_IN_BAND_COMMAND_BLOCKS_MENU_ITEM_NAME.to_owned()
+                app_menu_text(ctx, HIDE_IN_BAND_COMMAND_BLOCKS_MENU_ITEM_NAME).into_owned()
             } else {
-                SHOW_IN_BAND_COMMAND_BLOCKS_MENU_ITEM_NAME.to_owned()
+                app_menu_text(ctx, SHOW_IN_BAND_COMMAND_BLOCKS_MENU_ITEM_NAME).into_owned()
             };
 
             MenuItemPropertyChanges {
@@ -689,9 +758,9 @@ fn block_menu_debug_items() -> Vec<MenuItem> {
             let name = if BlockVisibilitySettings::handle(ctx).read(ctx, |settings, _ctx| {
                 *settings.should_show_ssh_block.value()
             }) {
-                HIDE_SSH_COMMAND_BLOCKS_MENU_ITEM_NAME.to_owned()
+                app_menu_text(ctx, HIDE_SSH_COMMAND_BLOCKS_MENU_ITEM_NAME).into_owned()
             } else {
-                SHOW_SSH_COMMAND_BLOCKS_MENU_ITEM_NAME.to_owned()
+                app_menu_text(ctx, SHOW_SSH_COMMAND_BLOCKS_MENU_ITEM_NAME).into_owned()
             };
 
             MenuItemPropertyChanges {
@@ -725,9 +794,9 @@ fn toggle_bootstrap_block_menu_item() -> MenuItem {
             let name = if BlockVisibilitySettings::handle(ctx).read(ctx, |settings, _ctx| {
                 *settings.should_show_bootstrap_block.value()
             }) {
-                HIDE_BOOTSTRAP_BLOCK_MENU_ITEM_NAME.to_owned()
+                app_menu_text(ctx, HIDE_BOOTSTRAP_BLOCK_MENU_ITEM_NAME).into_owned()
             } else {
-                SHOW_BOOTSTRAP_BLOCK_MENU_ITEM_NAME.to_owned()
+                app_menu_text(ctx, SHOW_BOOTSTRAP_BLOCK_MENU_ITEM_NAME).into_owned()
             };
 
             MenuItemPropertyChanges {
@@ -739,9 +808,9 @@ fn toggle_bootstrap_block_menu_item() -> MenuItem {
     ))
 }
 
-fn make_new_window_menu() -> Menu {
+fn make_new_window_menu(ctx: &AppContext) -> Menu {
     Menu::new(
-        "Window",
+        app_menu_text(ctx, "Window").into_owned(),
         vec![
             MenuItem::Standard(StandardAction::Minimize),
             MenuItem::Standard(StandardAction::Zoom),
@@ -752,7 +821,7 @@ fn make_new_window_menu() -> Menu {
     )
 }
 
-fn debug_menu_items() -> Vec<MenuItem> {
+fn debug_menu_items(_ctx: &AppContext) -> Vec<MenuItem> {
     let mut debug_menu_items = vec![];
 
     if FeatureFlag::DebugMode.is_enabled() {
@@ -773,9 +842,9 @@ fn debug_menu_items() -> Vec<MenuItem> {
                 let name = if DebugSettings::handle(ctx).read(ctx, |settings, _ctx| {
                     *settings.is_shell_debug_mode_enabled.value()
                 }) {
-                    DISABLE_SHELL_DEBUG_MODE_MENU_ITEM_NAME.to_owned()
+                    app_menu_text(ctx, DISABLE_SHELL_DEBUG_MODE_MENU_ITEM_NAME).into_owned()
                 } else {
-                    ENABLE_SHELL_DEBUG_MODE_MENU_ITEM_NAME.to_owned()
+                    app_menu_text(ctx, ENABLE_SHELL_DEBUG_MODE_MENU_ITEM_NAME).into_owned()
                 };
 
                 MenuItemPropertyChanges {
@@ -798,9 +867,9 @@ fn debug_menu_items() -> Vec<MenuItem> {
                 let name = if DebugSettings::handle(ctx)
                     .read(ctx, |settings, _ctx| *settings.recording_mode.value())
                 {
-                    DISABLE_PTY_RECORDING.to_owned()
+                    app_menu_text(ctx, DISABLE_PTY_RECORDING).into_owned()
                 } else {
-                    ENABLE_PTY_RECORDING.to_owned()
+                    app_menu_text(ctx, ENABLE_PTY_RECORDING).into_owned()
                 };
 
                 MenuItemPropertyChanges {
@@ -834,9 +903,9 @@ fn debug_menu_items() -> Vec<MenuItem> {
                         .are_in_band_generators_for_all_sessions_enabled
                         .value()
                 }) {
-                    DISABLE_IN_BAND_GENERATORS_MENU_ITEM_NAME.to_owned()
+                    app_menu_text(ctx, DISABLE_IN_BAND_GENERATORS_MENU_ITEM_NAME).into_owned()
                 } else {
-                    ENABLE_IN_BAND_GENERATORS_MENU_ITEM_NAME.to_owned()
+                    app_menu_text(ctx, ENABLE_IN_BAND_GENERATORS_MENU_ITEM_NAME).into_owned()
                 };
 
                 MenuItemPropertyChanges {
@@ -854,7 +923,7 @@ fn debug_menu_items() -> Vec<MenuItem> {
         debug_menu_items.push(MenuItem::Custom(CustomMenuItem::new(
             "Manually Toggle Network Status",
             move |ctx| ctx.dispatch_global_action("workspace:toggle_debug_network_status", &()),
-            no_updates,
+            localize_menu_item_name,
             None,
         )));
 
@@ -881,14 +950,14 @@ fn debug_menu_items() -> Vec<MenuItem> {
                 }
                 let _ = writer.flush();
             },
-            no_updates,
+            localize_menu_item_name,
             None,
         )));
 
         debug_menu_items.push(MenuItem::Custom(CustomMenuItem::new(
             "Create anonymous user",
             move |ctx| ctx.dispatch_global_action("workspace:debug_create_anonymous_user", &()),
-            no_updates,
+            localize_menu_item_name,
             None,
         )));
     }
@@ -900,13 +969,13 @@ fn debug_menu_items() -> Vec<MenuItem> {
     debug_menu_items
 }
 
-fn link_menu_item(title: &'static str, link: Cow<'static, str>) -> MenuItem {
+fn link_menu_item(ctx: &AppContext, title: &'static str, link: Cow<'static, str>) -> MenuItem {
     MenuItem::Custom(CustomMenuItem::new(
-        title,
+        app_menu_text(ctx, title).as_ref(),
         move |ctx| {
             ctx.open_url(&link);
         },
-        no_updates,
+        localize_menu_item_name,
         None,
     ))
 }
@@ -920,19 +989,19 @@ fn feedback_menu_item() -> MenuItem {
             // browser-based feedback form.
             ctx.dispatch_global_action("root_view:send_feedback", &());
         },
-        no_updates,
+        localize_menu_item_name,
         None,
     ))
 }
 
-fn make_new_help_menu() -> Menu {
+fn make_new_help_menu(ctx: &AppContext) -> Menu {
     Menu::new(
-        "Help",
+        app_menu_text(ctx, "Help").into_owned(),
         vec![
             feedback_menu_item(),
-            link_menu_item("Warp Documentation...", links::USER_DOCS_URL.into()),
-            link_menu_item("GitHub Issues...", links::GITHUB_ISSUES_URL.into()),
-            link_menu_item("Join our Slack community...", links::SLACK_URL.into()),
+            link_menu_item(ctx, "Warp Documentation...", links::USER_DOCS_URL.into()),
+            link_menu_item(ctx, "GitHub Issues...", links::GITHUB_ISSUES_URL.into()),
+            link_menu_item(ctx, "Join our Slack community...", links::SLACK_URL.into()),
         ],
     )
 }
@@ -966,7 +1035,7 @@ fn make_launch_config_menu_items(ctx: &mut AppContext) -> Vec<MenuItem> {
 
     // TODO(vorporeal): use non_updateable_custom_item() here instead
     launch_config_menu_items.push(MenuItem::Custom(CustomMenuItem::new(
-        "Save New...",
+        app_menu_text(ctx, "Save New...").as_ref(),
         custom_action_dispatcher(CustomAction::SaveCurrentConfig),
         no_updates,
         custom_shortcut(CustomAction::SaveCurrentConfig),
@@ -981,13 +1050,13 @@ fn make_new_elements_menu_items(ctx: &AppContext) -> Vec<MenuItem> {
     // shows its dedicated keystroke instead.
     let mut new_elements_menu = vec![
         MenuItem::Custom(CustomMenuItem::new(
-            "New Window",
+            app_menu_text(ctx, "New Window").as_ref(),
             open_new_window,
-            no_updates,
+            localize_menu_item_name,
             Some(Keystroke::parse("cmd-n").expect("Valid keystroke")),
         )),
         MenuItem::Custom(CustomMenuItem::new(
-            "New Terminal Tab",
+            app_menu_text(ctx, "New Terminal Tab").as_ref(),
             open_new_default_tab_or_window,
             move |_props: &MenuItemProperties, ctx: &mut AppContext| {
                 let mut changes = MenuItemPropertyChanges::default();
@@ -1012,7 +1081,7 @@ fn make_new_elements_menu_items(ctx: &AppContext) -> Vec<MenuItem> {
             Some(Keystroke::parse("cmd-t").expect("Valid keystroke")),
         )),
         MenuItem::Custom(CustomMenuItem::new(
-            "New Agent Tab",
+            app_menu_text(ctx, "New Agent Tab").as_ref(),
             open_new_agent_tab_or_window,
             move |_props: &MenuItemProperties, ctx: &mut AppContext| {
                 let mut changes = MenuItemPropertyChanges::default();
@@ -1048,7 +1117,7 @@ fn make_new_elements_menu_items(ctx: &AppContext) -> Vec<MenuItem> {
     let reopen_session_action_updater =
         custom_action_updater(CustomAction::ReopenClosedSession, Box::new(|_| false));
     new_elements_menu.push(MenuItem::Custom(CustomMenuItem::new(
-        "Reopen closed session",
+        app_menu_text(ctx, "Reopen closed session").as_ref(),
         |ctx| {
             UndoCloseStack::handle(ctx).update(ctx, |stack, ctx| {
                 stack.undo_close(ctx);
@@ -1063,7 +1132,7 @@ fn make_new_elements_menu_items(ctx: &AppContext) -> Vec<MenuItem> {
     )));
 
     new_elements_menu.push(MenuItem::Custom(CustomMenuItem::new_with_submenu(
-        "Launch Configurations",
+        app_menu_text(ctx, "Launch Configurations").as_ref(),
         |_| (),
         |_props, ctx| MenuItemPropertyChanges {
             submenu: Some(Some(make_launch_config_menu_items(ctx))),
@@ -1114,6 +1183,16 @@ fn open_new_window(ctx: &mut AppContext) {
 /// No-op updater function for custom menu items that never change.
 fn no_updates(_: &MenuItemProperties, _: &mut AppContext) -> MenuItemPropertyChanges {
     Default::default()
+}
+
+fn localize_menu_item_name(
+    props: &MenuItemProperties,
+    ctx: &mut AppContext,
+) -> MenuItemPropertyChanges {
+    MenuItemPropertyChanges {
+        name: Some(app_menu_text(ctx, &props.name).into_owned()),
+        ..Default::default()
+    }
 }
 
 fn make_recent_repos_menu_items(ctx: &AppContext) -> Vec<MenuItem> {

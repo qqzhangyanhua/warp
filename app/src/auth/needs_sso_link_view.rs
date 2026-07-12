@@ -5,8 +5,8 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View
 
 use super::auth_manager::AuthManager;
 use crate::appearance::Appearance;
-use crate::i18n::{tr, Message};
 use crate::auth::login_error_modal::LoginErrorModal;
+use crate::i18n::{tr, Message};
 
 #[derive(Debug)]
 pub enum NeedsSsoLinkViewAction {

@@ -15,6 +15,7 @@ use warpui::{
 
 use crate::appearance::Appearance;
 use crate::editor::{self, EditorView, SingleLineEditorOptions, TextOptions};
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::features_page::render_group;
 use crate::settings_view::settings_page::{render_body_item, LocalOnlyIconState, ToggleState};
 use crate::undo_close::settings::UndoCloseEnabled;
@@ -133,7 +134,7 @@ impl UndoCloseView {
             .with_child(
                 Container::new(
                     Text::new_inline(
-                        "Grace period (seconds)",
+                        tr_cached(Message::FeaturesGracePeriodSeconds),
                         appearance.ui_font_family(),
                         appearance.ui_font_size(),
                     )
@@ -174,7 +175,7 @@ impl View for UndoCloseView {
         let mut column = Flex::column()
             .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
             .with_child(render_body_item::<Action>(
-                "Enable reopening of closed sessions".into(),
+                tr_cached(Message::FeaturesEnableReopeningClosedSessions).into(),
                 None,
                 LocalOnlyIconState::for_setting(
                     UndoCloseEnabled::storage_key(),

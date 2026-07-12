@@ -452,7 +452,11 @@ pub fn render_privacy_settings_toggles<A: Action + Clone + 'static>(
         .with_child(
             Shrinkable::new(
                 1.,
-                render_privacy_settings_section_header(tr(app, Message::AuthHelpImproveWarp), appearance).finish(),
+                render_privacy_settings_section_header(
+                    tr(app, Message::AuthHelpImproveWarp),
+                    appearance,
+                )
+                .finish(),
             )
             .finish(),
         )
@@ -497,7 +501,11 @@ pub fn render_privacy_settings_toggles<A: Action + Clone + 'static>(
         .with_child(
             Shrinkable::new(
                 1.,
-                render_privacy_settings_section_header(tr(app, Message::AuthSendCrashReports), appearance).finish(),
+                render_privacy_settings_section_header(
+                    tr(app, Message::AuthSendCrashReports),
+                    appearance,
+                )
+                .finish(),
             )
             .finish(),
         )
@@ -514,10 +522,8 @@ pub fn render_privacy_settings_toggles<A: Action + Clone + 'static>(
         )
         .finish();
 
-    let crash_reporting_description = render_description(
-        appearance,
-        tr(app, Message::AuthCrashReportingHelps).into(),
-    );
+    let crash_reporting_description =
+        render_description(appearance, tr(app, Message::AuthCrashReportingHelps).into());
 
     let toggle_cloud = actions.toggle_cloud_conversation_storage.clone();
     let cloud_conversation_storage_toggle = Flex::row()

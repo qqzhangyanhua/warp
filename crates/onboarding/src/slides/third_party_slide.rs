@@ -141,7 +141,10 @@ impl ThirdPartySlide {
     fn render_header(&self, appearance: &Appearance) -> Box<dyn Element> {
         let title = appearance
             .ui_builder()
-            .paragraph(i18n::tr(OnboardingMessage::CustomizeThirdPartyAgents, self.locale))
+            .paragraph(i18n::tr(
+                OnboardingMessage::CustomizeThirdPartyAgents,
+                self.locale,
+            ))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -272,7 +275,9 @@ impl ThirdPartySlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Back, self.locale).into(),
+                ),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -287,7 +292,9 @@ impl ThirdPartySlide {
         let next_button = self.next_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Next, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Next, self.locale).into(),
+                ),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),

@@ -9,6 +9,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::dialog::{dialog_styles, Dialog};
 use crate::view_components::action_button::{ActionButton, DangerPrimaryTheme, NakedTheme};
 
@@ -37,15 +38,21 @@ pub struct RemoveCustomEndpointConfirmationDialog {
 impl RemoveCustomEndpointConfirmationDialog {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
         let cancel_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Cancel", NakedTheme).on_click(|ctx| {
-                ctx.dispatch_typed_action(RemoveCustomEndpointConfirmationDialogAction::Cancel);
-            })
+            ActionButton::new(tr_cached(Message::CustomInferenceCancel), NakedTheme).on_click(
+                |ctx| {
+                    ctx.dispatch_typed_action(RemoveCustomEndpointConfirmationDialogAction::Cancel);
+                },
+            )
         });
 
         let confirm_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Remove endpoint", DangerPrimaryTheme).on_click(|ctx| {
-                ctx.dispatch_typed_action(RemoveCustomEndpointConfirmationDialogAction::Confirm);
-            })
+            ActionButton::new(tr_cached(Message::AiRemoveEndpoint), DangerPrimaryTheme).on_click(
+                |ctx| {
+                    ctx.dispatch_typed_action(
+                        RemoveCustomEndpointConfirmationDialogAction::Confirm,
+                    );
+                },
+            )
         });
 
         Self {
@@ -99,7 +106,7 @@ impl View for RemoveCustomEndpointConfirmationDialog {
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();
 
-        let description = "Are you sure you want to remove this endpoint? You won't be able to use its models in your agent sessions moving forward.".to_string();
+        let description = tr_cached(Message::AiRemoveEndpointDescription).to_string();
 
         let endpoint_title = Text::new_inline(
             self.endpoint_name.clone(),
@@ -130,7 +137,7 @@ impl View for RemoveCustomEndpointConfirmationDialog {
         .finish();
 
         let dialog = Dialog::new(
-            "Remove endpoint?".to_string(),
+            tr_cached(Message::AiRemoveEndpointQuestion).to_string(),
             Some(description),
             dialog_styles(appearance),
         )

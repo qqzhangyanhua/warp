@@ -22,7 +22,7 @@ set -e
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 cd "${REPO_ROOT}"
 
-./script/install_channel_config || echo "Skipping internal channel config installation (no repo access)."
+./script/install_channel_config
 
 if command -v warp-channel-config &>/dev/null; then
     BIN="warp-tui"

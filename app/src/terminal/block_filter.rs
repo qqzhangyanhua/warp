@@ -18,19 +18,17 @@ use warpui::{
 
 use super::model::find::{FindConfig, RegexDFAs};
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditOrigin, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys,
     SingleLineEditorOptions, TextOptions, ValidInputType,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
 use crate::terminal::model::terminal_model::BlockIndex;
 use crate::themes::theme::Fill;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
-
-const FILTER_BLOCK_PLACEHOLDER_TEXT: &str = "Filter block output";
 
 const BLOCK_FILTER_BAR_WIDTH: f32 = 380.;
 const BLOCK_FILTER_BAR_PADDING: f32 = 4.;
@@ -48,10 +46,6 @@ const MAXIMUM_CONTEXT_LINES: u16 = 99;
 const MAXIMUM_CONTEXT_LINE_EDITOR_BUFFER_LENGTH: usize = 2;
 pub type ContextLines = u16;
 pub const DEFAULT_CONTEXT_LINES_VALUE: ContextLines = 0;
-const CONTEXT_LINE_EDITOR_TOOLTIP_LABEL: &str = "Show context lines around matches";
-const REGEX_TOOLTIP_LABEL: &str = "Regex toggle";
-const CASE_SENSITIVITY_TOOLTIP_LABEL: &str = "Case sensitive search";
-const INVERT_FILTER_TOOLTIP_LABEL: &str = "Invert filter";
 
 pub const BLOCK_FILTER_DOTTED_LINE_DASH: Dash = Dash {
     dash_length: 4.,

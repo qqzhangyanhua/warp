@@ -119,7 +119,9 @@ impl View for WebHandoffView {
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         let label = match &self.state {
-            HandoffState::LoadingFromHost | HandoffState::LoadingFromSessionCookie => tr(app, Message::AuthLoading),
+            HandoffState::LoadingFromHost | HandoffState::LoadingFromSessionCookie => {
+                tr(app, Message::AuthLoading)
+            }
             HandoffState::Failed => tr(app, Message::AuthErrorAuthenticatingRefresh),
         };
 

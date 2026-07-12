@@ -249,23 +249,32 @@ impl PromptRenderHelper {
         if let Some(pending_session_id) = model.pending_session_id() {
             if let Some(state) = sessions.remote_server_setup_state(pending_session_id) {
                 return match state {
-                    RemoteServerSetupState::Checking => tr_cached(Message::TerminalStartingShell).to_string(),
+                    RemoteServerSetupState::Checking => {
+                        tr_cached(Message::TerminalStartingShell).to_string()
+                    }
                     RemoteServerSetupState::Installing {
                         progress_percent: Some(p),
-                    } => tr_cached(Message::TerminalInstallingSshExtensionPct).replace("{p}", &p.to_string()),
+                    } => tr_cached(Message::TerminalInstallingSshExtensionPct)
+                        .replace("{p}", &p.to_string()),
                     RemoteServerSetupState::Installing {
                         progress_percent: None,
                     } => tr_cached(Message::TerminalInstallingSshExtension).to_string(),
                     RemoteServerSetupState::Updating => {
                         tr_cached(Message::TerminalUpdatingSshExtension).to_string()
                     }
-                    RemoteServerSetupState::Initializing => tr_cached(Message::TerminalInitializing).to_string(),
-                    RemoteServerSetupState::Ready => tr_cached(Message::TerminalStartingShell).to_string(),
+                    RemoteServerSetupState::Initializing => {
+                        tr_cached(Message::TerminalInitializing).to_string()
+                    }
+                    RemoteServerSetupState::Ready => {
+                        tr_cached(Message::TerminalStartingShell).to_string()
+                    }
                     // Failed and Unsupported both fall back to the wrapper-only SSH
                     // flow, so we render the same generic prompt as a normal
                     // SSH session that doesn't have the remote-server extension.
                     RemoteServerSetupState::Failed { .. }
-                    | RemoteServerSetupState::Unsupported { .. } => tr_cached(Message::TerminalStartingShell).to_string(),
+                    | RemoteServerSetupState::Unsupported { .. } => {
+                        tr_cached(Message::TerminalStartingShell).to_string()
+                    }
                 };
             }
         }
@@ -273,7 +282,8 @@ impl PromptRenderHelper {
         if !sessions.is_empty() {
             tr_cached(Message::TerminalStartingShell).to_string()
         } else {
-            tr_cached(Message::TerminalStartingNamedShell).replace("{}", &model.shell_launch_state().display_name())
+            tr_cached(Message::TerminalStartingNamedShell)
+                .replace("{}", &model.shell_launch_state().display_name())
         }
     }
 

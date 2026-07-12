@@ -358,7 +358,9 @@ impl AiAccessSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Back, self.locale).into(),
+                ),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -373,7 +375,9 @@ impl AiAccessSlide {
         let next_button = self.next_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Next, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Next, self.locale).into(),
+                ),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),
@@ -470,7 +474,10 @@ impl AiAccessSlide {
             .with_child(
                 Container::new(
                     ui_builder
-                        .span(i18n::tr(OnboardingMessage::IfBrowserHasntLaunched, self.locale))
+                        .span(i18n::tr(
+                            OnboardingMessage::IfBrowserHasntLaunched,
+                            self.locale,
+                        ))
                         .with_style(text_styles)
                         .build()
                         .finish(),
@@ -481,7 +488,10 @@ impl AiAccessSlide {
             .with_child(copy_url_link)
             .with_child(
                 ui_builder
-                    .span(i18n::tr(OnboardingMessage::AndOpenThePageManually, self.locale))
+                    .span(i18n::tr(
+                        OnboardingMessage::AndOpenThePageManually,
+                        self.locale,
+                    ))
                     .with_style(text_styles)
                     .build()
                     .finish(),

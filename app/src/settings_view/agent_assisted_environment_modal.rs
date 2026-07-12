@@ -31,6 +31,7 @@ use warpui::ui_components::components::UiComponent;
 use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::modal::MODAL_BACKDROP_OPACITY;
 use crate::themes::theme::Blend;
 use crate::ui_components::buttons::icon_button;
@@ -103,13 +104,17 @@ impl AgentAssistedEnvironmentModal {
         });
 
         let cancel_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Cancel", SecondaryTheme).on_click(|ctx| {
+            ActionButton::new(tr_cached(Message::SettingsCancel), SecondaryTheme).on_click(|ctx| {
                 ctx.dispatch_typed_action(AgentAssistedEnvironmentModalAction::Cancel);
             })
         });
 
         let create_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Create environment", PrimaryTheme).on_click(|ctx| {
+            ActionButton::new(
+                tr_cached(Message::EnvironmentFormCreateEnvironment),
+                PrimaryTheme,
+            )
+            .on_click(|ctx| {
                 ctx.dispatch_typed_action(AgentAssistedEnvironmentModalAction::Confirm);
             })
         });

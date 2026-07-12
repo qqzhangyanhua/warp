@@ -283,7 +283,9 @@ impl ProjectSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Back, self.locale).into(),
+                ),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -411,7 +413,10 @@ impl ProjectSlide {
             appearance,
             self.initialize_projects_automatically_mouse_state.clone(),
             initialize_projects_automatically,
-            i18n::tr(OnboardingMessage::InitializeProjectAutomatically, self.locale),
+            i18n::tr(
+                OnboardingMessage::InitializeProjectAutomatically,
+                self.locale,
+            ),
             i18n::tr(OnboardingMessage::InitializeProjectDescription, self.locale),
             ProjectSlideAction::ToggleInitializeProjectsAutomatically,
         );

@@ -3,8 +3,8 @@ use settings::Setting as _;
 use warpui::{AppContext, SingletonEntity};
 
 use crate::auth::AuthStateProvider;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::settings::AISettings;
 use crate::ui_components::icons::Icon;
 use crate::workspace::tab_settings::TabSettings;

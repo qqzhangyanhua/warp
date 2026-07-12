@@ -128,6 +128,24 @@ pub enum OnboardingMessage {
     GiveMeAiFeatures,
     IDontWantAi,
     PlanSuccessfullyActivated,
+
+    // --- onboarding callouts ---
+    MeetWarpInput,
+    UniversalInputDescription,
+    TalkToAgent,
+    TalkToAgentDescription,
+    Submit,
+    Finish,
+    WelcomeTerminalMode,
+    YoureInTerminalMode,
+    TerminalModeDescription,
+    EnableNaturalLanguageDetection,
+    YoureInAgentMode,
+    AgentModeProjectDescription,
+    SkipInitialization,
+    Initialize,
+    AgentModeDescription,
+    BackToTerminal,
 }
 
 /// Resolves a message to its translated text for the given locale.
@@ -303,6 +321,42 @@ fn en_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::GiveMeAiFeatures => "Give me AI features",
         OnboardingMessage::IDontWantAi => "I don't want AI",
         OnboardingMessage::PlanSuccessfullyActivated => "Plan successfully activated!",
+
+        OnboardingMessage::MeetWarpInput => "Meet the Warp input",
+        OnboardingMessage::UniversalInputDescription => {
+            "Your terminal input accepts both terminal commands and agent prompts and automatically \
+             detects which you're using. Use {} to lock the input to Agent mode (natural language) \
+             or Terminal mode (commands)."
+        },
+        OnboardingMessage::TalkToAgent => "Talk to the agent",
+        OnboardingMessage::TalkToAgentDescription => {
+            "You can type in natural language to engage the agent. Submit the query below to start: \
+             What tests exist in this repo, how are they structured, and what do they cover?"
+        },
+        OnboardingMessage::Submit => "Submit",
+        OnboardingMessage::Finish => "Finish",
+        OnboardingMessage::WelcomeTerminalMode => "Welcome to terminal mode",
+        OnboardingMessage::YoureInTerminalMode => "You’re in terminal mode",
+        OnboardingMessage::TerminalModeDescription => {
+            "Run commands here, just like a regular terminal. If you type a question or task using \
+             natural language, Warp can suggest opening it in agent mode. You can always override \
+             using {}."
+        },
+        OnboardingMessage::EnableNaturalLanguageDetection => "Enable Natural Language Detection",
+        OnboardingMessage::YoureInAgentMode => "You're in agent mode",
+        OnboardingMessage::AgentModeProjectDescription => {
+            "Agent mode gives your questions and tasks their own conversation, so you can ask \
+             follow-ups without leaving your terminal workflow.\n\nSubmit the query below to have \
+             the agent initialize this project, or ⊗ to clear the input and start your own!"
+        },
+        OnboardingMessage::SkipInitialization => "Skip initialization",
+        OnboardingMessage::Initialize => "Initialize",
+        OnboardingMessage::AgentModeDescription => {
+            "Agent mode gives your questions and tasks their own conversation, so you can ask \
+             follow-ups without leaving your terminal workflow. Press {} to return to terminal mode \
+             at any point."
+        },
+        OnboardingMessage::BackToTerminal => "Back to terminal",
     }
 }
 
@@ -438,6 +492,36 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::GiveMeAiFeatures => "我要 AI 功能",
         OnboardingMessage::IDontWantAi => "我不需要 AI",
         OnboardingMessage::PlanSuccessfullyActivated => "计划已成功激活！",
+
+        OnboardingMessage::MeetWarpInput => "认识 Warp 输入框",
+        OnboardingMessage::UniversalInputDescription => {
+            "终端输入框既能输入终端命令，也能输入 Agent 提示词，并会自动识别你正在使用哪一种。使用 {} 可将输入锁定为 \
+             Agent 模式（自然语言）或终端模式（命令）。"
+        },
+        OnboardingMessage::TalkToAgent => "和 Agent 对话",
+        OnboardingMessage::TalkToAgentDescription => {
+            "你可以用自然语言与 Agent 交互。提交下方问题开始：这个仓库里有哪些测试，它们如何组织，覆盖了什么？"
+        },
+        OnboardingMessage::Submit => "提交",
+        OnboardingMessage::Finish => "完成",
+        OnboardingMessage::WelcomeTerminalMode => "欢迎使用终端模式",
+        OnboardingMessage::YoureInTerminalMode => "你正在使用终端模式",
+        OnboardingMessage::TerminalModeDescription => {
+            "在这里运行命令，就像使用普通终端一样。如果你输入自然语言问题或任务，Warp 可以建议在 Agent 模式中打开。\
+             你随时可以使用 {} 手动切换。"
+        },
+        OnboardingMessage::EnableNaturalLanguageDetection => "启用自然语言检测",
+        OnboardingMessage::YoureInAgentMode => "你正在使用 Agent 模式",
+        OnboardingMessage::AgentModeProjectDescription => {
+            "Agent 模式会为你的问题和任务创建独立对话，因此你可以继续追问而不离开终端工作流。\n\n提交下方查询，\
+             让 Agent 初始化此项目；也可以点击 ⊗ 清空输入并开始你自己的任务。"
+        },
+        OnboardingMessage::SkipInitialization => "跳过初始化",
+        OnboardingMessage::Initialize => "初始化",
+        OnboardingMessage::AgentModeDescription => {
+            "Agent 模式会为你的问题和任务创建独立对话，因此你可以继续追问而不离开终端工作流。按 {} 可随时返回终端模式。"
+        },
+        OnboardingMessage::BackToTerminal => "返回终端",
     }
 }
 
@@ -555,5 +639,21 @@ mod tests {
         OnboardingMessage::GiveMeAiFeatures,
         OnboardingMessage::IDontWantAi,
         OnboardingMessage::PlanSuccessfullyActivated,
+        OnboardingMessage::MeetWarpInput,
+        OnboardingMessage::UniversalInputDescription,
+        OnboardingMessage::TalkToAgent,
+        OnboardingMessage::TalkToAgentDescription,
+        OnboardingMessage::Submit,
+        OnboardingMessage::Finish,
+        OnboardingMessage::WelcomeTerminalMode,
+        OnboardingMessage::YoureInTerminalMode,
+        OnboardingMessage::TerminalModeDescription,
+        OnboardingMessage::EnableNaturalLanguageDetection,
+        OnboardingMessage::YoureInAgentMode,
+        OnboardingMessage::AgentModeProjectDescription,
+        OnboardingMessage::SkipInitialization,
+        OnboardingMessage::Initialize,
+        OnboardingMessage::AgentModeDescription,
+        OnboardingMessage::BackToTerminal,
     ];
 }

@@ -205,7 +205,12 @@ fn has_any_key_false_for_endpoint_with_empty_api_key() {
 #[test]
 fn has_valid_custom_endpoint_true_for_complete_endpoint() {
     let keys = ApiKeys {
-        custom_endpoints: vec![endpoint("ep", "http://localhost:8080/v1", "key", &[("m", None)])],
+        custom_endpoints: vec![endpoint(
+            "ep",
+            "http://localhost:8080/v1",
+            "key",
+            &[("m", None)],
+        )],
         ..Default::default()
     };
     assert!(keys.has_valid_custom_endpoint());

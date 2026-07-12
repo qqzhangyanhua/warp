@@ -37,10 +37,10 @@ use super::grid_renderer::CellGlyphCache;
 use super::model::grid::RespectDisplayedOutput;
 use crate::ai::generate_block_title::api::GenerateBlockTitleRequest;
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditOrigin, EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::block::{Block as ServerBlock, DisplaySetting};
 use crate::server::server_api::block::BlockClient;
@@ -68,8 +68,6 @@ const INNER_MARGIN: f32 = 20.;
 const MODAL_WIDTH: f32 = 862.;
 const BLOCK_TITLE_INPUT_WIDTH: f32 = 800.;
 
-const BLOCK_TITLE_PLACEHOLDER: &str = "Title (optional)";
-
 // TODO(vorporeal): This is 12 in the specs, but I think our 14pt font is a bit
 // taller than 14pt?
 const VERTICAL_SEPARATOR_HEIGHT: f32 = 32.;
@@ -86,7 +84,6 @@ const OUTPUT_OPTION: (&str, DisplaySetting) = ("Output", DisplaySetting::Output)
 
 /// This default title is helpful for screen readers.
 const DEFAULT_EMBED_TITLE: &str = "embedded warp block";
-const BLOCK_CREATION_FAILED_MESSAGE: &str = "Something went wrong. Please try again.";
 
 #[derive(PartialEq)]
 enum ShareRequestState {

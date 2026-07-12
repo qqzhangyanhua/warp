@@ -38,9 +38,9 @@ use super::settings_page::{
 };
 use super::{flags, SettingsAction, SettingsSection, ToggleSettingActionPair};
 use crate::appearance::Appearance;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::auth::auth_manager::AuthManager;
 use crate::channel::ChannelState;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
@@ -85,7 +85,6 @@ const TELEMETRY_DOCS_URL: &str =
 const DATA_MANAGEMENT_DESCRIPTION: &str =
     "At any time, you may choose to delete your ZYH account permanently. \
     You will no longer be able to use ZYH.";
-
 
 pub fn data_management_url(custom_token: Option<&str>) -> String {
     match custom_token {
@@ -149,34 +148,38 @@ impl PrivacyPageView {
         });
 
         let add_regex_modal_view = ctx.add_typed_action_view(|ctx| {
-            Modal::new(Some(tr(ctx, Message::PrivacyAddRegexPattern).to_string()), add_regex_body, ctx)
-                .with_modal_style(UiComponentStyles {
-                    width: Some(600.),
-                    height: Some(400.),
-                    ..Default::default()
-                })
-                .with_header_style(UiComponentStyles {
-                    padding: Some(Coords {
-                        top: 24.,
-                        bottom: 0.,
-                        left: 24.,
-                        right: 24.,
-                    }),
-                    font_size: Some(16.),
-                    font_weight: Some(Weight::Bold),
-                    ..Default::default()
-                })
-                .with_body_style(UiComponentStyles {
-                    padding: Some(Coords {
-                        top: 0.,
-                        bottom: 24.,
-                        left: 24.,
-                        right: 24.,
-                    }),
-                    ..Default::default()
-                })
-                .with_background_opacity(100)
-                .with_dismiss_on_click()
+            Modal::new(
+                Some(tr(ctx, Message::PrivacyAddRegexPattern).to_string()),
+                add_regex_body,
+                ctx,
+            )
+            .with_modal_style(UiComponentStyles {
+                width: Some(600.),
+                height: Some(400.),
+                ..Default::default()
+            })
+            .with_header_style(UiComponentStyles {
+                padding: Some(Coords {
+                    top: 24.,
+                    bottom: 0.,
+                    left: 24.,
+                    right: 24.,
+                }),
+                font_size: Some(16.),
+                font_weight: Some(Weight::Bold),
+                ..Default::default()
+            })
+            .with_body_style(UiComponentStyles {
+                padding: Some(Coords {
+                    top: 0.,
+                    bottom: 24.,
+                    left: 24.,
+                    right: 24.,
+                }),
+                ..Default::default()
+            })
+            .with_background_opacity(100)
+            .with_dismiss_on_click()
         });
         ctx.subscribe_to_view(&add_regex_modal_view, |me, _, event, ctx| {
             me.handle_modal_event(event, ctx);
@@ -1001,9 +1004,10 @@ impl SecretRedactionWidget {
                         .with_main_axis_size(MainAxisSize::Max)
                         .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
                         .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                        .with_child(
-                            self.render_section_title(tr_cached(Message::PrivacyRecommended).to_string(), appearance),
-                        )
+                        .with_child(self.render_section_title(
+                            tr_cached(Message::PrivacyRecommended).to_string(),
+                            appearance,
+                        ))
                         .with_child(
                             Container::new(
                                 ui_builder
@@ -1012,7 +1016,8 @@ impl SecretRedactionWidget {
                                         self.add_all_button_mouse_state.clone(),
                                     )
                                     .with_text_and_icon_label(Self::add_button(
-                                        tr_cached(Message::PrivacyAddAll), appearance,
+                                        tr_cached(Message::PrivacyAddAll),
+                                        appearance,
                                     ))
                                     .with_style(Self::add_button_style())
                                     .build()
@@ -1170,7 +1175,11 @@ impl SettingsWidget for SecretRedactionWidget {
                 .with_child(
                     Shrinkable::new(
                         1.0,
-                        render_sub_header(appearance, tr_cached(Message::PrivacySecretRedaction), Some(local_only_icon_state)),
+                        render_sub_header(
+                            appearance,
+                            tr_cached(Message::PrivacySecretRedaction),
+                            Some(local_only_icon_state),
+                        ),
                     )
                     .finish(),
                 )
@@ -1316,7 +1325,10 @@ impl SettingsWidget for SecretRedactionWidget {
                                 ButtonVariant::Secondary,
                                 self.add_regex_button_mouse_state.clone(),
                             )
-                            .with_text_and_icon_label(Self::add_button(tr_cached(Message::PrivacyAddRegex), appearance))
+                            .with_text_and_icon_label(Self::add_button(
+                                tr_cached(Message::PrivacyAddRegex),
+                                appearance,
+                            ))
                             .with_style(Self::add_button_style())
                             .build()
                             .on_click(move |ctx, _, _| {

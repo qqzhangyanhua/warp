@@ -8,9 +8,9 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **600** |
-| English table (`en_text`) | **600** complete |
-| Chinese table (`zh_cn_text`) | **600** complete |
+| `Message` variants | **835** |
+| English table (`en_text`) | **835** complete |
+| Chinese table (`zh_cn_text`) | **835** complete |
 | Call sites | Almost only `app/src/settings_view/*` |
 
 ### What the 157 messages cover
@@ -66,7 +66,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [x] `theme_picker_slide`: Choose a theme / Sync light/dark… / privacy agreement copy
 - [x] `customize_slide`: Customize your Warp / Tab styling / Tools panel / File explorer…
 - [x] `agent_slide` / `third_party_slide`: Customize your Warp Agent / third party agents…
-- [ ] Callouts: Meet the Warp input / Talk to the agent / terminal mode / agent mode
+- [x] Callouts: Meet the Warp input / Talk to the agent / terminal mode / agent mode
 
 ### Auth (`app/src/auth`)
 
@@ -82,7 +82,8 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [x] Missing-provider error string (+ Open Settings emit already present)
 - [x] Custom inference: HTTP plaintext warning, form labels, `+ Add model`, Cancel/Save/Add endpoint
 - [x] Custom inference: placeholders
-- [ ] Custom inference: Test connection copy
+- [x] Custom inference: remove-endpoint confirmation, custom endpoint descriptions, default-model prompt
+- [ ] Custom inference: Test connection copy — no current UI found in `custom_inference_modal` / `ai_page` scan
 
 ---
 
@@ -90,9 +91,9 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 ### Appearance
 
-- [ ] Input mode: Start/Pin Input at Top/Bottom / Toggle Input Mode
-- [ ] Tab bar: Always show / Hide if fullscreen / Only show on hover
-- [ ] Code review button show/hide command-palette descriptions
+- [x] Input mode: Start/Pin Input at Top/Bottom / Toggle Input Mode
+- [x] Tab bar: Always show / Hide if fullscreen / Only show on hover
+- [x] Code review button show/hide command-palette descriptions
 - [ ] Dual-track `Category::new("English", …).with_localized_title(…)` — clear English fallback names when localized title is enough
 
 ### Features
@@ -105,7 +106,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [x] Toast notifications stay visible for… seconds
 - [x] After all tabs / After current tab
 - [x] Wayland-related notices
-- [ ] Submodules: `external_editor` / `startup_shell` / `undo_close` / `working_directory`
+- [x] Submodules: `external_editor` / `startup_shell` / `undo_close` / `working_directory`
 
 ### Code
 
@@ -117,10 +118,10 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 ### Warpify
 
-- [ ] Subshells supported: bash, zsh, and fish
-- [ ] Warpify your interactive SSH sessions
-- [ ] Install SSH extension / Added commands / Denylisted commands / Learn more
-- [ ] SSH install-policy descriptions
+- [x] Subshells supported: bash, zsh, and fish
+- [x] Warpify your interactive SSH sessions
+- [x] Install SSH extension / Added commands / Denylisted commands / Learn more
+- [x] SSH install-policy descriptions
 
 ### AI / Warp Agent page (almost fully untranslated)
 
@@ -128,16 +129,16 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [x] Warp Drive as agent context / Warp credit fallback
 - [x] Show/Hide agent tips / Oz changelog / “Use Agent” footer
 - [x] Agent decides / Always allow / Always ask (+ Ask on first write; coding read perms)
-- [ ] Permission allow/deny list placeholders
+- [x] Permission allow/deny list placeholders
 
 ### Shared settings chrome (`settings_page.rs`, search, footer)
 
 - [x] Reset to default
 - [x] Click to learn more in docs
 - [x] This setting is not synced…
-- [ ] This option is enforced by your organization…
+- [x] This option is enforced by your organization…
 - [x] No settings match your search…
-- [ ] Open settings file
+- [x] Open settings file
 
 ---
 
@@ -171,18 +172,18 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 ### Environments / Platform / MCP
 
-- [ ] New environment / Quick setup / Use the agent / You haven’t set up any…
+- [x] New environment / Quick setup / Use the agent / You haven’t set up any…
 - [ ] Docker image / Auth with GitHub / Create|Save environment
-- [ ] Oz Cloud API Keys / + Create API Key / No API Keys…
-- [ ] Search MCP Servers / Once you add a MCP server… / No tools available
+- [x] Oz Cloud API Keys / + Create API Key / No API Keys…
+- [x] Search MCP Servers / Once you add a MCP server… / No tools available
 
 ### Other settings pages
 
-- [ ] Referrals (Invite a friend… / rewards / Copy link…)
-- [ ] Warp Drive: Enable/Disable / To use Warp Drive, please create an account
-- [ ] Keybindings conflict notices
-- [ ] About / Scripting residual copy
-- [ ] Custom router: Complexity-based / Prompt-based routing
+- [x] Referrals (Invite a friend… / rewards / Copy link…)
+- [x] Warp Drive: Enable/Disable / To use Warp Drive, please create an account
+- [x] Keybindings conflict notices
+- [x] About / Scripting residual copy
+- [x] Custom router: Complexity-based / Prompt-based routing
 
 ---
 
@@ -228,7 +229,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [ ] Available shell display names (Windows PowerShell / WSL…) — proper nouns may stay English
 - [ ] Secret display: Always show secrets, etc.
 - [ ] Working directory: Home directory / Previous session’s directory / Custom directory
-- [ ] Warpify SSH install policy: Always ask / Always install / Never install
+- [x] Warpify SSH install policy: Always ask / Always install / Never install
 
 ---
 

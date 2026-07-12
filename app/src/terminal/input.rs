@@ -374,9 +374,7 @@ pub const DEBOUNCE_AI_QUERY_PREDICTION_PERIOD: Duration = Duration::from_millis(
 pub(super) const CLI_AGENT_RICH_INPUT_EDITOR_MAX_HEIGHT: f32 = 236.;
 pub(super) const CLI_AGENT_RICH_INPUT_EDITOR_TOP_PADDING: f32 = 10.;
 pub(super) const CLI_AGENT_RICH_INPUT_EDITOR_BOTTOM_PADDING: f32 = 8.;
-pub(super) const CLI_AGENT_RICH_INPUT_HINT_TEXT: &str = "Tell the agent what to build...";
 
-const CLOUD_MODE_V2_HINT_TEXT: &str = "Kick off a cloud agent";
 const SHORT_CIRCUIT_HIGHLIGHTING_ACTIONS: [Option<PlainTextEditorViewAction>; 7] = [
     Some(PlainTextEditorViewAction::Space),
     Some(PlainTextEditorViewAction::NonExpandingSpace),
@@ -401,8 +399,6 @@ pub const OPEN_COMPLETIONS_KEYBINDING_NAME: &str = "input:open_completion_sugges
 pub const INPUT_A11Y_LABEL: &str = "Command Input.";
 pub const INPUT_A11Y_HELPER: &str = "Input your shell command, press enter to execute. Press cmd-up to navigate to output of previously executed commands. Press cmd-l to re-focus command input.";
 pub const AI_COMMAND_SEARCH_HINT_TEXT: &str = "Type '#' for AI command suggestions";
-
-const AGENT_MODE_AI_DISABLED_AUTODETECTION_DISABLED_HINT_TEXT: &str = "Run commands";
 
 // Rotating hint text options for new Agent Mode conversations
 const AGENT_MODE_HINT_OPTIONS: &[&str] = &[
@@ -445,16 +441,6 @@ fn get_stable_agent_mode_hint_text(cached_hint: &mut Option<&'static str>) -> &'
         new_hint
     }
 }
-
-const AGENT_MODE_AI_ENABLED_STEER_HINT_TEXT_UDI: &str = "Steer the running agent";
-const AGENT_MODE_AI_ENABLED_STEER_HINT_TEXT_CLASSIC: &str =
-    "Steer the running agent, or backspace to exit";
-const AGENT_MODE_AI_ENABLED_QUEUE_HINT_TEXT_UDI: &str = "Queue a follow up for the running agent";
-const AGENT_MODE_AI_ENABLED_QUEUE_HINT_TEXT_CLASSIC: &str =
-    "Queue a follow up for the running agent, or backspace to exit";
-const AGENT_MODE_AI_ENABLED_FOLLOW_UP_HINT_TEXT_UDI: &str = "Ask a follow up";
-const AGENT_MODE_AI_ENABLED_FOLLOW_UP_HINT_TEXT_CLASSIC: &str =
-    "Ask a follow up, or backspace to exit";
 
 /// Action name for setting input mode to agent mode
 pub const SET_INPUT_MODE_AGENT_ACTION_NAME: &str = "input:set_mode_agent";
@@ -6487,9 +6473,7 @@ impl Input {
             input_model.input_type(),
             input_model.should_run_input_autodetection(app),
         ) {
-            (InputType::Shell, false) => {
-                tr_cached(Message::TerminalRunCommands).to_owned()
-            }
+            (InputType::Shell, false) => tr_cached(Message::TerminalRunCommands).to_owned(),
             (InputType::Shell, true) => {
                 // Ensure hint text is cached for new conversations
                 get_stable_agent_mode_hint_text(&mut self.cached_agent_mode_hint_text).to_owned()
@@ -6972,13 +6956,17 @@ impl Input {
         CLIAgentSessionsModel::as_ref(ctx)
             .session(self.terminal_view_id)
             .map(|session| match session.agent {
-                CLIAgent::Unknown => Cow::Borrowed(tr_cached(Message::TerminalTellAgentWhatToBuild)),
+                CLIAgent::Unknown => {
+                    Cow::Borrowed(tr_cached(Message::TerminalTellAgentWhatToBuild))
+                }
                 _ => Cow::Owned(format!(
                     "Enter prompt for {}...",
                     session.agent.display_name()
                 )),
             })
-            .unwrap_or(Cow::Borrowed(tr_cached(Message::TerminalTellAgentWhatToBuild)))
+            .unwrap_or(Cow::Borrowed(tr_cached(
+                Message::TerminalTellAgentWhatToBuild,
+            )))
     }
 
     pub fn set_zero_state_hint_text(&mut self, ctx: &mut ViewContext<Self>) {
@@ -7063,7 +7051,10 @@ impl Input {
                 });
             } else {
                 self.editor.update(ctx, |editor, ctx| {
-                    editor.set_placeholder_text(tr_cached(Message::TerminalTypeHashForAiSuggestions), ctx);
+                    editor.set_placeholder_text(
+                        tr_cached(Message::TerminalTypeHashForAiSuggestions),
+                        ctx,
+                    );
                 });
             }
         } else {

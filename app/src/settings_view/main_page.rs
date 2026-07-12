@@ -35,12 +35,12 @@ use super::settings_page::{
 };
 use super::{flags, SettingsAction, SettingsSection, ToggleSettingActionPair};
 use crate::appearance::Appearance;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::auth::auth_manager::{AuthManager, LoginGatedFeature};
 use crate::auth::auth_state::AuthState;
 use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::autoupdate::{self, AutoupdateStage, AutoupdateState};
+use crate::i18n::{tr_cached, Message};
 use crate::server::ids::ServerId;
 use crate::settings::cloud_preferences::CloudPreferencesSettings;
 use crate::workspace::WorkspaceAction;
@@ -297,7 +297,8 @@ impl MainSettingsPageView {
 
         widgets.push(Box::new(LogoutWidget::default()));
 
-        let page = PageType::new_uncategorized(widgets, Some(tr_cached(Message::SettingsSectionAccount)));
+        let page =
+            PageType::new_uncategorized(widgets, Some(tr_cached(Message::SettingsSectionAccount)));
 
         MainSettingsPageView { page, auth_state }
     }
@@ -1103,8 +1104,13 @@ impl SettingsWidget for IapCredentialsWidget {
         let disabled: ColorU = appearance.theme().disabled_ui_text_color().into();
         let active: ColorU = appearance.theme().active_ui_text_color().into();
         let (status_text, status_color): (String, ColorU) = match &state {
-            IapCredentialsState::Missing => (tr_cached(Message::AccountNotYetLoaded).to_string(), disabled),
-            IapCredentialsState::Refreshing { .. } => (tr_cached(Message::AccountRefreshing).to_string(), active),
+            IapCredentialsState::Missing => (
+                tr_cached(Message::AccountNotYetLoaded).to_string(),
+                disabled,
+            ),
+            IapCredentialsState::Refreshing { .. } => {
+                (tr_cached(Message::AccountRefreshing).to_string(), active)
+            }
             IapCredentialsState::Loaded(cached) => {
                 let remaining = cached
                     .expires_at
@@ -1112,7 +1118,10 @@ impl SettingsWidget for IapCredentialsWidget {
                 let mins = remaining.as_secs() / 60;
                 (format!("Loaded (refreshes in ~{mins}m)"), active)
             }
-            IapCredentialsState::Failed { message, .. } => (tr_cached(Message::AccountFailedWithMessage).replace("{message}", message), ansi_red),
+            IapCredentialsState::Failed { message, .. } => (
+                tr_cached(Message::AccountFailedWithMessage).replace("{message}", message),
+                ansi_red,
+            ),
             IapCredentialsState::EnvInjected { .. } => {
                 ("Using injected token (WARP_IAP_TOKEN)".to_string(), active)
             }

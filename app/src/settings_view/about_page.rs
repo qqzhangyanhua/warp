@@ -13,6 +13,7 @@ use super::settings_page::{
 use super::SettingsSection;
 use crate::appearance::Appearance;
 use crate::channel::ChannelState;
+use crate::i18n::{tr_cached, Message};
 use crate::themes::theme::ColorScheme;
 use crate::workspace::WorkspaceAction;
 
@@ -115,7 +116,7 @@ impl SettingsWidget for AboutPageWidget {
                 .with_child(version_row.finish())
                 .with_child(
                     ui_builder
-                        .span("Copyright 2026 Warp")
+                        .span(tr_cached(Message::AboutCopyright))
                         .build()
                         .with_margin_top(16.)
                         .finish(),

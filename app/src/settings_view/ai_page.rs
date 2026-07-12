@@ -277,7 +277,10 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
     );
     ToggleSettingActionPair::add_toggle_setting_action_pairs_as_bindings(
         vec![ToggleSettingActionPair::custom(
-            SettingActionPairDescriptions::new(tr(app, Message::AiShowAgentTips), tr(app, Message::AiHideAgentTips)),
+            SettingActionPairDescriptions::new(
+                tr(app, Message::AiShowAgentTips),
+                tr(app, Message::AiHideAgentTips),
+            ),
             builder(SettingsAction::AI(
                 AISettingsPageAction::ToggleShowAgentTips,
             )),
@@ -1870,7 +1873,9 @@ impl AISettingsPageView {
             let current = *crate::util::file::external_editor::EditorSettings::as_ref(ctx)
                 .open_conversation_layout_preference;
             match current {
-                OpenConversationPreference::NewTab => dropdown.set_selected_by_name(tr_cached(Message::AiNewTab), ctx),
+                OpenConversationPreference::NewTab => {
+                    dropdown.set_selected_by_name(tr_cached(Message::AiNewTab), ctx)
+                }
                 OpenConversationPreference::SplitPane => {
                     dropdown.set_selected_by_name(tr_cached(Message::AiSplitPane), ctx)
                 }
@@ -2220,12 +2225,9 @@ impl AISettingsPageView {
             return;
         }
         let current_default = Self::active_base_model_display_name(ctx);
-        let description = format!(
-            "You added the \"{}\" custom endpoint, but your default model is currently set to \
-             {current_default}, which won't work without Warp credits. Would you like to change \
-             your default model?",
-            endpoint.name
-        );
+        let description = tr_cached(Message::AiCustomEndpointDefaultModelPrompt)
+            .replace("{endpoint}", &endpoint.name)
+            .replace("{model}", &current_default);
         self.show_set_default_model_modal(description, choices, ctx);
     }
 
@@ -2316,8 +2318,10 @@ impl AISettingsPageView {
             });
         self.pending_remove_custom_endpoint_index = None;
 
-        self.custom_endpoint_modal_state
-            .set_title(Some(tr(ctx, Message::AiEditCustomEndpoint).to_string()), ctx);
+        self.custom_endpoint_modal_state.set_title(
+            Some(tr(ctx, Message::AiEditCustomEndpoint).to_string()),
+            ctx,
+        );
         self.custom_endpoint_modal_state
             .prefill(endpoint.as_ref(), Some(index), ctx);
         self.custom_endpoint_modal_state.open(ctx);
@@ -2576,8 +2580,10 @@ impl AISettingsPageView {
                 );
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast =
-                        DismissibleToast::error(tr(ctx, Message::AiCouldntStartGrokLogin).replace("{err}", &err.to_string()));
+                    let toast = DismissibleToast::error(
+                        tr(ctx, Message::AiCouldntStartGrokLogin)
+                            .replace("{err}", &err.to_string()),
+                    );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
                 return;
@@ -2602,14 +2608,15 @@ impl AISettingsPageView {
             // forever: the completion toast below replaces it (shared object
             // id), and the OAuth attempt itself times out when the callback
             // never arrives.
-            let toast = DismissibleToast::default(
-                tr(ctx, Message::AiOpeningBrowserSuperGrok).to_string(),
-            )
-            .with_object_id(CONNECT_TOAST_OBJECT_ID.to_string())
-            .with_link(
-                ToastLink::new(tr(ctx, Message::AiCopyUrl).to_string())
-                    .with_onclick_action(WorkspaceAction::CopyTextToClipboard(authorize_url)),
-            );
+            let toast =
+                DismissibleToast::default(tr(ctx, Message::AiOpeningBrowserSuperGrok).to_string())
+                    .with_object_id(CONNECT_TOAST_OBJECT_ID.to_string())
+                    .with_link(
+                        ToastLink::new(tr(ctx, Message::AiCopyUrl).to_string())
+                            .with_onclick_action(WorkspaceAction::CopyTextToClipboard(
+                                authorize_url,
+                            )),
+                    );
             toast_stack.add_persistent_toast(toast, window_id, ctx);
         });
 
@@ -2652,7 +2659,10 @@ impl AISettingsPageView {
                         },
                         ctx
                     );
-                    DismissibleToast::error(tr(ctx, Message::AiCouldntConnectSuperGrok).replace("{err}", &err.to_string()))
+                    DismissibleToast::error(
+                        tr(ctx, Message::AiCouldntConnectSuperGrok)
+                            .replace("{err}", &err.to_string()),
+                    )
                 }
             };
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
@@ -2704,7 +2714,9 @@ impl AISettingsPageView {
                         ApiKeyManager::handle(ctx).update(ctx, move |manager, ctx| {
                             manager.store_grok_tokens(tokens, ctx);
                         });
-                        DismissibleToast::success(tr(ctx, Message::AiSuperGrokConnected).to_string())
+                        DismissibleToast::success(
+                            tr(ctx, Message::AiSuperGrokConnected).to_string(),
+                        )
                     }
                     Err(err) => {
                         // Keep the row open so the user can correct the code.
@@ -2718,7 +2730,10 @@ impl AISettingsPageView {
                             },
                             ctx
                         );
-                        DismissibleToast::error(tr(ctx, Message::AiCouldntConnectSuperGrok).replace("{err}", &err.to_string()))
+                        DismissibleToast::error(
+                            tr(ctx, Message::AiCouldntConnectSuperGrok)
+                                .replace("{err}", &err.to_string()),
+                        )
                     }
                 };
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
@@ -3290,8 +3305,12 @@ impl AISettingsPageView {
                 AgentModeCodingPermissionsType::iter()
                     .map(|t| {
                         let display = match t {
-                            AgentModeCodingPermissionsType::AlwaysAskBeforeReading => tr_cached(Message::AiPermissionAlwaysAsk),
-                            AgentModeCodingPermissionsType::AlwaysAllowReading => tr_cached(Message::AiPermissionAlwaysAllow),
+                            AgentModeCodingPermissionsType::AlwaysAskBeforeReading => {
+                                tr_cached(Message::AiPermissionAlwaysAsk)
+                            }
+                            AgentModeCodingPermissionsType::AlwaysAllowReading => {
+                                tr_cached(Message::AiPermissionAlwaysAllow)
+                            }
                             AgentModeCodingPermissionsType::AllowReadingSpecificFiles => {
                                 tr_cached(Message::AiAllowInSpecificDirectories)
                             }
@@ -4742,16 +4761,20 @@ impl SettingsWidget for GlobalAIWidget {
             row.add_child(
                 ConstrainedBox::new(
                     Container::new(
-                        Text::new(tr_cached(Message::AiOrgDisallowsRemoteAi), appearance.ui_font_family(), 12.)
-                            .with_color(appearance.theme().ui_warning_color())
-                            .finish()
+                        Text::new(
+                            tr_cached(Message::AiOrgDisallowsRemoteAi),
+                            appearance.ui_font_family(),
+                            12.,
+                        )
+                        .with_color(appearance.theme().ui_warning_color())
+                        .finish(),
                     )
                     .with_padding_left(8.)
                     .with_padding_right(8.)
-                    .finish()
+                    .finish(),
                 )
                 .with_max_width(400.)
-                .finish()
+                .finish(),
             );
         }
 
@@ -5021,7 +5044,10 @@ impl SettingsWidget for UsageWidget {
                 .with_child(
                     appearance
                         .ui_builder()
-                        .paragraph(tr_cached(Message::AiResetsAt).replace("{time}", &formatted_next_refresh_time))
+                        .paragraph(
+                            tr_cached(Message::AiResetsAt)
+                                .replace("{time}", &formatted_next_refresh_time),
+                        )
                         .with_style(UiComponentStyles {
                             font_color: Some(blended_colors::text_sub(
                                 appearance.theme(),
@@ -5053,39 +5079,47 @@ impl SettingsWidget for UsageWidget {
         );
 
         let auth_state = AuthStateProvider::as_ref(app).get();
-        let upgrade_cta_text_fragments = if let Some(team) =
-            UserWorkspaces::as_ref(app).current_team()
-        {
-            let current_user_email = auth_state.user_email().unwrap_or_default();
-            let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-            if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
-                let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
-                if has_admin_permissions {
-                    vec![
-                        FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgrade), upgrade_url),
-                        FormattedTextFragment::plain_text(" to get more AI usage."),
-                    ]
+        let upgrade_cta_text_fragments =
+            if let Some(team) = UserWorkspaces::as_ref(app).current_team() {
+                let current_user_email = auth_state.user_email().unwrap_or_default();
+                let has_admin_permissions = team.has_admin_permissions(&current_user_email);
+                if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
+                    let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
+                    if has_admin_permissions {
+                        vec![
+                            FormattedTextFragment::hyperlink(
+                                tr_cached(Message::AiUpgrade),
+                                upgrade_url,
+                            ),
+                            FormattedTextFragment::plain_text(" to get more AI usage."),
+                        ]
+                    } else {
+                        // The /upgrade page says to contact their administrator.
+                        vec![
+                            FormattedTextFragment::hyperlink(
+                                tr_cached(Message::AiComparePlans),
+                                upgrade_url,
+                            ),
+                            FormattedTextFragment::plain_text(" for more AI usage."),
+                        ]
+                    }
                 } else {
-                    // The /upgrade page says to contact their administrator.
                     vec![
-                        FormattedTextFragment::hyperlink(tr_cached(Message::AiComparePlans), upgrade_url),
+                        FormattedTextFragment::hyperlink(
+                            tr_cached(Message::AiContactSupport),
+                            "mailto:support@warp.dev",
+                        ),
                         FormattedTextFragment::plain_text(" for more AI usage."),
                     ]
                 }
             } else {
+                let user_id = auth_state.user_id().unwrap_or_default();
+                let upgrade_url = UserWorkspaces::upgrade_link(user_id);
                 vec![
-                    FormattedTextFragment::hyperlink(tr_cached(Message::AiContactSupport), "mailto:support@warp.dev"),
-                    FormattedTextFragment::plain_text(" for more AI usage."),
+                    FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgrade), upgrade_url),
+                    FormattedTextFragment::plain_text(" to get more AI usage."),
                 ]
-            }
-        } else {
-            let user_id = auth_state.user_id().unwrap_or_default();
-            let upgrade_url = UserWorkspaces::upgrade_link(user_id);
-            vec![
-                FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgrade), upgrade_url),
-                FormattedTextFragment::plain_text(" to get more AI usage."),
-            ]
-        };
+            };
 
         let mut upgrade_cta = FormattedTextElement::new(
             FormattedText::new([FormattedTextLine::Line(upgrade_cta_text_fragments)]),
@@ -6588,7 +6622,9 @@ impl AIInputWidget {
             static AUTODETECTION_DESCRIPTION_FRAGMENTS: LazyLock<Vec<FormattedTextFragment>> =
                 LazyLock::new(|| {
                     vec![
-                        FormattedTextFragment::plain_text(tr_cached(Message::AiEncounteredIncorrectDetection)),
+                        FormattedTextFragment::plain_text(tr_cached(
+                            Message::AiEncounteredIncorrectDetection,
+                        )),
                         FormattedTextFragment::hyperlink(
                             tr_cached(Message::AiLetUsKnow),
                             "https://warpdotdev.typeform.com/to/offrTIpq",
@@ -6885,9 +6921,7 @@ impl AIFactWidget {
         );
 
         let rules_description = vec![
-            FormattedTextFragment::plain_text(
-                tr_cached(Message::AiRulesHelpDescription),
-            ),
+            FormattedTextFragment::plain_text(tr_cached(Message::AiRulesHelpDescription)),
             FormattedTextFragment::hyperlink(
                 tr_cached(Message::AiLearnMore),
                 "https://docs.warp.dev/agent-platform/capabilities/rules",
@@ -7053,9 +7087,7 @@ impl VoiceWidget {
         ));
 
         let voice_input_description_text_fragments = vec![
-            FormattedTextFragment::plain_text(
-                tr_cached(Message::AiVoiceInputDescriptionPrefix),
-            ),
+            FormattedTextFragment::plain_text(tr_cached(Message::AiVoiceInputDescriptionPrefix)),
             FormattedTextFragment::hyperlink(tr_cached(Message::AiWisprFlow), WISPR_FLOW_URL),
             FormattedTextFragment::plain_text(")."),
         ];
@@ -7277,7 +7309,9 @@ impl SettingsWidget for OtherAIWidget {
                     &view.local_only_icon_tooltip_states,
                     app,
                 ))
-                .with_child(render_ai_setting_toggle::<ShouldRenderUseAgentToolbarForUserCommands>(
+                .with_child(render_ai_setting_toggle::<
+                    ShouldRenderUseAgentToolbarForUserCommands,
+                >(
                     tr_cached(Message::AiShowUseAgentFooterLabel),
                     AISettingsPageAction::ToggleUseAgentToolbar,
                     *ai_settings.should_render_use_agent_footer_for_user_commands,
@@ -7412,9 +7446,9 @@ impl SettingsWidget for CLIAgentWidget {
         );
 
         let description_fragments = vec![
-            FormattedTextFragment::plain_text(
-                tr_cached(Message::AiShowToolbarForCodingAgentsPrefix),
-            ),
+            FormattedTextFragment::plain_text(tr_cached(
+                Message::AiShowToolbarForCodingAgentsPrefix,
+            )),
             FormattedTextFragment::inline_code("claude"),
             FormattedTextFragment::plain_text(", "),
             FormattedTextFragment::inline_code("codex"),
@@ -7463,7 +7497,11 @@ impl SettingsWidget for CLIAgentWidget {
             if FeatureFlag::CLIAgentRichInput.is_enabled() {
                 // Setting 1: Auto show/hide rich input based on agent status
                 let auto_show_toggle_label = render_body_item_label::<AISettingsPageAction>(
-                    tr(app, Message::SettingsAutoShowhideRichInputBasedOnAgentStatus).into(),
+                    tr(
+                        app,
+                        Message::SettingsAutoShowhideRichInputBasedOnAgentStatus,
+                    )
+                    .into(),
                     Some(styles::header_font_color(true, app)),
                     Some(AdditionalInfo {
                         mouse_state: self.auto_toggle_rich_input_info_tooltip.clone(),
@@ -7627,9 +7665,7 @@ impl SettingsWidget for CLIAgentWidget {
             };
             let command_list_description = appearance
                 .ui_builder()
-                .paragraph(
-                    tr_cached(Message::AiAddRegexPatternsForToolbar),
-                )
+                .paragraph(tr_cached(Message::AiAddRegexPatternsForToolbar))
                 .with_style(UiComponentStyles {
                     font_size: Some(appearance.ui_font_size()),
                     font_color: Some(styles::description_font_color(true, app).into()),
@@ -8098,7 +8134,7 @@ impl ApiKeysWidget {
         // A helper macro to create and configure an API key editor.  This avoids a lot
         // of code duplication and ensures consistency between the editors.
         macro_rules! create_api_key_editor {
-            ($editor:ident, $key:ident, $set_func:ident, $placeholder:literal) => {
+            ($editor:ident, $key:ident, $set_func:ident, $placeholder:expr) => {
                 let $editor = ctx.add_typed_action_view(move |ctx| {
                     let appearance = Appearance::handle(ctx).as_ref(ctx);
                     let options = SingleLineEditorOptions {
@@ -8178,18 +8214,23 @@ impl ApiKeysWidget {
             };
         }
 
-        create_api_key_editor!(openai_api_key_editor, openai_key, set_openai_key, "sk-...");
+        create_api_key_editor!(
+            openai_api_key_editor,
+            openai_key,
+            set_openai_key,
+            tr_cached(Message::AiOpenaiApiKeyPlaceholder)
+        );
         create_api_key_editor!(
             anthropic_api_key_editor,
             anthropic_key,
             set_anthropic_key,
-            "sk-ant-..."
+            tr_cached(Message::AiAnthropicApiKeyPlaceholder)
         );
         create_api_key_editor!(
             google_api_key_editor,
             google_key,
             set_google_key,
-            "AIzaSy..."
+            tr_cached(Message::AiGoogleApiKeyPlaceholder)
         );
 
         // Tab / Shift-Tab move focus between the provider key fields instead of
@@ -8246,7 +8287,8 @@ impl ApiKeysWidget {
                 })
         });
         let grok_connecting_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new(tr_cached(Message::AiConnecting), SecondaryTheme).with_size(ButtonSize::Small)
+            ActionButton::new(tr_cached(Message::AiConnecting), SecondaryTheme)
+                .with_size(ButtonSize::Small)
         });
         grok_connecting_button.update(ctx, |button, ctx| {
             button.set_disabled(true, ctx);
@@ -8500,21 +8542,21 @@ impl ApiKeysWidget {
         };
 
         if show_provider_keys {
-            add_paragraph(vec![FormattedTextFragment::plain_text(
-                "Use your own API keys from model providers for Warp Agent. API keys are used to make requests to your chosen model provider. Using auto models or models you do not have available API keys for will consume Warp credits.",
-            )]);
+            add_paragraph(vec![FormattedTextFragment::plain_text(tr_cached(
+                Message::AiProviderApiKeysDescription,
+            ))]);
         }
 
         if show_custom_endpoints {
-            add_paragraph(vec![FormattedTextFragment::plain_text(
-                "Add custom endpoints to use third-party models. Custom endpoints must support the OpenAI-compatible Chat Completions API.",
-            )]);
+            add_paragraph(vec![FormattedTextFragment::plain_text(tr_cached(
+                Message::AiCustomEndpointsDescription,
+            ))]);
         }
 
         if show_provider_keys || show_custom_endpoints {
-            add_paragraph(vec![FormattedTextFragment::plain_text(
-                tr_cached(Message::AiApiKeysStoredOnlyOnDevice),
-            )]);
+            add_paragraph(vec![FormattedTextFragment::plain_text(tr_cached(
+                Message::AiApiKeysStoredOnlyOnDevice,
+            ))]);
             add_paragraph(vec![FormattedTextFragment::hyperlink(
                 tr_cached(Message::AiLearnMore),
                 CUSTOM_INFERENCE_LEARN_MORE_URL,
@@ -8558,19 +8600,20 @@ impl ApiKeysWidget {
 
         let tooltip_text = if managed_byok_byoe_enabled {
             FormattedText::new([FormattedTextLine::Line(vec![
-                FormattedTextFragment::plain_text(
-                    tr_cached(Message::AiCustomInferenceManagedByOrg),
-                ),
+                FormattedTextFragment::plain_text(tr_cached(
+                    Message::AiCustomInferenceManagedByOrg,
+                )),
             ])])
         } else {
             FormattedText::new([FormattedTextLine::Line(vec![
-                FormattedTextFragment::plain_text(
-                    tr_cached(Message::AiByokAgreePrefix),
+                FormattedTextFragment::plain_text(tr_cached(Message::AiByokAgreePrefix)),
+                FormattedTextFragment::hyperlink(
+                    tr_cached(Message::AiWarpsTermsOfService),
+                    CUSTOM_INFERENCE_TERMS_URL,
                 ),
-                FormattedTextFragment::hyperlink(tr_cached(Message::AiWarpsTermsOfService), CUSTOM_INFERENCE_TERMS_URL),
-                FormattedTextFragment::plain_text(
-                    ". BYOK and custom endpoints are intended for individual use and small teams. Companies or organizations with more than 10 employees should use Warp Business or Enterprise.",
-                ),
+                FormattedTextFragment::plain_text(tr_cached(
+                    Message::AiByokCustomEndpointsTermsSuffix,
+                )),
             ])])
         };
         let tooltip_background = appearance.theme().tooltip_background();
@@ -8714,9 +8757,13 @@ impl ApiKeysWidget {
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_spacing(4.)
             .with_child(
-                Text::new_inline(tr_cached(Message::AiUseYour), appearance.ui_font_family(), CONTENT_FONT_SIZE)
-                    .with_color(text_color.into())
-                    .finish(),
+                Text::new_inline(
+                    tr_cached(Message::AiUseYour),
+                    appearance.ui_font_family(),
+                    CONTENT_FONT_SIZE,
+                )
+                .with_color(text_color.into())
+                .finish(),
             )
             .with_child(
                 ConstrainedBox::new(Icon::XLogo.to_warpui_icon(text_color).finish())
@@ -9010,7 +9057,7 @@ impl SettingsWidget for ApiKeysWidget {
                 .finish(),
             );
             column.add_child(render_ai_setting_description(
-                "Your organization manages custom inference. Personal API keys and custom endpoints are currently disabled.",
+                tr_cached(Message::AiCustomInferenceManagedByOrgControlsDisabled),
                 is_any_ai_enabled,
                 app,
             ));
@@ -9119,52 +9166,63 @@ impl SettingsWidget for ApiKeysWidget {
         // Upgrade CTA if BYOK not enabled
         if !is_byo_enabled && show_provider_keys {
             let auth_state = AuthStateProvider::as_ref(app).get();
-            let upgrade_text_fragments = if let Some(team) =
-                UserWorkspaces::as_ref(app).current_team()
-            {
-                if team.billing_metadata.customer_type == CustomerType::Enterprise {
-                    vec![
-                        FormattedTextFragment::hyperlink(tr_cached(Message::AiContactSales), "mailto:sales@warp.dev"),
-                        FormattedTextFragment::plain_text(
-                            " to enable bringing your own API keys on your Enterprise plan.",
-                        ),
-                    ]
-                } else {
-                    let current_user_email = auth_state.user_email().unwrap_or_default();
-                    let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-                    let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
-                    if has_admin_permissions {
+            let upgrade_text_fragments =
+                if let Some(team) = UserWorkspaces::as_ref(app).current_team() {
+                    if team.billing_metadata.customer_type == CustomerType::Enterprise {
                         vec![
                             FormattedTextFragment::hyperlink(
-                                tr_cached(Message::AiUpgradeToBuildPlan),
-                                upgrade_url,
+                                tr_cached(Message::AiContactSales),
+                                "mailto:sales@warp.dev",
                             ),
-                            FormattedTextFragment::plain_text(" to use your own API keys."),
+                            FormattedTextFragment::plain_text(tr_cached(
+                                Message::AiEnableApiKeysEnterpriseSuffix,
+                            )),
                         ]
                     } else {
-                        vec![FormattedTextFragment::plain_text(
-                            tr_cached(Message::AiAskAdminUpgradeToBuildPlan),
-                        )]
+                        let current_user_email = auth_state.user_email().unwrap_or_default();
+                        let has_admin_permissions = team.has_admin_permissions(&current_user_email);
+                        let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
+                        if has_admin_permissions {
+                            vec![
+                                FormattedTextFragment::hyperlink(
+                                    tr_cached(Message::AiUpgradeToBuildPlan),
+                                    upgrade_url,
+                                ),
+                                FormattedTextFragment::plain_text(tr_cached(
+                                    Message::AiUseYourOwnApiKeysSuffix,
+                                )),
+                            ]
+                        } else {
+                            vec![FormattedTextFragment::plain_text(tr_cached(
+                                Message::AiAskAdminUpgradeToBuildPlan,
+                            ))]
+                        }
                     }
-                }
-            } else if FeatureFlag::SoloUserByok.is_enabled()
-                && auth_state.is_anonymous_or_logged_out()
-            {
-                vec![
-                    FormattedTextFragment::hyperlink_action(
-                        "Create an account",
-                        AISettingsPageAction::SignupAnonymousUser,
-                    ),
-                    FormattedTextFragment::plain_text(" to use your own API keys."),
-                ]
-            } else {
-                let user_id = auth_state.user_id().unwrap_or_default();
-                let upgrade_url = UserWorkspaces::upgrade_link(user_id);
-                vec![
-                    FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgradeToBuildPlan), upgrade_url),
-                    FormattedTextFragment::plain_text(" to use your own API keys."),
-                ]
-            };
+                } else if FeatureFlag::SoloUserByok.is_enabled()
+                    && auth_state.is_anonymous_or_logged_out()
+                {
+                    vec![
+                        FormattedTextFragment::hyperlink_action(
+                            tr_cached(Message::AuthCreateAnAccount),
+                            AISettingsPageAction::SignupAnonymousUser,
+                        ),
+                        FormattedTextFragment::plain_text(tr_cached(
+                            Message::AiUseYourOwnApiKeysSuffix,
+                        )),
+                    ]
+                } else {
+                    let user_id = auth_state.user_id().unwrap_or_default();
+                    let upgrade_url = UserWorkspaces::upgrade_link(user_id);
+                    vec![
+                        FormattedTextFragment::hyperlink(
+                            tr_cached(Message::AiUpgradeToBuildPlan),
+                            upgrade_url,
+                        ),
+                        FormattedTextFragment::plain_text(tr_cached(
+                            Message::AiUseYourOwnApiKeysSuffix,
+                        )),
+                    ]
+                };
 
             let upgrade_text_element = FormattedTextElement::new(
                 FormattedText::new([FormattedTextLine::Line(upgrade_text_fragments)]),
@@ -9232,7 +9290,7 @@ impl AwsBedrockWidget {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("aws login", ctx);
+            editor.set_placeholder_text(tr_cached(Message::AiAwsLoginPlaceholder), ctx);
             editor.set_buffer_text(&aws_auth_refresh_command, ctx);
             editor
         });
@@ -9280,7 +9338,7 @@ impl AwsBedrockWidget {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("default", ctx);
+            editor.set_placeholder_text(tr_cached(Message::AiAwsDefaultProfilePlaceholder), ctx);
             editor.set_buffer_text(&aws_auth_refresh_profile, ctx);
             editor
         });

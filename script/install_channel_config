@@ -16,8 +16,8 @@ BIN_NAME="warp-channel-config"
 
 # Check for repo access before attempting to `cargo install` the binary.
 if ! git ls-remote --exit-code "${REPO}" HEAD >/dev/null 2>&1; then
-    echo "Cannot access ${REPO} (no SSH access?). Skipping install."
-    exit 1
+    echo "Using OSS channel config."
+    exit 0
 fi
 
 FORCE_FLAG=""

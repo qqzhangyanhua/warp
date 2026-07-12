@@ -1,8 +1,8 @@
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use ui_components::{button, Component as _, Options as _};
-use warp_core::send_telemetry_from_ctx;
 use warp_core::features::FeatureFlag;
+use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::Icon;
@@ -47,10 +47,7 @@ pub struct IntroSlide {
 }
 
 impl IntroSlide {
-    pub(crate) fn new(
-        onboarding_state: ModelHandle<OnboardingStateModel>,
-        locale: Locale,
-    ) -> Self {
+    pub(crate) fn new(onboarding_state: ModelHandle<OnboardingStateModel>, locale: Locale) -> Self {
         Self {
             onboarding_state,
             locale,
@@ -172,10 +169,7 @@ impl IntroSlide {
 
         let subtitle_color = internal_colors::text_sub(theme, theme.background().into_solid());
         let subtitle = FormattedTextElement::from_str(
-            i18n::tr(
-                OnboardingMessage::ModernTerminalDescription,
-                self.locale,
-            ),
+            i18n::tr(OnboardingMessage::ModernTerminalDescription, self.locale),
             appearance.ui_font_family(),
             16.,
         )
@@ -188,7 +182,9 @@ impl IntroSlide {
         let get_started_button = self.get_started_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::GetStarted, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::GetStarted, self.locale).into(),
+                ),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),

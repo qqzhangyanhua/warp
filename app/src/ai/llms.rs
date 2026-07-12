@@ -972,7 +972,10 @@ impl LLMPreferences {
                         || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str()))
             })
             .chain(self.custom_llm_choices(app))
-            .chain(self.custom_router_choices().filter(move |_| !anonymous_only))
+            .chain(
+                self.custom_router_choices()
+                    .filter(move |_| !anonymous_only),
+            )
     }
 
     /// Returns the set of LLMs available for coding.
@@ -992,7 +995,10 @@ impl LLMPreferences {
                         || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str()))
             })
             .chain(self.custom_llm_choices(app))
-            .chain(self.custom_router_choices().filter(move |_| !anonymous_only))
+            .chain(
+                self.custom_router_choices()
+                    .filter(move |_| !anonymous_only),
+            )
     }
 
     /// Returns the set of LLMs available for CLI agent.
@@ -1003,8 +1009,7 @@ impl LLMPreferences {
             .choices
             .iter()
             .filter(move |llm| {
-                !anonymous_only
-                    && !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled))
+                !anonymous_only && !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled))
             })
             .chain(self.custom_llm_choices(app))
     }

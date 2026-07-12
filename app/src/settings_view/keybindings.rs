@@ -28,6 +28,7 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::keyboard::{write_custom_keybinding, UserDefinedKeybinding};
 use crate::search_bar::SearchBar;
 use crate::settings::CloudPreferencesSettings;
@@ -45,13 +46,11 @@ const ROW_LEFT_MARGIN: f32 = 20.0;
 const ROW_HEIGHT: f32 = 28.;
 const EDIT_BUTTONS_BORDER_RADIUS: f32 = 4.0;
 
-pub const SEARCH_PLACEHOLDER: &str = "Search by name or by keys (ex. \"cmd d\")";
-const SHORTCUT_CONFLICT_WARNING_TEXT: &str = "This shortcut conflicts with other keybinds";
 const KEYBINDINGS_PAGE_SHORTCUT: &str = "workspace:toggle_keybindings_page";
-const RESET_BUTTON_TEXT: &str = "Default";
-const CANCEL_BUTTON_TEXT: &str = "Cancel";
-const CLEAR_BUTTON_TEXT: &str = "Clear";
-const SAVE_BUTTON_TEXT: &str = "Save";
+
+pub fn search_placeholder_text() -> &'static str {
+    tr_cached(Message::KeybindingsSearchPlaceholder)
+}
 
 /// Notifier for custom keybinding changed. Views could subscribe to this for
 /// KeybindingChangedEvent.
@@ -313,7 +312,7 @@ impl KeybindingRow {
     ) -> Box<dyn Element> {
         let conflict_warning = if has_conflicting_binding {
             render_text(
-                SHORTCUT_CONFLICT_WARNING_TEXT,
+                tr_cached(Message::KeybindingsShortcutConflictWarning),
                 Some(UiComponentStyles {
                     font_weight: Some(Weight::Bold),
                     ..Default::default()
@@ -324,7 +323,11 @@ impl KeybindingRow {
             Empty::new().finish()
         };
 
-        let press_new_shortcut_text = render_text("Press new keyboard shortcut", None, appearance);
+        let press_new_shortcut_text = render_text(
+            tr_cached(Message::KeybindingsPressNewShortcut),
+            None,
+            appearance,
+        );
 
         let new_shortcut_element = Container::new(press_new_shortcut_text)
             .with_margin_left(ROW_LEFT_MARGIN)
@@ -400,7 +403,7 @@ impl KeybindingRow {
                 self.mouse_state_handles.remove_mouse_state.clone(),
                 |state| {
                     render_button(
-                        CLEAR_BUTTON_TEXT,
+                        tr_cached(Message::KeybindingsClear),
                         appearance,
                         self.get_button_text_color(appearance, state),
                     )
@@ -421,7 +424,7 @@ impl KeybindingRow {
                     .clone(),
                 |state| {
                     render_button(
-                        RESET_BUTTON_TEXT,
+                        tr_cached(Message::KeybindingsDefault),
                         appearance,
                         self.get_button_text_color(appearance, state),
                     )
@@ -443,12 +446,20 @@ impl KeybindingRow {
                     let cancel_button_color = self.get_button_text_color(appearance, state);
                     if index == 0 {
                         SavePosition::new(
-                            render_button(CANCEL_BUTTON_TEXT, appearance, cancel_button_color),
+                            render_button(
+                                tr_cached(Message::KeybindingsCancel),
+                                appearance,
+                                cancel_button_color,
+                            ),
                             "first_keybinding_cancel",
                         )
                         .finish()
                     } else {
-                        render_button("Cancel", appearance, cancel_button_color)
+                        render_button(
+                            tr_cached(Message::KeybindingsCancel),
+                            appearance,
+                            cancel_button_color,
+                        )
                     }
                 },
             )
@@ -465,7 +476,7 @@ impl KeybindingRow {
         let save = Container::new(
             Hoverable::new(self.mouse_state_handles.save_mouse_state.clone(), |state| {
                 render_button(
-                    SAVE_BUTTON_TEXT,
+                    tr_cached(Message::KeybindingsSave),
                     appearance,
                     self.get_button_text_color(appearance, state),
                 )
@@ -506,7 +517,7 @@ impl KeybindingsView {
 
         search_editor.update(ctx, |editor, ctx| {
             editor.clear_buffer_and_reset_undo_stack(ctx);
-            editor.set_placeholder_text(SEARCH_PLACEHOLDER, ctx);
+            editor.set_placeholder_text(search_placeholder_text(), ctx);
         });
 
         let search_bar = ctx.add_typed_action_view(|_| SearchBar::new(search_editor.clone()));
@@ -802,7 +813,7 @@ impl SettingsPageMeta for KeybindingsView {
 
         self.search_editor.update(ctx, |editor, ctx| {
             editor.clear_buffer_and_reset_undo_stack(ctx);
-            editor.set_placeholder_text(SEARCH_PLACEHOLDER, ctx);
+            editor.set_placeholder_text(search_placeholder_text(), ctx);
         });
 
         if allow_steal_focus {
@@ -971,7 +982,7 @@ impl KeybindingsWidget {
     ) -> Box<dyn Element> {
         let font_size = appearance.ui_font_size() + FONT_DELTA;
         let mut description = Flex::column().with_child(render_text(
-            "Add your own custom keybindings to existing actions below.",
+            tr_cached(Message::KeybindingsDescription),
             Some(UiComponentStyles {
                 font_size: Some(font_size),
                 font_color: Some(
@@ -997,7 +1008,7 @@ impl KeybindingsWidget {
                 Wrap::row()
                     .with_child(
                         Container::new(render_text(
-                            "Use",
+                            tr_cached(Message::KeybindingsUse),
                             Some(UiComponentStyles {
                                 font_size: Some(font_size),
                                 font_color: Some(
@@ -1026,7 +1037,7 @@ impl KeybindingsWidget {
                     )
                     .with_child(
                         Container::new(render_text(
-                            "to reference these keybindings in a side pane at anytime.",
+                            tr_cached(Message::KeybindingsReferenceInSidePane),
                             Some(UiComponentStyles {
                                 font_size: Some(font_size),
                                 font_color: Some(
@@ -1106,7 +1117,7 @@ impl SettingsWidget for KeybindingsWidget {
         {
             Some(LocalOnlyIconState::Visible {
                 mouse_state: self.local_only_icon_mouse_state.clone(),
-                custom_tooltip: Some("Keyboard shortcuts are not synced to the cloud".to_string()),
+                custom_tooltip: Some(tr_cached(Message::KeybindingsNotSynced).to_string()),
             })
         } else {
             None
@@ -1114,7 +1125,7 @@ impl SettingsWidget for KeybindingsWidget {
 
         let subheader = render_sub_header(
             appearance,
-            "Configure keyboard shortcuts",
+            tr_cached(Message::KeybindingsConfigureShortcuts),
             local_only_icon_state,
         );
         let description = self.render_description(view.bindings.as_ref(), appearance);
@@ -1124,7 +1135,7 @@ impl SettingsWidget for KeybindingsWidget {
             .with_child(description)
             .with_child(render_columns(
                 Container::new(render_text(
-                    "Command",
+                    tr_cached(Message::KeybindingsCommand),
                     Some(UiComponentStyles {
                         font_size: Some(appearance.ui_font_size() + FONT_DELTA),
                         ..Default::default()

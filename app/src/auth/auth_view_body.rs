@@ -29,11 +29,11 @@ use super::auth_view_shared_helpers::{
 use super::AuthStateProvider;
 use crate::appearance::Appearance;
 use crate::auth::auth_view_shared_helpers::render_offline_contents;
-use crate::i18n::{tr, Message};
 use crate::editor::{
     EditorView, InteractionState, SingleLineEditorOptions, TextColors, TextOptions,
 };
 use crate::experiments::{AuthFlowInstructions, Experiment};
+use crate::i18n::{tr, Message};
 use crate::modal::MODAL_CORNER_RADIUS;
 use crate::network::NetworkStatus;
 use crate::server::telemetry::{AnonymousUserSignupEntrypoint, LoginEventSource, TelemetryEvent};
@@ -162,12 +162,12 @@ impl AuthViewBody {
                 ctx,
             );
 
-            let placeholder_text = if matches!(experiment_group, Some(AuthFlowInstructions::Experiment))
-            {
-                tr(ctx, Message::AuthBrowserAuthToken)
-            } else {
-                tr(ctx, Message::AuthAuthToken)
-            };
+            let placeholder_text =
+                if matches!(experiment_group, Some(AuthFlowInstructions::Experiment)) {
+                    tr(ctx, Message::AuthBrowserAuthToken)
+                } else {
+                    tr(ctx, Message::AuthAuthToken)
+                };
 
             editor.set_placeholder_text(placeholder_text, ctx);
             editor
@@ -251,7 +251,11 @@ impl AuthViewBody {
         }
     }
 
-    fn render_auth_token_suggest(&self, ui_builder: &UiBuilder, app: &AppContext) -> Box<dyn Element> {
+    fn render_auth_token_suggest(
+        &self,
+        ui_builder: &UiBuilder,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         Flex::row()
             .with_child(
                 ui_builder
@@ -512,7 +516,11 @@ impl AuthViewBody {
             .finish()
     }
 
-    fn render_sign_up_later_row(&self, ui_builder: &UiBuilder, app: &AppContext) -> Box<dyn Element> {
+    fn render_sign_up_later_row(
+        &self,
+        ui_builder: &UiBuilder,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         Container::new(
             Flex::row()
                 .with_child(
@@ -543,7 +551,11 @@ impl AuthViewBody {
         .finish()
     }
 
-    fn render_sign_in_later_confirm_row(&self, ui_builder: &UiBuilder, app: &AppContext) -> Box<dyn Element> {
+    fn render_sign_in_later_confirm_row(
+        &self,
+        ui_builder: &UiBuilder,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         Container::new(
             Flex::column()
                 .with_child(
@@ -607,15 +619,11 @@ impl AuthViewBody {
         };
 
         let text = match self.variant {
-            AuthViewVariant::RequireLoginCloseable => {
-                tr(app, Message::AuthForceLoginAi)
-            }
+            AuthViewVariant::RequireLoginCloseable => tr(app, Message::AuthForceLoginAi),
             AuthViewVariant::HitDriveObjectLimitCloseable => {
                 tr(app, Message::AuthForceLoginWarpDrive)
             }
-            AuthViewVariant::ShareRequirementCloseable => {
-                tr(app, Message::AuthForceLoginShare)
-            }
+            AuthViewVariant::ShareRequirementCloseable => tr(app, Message::AuthForceLoginShare),
             _ => "",
         };
 
@@ -630,7 +638,12 @@ impl AuthViewBody {
         .finish()
     }
 
-    fn render_header(&self, appearance: &Appearance, ui_builder: &UiBuilder, app: &AppContext) -> Box<dyn Element> {
+    fn render_header(
+        &self,
+        appearance: &Appearance,
+        ui_builder: &UiBuilder,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let header_styles = UiComponentStyles {
             font_family_id: Some(appearance.header_font_family()),
             font_color: Some(appearance.theme().active_ui_text_color().into()),
@@ -699,7 +712,8 @@ impl AuthViewBody {
         let sign_in_row = Container::new(self.render_sign_in_row(ui_builder, app))
             .with_margin_top(AUTH_MODAL_GAP)
             .finish();
-        let force_login_disclaimer = self.render_force_login_disclaimer(appearance, ui_builder, app);
+        let force_login_disclaimer =
+            self.render_force_login_disclaimer(appearance, ui_builder, app);
 
         match self.variant {
             AuthViewVariant::Initial => {
@@ -727,7 +741,8 @@ impl AuthViewBody {
                         vec![logo, header, sign_up_button, sign_in_row]
                     };
 
-                    contents.append(&mut self.render_privacy_information(appearance, ui_builder, app));
+                    contents
+                        .append(&mut self.render_privacy_information(appearance, ui_builder, app));
                     contents
                 } else {
                     vec![]

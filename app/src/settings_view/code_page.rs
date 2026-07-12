@@ -365,10 +365,16 @@ impl CodeSettingsPageView {
                 Box::new(FormatOnSaveToggleWidget::default()),
             ]);
             let categories = vec![
-                Category::new(tr_cached(Message::CodeCodebaseIndexing), codebase_indexing_widgets)
-                    .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
-                Category::new(tr_cached(Message::SettingsCodeEditorAndReviewCategory), code_editor_review_widgets)
-                    .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
+                Category::new(
+                    tr_cached(Message::CodeCodebaseIndexing),
+                    codebase_indexing_widgets,
+                )
+                .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
+                Category::new(
+                    tr_cached(Message::SettingsCodeEditorAndReviewCategory),
+                    code_editor_review_widgets,
+                )
+                .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
             ];
             PageType::new_categorized(categories, None)
         } else {
@@ -503,10 +509,16 @@ impl CodeSettingsPageView {
                 Box::new(FormatOnSaveToggleWidget::default()),
             ]);
             let categories = vec![
-                Category::new(tr_cached(Message::CodeCodebaseIndexing), codebase_indexing_widgets)
-                    .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
-                Category::new(tr_cached(Message::SettingsCodeEditorAndReviewCategory), code_editor_review_widgets)
-                    .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
+                Category::new(
+                    tr_cached(Message::CodeCodebaseIndexing),
+                    codebase_indexing_widgets,
+                )
+                .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
+                Category::new(
+                    tr_cached(Message::SettingsCodeEditorAndReviewCategory),
+                    code_editor_review_widgets,
+                )
+                .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
             ];
             PageType::new_categorized(categories, None)
         } else {
@@ -1263,7 +1275,9 @@ impl CodePageWidget {
 
         let disabled_tooltip_text = match admin_setting {
             AdminEnablementSetting::Enable => Some(tr_cached(Message::CodeIndexingEnabledByAdmins)),
-            AdminEnablementSetting::Disable => Some(tr_cached(Message::CodeIndexingDisabledByAdmins)),
+            AdminEnablementSetting::Disable => {
+                Some(tr_cached(Message::CodeIndexingDisabledByAdmins))
+            }
             AdminEnablementSetting::RespectUserSetting if !global_ai_enabled => {
                 Some(tr_cached(Message::CodeAiFeaturesRequiredForIndexing))
             }
@@ -1742,13 +1756,18 @@ impl CodePageWidget {
 
         if index_state.has_pending() {
             let text = match index_state.sync_progress() {
-                Some(SyncProgress::Discovering { total_nodes }) => {
-                    Cow::from(tr_cached(Message::CodeDiscoveredChunks).replace("{total}", &total_nodes.to_string()))
-                }
+                Some(SyncProgress::Discovering { total_nodes }) => Cow::from(
+                    tr_cached(Message::CodeDiscoveredChunks)
+                        .replace("{total}", &total_nodes.to_string()),
+                ),
                 Some(SyncProgress::Syncing {
                     completed_nodes,
                     total_nodes,
-                }) => Cow::from(tr_cached(Message::CodeSyncingProgress).replace("{completed}", &completed_nodes.to_string()).replace("{total}", &total_nodes.to_string())),
+                }) => Cow::from(
+                    tr_cached(Message::CodeSyncingProgress)
+                        .replace("{completed}", &completed_nodes.to_string())
+                        .replace("{total}", &total_nodes.to_string()),
+                ),
                 None => Cow::from(tr_cached(Message::CodeSyncing)),
             };
 
@@ -1763,7 +1782,11 @@ impl CodePageWidget {
 
         if let Some(completed_successfully) = index_state.last_sync_successful() {
             let (text, color, icon) = if completed_successfully {
-                (tr_cached(Message::CodeSynced), theme.ansi_fg_green(), Icon::Check)
+                (
+                    tr_cached(Message::CodeSynced),
+                    theme.ansi_fg_green(),
+                    Icon::Check,
+                )
             } else if let Some(CodebaseIndexFinishedStatus::Failed(
                 CodebaseIndexingError::ExceededMaxFileLimit
                 | CodebaseIndexingError::MaxDepthExceeded,
@@ -1857,11 +1880,19 @@ impl CodePageWidget {
             },
             RemoteCodebaseIndexState::Indexing => {
                 let text = match (status.progress_completed, status.progress_total) {
-                    (Some(completed), Some(total)) => {
-                        Cow::from(tr_cached(Message::CodeIndexingProgress).replace("{completed}", &completed.to_string()).replace("{total}", &total.to_string()))
-                    }
-                    (Some(completed), None) => Cow::from(tr_cached(Message::CodeIndexingProgressCompletedOnly).replace("{completed}", &completed.to_string())),
-                    (None, Some(total)) => Cow::from(tr_cached(Message::CodeIndexingProgressTotalOnly).replace("{total}", &total.to_string())),
+                    (Some(completed), Some(total)) => Cow::from(
+                        tr_cached(Message::CodeIndexingProgress)
+                            .replace("{completed}", &completed.to_string())
+                            .replace("{total}", &total.to_string()),
+                    ),
+                    (Some(completed), None) => Cow::from(
+                        tr_cached(Message::CodeIndexingProgressCompletedOnly)
+                            .replace("{completed}", &completed.to_string()),
+                    ),
+                    (None, Some(total)) => Cow::from(
+                        tr_cached(Message::CodeIndexingProgressTotalOnly)
+                            .replace("{total}", &total.to_string()),
+                    ),
                     (None, None) => Cow::from(tr_cached(Message::CodeIndexing)),
                 };
 
@@ -2507,7 +2538,9 @@ impl SettingsWidget for CodebaseIndexingCategorizedWidget {
 
         let disabled_tooltip_text = match admin_setting {
             AdminEnablementSetting::Enable => Some(tr_cached(Message::CodeIndexingEnabledByAdmins)),
-            AdminEnablementSetting::Disable => Some(tr_cached(Message::CodeIndexingDisabledByAdmins)),
+            AdminEnablementSetting::Disable => {
+                Some(tr_cached(Message::CodeIndexingDisabledByAdmins))
+            }
             AdminEnablementSetting::RespectUserSetting if !global_ai_enabled => {
                 Some(tr_cached(Message::CodeAiFeaturesRequiredForIndexing))
             }
@@ -2781,7 +2814,13 @@ impl SettingsWidget for CodeReviewDiffStatsToggleWidget {
                     );
                 })
                 .finish(),
-            Some(tr(app, Message::SettingsShowLinesAddedAndRemovedCountsOnTheCodeReviewButton).into()),
+            Some(
+                tr(
+                    app,
+                    Message::SettingsShowLinesAddedAndRemovedCountsOnTheCodeReviewButton,
+                )
+                .into(),
+            ),
         )
     }
 }
@@ -2864,7 +2903,13 @@ impl SettingsWidget for GlobalSearchToggleWidget {
                     ctx.dispatch_typed_action(CodeSettingsPageAction::ToggleGlobalSearch);
                 })
                 .finish(),
-            Some(tr(app, Message::SettingsAddsGlobalFileSearchToTheLeftSideToolsPanel).into()),
+            Some(
+                tr(
+                    app,
+                    Message::SettingsAddsGlobalFileSearchToTheLeftSideToolsPanel,
+                )
+                .into(),
+            ),
         )
     }
 }
@@ -2905,7 +2950,11 @@ impl SettingsWidget for ShowHiddenFilesToggleWidget {
                 })
                 .finish(),
             Some(
-                tr(app, Message::SettingsShowDotfilesAndHiddenFilesStartingWithInTheProjectExplorer).into(),
+                tr(
+                    app,
+                    Message::SettingsShowDotfilesAndHiddenFilesStartingWithInTheProjectExplorer,
+                )
+                .into(),
             ),
         )
     }

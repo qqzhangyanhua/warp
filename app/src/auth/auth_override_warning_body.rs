@@ -81,7 +81,12 @@ impl AuthOverrideWarningBody {
         self.confirmation_step = AuthOverrideConfirmationStep::Initial;
     }
 
-    fn render_header(&self, app: &AppContext, appearance: &Appearance, ui_builder: &UiBuilder) -> Box<dyn Element> {
+    fn render_header(
+        &self,
+        app: &AppContext,
+        appearance: &Appearance,
+        ui_builder: &UiBuilder,
+    ) -> Box<dyn Element> {
         let header_styles = UiComponentStyles {
             font_family_id: Some(appearance.header_font_family()),
             font_color: Some(appearance.theme().active_ui_text_color().into()),
@@ -91,7 +96,9 @@ impl AuthOverrideWarningBody {
         };
 
         let text = match self.confirmation_step {
-            AuthOverrideConfirmationStep::Initial => tr(app, Message::AuthOverrideWarningDescription),
+            AuthOverrideConfirmationStep::Initial => {
+                tr(app, Message::AuthOverrideWarningDescription)
+            }
             AuthOverrideConfirmationStep::ConfirmChangeUser => {
                 tr(app, Message::AuthDeletePersonalWarpDrive)
             }
@@ -206,7 +213,12 @@ impl AuthOverrideWarningBody {
         }
     }
 
-    fn render_buttons(&self, app: &AppContext, appearance: &Appearance, ui_builder: &UiBuilder) -> Box<dyn Element> {
+    fn render_buttons(
+        &self,
+        app: &AppContext,
+        appearance: &Appearance,
+        ui_builder: &UiBuilder,
+    ) -> Box<dyn Element> {
         let button_color = appearance.theme().accent().into();
 
         let button_styles = UiComponentStyles {

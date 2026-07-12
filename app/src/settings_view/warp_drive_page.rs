@@ -24,6 +24,7 @@ use super::{
 use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
 use crate::drive::settings::WarpDriveSettings;
+use crate::i18n::{tr_cached, Message};
 
 #[derive(Debug, Clone)]
 pub enum WarpDriveSettingsPageAction {
@@ -39,7 +40,10 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
 ) {
     ToggleSettingActionPair::add_toggle_setting_action_pairs_as_bindings(
         vec![ToggleSettingActionPair::custom(
-            SettingActionPairDescriptions::new("Enable Warp Drive", "Disable Warp Drive"),
+            SettingActionPairDescriptions::new(
+                tr_cached(Message::AuthEnableWarpDrive),
+                tr_cached(Message::AuthDisableWarpDrive),
+            ),
             builder(SettingsAction::WarpDrive(
                 WarpDriveSettingsPageAction::ToggleShowWarpDrive,
             )),
@@ -168,7 +172,7 @@ impl SettingsWidget for WarpDriveHeaderWidget {
 
         let message = Container::new(
             Text::new_inline(
-                "To use Warp Drive, please create an account.".to_string(),
+                tr_cached(Message::WarpDriveCreateAccountToUse).to_string(),
                 appearance.ui_font_family(),
                 14.,
             )
@@ -200,7 +204,7 @@ impl SettingsWidget for WarpDriveHeaderWidget {
                     }),
                     ..Default::default()
                 })
-                .with_text_label("Sign up".to_owned())
+                .with_text_label(tr_cached(Message::AccountSignUp).to_owned())
                 .build()
                 .on_click(move |ctx, _, _| {
                     ctx.dispatch_typed_action(WarpDriveSettingsPageAction::SignUp);
@@ -271,13 +275,11 @@ impl SettingsWidget for WarpDriveToggleWidget {
                 .build()
                 .on_click(move |ctx, _, _| {
                     if !is_anonymous_or_logged_out {
-                        ctx.dispatch_typed_action(
-                            WarpDriveSettingsPageAction::ToggleShowWarpDrive,
-                        );
+                        ctx.dispatch_typed_action(WarpDriveSettingsPageAction::ToggleShowWarpDrive);
                     }
                 })
                 .finish(),
-            Some("Warp Drive is a workspace in your terminal where you can save Workflows, Notebooks, Prompts, and Environment Variables for personal use or to share with a team.".into()),
+            Some(tr_cached(Message::WarpDriveDescription).into()),
         )
     }
 }

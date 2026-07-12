@@ -12,6 +12,7 @@ use warpui::{
 
 use super::EnvironmentsPageAction;
 use crate::editor::EditorView;
+use crate::i18n::{tr_cached, Message};
 
 pub struct NewEnvironmentButtonView {
     trigger_mouse_state: MouseStateHandle,
@@ -96,7 +97,7 @@ impl View for NewEnvironmentButtonView {
                     .with_spacing(4.)
                     .with_child(
                         Text::new(
-                            "New environment",
+                            tr_cached(Message::EnvironmentsNewEnvironment),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )

@@ -14737,6 +14737,10 @@ impl TerminalView {
 
         let view = ctx.add_typed_action_view(|ctx| {
             let keybindings = build_onboarding_keybindings(ctx);
+            let locale = match crate::i18n::active_locale(ctx) {
+                crate::i18n::Locale::En => onboarding::i18n::Locale::En,
+                crate::i18n::Locale::ZhCn => onboarding::i18n::Locale::ZhCn,
+            };
 
             match version {
                 AgentOnboardingVersion::UniversalInput { has_project } => {
@@ -14747,6 +14751,7 @@ impl TerminalView {
                         has_project,
                         initial_natural_language_detection_enabled,
                         keybindings,
+                        locale,
                         ctx,
                     )
                 }
@@ -14762,6 +14767,7 @@ impl TerminalView {
                         intention,
                         initial_natural_language_detection_enabled,
                         keybindings,
+                        locale,
                         ctx,
                     )
                 }
@@ -23952,9 +23958,13 @@ impl TerminalView {
                             .finish(),
                     )
                     .with_child(
-                        Text::new_inline(tr_cached(Message::TerminalLoadingSession), appearance.ui_font_family(), 14.)
-                            .with_color(color.into())
-                            .finish(),
+                        Text::new_inline(
+                            tr_cached(Message::TerminalLoadingSession),
+                            appearance.ui_font_family(),
+                            14.,
+                        )
+                        .with_color(color.into())
+                        .finish(),
                     )
                     .with_cross_axis_alignment(CrossAxisAlignment::Center)
                     .finish(),

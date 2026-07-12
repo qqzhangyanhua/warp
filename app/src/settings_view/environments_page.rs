@@ -50,6 +50,7 @@ use crate::drive::CloudObjectTypeAndId;
 use crate::editor::{
     EditorView, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
+use crate::i18n::{tr, Message};
 use crate::root_view::CreateEnvironmentArg;
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
@@ -1446,10 +1447,9 @@ impl EnvironmentsPageWidget {
             appearance,
             EmptyStateRowConfig {
                 icon: Icon::Github,
-                title: "Quick setup",
-                badge: Some("Suggested"),
-                subtitle:
-                    "Select the GitHub repositories you’d like to work with and we’ll suggest a base image and config",
+                title: tr(app, Message::EnvironmentsQuickSetup),
+                badge: Some(tr(app, Message::EnvironmentsSuggested)),
+                subtitle: tr(app, Message::EnvironmentsQuickSetupDescription),
                 action_button: github_button,
                 compact_action_button: github_button_compact,
                 icon_size,
@@ -1460,10 +1460,9 @@ impl EnvironmentsPageWidget {
             appearance,
             EmptyStateRowConfig {
                 icon: Icon::Terminal,
-                title: "Use the agent",
+                title: tr(app, Message::EnvironmentsUseTheAgent),
                 badge: None,
-                subtitle:
-                    "Choose a locally set up project and we’ll help you set up an environment based on it",
+                subtitle: tr(app, Message::EnvironmentsUseTheAgentDescription),
                 action_button: local_repos_button,
                 compact_action_button: local_repos_button_compact,
                 icon_size,
@@ -1482,7 +1481,7 @@ impl EnvironmentsPageWidget {
         .finish();
 
         let header = Text::new(
-            "You haven’t set up any environments yet.",
+            tr(app, Message::EnvironmentsEmptyTitle),
             appearance.ui_font_family(),
             appearance.ui_font_size() * 1.1,
         )
@@ -1491,7 +1490,7 @@ impl EnvironmentsPageWidget {
         .finish();
 
         let subheader = Text::new(
-            "Choose how you’d like to set up your environment:",
+            tr(app, Message::EnvironmentsEmptySubtitle),
             appearance.ui_font_family(),
             appearance.ui_font_size() * 0.95,
         )

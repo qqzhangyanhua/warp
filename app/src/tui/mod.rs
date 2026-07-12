@@ -6,8 +6,8 @@
 //! — when the user isn't logged in yet — drives the device-authorization login
 //! flow, flipping the model to [`TuiLoginPhase::LoggedIn`] when it completes.
 
-use warpui::{AppContext, Entity, SingletonEntity};
 use warp_core::features::FeatureFlag;
+use warpui::{AppContext, Entity, SingletonEntity};
 
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;

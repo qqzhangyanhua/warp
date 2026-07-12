@@ -11,11 +11,11 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::modal::{Modal, ModalViewState};
 
 const LABEL_FONT_SIZE: f32 = 12.;

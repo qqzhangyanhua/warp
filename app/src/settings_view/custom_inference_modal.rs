@@ -819,9 +819,12 @@ impl View for CustomEndpointModal {
                             .finish(),
                     )
                     .with_child(
-                        ConstrainedBox::new(label(tr(app, Message::CustomInferenceModelAliasOptional)))
-                            .with_width(MODEL_INPUT_WIDTH)
-                            .finish(),
+                        ConstrainedBox::new(label(tr(
+                            app,
+                            Message::CustomInferenceModelAliasOptional,
+                        )))
+                        .with_width(MODEL_INPUT_WIDTH)
+                        .finish(),
                     )
                     .finish(),
             );

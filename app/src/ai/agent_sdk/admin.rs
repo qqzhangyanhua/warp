@@ -2,8 +2,8 @@
 
 use anyhow::{Context, Result};
 use serde::Serialize;
-use warp_core::features::FeatureFlag;
 use warp_cli::agent::OutputFormat;
+use warp_core::features::FeatureFlag;
 use warpui::platform::TerminationMode;
 use warpui::{AppContext, SingletonEntity};
 

@@ -46,9 +46,9 @@ pub(crate) fn locale_from_system_tag(tag: Option<&str>) -> Locale {
     match primary {
         "zh" => {
             // Prefer traditional only when the tag is explicitly traditional.
-            let is_traditional = normalized.split(['-', '.']).any(|part| {
-                matches!(part, "tw" | "hk" | "mo" | "hant")
-            });
+            let is_traditional = normalized
+                .split(['-', '.'])
+                .any(|part| matches!(part, "tw" | "hk" | "mo" | "hant"));
             if is_traditional {
                 Locale::En
             } else {

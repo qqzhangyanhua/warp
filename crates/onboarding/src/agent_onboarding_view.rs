@@ -182,9 +182,7 @@ impl AgentOnboardingView {
 
         let intro_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| {
-                IntroSlide::new(onboarding_state.clone(), locale)
-            })
+            ctx.add_typed_action_view(move |_| IntroSlide::new(onboarding_state.clone(), locale))
         };
 
         ctx.subscribe_to_view(&intro_slide, |_me, _view, event, ctx| match event {
@@ -210,9 +208,7 @@ impl AgentOnboardingView {
 
         let ai_setup_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| {
-                AiSetupSlide::new(onboarding_state.clone(), locale)
-            })
+            ctx.add_typed_action_view(move |_| AiSetupSlide::new(onboarding_state.clone(), locale))
         };
 
         let customize_slide = {
@@ -235,9 +231,7 @@ impl AgentOnboardingView {
 
         let ai_access_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| {
-                AiAccessSlide::new(onboarding_state.clone(), locale)
-            })
+            ctx.add_typed_action_view(move |_| AiAccessSlide::new(onboarding_state.clone(), locale))
         };
 
         ctx.subscribe_to_view(&ai_access_slide, |_me, _view, event, ctx| match event {
@@ -258,9 +252,7 @@ impl AgentOnboardingView {
 
         let project_slide = {
             let onboarding_state = onboarding_state.clone();
-            ctx.add_typed_action_view(move |_| {
-                ProjectSlide::new(onboarding_state.clone(), locale)
-            })
+            ctx.add_typed_action_view(move |_| ProjectSlide::new(onboarding_state.clone(), locale))
         };
 
         // When the app regains focus (e.g. user returning from the upgrade page in the

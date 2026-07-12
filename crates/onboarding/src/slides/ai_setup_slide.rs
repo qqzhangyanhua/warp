@@ -371,7 +371,10 @@ impl AiSetupSlide {
 
         let label = appearance
             .ui_builder()
-            .paragraph(i18n::tr(OnboardingMessage::UseThirdPartyAgents, self.locale))
+            .paragraph(i18n::tr(
+                OnboardingMessage::UseThirdPartyAgents,
+                self.locale,
+            ))
             .with_style(UiComponentStyles {
                 font_size: Some(16.),
                 font_weight: Some(Weight::Semibold),
@@ -412,7 +415,9 @@ impl AiSetupSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Back, self.locale).into(),
+                ),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -427,7 +432,9 @@ impl AiSetupSlide {
         let next_button = self.next_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Next, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Next, self.locale).into(),
+                ),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),

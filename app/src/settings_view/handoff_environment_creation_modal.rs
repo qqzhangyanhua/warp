@@ -13,6 +13,7 @@ use warpui::{
 use crate::ai::ambient_agents::github_auth_url::{AuthSource, GithubAuthRedirectTarget};
 use crate::ai::cloud_environments;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::modal::MODAL_BACKDROP_OPACITY;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ClientId, SyncId};
@@ -195,7 +196,7 @@ impl HandoffEnvironmentCreationModal {
             .finish();
 
         let dialog = Dialog::new(
-            "Create environment".to_string(),
+            tr_cached(Message::EnvironmentFormCreateEnvironment).to_string(),
             None,
             dialog_styles(appearance),
         )

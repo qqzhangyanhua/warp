@@ -21,12 +21,12 @@ use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{Coords, UiComponent as _, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity as _, View, ViewContext, ViewHandle};
 
-use crate::i18n::{tr_cached, Message};
 use crate::ai::request_usage_model::{
     AIRequestUsageModel, AIRequestUsageModelEvent, BuyCreditsBannerDisplayState,
 };
 use crate::auth::AuthStateProvider;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::MenuItemFields;
 use crate::pricing::{PricingInfoModel, PricingInfoModelEvent};
 use crate::send_telemetry_from_ctx;
@@ -251,9 +251,13 @@ impl BuyCreditsBanner {
 
         let sub_text_color = theme.sub_text_color(theme.surface_1());
 
-        let label = Text::new_inline(tr_cached(Message::TerminalAutoReload), appearance.ui_font_family(), 12.)
-            .with_color(sub_text_color.into())
-            .finish();
+        let label = Text::new_inline(
+            tr_cached(Message::TerminalAutoReload),
+            appearance.ui_font_family(),
+            12.,
+        )
+        .with_color(sub_text_color.into())
+        .finish();
 
         // Get the selected amount for the tooltip
         let selected_credits = self
@@ -262,8 +266,8 @@ impl BuyCreditsBanner {
             .map(|option| option.credits)
             .unwrap_or(0);
 
-        let tooltip_text = tr_cached(Message::TerminalAutoReloadDescription).replace("{}", &selected_credits
-        .to_string());
+        let tooltip_text = tr_cached(Message::TerminalAutoReloadDescription)
+            .replace("{}", &selected_credits.to_string());
 
         // Create info icon with a custom sub_text_color & mouse cursor (i.e. as opposed to using IconWithTooltip)
         let ui_builder = appearance.ui_builder();
@@ -573,10 +577,13 @@ impl BuyCreditsBanner {
             if is_at_monthly_limit || would_purchase_exceed_limit {
                 // Create formatted text with clickable hyperlink
                 let warning_text_fragments = vec![
-                    FormattedTextFragment::plain_text(
-                        tr_cached(Message::TerminalPurchasingOverLimit),
+                    FormattedTextFragment::plain_text(tr_cached(
+                        Message::TerminalPurchasingOverLimit,
+                    )),
+                    FormattedTextFragment::hyperlink_action(
+                        tr_cached(Message::TerminalIncreaseIt),
+                        Action::ManageBilling,
                     ),
-                    FormattedTextFragment::hyperlink_action(tr_cached(Message::TerminalIncreaseIt), Action::ManageBilling),
                     FormattedTextFragment::plain_text(" to continue."),
                 ];
 

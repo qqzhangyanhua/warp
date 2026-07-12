@@ -67,12 +67,12 @@ fn custom_model_providers(config_keys: &[&str]) -> api::request::settings::Custo
                 api_key: "key".to_string(),
                 models: config_keys
                     .iter()
-                    .map(|config_key| {
-                        api::request::settings::custom_model_providers::CustomModel {
+                    .map(
+                        |config_key| api::request::settings::custom_model_providers::CustomModel {
                             slug: format!("model-{config_key}"),
                             config_key: (*config_key).to_string(),
-                        }
-                    })
+                        },
+                    )
                     .collect(),
             },
         ],

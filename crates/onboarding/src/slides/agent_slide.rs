@@ -227,7 +227,10 @@ impl AgentSlide {
     fn render_header(&self, appearance: &Appearance) -> Box<dyn Element> {
         let title = appearance
             .ui_builder()
-            .paragraph(i18n::tr(OnboardingMessage::CustomizeYourWarpAgent, self.locale))
+            .paragraph(i18n::tr(
+                OnboardingMessage::CustomizeYourWarpAgent,
+                self.locale,
+            ))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -323,7 +326,10 @@ impl AgentSlide {
         settings: &AgentDevelopmentSettings,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let header = self.render_section_header(i18n::tr(OnboardingMessage::DefaultModel, self.locale), appearance);
+        let header = self.render_section_header(
+            i18n::tr(OnboardingMessage::DefaultModel, self.locale),
+            appearance,
+        );
 
         let expanded = self.is_model_list_expanded;
         let chip = self.render_collapsed_model_chip(appearance, settings, app, expanded);
@@ -669,7 +675,10 @@ impl AgentSlide {
     }
 
     fn render_autonomy_workspace_enforced(&self, appearance: &Appearance) -> Box<dyn Element> {
-        let header = self.render_section_header(i18n::tr(OnboardingMessage::Autonomy, self.locale), appearance);
+        let header = self.render_section_header(
+            i18n::tr(OnboardingMessage::Autonomy, self.locale),
+            appearance,
+        );
 
         let theme = appearance.theme();
         let background_for_text = theme.background().into_solid();
@@ -678,17 +687,24 @@ impl AgentSlide {
         let title_color = internal_colors::text_main(theme, background_for_text);
         let subtitle_color = internal_colors::text_sub(theme, background_for_text);
 
-        let title_el = Text::new(i18n::tr(OnboardingMessage::SetByTeamWorkspace, self.locale), ui_font_family, 14.0)
-            .with_color(title_color)
-            .with_style(Properties {
-                weight: Weight::Normal,
-                ..Default::default()
-            })
-            .with_line_height_ratio(1.0)
-            .finish();
+        let title_el = Text::new(
+            i18n::tr(OnboardingMessage::SetByTeamWorkspace, self.locale),
+            ui_font_family,
+            14.0,
+        )
+        .with_color(title_color)
+        .with_style(Properties {
+            weight: Weight::Normal,
+            ..Default::default()
+        })
+        .with_line_height_ratio(1.0)
+        .finish();
 
         let subtitle_el = Text::new(
-            i18n::tr(OnboardingMessage::AutonomyTeamWorkspaceDescription, self.locale),
+            i18n::tr(
+                OnboardingMessage::AutonomyTeamWorkspaceDescription,
+                self.locale,
+            ),
             ui_font_family,
             12.0,
         )
@@ -724,7 +740,10 @@ impl AgentSlide {
         appearance: &Appearance,
         settings: &AgentDevelopmentSettings,
     ) -> Box<dyn Element> {
-        let header = self.render_section_header(i18n::tr(OnboardingMessage::Autonomy, self.locale), appearance);
+        let header = self.render_section_header(
+            i18n::tr(OnboardingMessage::Autonomy, self.locale),
+            appearance,
+        );
 
         // The rows now take the full column width (vs. the previous three-across layout),
         // so they no longer need the extra height that came from cramped subtitle wrapping.
@@ -802,7 +821,9 @@ impl AgentSlide {
         let back_button = self.back_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Back, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Back, self.locale).into(),
+                ),
                 theme: &button::themes::Naked,
                 options: button::Options {
                     on_click: Some(Box::new(|ctx, _app, _pos| {
@@ -817,7 +838,9 @@ impl AgentSlide {
         let next_button = self.next_button.render(
             appearance,
             button::Params {
-                content: button::Content::Label(i18n::tr(OnboardingMessage::Next, self.locale).into()),
+                content: button::Content::Label(
+                    i18n::tr(OnboardingMessage::Next, self.locale).into(),
+                ),
                 theme: &button::themes::Primary,
                 options: button::Options {
                     keystroke: Some(enter),

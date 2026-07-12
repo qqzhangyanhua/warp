@@ -117,11 +117,7 @@ impl AuthState {
     /// 3. WARP_USER_SECRET environment variable
     /// 4. Persisted user from secure storage
     #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    pub fn initialize(
-        ctx: &AppContext,
-        api_key: Option<String>,
-        anonymous_only: bool,
-    ) -> Self {
+    pub fn initialize(ctx: &AppContext, api_key: Option<String>, anonymous_only: bool) -> Self {
         let state = Self::new(ctx);
 
         if Self::should_use_test_user() {

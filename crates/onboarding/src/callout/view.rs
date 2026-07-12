@@ -26,6 +26,7 @@ use crate::callout::model::{
     OnboardingCalloutState, OnboardingQuery, UniversalInputCalloutState,
 };
 use crate::components::onboarding_callout::{self, Button, StepStatus};
+use crate::i18n::{self, Locale, OnboardingMessage};
 use crate::OnboardingIntention;
 
 /// Options for rendering a callout.
@@ -56,30 +57,29 @@ fn get_universal_input_callout_options(
     state: UniversalInputCalloutState,
     has_project: bool,
     keybindings: &OnboardingKeybindings,
+    locale: Locale,
 ) -> Option<CalloutOptions> {
     match state {
         UniversalInputCalloutState::MeetInput => Some(CalloutOptions {
-            title: "Meet the Warp input",
-            text: format!(
-                "Your terminal input accepts both terminal commands and agent prompts and automatically detects which you're using. Use {} to lock the input to Agent mode (natural language) or Terminal mode (commands).",
-                keybindings.toggle_input_mode
-            ),
+            title: i18n::tr(OnboardingMessage::MeetWarpInput, locale),
+            text: i18n::tr(OnboardingMessage::UniversalInputDescription, locale)
+                .replace("{}", &keybindings.toggle_input_mode),
             step: StepStatus::new(0, 2),
             left_button: None,
             right_button: ButtonOptions {
-                text: "Next",
+                text: i18n::tr(OnboardingMessage::Next, locale),
                 action: OnboardingCalloutViewAction::NextClicked,
                 keystroke: Some(Keystroke::parse("enter").unwrap_or_default()),
             },
             checkbox: None,
         }),
         UniversalInputCalloutState::TalkToAgent => Some(CalloutOptions {
-            title: "Talk to the agent",
-            text: "You can type in natural language to engage the agent. Submit the query below to start: What tests exist in this repo, how are they structured, and what do they cover?".to_string(),
+            title: i18n::tr(OnboardingMessage::TalkToAgent, locale),
+            text: i18n::tr(OnboardingMessage::TalkToAgentDescription, locale).to_string(),
             step: StepStatus::new(1, 2),
             left_button: if has_project {
                 Some(ButtonOptions {
-                    text: "Skip",
+                    text: i18n::tr(OnboardingMessage::Skip, locale),
                     action: OnboardingCalloutViewAction::SkipClicked,
                     keystroke: Some(Keystroke::parse("delete").unwrap_or_default()),
                 })
@@ -87,7 +87,14 @@ fn get_universal_input_callout_options(
                 None
             },
             right_button: ButtonOptions {
-                text: if has_project { "Submit" } else { "Finish" },
+                text: i18n::tr(
+                    if has_project {
+                        OnboardingMessage::Submit
+                    } else {
+                        OnboardingMessage::Finish
+                    },
+                    locale,
+                ),
                 action: OnboardingCalloutViewAction::NextClicked,
                 keystroke: Some(Keystroke::parse("enter").unwrap_or_default()),
             },
@@ -104,6 +111,7 @@ fn get_agent_modality_callout_options(
     initial_natural_language_detection_enabled: bool,
     natural_language_detection_enabled: bool,
     keybindings: &OnboardingKeybindings,
+    locale: Locale,
 ) -> Option<CalloutOptions> {
     let total_steps = match intention {
         OnboardingIntention::Terminal => 1,
@@ -117,15 +125,20 @@ fn get_agent_modality_callout_options(
             if initial_natural_language_detection_enabled {
                 // NL detection was already enabled - show simpler "overrides" callout without checkbox
                 Some(CalloutOptions {
-                    title: "Welcome to terminal mode",
-                    text: format!(
-                        "Run commands here, just like a regular terminal. If you type a question or task using natural language, Warp can suggest opening it in agent mode. You can always override using {}.",
-                        keybindings.toggle_input_mode
-                    ),
+                    title: i18n::tr(OnboardingMessage::WelcomeTerminalMode, locale),
+                    text: i18n::tr(OnboardingMessage::TerminalModeDescription, locale)
+                        .replace("{}", &keybindings.toggle_input_mode),
                     step: StepStatus::new(0, total_steps),
                     left_button: None,
                     right_button: ButtonOptions {
-                        text: if is_final_step { "Finish" } else { "Next" },
+                        text: i18n::tr(
+                            if is_final_step {
+                                OnboardingMessage::Finish
+                            } else {
+                                OnboardingMessage::Next
+                            },
+                            locale,
+                        ),
                         action: OnboardingCalloutViewAction::NextClicked,
                         keystroke: Some(Keystroke::parse("enter").unwrap_or_default()),
                     },
@@ -134,20 +147,25 @@ fn get_agent_modality_callout_options(
             } else {
                 // NL detection was disabled - show full explanation with checkbox to enable
                 Some(CalloutOptions {
-                    title: "You’re in terminal mode",
-                    text: format!(
-                        "Run commands here, just like a regular terminal. If you type a question or task using natural language, Warp can suggest opening it in agent mode. You can always override using {}.",
-                        keybindings.toggle_input_mode
-                    ),
+                    title: i18n::tr(OnboardingMessage::YoureInTerminalMode, locale),
+                    text: i18n::tr(OnboardingMessage::TerminalModeDescription, locale)
+                        .replace("{}", &keybindings.toggle_input_mode),
                     step: StepStatus::new(0, total_steps),
                     left_button: None,
                     right_button: ButtonOptions {
-                        text: if is_final_step { "Finish" } else { "Next" },
+                        text: i18n::tr(
+                            if is_final_step {
+                                OnboardingMessage::Finish
+                            } else {
+                                OnboardingMessage::Next
+                            },
+                            locale,
+                        ),
                         action: OnboardingCalloutViewAction::NextClicked,
                         keystroke: Some(Keystroke::parse("enter").unwrap_or_default()),
                     },
                     checkbox: Some(CheckboxOptions {
-                        label: "Enable Natural Language Detection",
+                        label: i18n::tr(OnboardingMessage::EnableNaturalLanguageDetection, locale),
                         checked: natural_language_detection_enabled,
                     }),
                 })
@@ -156,16 +174,17 @@ fn get_agent_modality_callout_options(
         AgentModalityCalloutState::AgentMode => {
             if has_project {
                 Some(CalloutOptions {
-                    title: "You're in agent mode",
-                    text: "Agent mode gives your questions and tasks their own conversation, so you can ask follow-ups without leaving your terminal workflow.\n\nSubmit the query below to have the agent initialize this project, or ⊗ to clear the input and start your own!".to_string(),
+                    title: i18n::tr(OnboardingMessage::YoureInAgentMode, locale),
+                    text: i18n::tr(OnboardingMessage::AgentModeProjectDescription, locale)
+                        .to_string(),
                     step: StepStatus::new(1, total_steps),
                     left_button: Some(ButtonOptions {
-                        text: "Skip initialization",
+                        text: i18n::tr(OnboardingMessage::SkipInitialization, locale),
                         action: OnboardingCalloutViewAction::SkipClicked,
                         keystroke: Some(Keystroke::parse("delete").unwrap_or_default()),
                     }),
                     right_button: ButtonOptions {
-                        text: "Initialize",
+                        text: i18n::tr(OnboardingMessage::Initialize, locale),
                         action: OnboardingCalloutViewAction::NextClicked,
                         keystroke: Some(Keystroke::parse("enter").unwrap_or_default()),
                     },
@@ -173,19 +192,17 @@ fn get_agent_modality_callout_options(
                 })
             } else {
                 Some(CalloutOptions {
-                    title: "You're in agent mode",
-                    text: format!(
-                        "Agent mode gives your questions and tasks their own conversation, so you can ask follow-ups without leaving your terminal workflow. Press {} to return to terminal mode at any point.",
-                        keybindings.return_to_terminal_mode
-                    ),
+                    title: i18n::tr(OnboardingMessage::YoureInAgentMode, locale),
+                    text: i18n::tr(OnboardingMessage::AgentModeDescription, locale)
+                        .replace("{}", &keybindings.return_to_terminal_mode),
                     step: StepStatus::new(1, total_steps),
                     left_button: Some(ButtonOptions {
-                        text: "Back to terminal",
+                        text: i18n::tr(OnboardingMessage::BackToTerminal, locale),
                         action: OnboardingCalloutViewAction::BackToTerminalClicked,
                         keystroke: Some(Keystroke::parse("escape").unwrap_or_default()),
                     }),
                     right_button: ButtonOptions {
-                        text: "Finish",
+                        text: i18n::tr(OnboardingMessage::Finish, locale),
                         action: OnboardingCalloutViewAction::NextClicked,
                         keystroke: Some(Keystroke::parse("enter").unwrap_or_default()),
                     },
@@ -250,6 +267,7 @@ pub struct OnboardingCalloutView {
     callout_component: onboarding_callout::OnboardingCallout,
     /// Display strings for keybindings shown in the callout
     keybindings: OnboardingKeybindings,
+    locale: Locale,
 }
 
 impl OnboardingCalloutView {
@@ -258,6 +276,7 @@ impl OnboardingCalloutView {
         has_project: bool,
         initial_natural_language_detection_enabled: bool,
         keybindings: OnboardingKeybindings,
+        locale: Locale,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let model = ctx.add_model(|_ctx| {
@@ -266,7 +285,7 @@ impl OnboardingCalloutView {
                 initial_natural_language_detection_enabled,
             )
         });
-        Self::with_model(model, keybindings, ctx)
+        Self::with_model(model, keybindings, locale, ctx)
     }
 
     /// Create a new view for the AgentModality onboarding flow.
@@ -275,6 +294,7 @@ impl OnboardingCalloutView {
         intention: OnboardingIntention,
         initial_natural_language_detection_enabled: bool,
         keybindings: OnboardingKeybindings,
+        locale: Locale,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let model = ctx.add_model(|_ctx| {
@@ -284,12 +304,13 @@ impl OnboardingCalloutView {
                 initial_natural_language_detection_enabled,
             )
         });
-        Self::with_model(model, keybindings, ctx)
+        Self::with_model(model, keybindings, locale, ctx)
     }
 
     fn with_model(
         model: ModelHandle<OnboardingCalloutModel>,
         keybindings: OnboardingKeybindings,
+        locale: Locale,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         // Re-emit model updates as view events so parents can subscribe to the view.
@@ -320,6 +341,7 @@ impl OnboardingCalloutView {
             model,
             callout_component: onboarding_callout::OnboardingCallout::default(),
             keybindings,
+            locale,
         }
     }
 
@@ -358,9 +380,12 @@ impl OnboardingCalloutView {
     fn get_callout_options(&self, app: &AppContext) -> Option<CalloutOptions> {
         let model = self.model.as_ref(app);
         match model.state() {
-            OnboardingCalloutState::UniversalInput(state) => {
-                get_universal_input_callout_options(state, model.has_project(), &self.keybindings)
-            }
+            OnboardingCalloutState::UniversalInput(state) => get_universal_input_callout_options(
+                state,
+                model.has_project(),
+                &self.keybindings,
+                self.locale,
+            ),
             OnboardingCalloutState::AgentModality(state) => get_agent_modality_callout_options(
                 state,
                 model.intention(),
@@ -368,6 +393,7 @@ impl OnboardingCalloutView {
                 model.initial_natural_language_detection_enabled(),
                 model.natural_language_detection_enabled(),
                 &self.keybindings,
+                self.locale,
             ),
         }
     }

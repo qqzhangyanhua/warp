@@ -16,6 +16,7 @@ use crate::ai::ambient_agents::github_auth_url::{self, AuthSource, GithubAuthRed
 use crate::ai::cloud_environments::{BaseImage, GithubRepo};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
+use crate::i18n::{tr_cached, Message};
 use crate::network::NetworkStatus;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ClientId, SyncId};
@@ -478,11 +479,11 @@ fn test_render_repos_field_loading_state() {
             let text_content = element.debug_text_content().unwrap_or_default();
 
             assert!(
-                text_content.contains("Repo(s)"),
+                text_content.contains(tr_cached(Message::EnvironmentFormReposLabel)),
                 "Expected 'Repo(s)' label in rendered content: {text_content}"
             );
             assert!(
-                text_content.contains("Loading..."),
+                text_content.contains(tr_cached(Message::EnvironmentFormLoading)),
                 "Expected 'Loading...' in rendered content: {text_content}"
             );
         });
@@ -508,11 +509,11 @@ fn test_render_repos_field_authed_state() {
             let text_content = element.debug_text_content().unwrap_or_default();
 
             assert!(
-                text_content.contains("Repo(s)"),
+                text_content.contains(tr_cached(Message::EnvironmentFormReposLabel)),
                 "Expected 'Repo(s)' label in rendered content: {text_content}"
             );
             assert!(
-                text_content.contains("Type owner/repo and press Enter"),
+                text_content.contains(tr_cached(Message::EnvironmentFormRepoHelper)),
                 "Expected helper text in rendered content: {text_content}"
             );
         });
@@ -541,11 +542,11 @@ fn test_render_repos_field_auth_required() {
             let text_content = element.debug_text_content().unwrap_or_default();
 
             assert!(
-                text_content.contains("Repo(s)"),
+                text_content.contains(tr_cached(Message::EnvironmentFormReposLabel)),
                 "Expected 'Repo(s)' label in rendered content: {text_content}"
             );
             assert!(
-                text_content.contains("Auth with GitHub"),
+                text_content.contains(tr_cached(Message::EnvironmentFormAuthWithGithub)),
                 "Expected 'Auth with GitHub' in rendered content: {text_content}"
             );
         });
@@ -574,7 +575,7 @@ fn test_render_repos_field_error_state() {
             let text_content = element.debug_text_content().unwrap_or_default();
 
             assert!(
-                text_content.contains("Repo(s)"),
+                text_content.contains(tr_cached(Message::EnvironmentFormReposLabel)),
                 "Expected 'Repo(s)' label in rendered content: {text_content}"
             );
             assert!(
@@ -582,7 +583,7 @@ fn test_render_repos_field_error_state() {
                 "Expected error message in rendered content: {text_content}"
             );
             assert!(
-                text_content.contains("Retry"),
+                text_content.contains(tr_cached(Message::EnvironmentFormRetry)),
                 "Expected 'Retry' in rendered content: {text_content}"
             );
         });
@@ -650,7 +651,7 @@ fn test_render_repos_field_with_selected_repos() {
             let text_content = element.debug_text_content().unwrap_or_default();
 
             assert!(
-                text_content.contains("Repo(s)"),
+                text_content.contains(tr_cached(Message::EnvironmentFormReposLabel)),
                 "Expected 'Repo(s)' label in rendered content: {text_content}"
             );
             assert!(
@@ -940,7 +941,9 @@ fn test_render_docker_image_field_shows_custom_image_warning() {
             let text_content = element.debug_text_content().unwrap_or_default();
 
             assert!(
-                text_content.contains("custom Docker image"),
+                text_content.contains(tr_cached(
+                    Message::EnvironmentFormCustomDockerImageRecommendation
+                )),
                 "Expected custom image messaging in rendered content: {text_content}"
             );
             assert!(
@@ -948,7 +951,7 @@ fn test_render_docker_image_field_shows_custom_image_warning() {
                 "Expected reason text in rendered content: {text_content}"
             );
             assert!(
-                text_content.contains("Launch agent"),
+                text_content.contains(tr_cached(Message::EnvironmentFormLaunchAgent)),
                 "Expected 'Launch agent' action in rendered content: {text_content}"
             );
         });
@@ -986,13 +989,11 @@ fn test_render_docker_image_field_shows_github_auth_required_message() {
             let text_content = element.debug_text_content().unwrap_or_default();
 
             assert!(
-                text_content.contains(
-                    "You need to grant access to your GitHub repos to suggest a Docker image"
-                ),
+                text_content.contains(tr_cached(Message::EnvironmentFormGrantGithubRepos)),
                 "Expected GitHub auth required message in rendered content: {text_content}"
             );
             assert!(
-                text_content.contains("Authenticate"),
+                text_content.contains(tr_cached(Message::EnvironmentFormAuthenticate)),
                 "Expected 'Authenticate' action in rendered content: {text_content}"
             );
         });
@@ -1033,7 +1034,7 @@ fn test_create_environment_form_with_team_can_toggle_share_with_team_and_renders
             );
             assert!(
                 !text_content.contains(
-                    "Personal environments cannot be used with external integrations or team API keys",
+                    tr_cached(Message::EnvironmentFormPersonalEnvironmentWarning),
                 ),
                 "Did not expect the warning to render when share_with_team is enabled: {text_content}"
             );
@@ -1051,7 +1052,7 @@ fn test_create_environment_form_with_team_can_toggle_share_with_team_and_renders
             let text_content = element.debug_text_content().unwrap_or_default();
             assert!(
                 text_content.contains(
-                    "Personal environments cannot be used with external integrations or team API keys",
+                    tr_cached(Message::EnvironmentFormPersonalEnvironmentWarning),
                 ),
                 "Expected the warning to render when share_with_team is disabled: {text_content}"
             );
@@ -1090,16 +1091,25 @@ fn test_environment_form_copy_orchestration_modal_overrides_settings_defaults() 
     let default_copy = EnvironmentFormCopy::default();
     let orchestration_copy = EnvironmentFormCopy::orchestration_modal();
 
-    assert_eq!(default_copy.name_placeholder, "Environment name");
-    assert_eq!(default_copy.docker_image_label, "Docker image reference");
+    assert_eq!(
+        default_copy.name_placeholder,
+        tr_cached(Message::EnvironmentFormNamePlaceholder)
+    );
+    assert_eq!(
+        default_copy.docker_image_label,
+        tr_cached(Message::EnvironmentFormDockerImageReference)
+    );
     assert!(default_copy.show_description_character_count);
 
     assert_eq!(orchestration_copy.name_placeholder, "e.g., dev-env");
     assert_eq!(
         orchestration_copy.repos_placeholder_authed,
-        "Browse GitHub repos..."
+        tr_cached(Message::EnvironmentFormBrowseGithubRepos)
     );
-    assert_eq!(orchestration_copy.docker_image_label, "Docker image");
+    assert_eq!(
+        orchestration_copy.docker_image_label,
+        tr_cached(Message::EnvironmentFormDockerImage)
+    );
     assert_eq!(
         orchestration_copy.docker_image_placeholder,
         "e.g., node:20-alpine"
@@ -1110,7 +1120,7 @@ fn test_environment_form_copy_orchestration_modal_overrides_settings_defaults() 
     );
     assert_eq!(
         orchestration_copy.setup_commands_helper,
-        "Press Enter or click the submit button to add each command."
+        tr_cached(Message::EnvironmentFormSetupCommandsHelperShort)
     );
     assert!(!orchestration_copy.show_description_character_count);
 }
@@ -1162,11 +1172,11 @@ fn test_orchestration_modal_form_configuration_renders_footer_actions_without_te
                 .debug_text_content()
                 .unwrap_or_default();
             assert!(
-                submit_text.contains("Create environment"),
+                submit_text.contains(tr_cached(Message::EnvironmentFormCreateEnvironment)),
                 "Expected footer submit label in rendered content: {submit_text}"
             );
             assert!(
-                cancel_text.contains("Cancel"),
+                cancel_text.contains(tr_cached(Message::SettingsCancel)),
                 "Expected footer cancel action in rendered content: {cancel_text}"
             );
 
@@ -1184,7 +1194,7 @@ fn test_orchestration_modal_form_configuration_renders_footer_actions_without_te
                 "Did not expect settings character count in orchestration modal form: {text_content}"
             );
             assert!(
-                !text_content.contains("Type owner/repo and press Enter"),
+                !text_content.contains(tr_cached(Message::EnvironmentFormRepoHelper)),
                 "Did not expect settings repo helper text in orchestration modal form: {text_content}"
             );
         });

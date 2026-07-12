@@ -93,9 +93,10 @@ fn apply_ui_customization_settings(
     });
 
     WarpDriveSettings::handle(app).update(app, |settings, ctx| {
-        report_if_error!(settings
-            .enable_warp_drive
-            .set_value(ui.show_warp_drive && !FeatureFlag::AnonymousOnlyMode.is_enabled(), ctx));
+        report_if_error!(settings.enable_warp_drive.set_value(
+            ui.show_warp_drive && !FeatureFlag::AnonymousOnlyMode.is_enabled(),
+            ctx
+        ));
     });
 
     CodeSettings::handle(app).update(app, |settings, ctx| {

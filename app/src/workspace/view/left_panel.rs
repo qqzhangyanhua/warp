@@ -19,7 +19,6 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::appearance::Appearance;
 use crate::code::buffer_location::LocalOrRemotePath;
@@ -30,6 +29,7 @@ use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::drive::panel::{
     DrivePanel, DrivePanelEvent, MAX_SIDEBAR_WIDTH_RATIO, MIN_SIDEBAR_WIDTH,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::pane::view::header::components::HEADER_EDGE_PADDING;
 use crate::pane_group::pane::view::header::PANE_HEADER_HEIGHT;
 use crate::pane_group::working_directories::WorkingDirectory;

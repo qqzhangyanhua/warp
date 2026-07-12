@@ -42,7 +42,7 @@ use warpui::elements::{
     Text,
 };
 use warpui::fonts::{Properties, Weight};
-use warpui::keymap::{ContextPredicate, EnabledPredicate, FixedBinding};
+use warpui::keymap::{BindingDescription, ContextPredicate, EnabledPredicate, FixedBinding};
 use warpui::{
     id, Action, AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView,
     UpdateView as _, View, ViewContext, ViewHandle,
@@ -779,15 +779,15 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
 /// The string the user will see when the action is enabled or disabled.
 #[derive(Clone)]
 pub struct SettingActionPairDescriptions {
-    enable: String,
-    disable: String,
+    enable: BindingDescription,
+    disable: BindingDescription,
 }
 
 impl SettingActionPairDescriptions {
     pub fn new(enable: &str, disable: &str) -> Self {
         Self {
-            enable: enable.to_owned(),
-            disable: disable.to_owned(),
+            enable: BindingDescription::new_preserve_case(enable),
+            disable: BindingDescription::new_preserve_case(disable),
         }
     }
 }
@@ -837,6 +837,132 @@ pub struct ToggleSettingActionPair<T: Action + Clone> {
     supported_on_current_platform: bool,
 }
 
+fn localized_toggle_binding_description(
+    enable: bool,
+    description_suffix: &str,
+) -> BindingDescription {
+    let fallback = if enable {
+        format!("Enable {description_suffix}")
+    } else {
+        format!("Disable {description_suffix}")
+    };
+    let description_suffix = description_suffix.to_owned();
+
+    BindingDescription::new_preserve_case(fallback).with_dynamic_override(move |ctx| {
+        if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+            return None;
+        }
+
+        toggle_description_suffix_zh_cn(&description_suffix).map(|suffix| {
+            let prefix = if enable { "启用" } else { "禁用" };
+            format!("{prefix}{suffix}")
+        })
+    })
+}
+
+fn toggle_description_suffix_zh_cn(description_suffix: &str) -> Option<&'static str> {
+    match description_suffix {
+        "recording mode" => Some("录制模式"),
+        "in-band generators for new sessions" => Some("新会话的带内生成器"),
+        "debug network status" => Some("网络状态调试"),
+        "memory statistics" => Some("内存统计"),
+        "codebase index" => Some("代码库索引"),
+        "auto-indexing" => Some("自动索引"),
+        "auto open code review panel" => Some("自动打开 Code Review 面板"),
+        "code review button" => Some("Code Review 按钮"),
+        "diff stats on code review button" => Some("Code Review 按钮上的 diff 统计"),
+        "project explorer" => Some("项目浏览器"),
+        "global file search" => Some("全局文件搜索"),
+        "show hidden files in project explorer" => Some("项目浏览器中的隐藏文件"),
+        "AI" => Some("AI"),
+        "agent prompt autodetection in terminal input" => Some("终端输入中的 Agent 提示词自动检测"),
+        "prompt suggestions" => Some("提示词建议"),
+        "code suggestions" => Some("代码建议"),
+        "natural language autosuggestions" => Some("自然语言自动建议"),
+        "shared block title generation" => Some("共享块标题生成"),
+        "commit and pull request generation" => Some("提交和拉取请求生成"),
+        "voice input" => Some("语音输入"),
+        "include agent-executed commands in history" => Some("历史记录中的 Agent 执行命令"),
+        "conversation history in tools panel" => Some("工具面板中的对话历史"),
+        "model picker in prompt" => Some("提示词中的模型选择器"),
+        "coding agent toolbar" => Some("编码 Agent 工具栏"),
+        "auto show or hide Rich Input based on agent status" => {
+            Some("根据 Agent 状态自动显示或隐藏富输入")
+        }
+        "auto open Rich Input when a coding agent session starts" => {
+            Some("编码 Agent 会话开始时自动打开富输入")
+        }
+        "auto dismiss Rich Input after prompt submission" => Some("提交提示词后自动关闭富输入"),
+        "settings sync" => Some("设置同步"),
+        "compact mode" => Some("紧凑模式"),
+        "themes: sync with OS" => Some("主题跟随系统"),
+        "cursor blink" => Some("光标闪烁"),
+        "jump to bottom of block button" => Some("跳到底部块按钮"),
+        "block dividers" => Some("块分隔线"),
+        "dim inactive panes" => Some("非活动面板变暗"),
+        "open new windows with custom size" => Some("以自定义大小打开新窗口"),
+        "window blur acrylic texture" => Some("窗口模糊亚克力纹理"),
+        "tools panel visibility across tabs" => Some("跨标签页的工具面板可见性"),
+        "agent font matching terminal font" => Some("Agent 字体匹配终端字体"),
+        "notebook font size matching terminal font size" => Some("笔记本字体大小匹配终端字体大小"),
+        "tab indicators" => Some("标签页指示器"),
+        "focus follows mouse" => Some("焦点跟随鼠标"),
+        "zen mode" => Some("禅模式"),
+        "vertical tab layout" => Some("垂直标签页布局"),
+        "show vertical tabs panel in restored windows" => Some("恢复窗口中的垂直标签页面板"),
+        "latest user prompt as conversation title in tab names" => {
+            Some("标签页名称中使用最新用户提示词作为对话标题")
+        }
+        "ligature rendering" => Some("连字渲染"),
+        "preserve active tab color for new tabs" => Some("为新标签页保留活动标签页颜色"),
+        "custom padding in alt-screen" => Some("备用屏幕中的自定义内边距"),
+        "copy on select within the terminal" => Some("终端中选择即复制"),
+        "linux selection clipboard" => Some("Linux 选择剪贴板"),
+        "autocomplete quotes, parentheses, and brackets" => Some("引号、括号和方括号自动补全"),
+        "restore windows, tabs, and panes on startup" => Some("启动时恢复窗口、标签页和面板"),
+        "scroll reporting" => Some("滚动事件报告"),
+        "completions while typing" => Some("输入时补全"),
+        "command corrections" => Some("命令纠错"),
+        "error underlining" => Some("错误下划线"),
+        "syntax highlighting" => Some("语法高亮"),
+        "audible terminal bell" => Some("终端响铃"),
+        "autosuggestions" => Some("自动建议"),
+        "autosuggestion keybinding hint" => Some("自动建议快捷键提示"),
+        "autosuggestion ignore button" => Some("忽略自动建议按钮"),
+        "reuse existing SSH ControlMaster in the Warp SSH wrapper" => {
+            Some("Warp SSH 包装器中复用现有 SSH ControlMaster")
+        }
+        "show tooltip on click on links" => Some("点击链接时显示工具提示"),
+        "long-running command notifications" => Some("长时间运行命令通知"),
+        "agent task completion notifications" => Some("Agent 任务完成通知"),
+        "needs-attention notifications" => Some("需要关注通知"),
+        "notification sounds" => Some("通知声音"),
+        "in-app agent notifications" => Some("应用内 Agent 通知"),
+        "quit warning modal" => Some("退出警告弹窗"),
+        "mouse reporting" => Some("鼠标事件报告"),
+        "alias expansion" => Some("别名展开"),
+        "middle-click paste" => Some("中键粘贴"),
+        "code as default editor" => Some("将 Code 设为默认编辑器"),
+        "input hint text" => Some("输入提示文本"),
+        "editing commands with Vim keybindings" => Some("使用 Vim 快捷键编辑命令"),
+        "focus reporting" => Some("焦点事件报告"),
+        "smart select" => Some("智能选择"),
+        "help block in new sessions" => Some("新会话中的帮助块"),
+        "terminal input message line" => Some("终端输入消息行"),
+        "'@' context menu in terminal mode" => Some("终端模式下的 '@' 上下文菜单"),
+        "preserve input focus on block selection" => Some("选择块时保留输入焦点"),
+        "slash commands in terminal mode" => Some("终端模式下的斜杠命令"),
+        "codebase symbols in the '@' context menu" => Some("'@' 上下文菜单中的代码库符号"),
+        "global workflows in Command Search" => Some("命令搜索中的全局工作流"),
+        "integrated GPU rendering (low power)" => Some("集成 GPU 渲染（低功耗）"),
+        "app analytics" => Some("应用分析"),
+        "crash reporting" => Some("崩溃报告"),
+        "secret redaction" => Some("密钥遮盖"),
+        "cloud AI conversation storage" => Some("云端 AI 对话存储"),
+        _ => None,
+    }
+}
+
 impl<T: Action + Clone> ToggleSettingActionPair<T> {
     /// `description_suffix` will be visible to the user,
     /// e.g. `Enable {description_suffix}` or `Disable {description_suffix}`.
@@ -859,8 +985,8 @@ impl<T: Action + Clone> ToggleSettingActionPair<T> {
 
         ToggleSettingActionPair {
             descriptions: SettingActionPairDescriptions {
-                enable: format!("Enable {description_suffix}"),
-                disable: format!("Disable {description_suffix}"),
+                enable: localized_toggle_binding_description(true, description_suffix),
+                disable: localized_toggle_binding_description(false, description_suffix),
             },
             contexts: SettingActionPairContexts {
                 enable_predicate: context_prefix.to_owned() & !id!(context_boolean_flag),
@@ -2486,12 +2612,16 @@ impl SettingsView {
         .finish()
     }
 
-    fn render_search_zero_state(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
+    fn render_search_zero_state(
+        &self,
+        appearance: &Appearance,
+        app: &AppContext,
+    ) -> Box<dyn Element> {
         let theme = appearance.theme();
         Container::new(
             Align::new(
                 Flex::column()
-                .with_cross_axis_alignment(CrossAxisAlignment::Center)
+                    .with_cross_axis_alignment(CrossAxisAlignment::Center)
                     .with_children([
                         Text::new(
                             tr(app, Message::SettingsNoMatchSearch),
@@ -2513,7 +2643,7 @@ impl SettingsView {
             )
             .finish(),
         )
-            .with_uniform_margin(16.)
+        .with_uniform_margin(16.)
         .with_corner_radius(CornerRadius::with_all(Radius::Pixels(4.)))
         .with_background(internal_colors::fg_overlay_1(appearance.theme()))
         .finish()
