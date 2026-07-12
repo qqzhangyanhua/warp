@@ -695,6 +695,19 @@ fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
         "Split pane down" => "向下拆分面板",
         "Split pane up" => "向上拆分面板",
         "Close pane" => "关闭面板",
+        "Edit CLI agent toolbelt" => "编辑 CLI Agent 工具栏",
+        "Edit agent toolbelt" => "编辑 Agent 工具栏",
+        "Edit prompt" => "编辑提示符",
+        "Cut" => "剪切",
+        "Select all" => "全选",
+        "Paste" => "粘贴",
+        "Command search" => "命令搜索",
+        "AI command search" => "AI 命令搜索",
+        "Show input hint text" => "显示输入提示文本",
+        "Hide input hint text" => "隐藏输入提示文本",
+        "PowerShell subshells not supported" => "不支持 PowerShell 子 shell",
+        "Notification" => "通知",
+        "An unknown error occurred" => "发生未知错误",
         _ => text,
     })
 }
@@ -7790,7 +7803,8 @@ impl TerminalView {
                     _ => Some(AIBlockNotificationSummary {
                         success: false,
                         title,
-                        description: "An unknown error occurred".to_string(),
+                        description: terminal_menu_text(app, "An unknown error occurred")
+                            .into_owned(),
                     }),
                 }
             }
@@ -12908,8 +12922,9 @@ impl TerminalView {
                 }
 
                 if self.is_navigated_away_from_window(ctx) {
-                    let notification_title =
-                        title.clone().unwrap_or_else(|| "Notification".to_string());
+                    let notification_title = title
+                        .clone()
+                        .unwrap_or_else(|| terminal_menu_text(ctx, "Notification").into_owned());
                     let notification = BlockNotification {
                         title: notification_title,
                         body: body.clone(),
@@ -17394,7 +17409,7 @@ impl TerminalView {
             .is_active();
         let edit_menu_item = if has_cli_agent_session {
             FeatureFlag::AgentToolbarEditor.is_enabled().then(|| {
-                MenuItemFields::new("Edit CLI agent toolbelt")
+                terminal_menu_fields(ctx, "Edit CLI agent toolbelt")
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::EditCLIAgentToolbar,
                     ))
@@ -17402,7 +17417,7 @@ impl TerminalView {
             })
         } else if is_agent_view_active {
             FeatureFlag::AgentToolbarEditor.is_enabled().then(|| {
-                MenuItemFields::new("Edit agent toolbelt")
+                terminal_menu_fields(ctx, "Edit agent toolbelt")
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::EditAgentToolbar,
                     ))
@@ -17410,7 +17425,7 @@ impl TerminalView {
             })
         } else {
             Some(
-                MenuItemFields::new("Edit prompt")
+                terminal_menu_fields(ctx, "Edit prompt")
                     .with_on_select_action(TerminalAction::ContextMenu(
                         ContextMenuAction::EditPrompt,
                     ))
@@ -17482,7 +17497,7 @@ impl TerminalView {
 
         if !selected_input_text.is_empty() {
             items.extend([
-                MenuItemFields::new("Cut")
+                terminal_menu_fields(ctx, "Cut")
                     .with_on_select_action(TerminalAction::InputContextMenuItem(
                         InputContextMenuAction::CutSelectedText,
                     ))
@@ -17501,7 +17516,7 @@ impl TerminalView {
 
         if !all_current_input_text.is_empty() & selected_input_text.is_empty() {
             items.push(
-                MenuItemFields::new("Select all")
+                terminal_menu_fields(ctx, "Select all")
                     .with_on_select_action(TerminalAction::InputContextMenuItem(
                         InputContextMenuAction::SelectAll,
                     ))
@@ -17515,7 +17530,7 @@ impl TerminalView {
         }
 
         items.push(
-            MenuItemFields::new("Paste")
+            terminal_menu_fields(ctx, "Paste")
                 .with_on_select_action(TerminalAction::InputContextMenuItem(
                     InputContextMenuAction::Paste,
                 ))
@@ -17533,7 +17548,7 @@ impl TerminalView {
         // Section 2: AI Command Search, Ask Warp AI
         items.extend([
             MenuItem::Separator,
-            MenuItemFields::new("Command search")
+            terminal_menu_fields(ctx, "Command search")
                 .with_on_select_action(TerminalAction::InputContextMenuItem(
                     InputContextMenuAction::ShowCommandSearch,
                 ))
@@ -17547,7 +17562,7 @@ impl TerminalView {
 
         if AISettings::as_ref(ctx).is_any_ai_enabled(ctx) {
             items.push(
-                MenuItemFields::new("AI command search")
+                terminal_menu_fields(ctx, "AI command search")
                     .with_on_select_action(TerminalAction::InputContextMenuItem(
                         InputContextMenuAction::ShowAICommandSearch,
                     ))
@@ -17585,18 +17600,20 @@ impl TerminalView {
         // Section 4: input hint text toggle
         if !is_editor_disabled {
             let input_settings = InputSettings::as_ref(ctx);
-            let inverse_action = if *input_settings.show_hint_text {
-                "Hide"
-            } else {
-                "Show"
-            };
             items.push(MenuItem::Separator);
             items.push(
-                MenuItemFields::new(format!("{inverse_action} input hint text"))
-                    .with_on_select_action(TerminalAction::InputContextMenuItem(
-                        InputContextMenuAction::ToggleInputHintText,
-                    ))
-                    .into_item(),
+                terminal_menu_fields(
+                    ctx,
+                    if *input_settings.show_hint_text {
+                        "Hide input hint text"
+                    } else {
+                        "Show input hint text"
+                    },
+                )
+                .with_on_select_action(TerminalAction::InputContextMenuItem(
+                    InputContextMenuAction::ToggleInputHintText,
+                ))
+                .into_item(),
             );
         }
         // Section 5: All Pane related
@@ -25600,8 +25617,9 @@ impl TerminalView {
         let (shell_path_string, shell_type) = shell_session_info;
         if shell_type == ShellType::PowerShell {
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast =
-                    DismissibleToast::error("PowerShell subshells not supported".to_owned());
+                let toast = DismissibleToast::error(
+                    terminal_menu_text(ctx, "PowerShell subshells not supported").into_owned(),
+                );
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
             return;
