@@ -483,6 +483,8 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::SkipFirebaseAnonymousUser,
         #[cfg(feature = "anonymous_only_mode")]
         FeatureFlag::AnonymousOnlyMode,
+        #[cfg(feature = "local_only_custom_provider_mode")]
+        FeatureFlag::LocalOnlyCustomProviderMode,
         #[cfg(feature = "hoa_onboarding_flow")]
         FeatureFlag::HOAOnboardingFlow,
         #[cfg(feature = "git_operations_in_code_review")]

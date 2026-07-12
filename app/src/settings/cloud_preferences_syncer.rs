@@ -100,7 +100,8 @@ pub fn initialize_cloud_preferences_syncer(
     // The settings surface decides whether this process participates in cloud
     // sync at all (e.g. the TUI keeps its config local).
     let sync_enabled = settings::settings_mode().should_sync_to_cloud()
-        && !FeatureFlag::AnonymousOnlyMode.is_enabled();
+        && !FeatureFlag::AnonymousOnlyMode.is_enabled()
+        && !crate::local_mode::is_local_only_custom_provider_mode();
     CloudPreferencesSyncer::new(
         force_local_wins_on_startup,
         toml_file_path,

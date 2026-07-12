@@ -6,10 +6,20 @@ use warp_cli::artifact::{
 use warp_cli::task::{MessageCommand, MessageSendArgs, MessageWatchArgs, TaskCommand};
 use warp_cli::CliCommand;
 use warp_core::telemetry::TelemetryEvent;
+use warpui::App;
+use warpui_extras::user_preferences;
 
 use super::{command_requires_auth, command_to_telemetry_event, reconcile_task_harness};
 
 const TASK_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+fn register_private_preferences(ctx: &mut warpui::AppContext) {
+    ctx.add_singleton_model(move |_| -> settings::PrivatePreferences {
+        settings::PrivatePreferences::new(
+            Box::<user_preferences::in_memory::InMemoryPreferences>::default(),
+        )
+    });
+}
 
 #[test]
 fn logout_does_not_require_auth() {
@@ -19,6 +29,69 @@ fn logout_does_not_require_auth() {
 #[test]
 fn login_does_not_require_auth() {
     assert!(!command_requires_auth(&CliCommand::Login));
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_login_returns_stable_error() {
+    let _flag =
+        warp_core::features::FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        let err =
+            app.update(|ctx| super::admin::login(ctx).expect_err("login should be unavailable"));
+
+        assert_eq!(
+            err.to_string(),
+            crate::local_mode::account_sign_in_unavailable_message()
+        );
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_whoami_output_returns_local_identity() {
+    let _flag =
+        warp_core::features::FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        let (output, text_output) = app.update(|ctx| {
+            register_private_preferences(ctx);
+            let output =
+                super::admin::local_whoami_output(ctx).expect("local whoami should be available");
+            let text_output = super::admin::format_local_whoami_output(
+                &output,
+                warp_cli::agent::OutputFormat::Text,
+            )
+            .expect("local whoami text output should render");
+            (output, text_output)
+        });
+
+        assert!(output.uid.starts_with("local:"));
+        assert_eq!(text_output, output.uid);
+        assert_eq!(output.principal_type, "local");
+        assert!(output.display_name.is_none());
+        assert!(output.email.is_none());
+        assert!(output.team_uid.is_none());
+        assert!(output.team_name.is_none());
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_logout_returns_stable_error() {
+    let _flag =
+        warp_core::features::FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        let err =
+            app.update(|ctx| super::admin::logout(ctx).expect_err("logout should be unavailable"));
+
+        assert_eq!(
+            err.to_string(),
+            crate::local_mode::account_logout_unavailable_message()
+        );
+    });
 }
 
 #[test]

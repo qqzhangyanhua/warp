@@ -1711,7 +1711,9 @@ impl RootView {
                     let should_show_pre_login_onboarding = FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
                         && FeatureFlag::AgentOnboarding.is_enabled()
                         && !has_completed_local_onboarding;
-                    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                    if crate::local_mode::is_local_only_custom_provider_mode() {
+                        AuthOnboardingState::Terminal(workspace_args.create_workspace(ctx))
+                    } else if FeatureFlag::AnonymousOnlyMode.is_enabled() {
                         if should_show_pre_login_onboarding {
                             let workspace_args_box: Box<WorkspaceArgs> = workspace_args.into();
                             let onboarding_view = Self::create_agent_onboarding_view(ctx);
@@ -1775,7 +1777,10 @@ impl RootView {
             paste_auth_token_modal: None,
         };
 
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() && !auth_state.is_logged_in() {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && !crate::local_mode::is_local_only_custom_provider_mode()
+            && !auth_state.is_logged_in()
+        {
             AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
                 auth_manager.create_anonymous_user(None, ctx);
             });

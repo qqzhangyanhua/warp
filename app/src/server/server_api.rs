@@ -405,6 +405,11 @@ impl ServerApi {
                 model.install_on_clients([&mut client, &mut telemetry_api.client], model_ctx);
             });
         }
+        #[cfg(any(test, feature = "test-util"))]
+        if crate::local_mode::is_local_only_custom_provider_mode() {
+            install_local_only_forbidden_warp_request_guard(&mut client);
+            install_local_only_forbidden_warp_request_guard(&mut telemetry_api.client);
+        }
         Self::new_with_parts(
             Arc::new(client),
             auth_state,
@@ -1354,8 +1359,29 @@ impl ServerApiProvider {
     }
 }
 
+#[cfg(any(test, feature = "test-util"))]
+fn install_local_only_forbidden_warp_request_guard(client: &mut http_client::Client) {
+    client.set_before_request_fn(Box::new(|request, _| {
+        let Some(host) = request.url().host_str() else {
+            return;
+        };
+
+        if host == "warp.dev" || host.ends_with(".warp.dev") {
+            panic!(
+                "Local-only Mode attempted forbidden Warp request: {} {}",
+                request.method(),
+                request.url()
+            );
+        }
+    }));
+}
+
 impl Entity for ServerApiProvider {
     type Event = AuthEvent;
 }
 
 impl SingletonEntity for ServerApiProvider {}
+
+#[cfg(test)]
+#[path = "server_api_tests.rs"]
+mod tests;

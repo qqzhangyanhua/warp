@@ -808,6 +808,10 @@ pub enum FeatureFlag {
     /// identity for supported features.
     AnonymousOnlyMode,
 
+    /// Runs the product without Warp account sign-in, Anonymous Sessions, or Warp network
+    /// services. AI requests use user-configured OpenAI-compatible Providers.
+    LocalOnlyCustomProviderMode,
+
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 

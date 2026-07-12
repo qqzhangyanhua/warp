@@ -74,6 +74,10 @@ pub struct Listener {
 
 impl Listener {
     pub fn new(cloud_objects_client: Arc<dyn ObjectClient>, ctx: &mut ModelContext<Self>) -> Self {
+        if crate::local_mode::is_local_only_custom_provider_mode() {
+            return Self::new_disabled(cloud_objects_client);
+        }
+
         let (subscription_ready_tx, subscription_ready_rx) = async_channel::unbounded();
         let mut listener = Self {
             cloud_objects_client,
@@ -121,6 +125,18 @@ impl Listener {
         }
 
         listener
+    }
+
+    fn new_disabled(cloud_objects_client: Arc<dyn ObjectClient>) -> Self {
+        let (subscription_ready_tx, _) = async_channel::unbounded();
+        Self {
+            cloud_objects_client,
+            should_subscribe_to_updates: false,
+            current_subscription_abort_handle: None,
+            subscription_ready_tx,
+            last_disconnected_at: None,
+            pending_refresh_abort_handle: None,
+        }
     }
 
     #[cfg(test)]

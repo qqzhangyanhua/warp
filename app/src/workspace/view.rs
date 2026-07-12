@@ -20439,7 +20439,9 @@ impl Workspace {
                             tr_cached(Message::WorkspaceGlobalSearch)
                         }
                         ToolPanelView::WarpDrive => "Warp Drive",
-                        ToolPanelView::ConversationListView => tr_cached(Message::WorkspaceAgentConversations),
+                        ToolPanelView::ConversationListView => {
+                            tr_cached(Message::WorkspaceAgentConversations)
+                        }
                     }
                 } else {
                     "Tools panel"
@@ -20493,7 +20495,9 @@ impl Workspace {
                 ToolPanelView::ProjectExplorer => tr_cached(Message::WorkspaceProjectExplorer),
                 ToolPanelView::GlobalSearch { .. } => tr_cached(Message::WorkspaceGlobalSearch),
                 ToolPanelView::WarpDrive => "Warp Drive",
-                ToolPanelView::ConversationListView => tr_cached(Message::WorkspaceAgentConversations),
+                ToolPanelView::ConversationListView => {
+                    tr_cached(Message::WorkspaceAgentConversations)
+                }
             }
         } else {
             "Tools panel"

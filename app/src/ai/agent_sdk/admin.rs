@@ -14,6 +14,10 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// Kick off a device authorization login flow and handle auth events.
 pub fn login(ctx: &mut AppContext) -> Result<()> {
+    if crate::local_mode::is_local_only_custom_provider_mode() {
+        anyhow::bail!(crate::local_mode::account_sign_in_unavailable_message());
+    }
+
     if FeatureFlag::AnonymousOnlyMode.is_enabled() {
         anyhow::bail!("This build only supports anonymous mode; account sign-in is unavailable");
     }
@@ -105,18 +109,43 @@ pub fn login(ctx: &mut AppContext) -> Result<()> {
 }
 
 #[derive(Serialize)]
-struct WhoamiOutput {
-    uid: String,
+pub(super) struct WhoamiOutput {
+    pub(super) uid: String,
     #[serde(rename = "type")]
-    principal_type: &'static str,
+    pub(super) principal_type: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
-    display_name: Option<String>,
+    pub(super) display_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    email: Option<String>,
+    pub(super) email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    team_uid: Option<String>,
+    pub(super) team_uid: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    team_name: Option<String>,
+    pub(super) team_name: Option<String>,
+}
+
+pub(super) fn local_whoami_output(ctx: &AppContext) -> Result<WhoamiOutput> {
+    Ok(WhoamiOutput {
+        uid: crate::local_mode::get_or_create_local_identity(ctx)?.as_uid(),
+        principal_type: "local",
+        display_name: None,
+        email: None,
+        team_uid: None,
+        team_name: None,
+    })
+}
+
+pub(super) fn format_local_whoami_output(
+    info: &WhoamiOutput,
+    output_format: OutputFormat,
+) -> Result<String> {
+    match output_format {
+        OutputFormat::Json => serde_json::to_string(info).context("whoami output should serialize"),
+        OutputFormat::Pretty => Ok(format!("Local ID: {}", info.uid)),
+        OutputFormat::Text => Ok(info.uid.clone()),
+        OutputFormat::Ndjson => {
+            anyhow::bail!("`whoami` does not support --output-format ndjson");
+        }
+    }
 }
 
 /// Singleton model that provides a `ModelContext` for the `whoami` command's async work.
@@ -130,6 +159,13 @@ impl SingletonEntity for WhoamiRunner {}
 
 /// Print information about the currently authenticated principal.
 pub fn whoami(ctx: &mut AppContext, output_format: OutputFormat) -> Result<()> {
+    if crate::local_mode::is_local_only_custom_provider_mode() {
+        let info = local_whoami_output(ctx)?;
+        println!("{}", format_local_whoami_output(&info, output_format)?);
+        ctx.terminate_app(TerminationMode::ForceTerminate, None);
+        return Ok(());
+    }
+
     let auth_state = AuthStateProvider::as_ref(ctx).get();
     if FeatureFlag::AnonymousOnlyMode.is_enabled() {
         let info = WhoamiOutput {
@@ -256,6 +292,10 @@ pub fn whoami(ctx: &mut AppContext, output_format: OutputFormat) -> Result<()> {
 
 /// Log out of Warp using the same logic as the app.
 pub fn logout(ctx: &mut AppContext) -> Result<()> {
+    if crate::local_mode::is_local_only_custom_provider_mode() {
+        anyhow::bail!(crate::local_mode::account_logout_unavailable_message());
+    }
+
     if FeatureFlag::AnonymousOnlyMode.is_enabled() {
         anyhow::bail!("This build only supports anonymous mode; account logout is unavailable");
     }

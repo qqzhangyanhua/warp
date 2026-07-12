@@ -53,17 +53,8 @@ impl SingletonEntity for TuiLoginModel {}
 /// Registers the [`TuiLoginModel`], mounts the TUI immediately, and runs the
 /// device-authorization login flow when the user isn't already logged in.
 pub(crate) fn init(mount: TuiMountFn, ctx: &mut AppContext) {
-    let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
     let logged_in = AuthStateProvider::as_ref(ctx).get().is_logged_in();
-
-    let initial_phase = if logged_in || anonymous_only {
-        TuiLoginPhase::LoggedIn
-    } else {
-        TuiLoginPhase::AwaitingLogin {
-            verification_uri: None,
-            user_code: None,
-        }
-    };
+    let initial_phase = initial_login_phase(logged_in);
     ctx.add_singleton_model(move |_| TuiLoginModel {
         phase: initial_phase,
     });
@@ -72,11 +63,11 @@ pub(crate) fn init(mount: TuiMountFn, ctx: &mut AppContext) {
     // login placeholder until the model flips to `LoggedIn`.
     mount(ctx);
 
-    if logged_in {
+    if logged_in || crate::local_mode::is_local_only_custom_provider_mode() {
         return;
     }
 
-    if anonymous_only {
+    if FeatureFlag::AnonymousOnlyMode.is_enabled() {
         AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
             auth_manager.create_anonymous_user(None, ctx);
         });
@@ -120,6 +111,20 @@ pub(crate) fn init(mount: TuiMountFn, ctx: &mut AppContext) {
     });
 }
 
+fn initial_login_phase(logged_in: bool) -> TuiLoginPhase {
+    let local_only = crate::local_mode::is_local_only_custom_provider_mode();
+    let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled() && !local_only;
+
+    if logged_in || anonymous_only || local_only {
+        TuiLoginPhase::LoggedIn
+    } else {
+        TuiLoginPhase::AwaitingLogin {
+            verification_uri: None,
+            user_code: None,
+        }
+    }
+}
+
 /// Updates the shared [`TuiLoginModel`] phase and notifies observers, so the
 /// root view re-renders (and the TUI driver repaints).
 fn set_login_phase(ctx: &mut AppContext, phase: TuiLoginPhase) {
@@ -128,3 +133,7 @@ fn set_login_phase(ctx: &mut AppContext, phase: TuiLoginPhase) {
         ctx.notify();
     });
 }
+
+#[cfg(test)]
+#[path = "mod_tests.rs"]
+mod tests;

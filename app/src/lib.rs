@@ -45,6 +45,7 @@ mod interval_timer;
 mod linear;
 #[cfg(feature = "local_fs")]
 mod local_control;
+mod local_mode;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod login_item;
 mod menu;
@@ -1322,12 +1323,14 @@ pub(crate) fn initialize_app(
         LaunchMode::Tui { api_key, .. } if ChannelState::channel().is_dogfood() => api_key.clone(),
         _ => None,
     };
-    let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
-    let api_key = if FeatureFlag::APIKeyAuthentication.is_enabled() && !anonymous_only {
-        api_key
-    } else {
-        None
-    };
+    let local_only = local_mode::is_local_only_custom_provider_mode();
+    let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled() && !local_only;
+    let api_key =
+        if FeatureFlag::APIKeyAuthentication.is_enabled() && !anonymous_only && !local_only {
+            api_key
+        } else {
+            None
+        };
 
     // A key supplied to an App launch but dropped here means Warp will start logged out
     // (non-dogfood channel or feature disabled). Surface this loudly so it isn't silent.
@@ -1386,10 +1389,12 @@ pub(crate) fn initialize_app(
     #[cfg(not(target_family = "wasm"))]
     // Refresh starts only after the authenticated server client exists; tracing initialization
     // remains responsible for deciding whether this process opted in to cloud-agent export.
-    tracing::start_auth_refresh(
-        server_api_provider.as_ref(ctx).get_managed_secrets_client(),
-        ctx,
-    );
+    if !local_only {
+        tracing::start_auth_refresh(
+            server_api_provider.as_ref(ctx).get_managed_secrets_client(),
+            ctx,
+        );
+    }
 
     ctx.add_singleton_model(|_ctx| AuthStateProvider::new(auth_state.clone()));
 
@@ -1600,15 +1605,21 @@ pub(crate) fn initialize_app(
 
     cfg_if::cfg_if! {
         if #[cfg(feature = "crash_reporting")] {
-            let is_crash_reporting_enabled = crash_reporting::init(ctx);
+            let is_crash_reporting_enabled = if local_only {
+                false
+            } else {
+                crash_reporting::init(ctx)
+            };
         } else {
             let is_crash_reporting_enabled = false;
         }
     }
     // Send buffered pre-init errors to Sentry now that the client is ready.
     #[cfg(feature = "crash_reporting")]
-    for err in _pre_sentry_errors {
-        sentry::integrations::anyhow::capture_anyhow(&err);
+    if !local_only {
+        for err in _pre_sentry_errors {
+            sentry::integrations::anyhow::capture_anyhow(&err);
+        }
     }
     timer.mark_interval_end("INIT_CRASH_REPORTING");
 
@@ -1630,7 +1641,9 @@ pub(crate) fn initialize_app(
         }
     }
 
-    experiments::init(ctx);
+    if !local_only {
+        experiments::init(ctx);
+    }
 
     // Initialize timestamp for session id and last active event
     App::record_last_active_timestamp();
@@ -1712,7 +1725,11 @@ pub(crate) fn initialize_app(
 
     let user_is_logged_in = auth_state.is_logged_in();
 
-    if user_is_logged_in {
+    if local_only {
+        if let Err(err) = local_mode::get_or_create_local_identity(ctx) {
+            report_error!(err);
+        }
+    } else if user_is_logged_in {
         // Skip refresh_user for CLI mode — the CLI handles auth refresh in
         // ensure_auth_state so it can detect invalid credentials before running
         // a command.
@@ -1863,7 +1880,9 @@ pub(crate) fn initialize_app(
     let server_api_clone = server_api.clone();
     ctx.add_singleton_model(|ctx| {
         let telemetry_collector = TelemetryCollector::new(server_api_clone);
-        telemetry_collector.initialize_telemetry_collection(ctx);
+        if !local_only {
+            telemetry_collector.initialize_telemetry_collection(ctx);
+        }
         telemetry_collector
     });
     timer.mark_interval_end("INITIALIZE_TELEMETRY_COLLECTION");
@@ -1895,13 +1914,15 @@ pub(crate) fn initialize_app(
     prompt::editor_modal::init(ctx);
     ai::blocklist::agent_view::editor::init(ctx);
     undo_close::init(ctx);
-    billing::shared_objects_creation_denied_modal::init(ctx);
     tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
     ai::blocklist::init(ctx);
     ai::blocklist::block::status_bar::init(ctx);
-    drive::index::init(ctx);
-    drive::sharing::dialog::init(ctx);
+    if !local_only {
+        billing::shared_objects_creation_denied_modal::init(ctx);
+        drive::index::init(ctx);
+        drive::sharing::dialog::init(ctx);
+    }
     ai_assistant::panel::init(ctx);
     settings_view::update_environment_form::init(ctx);
     env_vars::env_var_collection_block::init(ctx);
@@ -1923,7 +1944,9 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(|_| GitHubAuthNotifier::new());
     ctx.add_singleton_model(|_| NetworkStatus::new());
     ctx.add_singleton_model(|_| SystemStats::new());
-    workspace::auto_handoff::init(ctx);
+    if !local_only {
+        workspace::auto_handoff::init(ctx);
+    }
     ctx.add_singleton_model(|_| KeybindingChangedNotifier::new());
     ctx.add_singleton_model(|_| search::command_palette::SelectedItems::new());
     ctx.add_singleton_model(search::files::model::FileSearchModel::new);
@@ -1949,7 +1972,12 @@ pub(crate) fn initialize_app(
         VoiceTranscriber::new(Arc::new(ServerVoiceTranscriber::new(server_api.clone())))
     });
 
-    let notebooks = cloud_objects
+    let cached_cloud_objects = if local_only {
+        Vec::new()
+    } else {
+        cloud_objects
+    };
+    let notebooks = cached_cloud_objects
         .iter()
         .filter_map(|object| {
             let notebook: Option<&CloudNotebook> = object.into();
@@ -1958,46 +1986,50 @@ pub(crate) fn initialize_app(
         .cloned()
         .collect::<Vec<_>>();
 
-    let mut all_queue_items = Vec::new();
-    let objects_with_pending_changes = cloud_objects
-        .iter()
-        .filter(|object| object.metadata().has_pending_content_changes())
-        .cloned()
-        .collect::<Vec<_>>();
-    all_queue_items.extend(QueueItem::from_cached_objects(
-        objects_with_pending_changes.into_iter(),
-    ));
-
     let cloud_model = ctx.add_singleton_model(|_ctx| {
         CloudModel::new(
             persistence_writer.sender(),
-            cloud_objects,
+            cached_cloud_objects,
             time_of_next_force_object_refresh,
         )
     });
 
-    let unsynced_actions: Vec<(CloudObjectTypeAndId, ObjectAction)> = object_actions
-        .iter()
-        .filter(|action| action.is_pending())
-        .filter_map(|action| {
-            cloud_model.read(ctx, |model, _| {
-                let object = model.get_by_uid(&action.uid);
-                object.map(|o| (o.cloud_object_type_and_id(), action.clone()))
+    if !local_only {
+        let mut all_queue_items = Vec::new();
+        let objects_with_pending_changes = CloudModel::handle(ctx).read(ctx, |model, _| {
+            model
+                .cloud_objects()
+                .filter(|object| object.metadata().has_pending_content_changes())
+                .map(|object| object.clone_box())
+                .collect::<Vec<_>>()
+        });
+        all_queue_items.extend(QueueItem::from_cached_objects(
+            objects_with_pending_changes.into_iter(),
+        ));
+
+        let unsynced_actions: Vec<(CloudObjectTypeAndId, ObjectAction)> = object_actions
+            .iter()
+            .filter(|action| action.is_pending())
+            .filter_map(|action| {
+                cloud_model.read(ctx, |model, _| {
+                    let object = model.get_by_uid(&action.uid);
+                    object.map(|o| (o.cloud_object_type_and_id(), action.clone()))
+                })
             })
-        })
-        .collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-    all_queue_items.extend(QueueItem::from_unsynced_actions(
-        unsynced_actions.into_iter(),
-    ));
+        all_queue_items.extend(QueueItem::from_unsynced_actions(
+            unsynced_actions.into_iter(),
+        ));
 
-    ctx.add_singleton_model(|ctx| {
-        SyncQueue::new(
-            all_queue_items,
-            server_api_provider.as_ref(ctx).get_cloud_objects_client(),
-            ctx,
-        )
-    });
+        ctx.add_singleton_model(|ctx| {
+            SyncQueue::new(
+                all_queue_items,
+                server_api_provider.as_ref(ctx).get_cloud_objects_client(),
+                ctx,
+            )
+        });
+    }
 
     // Seed the orchestration pin set from persisted conversation data
     // before the conversations vec is consumed by the singletons below.
@@ -2069,38 +2101,42 @@ pub(crate) fn initialize_app(
 
     ctx.add_singleton_model(|_| UserProfiles::new(restored_user_profiles));
 
-    ctx.add_singleton_model(|_| ObjectActions::new(object_actions));
+    if !local_only {
+        ctx.add_singleton_model(|_| ObjectActions::new(object_actions));
+    }
 
     ctx.add_singleton_model(|_| AudibleBell::new());
 
     // This model has to be registered after the user workspaces model because it relies on it,
     // and before the UpdateManager models because they rely on the TeamTester model.
-    ctx.add_singleton_model(TeamTesterStatus::new);
+    if !local_only {
+        ctx.add_singleton_model(TeamTesterStatus::new);
 
-    ctx.add_singleton_model(|ctx| {
-        TeamUpdateManager::new(
-            server_api_provider.as_ref(ctx).get_team_client(),
-            persistence_writer.sender(),
-            ctx,
-        )
-    });
+        ctx.add_singleton_model(|ctx| {
+            TeamUpdateManager::new(
+                server_api_provider.as_ref(ctx).get_team_client(),
+                persistence_writer.sender(),
+                ctx,
+            )
+        });
 
-    ctx.add_singleton_model(|ctx| {
-        UpdateManager::new(
-            persistence_writer.sender(),
-            server_api_provider.as_ref(ctx).get_cloud_objects_client(),
-            ctx,
-        )
-    });
+        ctx.add_singleton_model(|ctx| {
+            UpdateManager::new(
+                persistence_writer.sender(),
+                server_api_provider.as_ref(ctx).get_cloud_objects_client(),
+                ctx,
+            )
+        });
 
-    let toml_file_path = settings::user_preferences_toml_file_path();
-    ctx.add_singleton_model(move |ctx| {
-        initialize_cloud_preferences_syncer(
-            toml_file_path,
-            startup_toml_parse_error_for_syncer.as_deref(),
-            ctx,
-        )
-    });
+        let toml_file_path = settings::user_preferences_toml_file_path();
+        ctx.add_singleton_model(move |ctx| {
+            initialize_cloud_preferences_syncer(
+                toml_file_path,
+                startup_toml_parse_error_for_syncer.as_deref(),
+                ctx,
+            )
+        });
+    }
 
     // LogManager must be registered before any subsystem (e.g. MCP, LSP) that creates file-based loggers.
     ctx.add_singleton_model(|_| simple_logger::manager::LogManager::new());
@@ -2114,50 +2150,58 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(FileMCPWatcher::new);
     ctx.add_singleton_model(FileBasedMCPManager::new);
 
-    // TemplatableMCPServerManager must be registered after UpdateManager and MCPServerManager so it can migrate legacy MCPs on start up
-    // It should also be registered after FileBasedMCPManager so it can receive file-based server updates.
-    ctx.add_singleton_model(|ctx| {
-        TemplatableMCPServerManager::new(
-            persisted_mcp_server_installations,
-            mcp_servers_to_restore,
-            running_mcp_servers,
-            ctx,
-        )
-    });
+    if !local_only {
+        // TemplatableMCPServerManager must be registered after UpdateManager and MCPServerManager so it can migrate legacy MCPs on start up
+        // It should also be registered after FileBasedMCPManager so it can receive file-based server updates.
+        ctx.add_singleton_model(|ctx| {
+            TemplatableMCPServerManager::new(
+                persisted_mcp_server_installations,
+                mcp_servers_to_restore,
+                running_mcp_servers,
+                ctx,
+            )
+        });
 
-    // MCPGalleryManager subscribes to UpdateManager so that it can be notified when gallery items are updated.
-    // The registration of this singleton must be after UpdateManager is registered.
-    ctx.add_singleton_model(MCPGalleryManager::new);
+        // MCPGalleryManager subscribes to UpdateManager so that it can be notified when gallery items are updated.
+        // The registration of this singleton must be after UpdateManager is registered.
+        ctx.add_singleton_model(MCPGalleryManager::new);
+    }
 
     // SkillManager is used to cache SKILL.md files for all active terminal views and their working directories
     ctx.add_singleton_model(SkillManager::new);
 
-    // CloudViewModel subscribes to UpdateManager so that it can be notified when objects are
-    // created on the server.
-    ctx.add_singleton_model(CloudViewModel::new);
+    if !local_only {
+        // CloudViewModel subscribes to UpdateManager so that it can be notified when objects are
+        // created on the server.
+        ctx.add_singleton_model(CloudViewModel::new);
 
-    // AIDocumentModel subscribes to UpdateManager so that it can be notified when notebooks are created on the server.
-    ctx.add_singleton_model(AIDocumentModel::new);
+        // AIDocumentModel subscribes to UpdateManager so that it can be notified when notebooks are created on the server.
+        ctx.add_singleton_model(AIDocumentModel::new);
 
-    // AgentConversationsModel subscribes to UpdateManager for RTC task updates.
-    ctx.add_singleton_model(AgentConversationsModel::new);
+        // AgentConversationsModel subscribes to UpdateManager for RTC task updates.
+        ctx.add_singleton_model(AgentConversationsModel::new);
+    }
 
     // ByoLlmAuthBannerSessionState tracks dismissal of the BYO LLM auth banner (e.g., AWS Bedrock login).
     ctx.add_singleton_model(ByoLlmAuthBannerSessionState::new);
 
     ctx.add_singleton_model(ExportManager::new);
-    ctx.add_singleton_model(|ctx| NotebookManager::new(notebooks, ctx));
+    if !local_only {
+        ctx.add_singleton_model(|ctx| NotebookManager::new(notebooks, ctx));
+    }
     ctx.add_singleton_model(|_| CodeManager::default());
     ctx.add_singleton_model(|_| OpenedFilesModel::new());
     ctx.add_singleton_model(NotebookKeybindings::new);
     ctx.add_singleton_model(TerminalKeybindings::new);
     ctx.add_singleton_model(|_| ActiveSession::default());
-    ctx.add_singleton_model(|ctx| {
-        Listener::new(
-            server_api_provider.as_ref(ctx).get_cloud_objects_client(),
-            ctx,
-        )
-    });
+    if !local_only {
+        ctx.add_singleton_model(|ctx| {
+            Listener::new(
+                server_api_provider.as_ref(ctx).get_cloud_objects_client(),
+                ctx,
+            )
+        });
+    }
 
     #[cfg(all(not(target_family = "wasm"), feature = "local_tty"))]
     {
@@ -2886,15 +2930,17 @@ fn launch(ctx: &mut warpui::AppContext, app_state: Option<AppState>, launch_mode
             // TODO(ben): We should skip this for LaunchMode::Test.
             #[cfg(any(target_os = "macos", target_os = "windows"))]
             {
-                use crate::login_item::maybe_register_app_as_login_item;
-                use crate::terminal::general_settings::GeneralSettingsChangedEvent;
-                // Note that we put this here because it depends on settings already having been initialized.
-                ctx.subscribe_to_model(&GeneralSettings::handle(ctx), |_, event, ctx| {
-                    if matches!(event, GeneralSettingsChangedEvent::LoginItem { .. }) {
-                        maybe_register_app_as_login_item(ctx);
-                    }
-                });
-                maybe_register_app_as_login_item(ctx);
+                if !local_mode::is_local_only_custom_provider_mode() {
+                    use crate::login_item::maybe_register_app_as_login_item;
+                    use crate::terminal::general_settings::GeneralSettingsChangedEvent;
+                    // Note that we put this here because it depends on settings already having been initialized.
+                    ctx.subscribe_to_model(&GeneralSettings::handle(ctx), |_, event, ctx| {
+                        if matches!(event, GeneralSettingsChangedEvent::LoginItem { .. }) {
+                            maybe_register_app_as_login_item(ctx);
+                        }
+                    });
+                    maybe_register_app_as_login_item(ctx);
+                }
             }
         }
         #[cfg_attr(target_family = "wasm", allow(unused_variables))]

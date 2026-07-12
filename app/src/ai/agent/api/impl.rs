@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use warp_core::{features::FeatureFlag, safe_info};
+use warp_core::features::FeatureFlag;
+use warp_core::safe_info;
 use warp_multi_agent_api as api;
 
 use super::convert_to::convert_input;
