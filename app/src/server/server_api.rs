@@ -164,6 +164,13 @@ pub enum AIApiError {
     #[error("Failed with status code {0}: {1}")]
     ErrorStatus(http::StatusCode, String),
 
+    #[error("Provider failed with status code {status}: {message}")]
+    ProviderErrorStatus {
+        status: http::StatusCode,
+        message: String,
+        retry_after: Option<Duration>,
+    },
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 
@@ -322,7 +329,9 @@ impl AIApiError {
         }
 
         match self {
-            AIApiError::ErrorStatus(status, _) => is_recoverable_status(*status),
+            AIApiError::ErrorStatus(status, _) | AIApiError::ProviderErrorStatus { status, .. } => {
+                is_recoverable_status(*status)
+            }
             AIApiError::Transport(e) => {
                 if let Some(status) = e.status() {
                     return is_recoverable_status(status);
@@ -336,6 +345,13 @@ impl AIApiError {
             _ => true,
         }
     }
+
+    pub fn retry_after(&self) -> Option<Duration> {
+        match self {
+            AIApiError::ProviderErrorStatus { retry_after, .. } => *retry_after,
+            _ => None,
+        }
+    }
 }
 
 impl ErrorExt for AIApiError {
@@ -345,7 +361,9 @@ impl ErrorExt for AIApiError {
             AIApiError::Transport(error) => error.is_actionable(),
             AIApiError::Other(error) => error.is_actionable(),
             AIApiError::Stream { source, .. } => source.is_actionable(),
-            AIApiError::ErrorStatus(_, _) => self.is_recoverable(),
+            AIApiError::ErrorStatus(_, _) | AIApiError::ProviderErrorStatus { .. } => {
+                self.is_recoverable()
+            }
             AIApiError::UnexpectedEof => true,
             AIApiError::QuotaLimit { .. }
             | AIApiError::ServerOverloaded

@@ -1,4 +1,83 @@
-use super::{recovery_action, RecoveryAction};
+use anyhow::anyhow;
+
+use super::{
+    deferred_retry_action, is_recoverable_for_request, recovery_action, retry_limit,
+    DeferredRetryAction, RecoveryAction, LOCAL_ONLY_MAX_RETRIES, MAX_RETRIES,
+};
+use crate::server::server_api::AIApiError;
+
+#[test]
+fn local_only_mode_retries_at_most_once() {
+    assert_eq!(retry_limit(true), LOCAL_ONLY_MAX_RETRIES);
+    assert_eq!(retry_limit(true), 1);
+    assert_eq!(retry_limit(false), MAX_RETRIES);
+    assert_eq!(retry_limit(false), 3);
+}
+
+#[test]
+fn local_only_mode_retries_only_transient_provider_failures() {
+    for status in [
+        http::StatusCode::REQUEST_TIMEOUT,
+        http::StatusCode::TOO_MANY_REQUESTS,
+        http::StatusCode::INTERNAL_SERVER_ERROR,
+    ] {
+        let error = AIApiError::ProviderErrorStatus {
+            status,
+            message: "sanitized".to_string(),
+            retry_after: None,
+        };
+        assert!(is_recoverable_for_request(&error, true));
+    }
+
+    for status in [
+        http::StatusCode::TEMPORARY_REDIRECT,
+        http::StatusCode::BAD_REQUEST,
+        http::StatusCode::UNAUTHORIZED,
+    ] {
+        let error = AIApiError::ProviderErrorStatus {
+            status,
+            message: "sanitized".to_string(),
+            retry_after: None,
+        };
+        assert!(!is_recoverable_for_request(&error, true));
+    }
+
+    assert!(is_recoverable_for_request(&AIApiError::UnexpectedEof, true));
+    assert!(!is_recoverable_for_request(
+        &AIApiError::Other(anyhow!("malformed provider protocol")),
+        true
+    ));
+}
+
+#[test]
+fn remote_mode_preserves_existing_recovery_classification() {
+    let error = AIApiError::Other(anyhow!("remote recoverable error"));
+    assert_eq!(
+        is_recoverable_for_request(&error, false),
+        error.is_recoverable()
+    );
+}
+
+#[test]
+fn deferred_retry_requires_same_active_request_and_online_state() {
+    let request_id = uuid::Uuid::new_v4();
+    assert_eq!(
+        deferred_retry_action(Some(request_id), Some(request_id), true),
+        DeferredRetryAction::Retry
+    );
+    assert_eq!(
+        deferred_retry_action(Some(request_id), Some(request_id), false),
+        DeferredRetryAction::WaitForNetwork
+    );
+    assert_eq!(
+        deferred_retry_action(Some(request_id), None, true),
+        DeferredRetryAction::Drop
+    );
+    assert_eq!(
+        deferred_retry_action(Some(request_id), Some(uuid::Uuid::new_v4()), true),
+        DeferredRetryAction::Drop
+    );
+}
 
 // Argument order: has_received_client_actions, is_recoverable, has_retry_budget,
 // can_attempt_resume_on_error, is_online.

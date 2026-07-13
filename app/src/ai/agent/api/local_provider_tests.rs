@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 
 use futures::channel::oneshot;
 use futures_lite::StreamExt as _;
+use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER};
 use warp_multi_agent_api as api;
 
 use super::{
     build_chat_completion_request, content_deltas_from_sse_data, generate_local_provider_output,
-    provider_status_error, resolve_local_provider_model, stream_finished_event, ChatRole,
-    SseDataParser,
+    provider_status_error, resolve_local_provider_model, retry_after_duration,
+    stream_finished_event, ChatRole, SseDataParser,
 };
 use crate::ai::agent::api::RequestParams;
 use crate::ai::agent::{AIAgentInput, UserQueryMode};
@@ -148,10 +150,10 @@ data: [DONE]
 
 #[test]
 fn provider_rate_limit_is_not_warp_quota() {
-    let error = provider_status_error(http::StatusCode::TOO_MANY_REQUESTS);
+    let error = provider_status_error(http::StatusCode::TOO_MANY_REQUESTS, &HeaderMap::new());
 
     assert!(
-        matches!(error, AIApiError::ErrorStatus(status, _) if status == http::StatusCode::TOO_MANY_REQUESTS)
+        matches!(error, AIApiError::ProviderErrorStatus { status, .. } if status == http::StatusCode::TOO_MANY_REQUESTS)
     );
     assert!(!matches!(error, AIApiError::QuotaLimit { .. }));
 }
@@ -182,13 +184,46 @@ fn provider_status_errors_are_distinct_and_actionable() {
     ];
 
     for (status, expected_message) in cases {
-        let AIApiError::ErrorStatus(actual_status, actual_message) = provider_status_error(status)
+        let AIApiError::ProviderErrorStatus {
+            status: actual_status,
+            message: actual_message,
+            retry_after,
+        } = provider_status_error(status, &HeaderMap::new())
         else {
             panic!("expected status error");
         };
         assert_eq!(actual_status, status);
         assert_eq!(actual_message, expected_message);
+        assert_eq!(retry_after, None);
     }
+}
+
+#[test]
+fn parses_retry_after_seconds_and_http_date() {
+    let now = SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+    let mut headers = HeaderMap::new();
+    headers.insert(RETRY_AFTER, HeaderValue::from_static("12"));
+    assert_eq!(
+        retry_after_duration(&headers, now),
+        Some(Duration::from_secs(12))
+    );
+
+    headers.insert(
+        RETRY_AFTER,
+        HeaderValue::from_static("Tue, 14 Nov 2023 22:13:25 GMT"),
+    );
+    assert_eq!(
+        retry_after_duration(&headers, now),
+        Some(Duration::from_secs(5))
+    );
+}
+
+#[test]
+fn ignores_invalid_retry_after() {
+    let mut headers = HeaderMap::new();
+    headers.insert(RETRY_AFTER, HeaderValue::from_static("not-a-delay"));
+
+    assert_eq!(retry_after_duration(&headers, SystemTime::now()), None);
 }
 
 #[test]

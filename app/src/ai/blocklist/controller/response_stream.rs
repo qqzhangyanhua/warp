@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::anyhow;
 use chrono::{DateTime, Local, TimeDelta};
@@ -8,6 +9,7 @@ use futures::channel::oneshot;
 use uuid::Uuid;
 use warp_errors::report_error;
 use warp_multi_agent_api::response_event;
+use warpui::r#async::Timer;
 use warpui::{Entity, ModelContext, SingletonEntity};
 
 use crate::ai::agent::api::{self, generate_multi_agent_output, ConvertToAPITypeError};
@@ -20,6 +22,43 @@ use crate::server::server_api::{AIApiError, ServerApiProvider};
 /// Maximum number of times a single MAA request is re-sent before the failure is
 /// surfaced.
 const MAX_RETRIES: usize = 3;
+const LOCAL_ONLY_MAX_RETRIES: usize = 1;
+
+fn retry_limit(local_only: bool) -> usize {
+    if local_only {
+        LOCAL_ONLY_MAX_RETRIES
+    } else {
+        MAX_RETRIES
+    }
+}
+
+fn is_recoverable_for_request(error: &AIApiError, local_only: bool) -> bool {
+    if !local_only {
+        return error.is_recoverable();
+    }
+
+    match error {
+        AIApiError::Transport(error) => error.status().is_none_or(|status| {
+            status == http::StatusCode::REQUEST_TIMEOUT
+                || status == http::StatusCode::TOO_MANY_REQUESTS
+                || status.is_server_error()
+        }),
+        AIApiError::ProviderErrorStatus { status, .. } => {
+            *status == http::StatusCode::REQUEST_TIMEOUT
+                || *status == http::StatusCode::TOO_MANY_REQUESTS
+                || status.is_server_error()
+        }
+        AIApiError::UnexpectedEof => true,
+        AIApiError::QuotaLimit { .. }
+        | AIApiError::ServerOverloaded
+        | AIApiError::Deserialization(_)
+        | AIApiError::NoContextFound
+        | AIApiError::ErrorStatus(_, _)
+        | AIApiError::Other(_)
+        | AIApiError::Stream { .. }
+        | AIApiError::GrokSubscriptionTokenRefreshFailed => false,
+    }
+}
 
 /// Maximum time to wait for a request-time Grok OAuth token refresh before
 /// sending with the currently stored token. Bounded so a hung refresh can't
@@ -38,6 +77,27 @@ enum RecoveryAction {
     Resume,
     /// Surface the error; the conversation ends in error.
     Fail,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DeferredRetryAction {
+    Retry,
+    WaitForNetwork,
+    Drop,
+}
+
+fn deferred_retry_action(
+    expected_request_id: Option<Uuid>,
+    current_request_id: Option<Uuid>,
+    is_online: bool,
+) -> DeferredRetryAction {
+    if expected_request_id.is_none() || current_request_id != expected_request_id {
+        DeferredRetryAction::Drop
+    } else if is_online {
+        DeferredRetryAction::Retry
+    } else {
+        DeferredRetryAction::WaitForNetwork
+    }
 }
 
 /// Decides how to recover from a failed response-stream attempt.
@@ -139,6 +199,10 @@ pub struct ResponseStream {
 }
 
 impl ResponseStream {
+    fn max_retries(&self) -> usize {
+        retry_limit(crate::local_mode::is_local_only_custom_provider_mode())
+    }
+
     /// Emits a synthetic successful response event through the normal controller subscription.
     #[cfg(test)]
     pub fn emit_response_event_for_test(
@@ -481,34 +545,40 @@ impl ResponseStream {
                 }
 
                 let is_online = NetworkStatus::as_ref(ctx).is_online();
+                let local_only = crate::local_mode::is_local_only_custom_provider_mode();
+                let max_retries = self.max_retries();
                 match recovery_action(
                     self.has_received_client_actions,
-                    e.is_recoverable(),
-                    self.retry_count < MAX_RETRIES,
+                    is_recoverable_for_request(e, local_only),
+                    self.retry_count < max_retries,
                     self.can_attempt_resume_on_error,
                     is_online,
                 ) {
                     RecoveryAction::RetryNow => {
                         log::warn!(
-                            "MultiAgent request failed, retrying (attempt {}/{}) - Error: {e:?}",
+                            "Agent request failed, retrying (attempt {}/{}) - Error: {e:?}",
                             self.retry_count + 1,
-                            MAX_RETRIES
+                            max_retries
                         );
                         // Only emit error telemetry here if we're retrying.
                         // Final errors that aren't being retried are emitted elsewhere.
                         self.emit_retryable_agent_mode_error_telemetry(format!("{e:?}"), ctx);
-                        self.retry(ctx);
+                        if let Some(delay) = e.retry_after() {
+                            self.defer_retry_for(delay, ctx);
+                        } else {
+                            self.retry(ctx);
+                        }
                         // Don't emit the error event, we're retrying
                         return;
                     }
                     RecoveryAction::RetryWhenOnline => {
                         log::warn!(
-                            "MultiAgent request failed while offline; retrying (attempt {}/{}) once connectivity returns - Error: {e:?}",
+                            "Agent request failed while offline; retrying (attempt {}/{}) once connectivity returns - Error: {e:?}",
                             self.retry_count + 1,
-                            MAX_RETRIES
+                            max_retries
                         );
                         self.emit_retryable_agent_mode_error_telemetry(format!("{e:?}"), ctx);
-                        self.defer_retry_until_online(ctx);
+                        self.defer_retry_until_online(e.retry_after(), ctx);
                         return;
                     }
                     RecoveryAction::Resume => {
@@ -517,7 +587,7 @@ impl ResponseStream {
                         // error, so the UI suppresses the banner. Log it so the
                         // auto-recovery isn't completely silent.
                         log::warn!(
-                            "MultiAgent request failed after client actions; resuming conversation after stream finishes - Error: {e:?}"
+                            "Agent request failed after client actions; resuming conversation after stream finishes - Error: {e:?}"
                         );
                         // The resume spawn itself waits for connectivity.
                         self.should_resume_conversation_after_stream_finished = true;
@@ -552,18 +622,19 @@ impl ResponseStream {
             );
             let unexpected_eof = Arc::new(AIApiError::UnexpectedEof);
             let is_online = NetworkStatus::as_ref(ctx).is_online();
+            let max_retries = self.max_retries();
             match recovery_action(
                 self.has_received_client_actions,
                 unexpected_eof.is_recoverable(),
-                self.retry_count < MAX_RETRIES,
+                self.retry_count < max_retries,
                 self.can_attempt_resume_on_error,
                 is_online,
             ) {
                 RecoveryAction::RetryNow => {
                     log::warn!(
-                        "MultiAgent request failed, retrying (attempt {}/{}) - Error: {unexpected_eof:?}",
+                        "Agent request failed, retrying (attempt {}/{}) - Error: {unexpected_eof:?}",
                         self.retry_count + 1,
-                        MAX_RETRIES
+                        max_retries
                     );
                     self.emit_retryable_agent_mode_error_telemetry(
                         format!("{unexpected_eof:?}"),
@@ -574,15 +645,15 @@ impl ResponseStream {
                 }
                 RecoveryAction::RetryWhenOnline => {
                     log::warn!(
-                        "MultiAgent request failed while offline; retrying (attempt {}/{}) once connectivity returns - Error: {unexpected_eof:?}",
+                        "Agent request failed while offline; retrying (attempt {}/{}) once connectivity returns - Error: {unexpected_eof:?}",
                         self.retry_count + 1,
-                        MAX_RETRIES
+                        max_retries
                     );
                     self.emit_retryable_agent_mode_error_telemetry(
                         format!("{unexpected_eof:?}"),
                         ctx,
                     );
-                    self.defer_retry_until_online(ctx);
+                    self.defer_retry_until_online(None, ctx);
                     return;
                 }
                 RecoveryAction::Resume => {
@@ -591,7 +662,7 @@ impl ResponseStream {
                     // error, so the UI suppresses the banner. Log it so the
                     // auto-recovery isn't completely silent.
                     log::warn!(
-                        "MultiAgent request truncated after client actions; resuming conversation after stream finishes - Error: {unexpected_eof:?}"
+                        "Agent request truncated after client actions; resuming conversation after stream finishes - Error: {unexpected_eof:?}"
                     );
                     self.should_resume_conversation_after_stream_finished = true;
                     self.error_event_emitted = true;
@@ -636,7 +707,7 @@ impl ResponseStream {
             },
             || {
                 report_error!(anyhow!(error.clone()).context(format!(
-                    "MultiAgent request failed after {} retries",
+                    "Agent request failed after {} retries",
                     self.retry_count
                 )));
             },
@@ -644,7 +715,7 @@ impl ResponseStream {
         #[cfg(not(feature = "crash_reporting"))]
         {
             report_error!(anyhow!(error.clone()).context(format!(
-                "MultiAgent request failed after {} retries",
+                "Agent request failed after {} retries",
                 self.retry_count
             )));
         }
@@ -652,19 +723,58 @@ impl ResponseStream {
 
     /// Parks a retry until connectivity returns; cancellation invalidates the parked
     /// retry through `current_request_id`.
-    fn defer_retry_until_online(&mut self, ctx: &mut ModelContext<Self>) {
+    fn defer_retry_until_online(
+        &mut self,
+        retry_after: Option<Duration>,
+        ctx: &mut ModelContext<Self>,
+    ) {
         self.deferred_retry_pending = true;
         ctx.emit(ResponseStreamEvent::WaitingForNetwork { waiting: true });
         let request_id_at_defer = self.current_request_id;
         let wait_for_online = NetworkStatus::as_ref(ctx).wait_until_online();
-        let _ = ctx.spawn(wait_for_online, move |me, _, ctx| {
-            // Cancelled or superseded while waiting — drop the parked retry.
-            if request_id_at_defer.is_none() || me.current_request_id != request_id_at_defer {
-                return;
+        let wait_for_retry = async move {
+            if let Some(delay) = retry_after {
+                futures::future::join(wait_for_online, Timer::after(delay)).await;
+            } else {
+                wait_for_online.await;
             }
-            ctx.emit(ResponseStreamEvent::WaitingForNetwork { waiting: false });
-            me.retry(ctx);
-        });
+        };
+        let _ = ctx.spawn(
+            wait_for_retry,
+            move |me, _, ctx| match deferred_retry_action(
+                request_id_at_defer,
+                me.current_request_id,
+                NetworkStatus::as_ref(ctx).is_online(),
+            ) {
+                DeferredRetryAction::Retry => {
+                    ctx.emit(ResponseStreamEvent::WaitingForNetwork { waiting: false });
+                    me.retry(ctx);
+                }
+                DeferredRetryAction::WaitForNetwork => {
+                    me.defer_retry_until_online(None, ctx);
+                }
+                DeferredRetryAction::Drop => {}
+            },
+        );
+    }
+
+    fn defer_retry_for(&mut self, delay: Duration, ctx: &mut ModelContext<Self>) {
+        self.deferred_retry_pending = true;
+        let request_id_at_defer = self.current_request_id;
+        let _ = ctx.spawn(
+            Timer::after(delay),
+            move |me, _, ctx| match deferred_retry_action(
+                request_id_at_defer,
+                me.current_request_id,
+                NetworkStatus::as_ref(ctx).is_online(),
+            ) {
+                DeferredRetryAction::Retry => me.retry(ctx),
+                DeferredRetryAction::WaitForNetwork => {
+                    me.defer_retry_until_online(None, ctx);
+                }
+                DeferredRetryAction::Drop => {}
+            },
+        );
     }
 }
 

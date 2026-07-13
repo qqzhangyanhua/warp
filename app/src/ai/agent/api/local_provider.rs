@@ -1,10 +1,12 @@
 use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 
 use anyhow::anyhow;
 use async_stream::stream;
 use futures::channel::oneshot;
 use futures::StreamExt as _;
 use http::StatusCode;
+use reqwest::header::{HeaderMap, RETRY_AFTER};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use uuid::Uuid;
@@ -271,7 +273,7 @@ async fn send_chat_completion_request(
 
     let status = response.status();
     if !status.is_success() {
-        return Err(provider_status_error(status));
+        return Err(provider_status_error(status, response.headers()));
     }
 
     Ok(response)
@@ -292,7 +294,7 @@ fn chat_completions_url(base_url: &str) -> Result<Url, AIApiError> {
     Ok(url)
 }
 
-fn provider_status_error(status: StatusCode) -> AIApiError {
+fn provider_status_error(status: StatusCode, headers: &HeaderMap) -> AIApiError {
     let message = match status {
         StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
             "Provider authentication failed. Check the API Key and Provider permissions."
@@ -311,7 +313,22 @@ fn provider_status_error(status: StatusCode) -> AIApiError {
         }
         _ => "Provider rejected the request. Check the Provider configuration and model settings.",
     };
-    AIApiError::ErrorStatus(status, message.to_string())
+    AIApiError::ProviderErrorStatus {
+        status,
+        message: message.to_string(),
+        retry_after: retry_after_duration(headers, SystemTime::now()),
+    }
+}
+
+fn retry_after_duration(headers: &HeaderMap, now: SystemTime) -> Option<Duration> {
+    let value = headers.get(RETRY_AFTER)?.to_str().ok()?.trim();
+    if let Ok(seconds) = value.parse::<u64>() {
+        return Some(Duration::from_secs(seconds));
+    }
+
+    let retry_at = chrono::DateTime::parse_from_rfc2822(value).ok()?;
+    let retry_at = SystemTime::from(retry_at.with_timezone(&chrono::Utc));
+    Some(retry_at.duration_since(now).unwrap_or(Duration::ZERO))
 }
 
 impl SseDataParser {

@@ -863,6 +863,7 @@ impl From<&Arc<AIApiError>> for RenderableAIError {
             AIApiError::Deserialization(DeserializationError::Json(_))
             | AIApiError::NoContextFound
             | AIApiError::ErrorStatus(_, _)
+            | AIApiError::ProviderErrorStatus { .. }
             | AIApiError::Other(_)
             | AIApiError::Stream { .. } => Self::Other {
                 error_message: format!("Request failed with error: {value:?}"),
