@@ -1,7 +1,19 @@
 use std::fmt;
+use std::sync::LazyLock;
 
 use serde::Deserialize;
 use thiserror::Error;
+
+pub(super) const CORE_SCHEMA: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../tools/warp-bridge/protocol/core-v1.schema.json"
+));
+
+static CORE_PROTOCOL_VALIDATOR: LazyLock<jsonschema::Validator> = LazyLock::new(|| {
+    let schema =
+        serde_json::from_slice(CORE_SCHEMA).expect("Core Protocol schema must be valid JSON");
+    jsonschema::validator_for(&schema).expect("Core Protocol schema must compile")
+});
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -67,6 +79,41 @@ enum TranscriptItem {
         message_id: String,
         role: TranscriptMessageRole,
         content: Vec<RuntimeContentBlock>,
+    },
+    ResourceSnapshot {
+        resource_id: String,
+        name: String,
+        content: Vec<RuntimeContentBlock>,
+    },
+    ToolRequest {
+        tool_call_id: String,
+        tool_id: String,
+        tool_name: String,
+        arguments: serde_json::Map<String, serde_json::Value>,
+    },
+    ToolResult {
+        tool_call_id: String,
+        result: TranscriptToolResult,
+    },
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
+enum TranscriptToolResult {
+    Success {
+        content: Vec<RuntimeContentBlock>,
+        truncated: bool,
+    },
+    Denied {
+        denied_by: ToolDenialSource,
+        content: Vec<RuntimeContentBlock>,
+        truncated: bool,
+    },
+    Error {
+        error_code: ToolErrorCode,
+        may_have_executed: bool,
+        content: Vec<RuntimeContentBlock>,
+        truncated: bool,
     },
 }
 
@@ -338,7 +385,7 @@ pub(super) enum ToolErrorCode {
     ToolOutcomeUnknown,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub(super) enum ProtocolMessage {
     BridgeHello(BridgeHello),
@@ -368,6 +415,36 @@ pub(super) enum ProtocolError {
 
 impl ProtocolMessage {
     pub(super) fn parse_line(line: &str) -> Result<Self, ProtocolError> {
-        serde_json::from_str(line).map_err(|_| ProtocolError::InvalidMessage)
+        let value = serde_json::from_str(line).map_err(|_| ProtocolError::InvalidMessage)?;
+        if !CORE_PROTOCOL_VALIDATOR.is_valid(&value) {
+            return Err(ProtocolError::InvalidMessage);
+        }
+        serde_json::from_value(value).map_err(|_| ProtocolError::InvalidMessage)
+    }
+}
+
+impl fmt::Debug for ProtocolMessage {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message_type = match self {
+            Self::BridgeHello(_) => "bridge_hello",
+            Self::HandshakeResult(_) => "handshake_result",
+            Self::TranscriptSyncBegin(_) => "transcript_sync_begin",
+            Self::TranscriptSyncItem(_) => "transcript_sync_item",
+            Self::TranscriptSyncCommit(_) => "transcript_sync_commit",
+            Self::TranscriptSyncResult(_) => "transcript_sync_result",
+            Self::RunStart(_) => "run_start",
+            Self::RunStatus(_) => "run_status",
+            Self::TextDelta(_) => "text_delta",
+            Self::AssistantMessageCommit(_) => "assistant_message_commit",
+            Self::CommitResult(_) => "commit_result",
+            Self::RunCancel(_) => "run_cancel",
+            Self::RunFinished(_) => "run_finished",
+            Self::ToolRequest(_) => "tool_request",
+            Self::ToolResult(_) => "tool_result",
+        };
+        formatter
+            .debug_tuple("ProtocolMessage")
+            .field(&message_type)
+            .finish()
     }
 }

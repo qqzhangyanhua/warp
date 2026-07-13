@@ -58,7 +58,59 @@ export interface TranscriptMessage {
   content: RuntimeContentBlock[];
 }
 
-export type TranscriptItem = TranscriptMessage;
+export interface TranscriptResourceSnapshot {
+  kind: "resource_snapshot";
+  resource_id: string;
+  name: string;
+  content: RuntimeContentBlock[];
+}
+
+export interface TranscriptToolRequest {
+  kind: "tool_request";
+  tool_call_id: string;
+  tool_id: string;
+  tool_name: string;
+  arguments: Record<string, unknown>;
+}
+
+export type TranscriptToolResultProjection =
+  | {
+      status: "success";
+      content: RuntimeContentBlock[];
+      truncated: boolean;
+    }
+  | {
+      status: "denied";
+      denied_by: "policy" | "user";
+      content: RuntimeContentBlock[];
+      truncated: boolean;
+    }
+  | {
+      status: "error";
+      error_code: OrdinaryToolErrorCode;
+      may_have_executed: false;
+      content: RuntimeContentBlock[];
+      truncated: boolean;
+    }
+  | {
+      status: "error";
+      error_code: "tool_outcome_unknown";
+      may_have_executed: true;
+      content: RuntimeContentBlock[];
+      truncated: boolean;
+    };
+
+export interface TranscriptToolResult {
+  kind: "tool_result";
+  tool_call_id: string;
+  result: TranscriptToolResultProjection;
+}
+
+export type TranscriptItem =
+  | TranscriptMessage
+  | TranscriptResourceSnapshot
+  | TranscriptToolRequest
+  | TranscriptToolResult;
 
 export interface TranscriptSyncBegin {
   type: "transcript_sync_begin";

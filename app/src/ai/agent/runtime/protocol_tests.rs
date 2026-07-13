@@ -49,7 +49,7 @@ fn parses_valid_bridge_hello_fixture() {
     assert_eq!(hello.prompt_version, "warp.v1");
     assert_eq!(
         hello.core_schema_hash,
-        "sha256:afb439d8518d3ae8f2fb0f314845036f0c673c0c96eb7e849e0e71bdfd87600e"
+        "sha256:b0c4c909ff976b69930e51cb6fb60e12e2e0421992f2e7a69520963d1c95914c"
     );
     assert_eq!(hello.capabilities.len(), 1);
     assert_eq!(hello.capabilities[0].name, "usage.v1");
@@ -252,6 +252,22 @@ fn rejects_oversized_frame_without_echoing_content() {
 }
 
 #[test]
+fn bounded_reader_rejects_before_buffering_the_whole_frame() {
+    use std::io::Cursor;
+
+    let mut reader = Cursor::new(vec![b'x'; 1024]);
+    let error = ProtocolCodec::new(8)
+        .read_frame(&mut reader)
+        .expect_err("oversized frame must stop at the codec limit");
+
+    assert_eq!(
+        error,
+        super::ProtocolError::FrameTooLarge { max_frame_bytes: 8 }
+    );
+    assert!(reader.position() <= 9, "reader consumed an unbounded frame");
+}
+
+#[test]
 fn refuses_run_configuration_until_bridge_handshake_succeeds() {
     let run_start = TEXT_RUN_LIFECYCLE
         .lines()
@@ -267,7 +283,14 @@ fn refuses_run_configuration_until_bridge_handshake_succeeds() {
 
     session
         .receive_inbound(VALID_BRIDGE_HELLO.trim())
-        .expect("valid Bridge hello should complete the handshake");
+        .expect("valid Bridge hello should validate compatibility");
+    assert_eq!(
+        session.authorize_outbound_line(run_start),
+        Err(SessionError::HandshakeResultRequired)
+    );
+    session
+        .authorize_outbound_line(ACCEPTED_HANDSHAKE_RESULT.trim())
+        .expect("accepted handshake result should complete the handshake");
     session
         .authorize_outbound_line(run_start)
         .expect("run configuration should be authorized after handshake");
@@ -283,7 +306,10 @@ fn accepts_identical_tool_redelivery_but_rejects_identity_reuse_with_new_argumen
     let mut session = ProtocolSession::new(1_048_576, HandshakePolicy::current());
     session
         .receive_inbound(VALID_BRIDGE_HELLO.trim())
-        .expect("valid Bridge hello should complete the handshake");
+        .expect("valid Bridge hello should validate compatibility");
+    session
+        .authorize_outbound_line(ACCEPTED_HANDSHAKE_RESULT.trim())
+        .expect("accepted handshake result should complete the handshake");
 
     session
         .receive_inbound(request)
@@ -305,10 +331,48 @@ fn protocol_errors_and_debug_output_redact_supplied_content() {
         .next()
         .expect("run start fixture must contain a first line");
     let message = ProtocolMessage::parse_line(run_start).expect("run start fixture should parse");
-    assert!(!format!("{message:?}").contains("fixture-key"));
+    let debug = format!("{message:?}");
+    for content in ["fixture-key", "local-model", "/workspace", "127.0.0.1"] {
+        assert!(!debug.contains(content), "Debug leaked protocol content");
+    }
 
     let malformed = r#"{"type":"secret-provider-body""#;
     let error = ProtocolMessage::parse_line(malformed)
         .expect_err("malformed JSON must produce a protocol error");
     assert!(!format!("{error:?} {error}").contains("secret-provider-body"));
+}
+
+#[test]
+fn rust_boundary_matches_all_shared_conformance_fixtures() {
+    let fixtures_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../tools/warp-bridge/protocol/fixtures");
+
+    for entry in
+        std::fs::read_dir(fixtures_root.join("valid")).expect("valid fixtures should exist")
+    {
+        let path = entry
+            .expect("valid fixture entry should be readable")
+            .path();
+        let fixture = std::fs::read_to_string(&path).expect("valid fixture should be readable");
+        for line in fixture.lines().filter(|line| !line.is_empty()) {
+            ProtocolMessage::parse_line(line)
+                .unwrap_or_else(|_| panic!("valid fixture failed: {}", path.display()));
+        }
+    }
+
+    for entry in
+        std::fs::read_dir(fixtures_root.join("invalid")).expect("invalid fixtures should exist")
+    {
+        let path = entry
+            .expect("invalid fixture entry should be readable")
+            .path();
+        let fixture = std::fs::read_to_string(&path).expect("invalid fixture should be readable");
+        for line in fixture.lines().filter(|line| !line.is_empty()) {
+            assert!(
+                ProtocolMessage::parse_line(line).is_err(),
+                "invalid fixture passed: {}",
+                path.display()
+            );
+        }
+    }
 }

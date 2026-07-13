@@ -17,6 +17,10 @@ const runStart = readFileSync(
   resolve(root, "protocol/fixtures/valid/text-run-lifecycle.jsonl"),
   "utf8",
 ).split("\n")[0];
+const transcriptSync = readFileSync(
+  resolve(root, "protocol/fixtures/valid/transcript-sync.jsonl"),
+  "utf8",
+).trim().split("\n");
 
 describe("Bridge Protocol session", () => {
   test("pins the exact Core Protocol schema bytes", () => {
@@ -43,5 +47,25 @@ describe("Bridge Protocol session", () => {
 
     expect(hello.core_schema_hash).toBe(CORE_SCHEMA_HASH);
     expect(hello.protocol_version).toBe(1);
+  });
+
+  test("rejects a Transcript Sync above the negotiated total limit", () => {
+    const session = new BridgeProtocolSession();
+    session.receiveInboundLine(acceptedHandshake);
+    const oversizedBegin = (transcriptSync[0] ?? "").replace(
+      '"total_bytes":112',
+      '"total_bytes":16777217',
+    );
+
+    expect(() => session.receiveInboundLine(oversizedBegin)).toThrow(BridgeSessionError);
+  });
+
+  test("accepts an ordered complete Transcript Sync", () => {
+    const session = new BridgeProtocolSession();
+    session.receiveInboundLine(acceptedHandshake);
+
+    for (const line of transcriptSync.slice(0, 3)) {
+      session.receiveInboundLine(line);
+    }
   });
 });

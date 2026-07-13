@@ -5,6 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@10.15.1",
   "scripts": {
+    "build:fake:matrix": "node scripts/build-fake-matrix.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -15,10 +16,14 @@
   },
   "devDependencies": {
     "@types/node": "24.12.4",
+    "bun": "1.3.14",
     "typescript": "5.9.3",
     "vitest": "4.1.9"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "bun"
+    ],
     "overrides": {
       "@earendil-works/pi-ai": "file:../../third_party/pi/packages/pi-ai-0.80.6.tgz"
     }

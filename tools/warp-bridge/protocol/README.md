@@ -9,7 +9,7 @@ prefixed with `sha256:`. Changing the schema changes the hash; an incompatible C
 requires a protocol major-version change.
 
 The current Core identity is
-`sha256:afb439d8518d3ae8f2fb0f314845036f0c673c0c96eb7e849e0e71bdfd87600e`.
+`sha256:b0c4c909ff976b69930e51cb6fb60e12e2e0421992f2e7a69520963d1c95914c`.
 `src/protocol-identity.ts`, the valid Bridge hello fixture, and the fake Bridge must match these
 exact bytes. The Bridge test suite verifies that identity on every run.
 

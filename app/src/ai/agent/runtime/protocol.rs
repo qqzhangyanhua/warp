@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::BufRead;
 
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
@@ -8,10 +9,6 @@ mod wire;
 use wire::*;
 
 const CORE_PROTOCOL_VERSION: u32 = 1;
-const CORE_SCHEMA: &[u8] = include_bytes!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../tools/warp-bridge/protocol/core-v1.schema.json"
-));
 
 struct ProtocolCodec {
     max_frame_bytes: usize,
@@ -30,6 +27,26 @@ impl ProtocolCodec {
         }
         ProtocolMessage::parse_line(line)
     }
+
+    fn read_frame(&self, reader: &mut impl BufRead) -> Result<ProtocolMessage, ProtocolError> {
+        let mut frame = Vec::with_capacity(self.max_frame_bytes.min(8 * 1024));
+        std::io::Read::take(&mut *reader, (self.max_frame_bytes + 1) as u64)
+            .read_until(b'\n', &mut frame)
+            .map_err(|_| ProtocolError::InvalidMessage)?;
+        if frame.last() == Some(&b'\n') {
+            frame.pop();
+            if frame.last() == Some(&b'\r') {
+                frame.pop();
+            }
+        }
+        if frame.len() > self.max_frame_bytes {
+            return Err(ProtocolError::FrameTooLarge {
+                max_frame_bytes: self.max_frame_bytes,
+            });
+        }
+        let line = std::str::from_utf8(&frame).map_err(|_| ProtocolError::InvalidMessage)?;
+        self.parse_line(line)
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -42,6 +59,8 @@ enum SessionError {
     HandshakeRequired,
     #[error("Expected Bridge hello as the first inbound protocol message")]
     ExpectedBridgeHello,
+    #[error("Warp must send the handshake result before other protocol messages")]
+    HandshakeResultRequired,
     #[error("Bridge hello is not valid after handshake completion")]
     UnexpectedBridgeHello,
     #[error("Tool call identity was reused for a different request")]
@@ -51,7 +70,9 @@ enum SessionError {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum HandshakeState {
     AwaitingBridgeHello,
+    BridgeHelloValidated,
     Ready,
+    Rejected,
 }
 
 struct ProtocolSession {
@@ -78,8 +99,12 @@ impl ProtocolSession {
                 return Err(SessionError::ExpectedBridgeHello);
             };
             self.handshake_policy.validate(hello)?;
-            self.handshake_state = HandshakeState::Ready;
+            self.handshake_state = HandshakeState::BridgeHelloValidated;
             return Ok(message);
+        }
+
+        if self.handshake_state != HandshakeState::Ready {
+            return Err(SessionError::HandshakeResultRequired);
         }
 
         match &message {
@@ -100,11 +125,21 @@ impl ProtocolSession {
         Ok(message)
     }
 
-    fn authorize_outbound_line(&self, line: &str) -> Result<ProtocolMessage, SessionError> {
+    fn authorize_outbound_line(&mut self, line: &str) -> Result<ProtocolMessage, SessionError> {
+        let message = self.codec.parse_line(line)?;
+        if self.handshake_state == HandshakeState::BridgeHelloValidated {
+            let ProtocolMessage::HandshakeResult(result) = &message else {
+                return Err(SessionError::HandshakeResultRequired);
+            };
+            self.handshake_state = match result {
+                HandshakeResult::Accepted { .. } => HandshakeState::Ready,
+                HandshakeResult::Rejected { .. } => HandshakeState::Rejected,
+            };
+            return Ok(message);
+        }
         if self.handshake_state != HandshakeState::Ready {
             return Err(SessionError::HandshakeRequired);
         }
-        let message = self.codec.parse_line(line)?;
         if matches!(message, ProtocolMessage::BridgeHello(_)) {
             return Err(SessionError::UnexpectedBridgeHello);
         }

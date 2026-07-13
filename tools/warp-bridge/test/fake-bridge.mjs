@@ -4,7 +4,7 @@ import { createInterface } from "node:readline";
 const hello = {
   type: "bridge_hello",
   protocol_version: 1,
-  core_schema_hash: "sha256:afb439d8518d3ae8f2fb0f314845036f0c673c0c96eb7e849e0e71bdfd87600e",
+  core_schema_hash: "sha256:b0c4c909ff976b69930e51cb6fb60e12e2e0421992f2e7a69520963d1c95914c",
   bridge_version: "0.1.0-fake",
   capabilities: [],
   prompt_version: "warp.v1",

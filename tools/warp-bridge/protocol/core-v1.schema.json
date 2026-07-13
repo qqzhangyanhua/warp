@@ -28,6 +28,81 @@
         }
       ]
     },
+    "transcript_tool_result": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "content", "truncated"],
+          "properties": {
+            "status": { "const": "success" },
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/runtime_content_block" }
+            },
+            "truncated": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "denied_by", "content", "truncated"],
+          "properties": {
+            "status": { "const": "denied" },
+            "denied_by": { "enum": ["policy", "user"] },
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/runtime_content_block" }
+            },
+            "truncated": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status", "error_code", "may_have_executed", "content", "truncated"
+          ],
+          "properties": {
+            "status": { "const": "error" },
+            "error_code": {
+              "enum": [
+                "invalid_tool_request",
+                "tool_execution_failed",
+                "tool_request_limit_exceeded"
+              ]
+            },
+            "may_have_executed": { "const": false },
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/runtime_content_block" }
+            },
+            "truncated": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status", "error_code", "may_have_executed", "content", "truncated"
+          ],
+          "properties": {
+            "status": { "const": "error" },
+            "error_code": { "const": "tool_outcome_unknown" },
+            "may_have_executed": { "const": true },
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/runtime_content_block" }
+            },
+            "truncated": { "type": "boolean" }
+          }
+        }
+      ]
+    },
     "transcript_item": {
       "oneOf": [
         {
@@ -43,6 +118,45 @@
               "minItems": 1,
               "items": { "$ref": "#/$defs/runtime_content_block" }
             }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "resource_id", "name", "content"],
+          "properties": {
+            "kind": { "const": "resource_snapshot" },
+            "resource_id": { "type": "string", "minLength": 1 },
+            "name": { "type": "string", "minLength": 1 },
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/runtime_content_block" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind", "tool_call_id", "tool_id", "tool_name", "arguments"
+          ],
+          "properties": {
+            "kind": { "const": "tool_request" },
+            "tool_call_id": { "type": "string", "minLength": 1 },
+            "tool_id": { "type": "string", "minLength": 1 },
+            "tool_name": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "arguments": { "type": "object" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "tool_call_id", "result"],
+          "properties": {
+            "kind": { "const": "tool_result" },
+            "tool_call_id": { "type": "string", "minLength": 1 },
+            "result": { "$ref": "#/$defs/transcript_tool_result" }
           }
         }
       ]
