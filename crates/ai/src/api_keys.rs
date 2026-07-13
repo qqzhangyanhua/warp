@@ -61,6 +61,30 @@ pub struct CustomEndpointModel {
     /// as the `CustomModelProviders.providers[*].models[*].config_key` on the request wire.
     /// Generated as a UUIDv4 at model creation.
     pub config_key: String,
+    pub capabilities: CustomEndpointModelCapabilities,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CustomEndpointModelCapabilities {
+    pub tool_calls: bool,
+    pub image_input: bool,
+    pub parallel_tool_calls: bool,
+    /// Zero preserves the legacy behavior where the context window was unknown.
+    pub context_window: u32,
+    pub max_output_tokens: Option<u32>,
+}
+
+impl Default for CustomEndpointModelCapabilities {
+    fn default() -> Self {
+        Self {
+            tool_calls: true,
+            image_input: true,
+            parallel_tool_calls: true,
+            context_window: 0,
+            max_output_tokens: None,
+        }
+    }
 }
 
 impl CustomEndpointModel {
@@ -338,6 +362,7 @@ impl ApiKeyManager {
                     config_key: config_key
                         .filter(|k| !k.is_empty())
                         .unwrap_or_else(|| Uuid::new_v4().to_string()),
+                    capabilities: CustomEndpointModelCapabilities::default(),
                 })
                 .collect(),
         });
@@ -357,20 +382,31 @@ impl ApiKeyManager {
         if index >= self.keys.custom_endpoints.len() {
             return;
         }
+        let existing_models = &self.keys.custom_endpoints[index].models;
+        let models = models
+            .into_iter()
+            .map(|(name, alias, config_key)| {
+                let config_key = config_key
+                    .filter(|k| !k.is_empty())
+                    .unwrap_or_else(|| Uuid::new_v4().to_string());
+                let capabilities = existing_models
+                    .iter()
+                    .find(|model| model.config_key == config_key)
+                    .map(|model| model.capabilities.clone())
+                    .unwrap_or_default();
+                CustomEndpointModel {
+                    name,
+                    alias,
+                    config_key,
+                    capabilities,
+                }
+            })
+            .collect();
         self.keys.custom_endpoints[index] = CustomEndpoint {
             name,
             url,
             api_key,
-            models: models
-                .into_iter()
-                .map(|(name, alias, config_key)| CustomEndpointModel {
-                    name,
-                    alias,
-                    config_key: config_key
-                        .filter(|k| !k.is_empty())
-                        .unwrap_or_else(|| Uuid::new_v4().to_string()),
-                })
-                .collect(),
+            models,
         };
         ctx.emit(ApiKeyManagerEvent::KeysUpdated);
         self.write_keys_to_secure_storage(ctx);

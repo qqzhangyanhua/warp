@@ -107,6 +107,7 @@ fn endpoint_with_keys(
                 name: (*n).into(),
                 alias: a.map(|s| s.into()),
                 config_key: (*cfg).into(),
+                capabilities: Default::default(),
             })
             .collect(),
     }
@@ -120,6 +121,40 @@ fn serde_round_trip_empty() {
     let json = serde_json::to_string(&keys).unwrap();
     let deser: ApiKeys = serde_json::from_str(&json).unwrap();
     assert_eq!(keys, deser);
+}
+
+#[test]
+fn legacy_custom_model_uses_compatible_capability_defaults() {
+    let model: CustomEndpointModel =
+        serde_json::from_str(r#"{"name":"legacy-model","alias":null,"config_key":"legacy-key"}"#)
+            .unwrap();
+
+    assert!(model.capabilities.tool_calls);
+    assert!(model.capabilities.image_input);
+    assert!(model.capabilities.parallel_tool_calls);
+    assert_eq!(model.capabilities.context_window, 0);
+    assert_eq!(model.capabilities.max_output_tokens, None);
+}
+
+#[test]
+fn custom_model_capabilities_round_trip() {
+    let model = CustomEndpointModel {
+        name: "configured-model".into(),
+        alias: Some("Configured".into()),
+        config_key: "configured-key".into(),
+        capabilities: CustomEndpointModelCapabilities {
+            tool_calls: false,
+            image_input: false,
+            parallel_tool_calls: false,
+            context_window: 131_072,
+            max_output_tokens: Some(16_384),
+        },
+    };
+
+    let json = serde_json::to_string(&model).unwrap();
+    let round_tripped: CustomEndpointModel = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(round_tripped, model);
 }
 
 #[test]
@@ -402,6 +437,7 @@ fn display_label_uses_alias_when_present() {
         name: "raw-name".into(),
         alias: Some("My Alias".into()),
         config_key: "k".into(),
+        capabilities: Default::default(),
     };
     assert_eq!(m.display_label(), "My Alias");
 }
@@ -412,6 +448,7 @@ fn display_label_falls_back_to_name_when_alias_missing() {
         name: "raw-name".into(),
         alias: None,
         config_key: "k".into(),
+        capabilities: Default::default(),
     };
     assert_eq!(m.display_label(), "raw-name");
 }
@@ -422,6 +459,7 @@ fn display_label_falls_back_to_name_when_alias_is_whitespace() {
         name: "raw-name".into(),
         alias: Some("   ".into()),
         config_key: "k".into(),
+        capabilities: Default::default(),
     };
     assert_eq!(m.display_label(), "raw-name");
 }

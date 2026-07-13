@@ -159,6 +159,7 @@ fn model(name: &str, alias: Option<&str>, config_key: &str) -> CustomEndpointMod
         name: name.into(),
         alias: alias.map(|s| s.into()),
         config_key: config_key.into(),
+        capabilities: Default::default(),
     }
 }
 
@@ -186,6 +187,32 @@ fn custom_llm_infos_built_from_endpoints() {
     );
     assert_eq!(infos[1].display_name, "llama");
     assert_eq!(infos[1].id.as_str(), "uuid-2");
+}
+
+#[test]
+fn custom_llm_info_uses_declared_image_and_context_capabilities() {
+    let mut configured_model = model("model", None, "uuid");
+    configured_model.capabilities.image_input = false;
+    configured_model.capabilities.context_window = 32_768;
+    let endpoint = endpoint(
+        "Provider",
+        "https://provider.example/v1",
+        "key",
+        vec![configured_model],
+    );
+
+    let info = custom_llm_info_from(&endpoint, &endpoint.models[0]);
+
+    assert!(!info.vision_supported);
+    assert_eq!(
+        info.context_window,
+        LLMContextWindow {
+            is_configurable: false,
+            min: 32_768,
+            max: 32_768,
+            default_max: 32_768,
+        }
+    );
 }
 
 #[test]

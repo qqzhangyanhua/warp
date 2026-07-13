@@ -1884,6 +1884,7 @@ fn build_custom_llm_infos(keys: &ai::api_keys::ApiKeys) -> Vec<LLMInfo> {
 
 fn custom_llm_info_from(endpoint: &CustomEndpoint, model: &CustomEndpointModel) -> LLMInfo {
     let label = model.display_label().to_owned();
+    let context_window = model.capabilities.context_window;
     LLMInfo {
         display_name: label.clone(),
         base_model_name: label,
@@ -1895,12 +1896,21 @@ fn custom_llm_info_from(endpoint: &CustomEndpoint, model: &CustomEndpointModel) 
         },
         description: Some(format!("Custom · {}", endpoint.name)),
         disable_reason: None,
-        vision_supported: true,
+        vision_supported: model.capabilities.image_input,
         spec: None,
         provider: LLMProvider::Unknown,
         host_configs: HashMap::new(),
         discount_percentage: None,
-        context_window: LLMContextWindow::default(),
+        context_window: if context_window == 0 {
+            LLMContextWindow::default()
+        } else {
+            LLMContextWindow {
+                is_configurable: false,
+                min: context_window,
+                max: context_window,
+                default_max: context_window,
+            }
+        },
     }
 }
 
