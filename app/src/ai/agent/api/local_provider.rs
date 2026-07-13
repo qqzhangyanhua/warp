@@ -12,6 +12,7 @@ use url::Url;
 use uuid::Uuid;
 use warp_multi_agent_api as api;
 
+mod connection_test;
 mod transport;
 
 use transport::{LocalProviderTransport, ReqwestLocalProviderTransport};

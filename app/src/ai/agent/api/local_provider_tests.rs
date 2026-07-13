@@ -10,6 +10,7 @@ use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER};
 use warp_multi_agent_api as api;
 use warpui::r#async::BoxFuture;
 
+use super::connection_test::test_provider_connection_with_transport;
 use super::transport::{LocalProviderResponse, LocalProviderTransport, ProviderByteStream};
 use super::{
     build_chat_completion_request, content_deltas_from_sse_data, generate_local_provider_output,
@@ -88,6 +89,58 @@ fn params_with_custom_model() -> RequestParams {
 
 struct FakeProviderTransport {
     captured_request: Arc<Mutex<Option<(LocalProviderModel, ChatCompletionRequest)>>>,
+}
+
+struct FakeConnectionTestTransport {
+    captured_request: Arc<Mutex<Option<(LocalProviderModel, ChatCompletionRequest)>>>,
+}
+
+impl LocalProviderTransport for FakeConnectionTestTransport {
+    fn send(
+        &self,
+        provider_model: LocalProviderModel,
+        request: ChatCompletionRequest,
+    ) -> BoxFuture<'static, Result<LocalProviderResponse, AIApiError>> {
+        *self.captured_request.lock().unwrap() = Some((provider_model, request));
+        Box::pin(async {
+            Ok(LocalProviderResponse {
+                status: http::StatusCode::OK,
+                headers: HeaderMap::new(),
+                body: Box::pin(stream::iter([Ok(Bytes::from_static(
+                    br#"{"choices":[{"message":{"role":"assistant","content":"ok"}}]}"#,
+                ))])) as ProviderByteStream,
+            })
+        })
+    }
+}
+
+#[test]
+fn connection_test_sends_one_minimal_non_streaming_request() {
+    let captured_request = Arc::new(Mutex::new(None));
+    let transport = Arc::new(FakeConnectionTestTransport {
+        captured_request: captured_request.clone(),
+    });
+
+    futures::executor::block_on(test_provider_connection_with_transport(
+        "https://provider.example/v1".to_string(),
+        "provider-key".to_string(),
+        "provider-model".to_string(),
+        Duration::from_secs(15),
+        transport,
+    ))
+    .expect("connection test should succeed");
+
+    let captured = captured_request
+        .lock()
+        .unwrap()
+        .clone()
+        .expect("request should be sent");
+    assert_eq!(captured.0.base_url, "https://provider.example/v1");
+    assert_eq!(captured.1.model, "provider-model");
+    assert!(!captured.1.stream);
+    assert_eq!(captured.1.messages.len(), 1);
+    assert_eq!(captured.1.messages[0].role, ChatRole::User);
+    assert_eq!(captured.1.messages[0].content, "ping");
 }
 
 impl LocalProviderTransport for FakeProviderTransport {
