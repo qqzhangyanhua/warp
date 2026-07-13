@@ -3,7 +3,6 @@ mod convert_from;
 mod convert_to;
 mod r#impl;
 mod local_provider;
-
 use std::collections::HashSet;
 use std::path::Path;
 use std::pin::Pin;
@@ -16,6 +15,7 @@ pub use convert_from::{
     MaybeAIAgentOutputMessage, MessageToAIAgentOutputMessageError,
 };
 use futures_lite::Stream;
+pub(crate) use local_provider::test_provider_connection;
 use mcp::TemplatableMCPServerInfo;
 pub use r#impl::generate_multi_agent_output;
 use serde::Serialize;

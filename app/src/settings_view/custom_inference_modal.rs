@@ -8,6 +8,7 @@ use warpui::elements::{
     Shrinkable, Text,
 };
 use warpui::fonts::FamilyId;
+use warpui::r#async::SpawnedFutureHandle;
 use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::units::Pixels;
@@ -15,6 +16,7 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
+use crate::ai::agent::api::test_provider_connection;
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
@@ -71,9 +73,17 @@ pub enum CustomEndpointModalEvent {
 pub enum CustomEndpointModalAction {
     Cancel,
     Save,
+    TestConnection,
     AddModel,
     RemoveModel(usize),
     RemoveEndpoint,
+}
+
+enum ConnectionTestState {
+    Idle,
+    Testing,
+    Succeeded,
+    Failed(String),
 }
 
 struct ModelRow {
@@ -91,10 +101,14 @@ pub struct CustomEndpointModal {
     cancel_button_mouse_state: MouseStateHandle,
     save_button_mouse_state: MouseStateHandle,
     add_model_button_mouse_state: MouseStateHandle,
+    test_connection_button_mouse_state: MouseStateHandle,
     remove_endpoint_button: ViewHandle<ActionButton>,
     editing_index: Option<usize>,
     url_has_error: bool,
     scroll_state: ClippedScrollStateHandle,
+    connection_test_state: ConnectionTestState,
+    connection_test_handle: Option<SpawnedFutureHandle>,
+    connection_test_generation: u64,
 }
 
 impl CustomEndpointModal {
@@ -240,10 +254,14 @@ impl CustomEndpointModal {
             cancel_button_mouse_state: Default::default(),
             save_button_mouse_state: Default::default(),
             add_model_button_mouse_state: Default::default(),
+            test_connection_button_mouse_state: Default::default(),
             remove_endpoint_button,
             editing_index,
             url_has_error,
             scroll_state: Default::default(),
+            connection_test_state: ConnectionTestState::Idle,
+            connection_test_handle: None,
+            connection_test_generation: 0,
         }
     }
 
@@ -311,6 +329,7 @@ impl CustomEndpointModal {
         editing_index: Option<usize>,
         ctx: &mut ViewContext<Self>,
     ) {
+        self.cancel_connection_test();
         self.editing_index = editing_index;
         self.scroll_state = Default::default();
         self.endpoint_name_editor.update(ctx, |editor, ctx| {
@@ -369,6 +388,7 @@ impl CustomEndpointModal {
     }
 
     pub fn on_close(&mut self, ctx: &mut ViewContext<Self>) {
+        self.cancel_connection_test();
         self.endpoint_name_editor.update(ctx, |editor, ctx| {
             editor.clear_buffer_and_reset_undo_stack(ctx);
         });
@@ -455,7 +475,52 @@ impl CustomEndpointModal {
         ctx.emit(CustomEndpointModalEvent::Close);
     }
 
+    fn cancel_connection_test(&mut self) {
+        if let Some(handle) = self.connection_test_handle.take() {
+            handle.abort();
+        }
+        self.connection_test_generation = self.connection_test_generation.wrapping_add(1);
+        self.connection_test_state = ConnectionTestState::Idle;
+    }
+
+    fn test_connection(&mut self, ctx: &mut ViewContext<Self>) {
+        if !self.is_valid(ctx) {
+            return;
+        }
+        if let Some(handle) = self.connection_test_handle.take() {
+            handle.abort();
+        }
+        self.connection_test_generation = self.connection_test_generation.wrapping_add(1);
+        let generation = self.connection_test_generation;
+        let base_url = self.endpoint_url_editor.as_ref(ctx).buffer_text(ctx);
+        let api_key = self.api_key_editor.as_ref(ctx).buffer_text(ctx);
+        let Some(model) = self.model_rows.iter().find_map(|row| {
+            let name = row.name_editor.as_ref(ctx).buffer_text(ctx);
+            (!name.trim().is_empty()).then_some(name)
+        }) else {
+            return;
+        };
+        self.connection_test_state = ConnectionTestState::Testing;
+        let handle = ctx.spawn(
+            test_provider_connection(base_url, api_key, model),
+            move |me, result, ctx| {
+                if me.connection_test_generation != generation {
+                    return;
+                }
+                me.connection_test_handle = None;
+                me.connection_test_state = match result {
+                    Ok(()) => ConnectionTestState::Succeeded,
+                    Err(error) => ConnectionTestState::Failed(error.to_string()),
+                };
+                ctx.notify();
+            },
+        );
+        self.connection_test_handle = Some(handle);
+        ctx.notify();
+    }
+
     fn add_model(&mut self, ctx: &mut ViewContext<Self>) {
+        self.cancel_connection_test();
         let font_family = Appearance::as_ref(ctx).ui_font_family();
         let text_colors = crate::settings_view::editor_text_colors(Appearance::as_ref(ctx));
         let row = Self::create_model_row(None, None, None, font_family, &text_colors, ctx);
@@ -477,6 +542,7 @@ impl CustomEndpointModal {
 
     fn remove_model(&mut self, index: usize, ctx: &mut ViewContext<Self>) {
         if index < self.model_rows.len() {
+            self.cancel_connection_test();
             let _row = self.model_rows.remove(index);
             ctx.notify();
         }
@@ -566,6 +632,7 @@ impl CustomEndpointModal {
                 self.cancel(ctx);
             }
             EditorEvent::Edited(_) => {
+                self.cancel_connection_test();
                 ctx.notify();
             }
             _ => {}
@@ -590,6 +657,7 @@ impl CustomEndpointModal {
                 self.cancel(ctx);
             }
             EditorEvent::Edited(_) => {
+                self.cancel_connection_test();
                 if !self.validate_url_field(ctx) {
                     ctx.notify();
                 }
@@ -628,6 +696,7 @@ impl CustomEndpointModal {
                 self.cancel(ctx);
             }
             EditorEvent::Edited(_) => {
+                self.cancel_connection_test();
                 ctx.notify();
             }
             _ => {}
@@ -651,6 +720,7 @@ impl CustomEndpointModal {
                 self.cancel(ctx);
             }
             EditorEvent::Edited(_) => {
+                self.cancel_connection_test();
                 ctx.notify();
             }
             _ => {}
@@ -925,9 +995,68 @@ impl View for CustomEndpointModal {
 
         column.add_child(
             Container::new(add_model_button)
-                .with_margin_bottom(24.)
+                .with_margin_bottom(16.)
                 .finish(),
         );
+
+        let test_label = if matches!(self.connection_test_state, ConnectionTestState::Testing) {
+            tr(app, Message::CustomInferenceTestingConnection)
+        } else {
+            tr(app, Message::CustomInferenceTestConnection)
+        };
+        let mut test_button = appearance
+            .ui_builder()
+            .button(
+                ButtonVariant::Secondary,
+                self.test_connection_button_mouse_state.clone(),
+            )
+            .with_text_label(test_label.to_string())
+            .with_style(button_style);
+        if !is_valid {
+            test_button = test_button.disabled();
+        }
+        column.add_child(
+            Container::new(
+                test_button
+                    .build()
+                    .on_click(move |ctx, _, _| {
+                        ctx.dispatch_typed_action(CustomEndpointModalAction::TestConnection);
+                    })
+                    .finish(),
+            )
+            .with_margin_bottom(8.)
+            .finish(),
+        );
+        match &self.connection_test_state {
+            ConnectionTestState::Succeeded => column.add_child(
+                Container::new(
+                    Text::new(
+                        tr(app, Message::CustomInferenceConnectionSucceeded),
+                        appearance.ui_font_family(),
+                        LABEL_FONT_SIZE,
+                    )
+                    .with_color(theme.ansi_fg_green().into())
+                    .finish(),
+                )
+                .with_margin_bottom(16.)
+                .finish(),
+            ),
+            ConnectionTestState::Failed(message) => column.add_child(
+                Container::new(
+                    Text::new(
+                        message.clone(),
+                        appearance.ui_font_family(),
+                        LABEL_FONT_SIZE,
+                    )
+                    .with_color(theme.ui_error_color().into())
+                    .soft_wrap(true)
+                    .finish(),
+                )
+                .with_margin_bottom(16.)
+                .finish(),
+            ),
+            ConnectionTestState::Idle | ConnectionTestState::Testing => {}
+        }
 
         // Bottom buttons row
         let mut buttons_row = Flex::row()
@@ -1047,6 +1176,7 @@ impl TypedActionView for CustomEndpointModal {
         match action {
             CustomEndpointModalAction::Cancel => self.cancel(ctx),
             CustomEndpointModalAction::Save => self.save(ctx),
+            CustomEndpointModalAction::TestConnection => self.test_connection(ctx),
             CustomEndpointModalAction::AddModel => self.add_model(ctx),
             CustomEndpointModalAction::RemoveModel(index) => self.remove_model(*index, ctx),
             CustomEndpointModalAction::RemoveEndpoint => {

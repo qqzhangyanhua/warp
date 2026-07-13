@@ -31,10 +31,6 @@ struct TestCompletionMessage {
     content: String,
 }
 
-#[expect(
-    dead_code,
-    reason = "used by the custom Provider settings UI increment"
-)]
 pub(crate) async fn test_provider_connection(
     base_url: String,
     api_key: String,
@@ -74,7 +70,8 @@ pub(super) async fn test_provider_connection_with_transport(
                     stream: false,
                 },
             )
-            .await?;
+            .await
+            .map_err(connection_test_transport_error)?;
         if !response.status.is_success() {
             return Err(provider_status_error(response.status, &response.headers));
         }
@@ -82,7 +79,7 @@ pub(super) async fn test_provider_connection_with_transport(
         let mut body = Vec::new();
         let mut chunks = response.body;
         while let Some(chunk) = chunks.next().await {
-            let chunk = chunk?;
+            let chunk = chunk.map_err(connection_test_transport_error)?;
             if body.len().saturating_add(chunk.len()) > MAX_RESPONSE_BYTES {
                 return Err(AIApiError::Other(anyhow!(
                     "Provider returned an oversized Chat Completions response"
@@ -113,6 +110,15 @@ pub(super) async fn test_provider_connection_with_transport(
         Either::Right((_, _)) => Err(AIApiError::Other(anyhow!(
             "Provider connection test timed out"
         ))),
+    }
+}
+
+fn connection_test_transport_error(error: AIApiError) -> AIApiError {
+    match error {
+        AIApiError::Transport(_) => AIApiError::Other(anyhow!(
+            "Could not connect to the Provider. Check the Base URL and network connection"
+        )),
+        error => error,
     }
 }
 

@@ -215,6 +215,9 @@ pub enum Message {
     CustomInferenceModelNamePlaceholder,
     CustomInferenceModelAliasPlaceholder,
     CustomInferenceRemove,
+    CustomInferenceTestConnection,
+    CustomInferenceTestingConnection,
+    CustomInferenceConnectionSucceeded,
 
     // Settings chrome / shared UI
     SettingsResetToDefault,

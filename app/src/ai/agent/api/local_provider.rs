@@ -15,6 +15,7 @@ use warp_multi_agent_api as api;
 mod connection_test;
 mod transport;
 
+pub(crate) use connection_test::test_provider_connection;
 use transport::{LocalProviderTransport, ReqwestLocalProviderTransport};
 
 use super::{ConvertToAPITypeError, RequestParams, ResponseStream, ServerConversationToken};
