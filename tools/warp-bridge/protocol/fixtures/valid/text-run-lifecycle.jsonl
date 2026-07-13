@@ -1,0 +1,7 @@
+{"type":"run_start","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001","transcript_revision":7,"configuration":{"provider":{"protocol":"chat_completions","base_url":"http://127.0.0.1:11434/v1","provider_origin":"http://127.0.0.1:11434","model":"local-model","api_key":"fixture-key","max_provider_attempts":2,"max_redirects":3},"working_directory":"/workspace","context_limit":32768,"reasoning_effort":"medium","tool_request_limit":32,"tools":[],"resources":[]}}
+{"type":"run_status","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001","status":"running"}
+{"type":"text_delta","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001","event_id":"event-001","delta":"Workspace inspected."}
+{"type":"assistant_message_commit","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001","event_id":"event-001","commit_id":"commit-001","message_id":"message-002","expected_revision":7,"content":[{"type":"text","text":"Workspace inspected."}]}
+{"type":"commit_result","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001","commit_id":"commit-001","status":"committed","revision":8}
+{"type":"run_cancel","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001"}
+{"type":"run_finished","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001","outcome":"completed"}

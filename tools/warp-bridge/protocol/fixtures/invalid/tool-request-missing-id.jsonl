@@ -1,0 +1,1 @@
+{"type":"tool_request","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-001","tool_id":"builtin.run_shell_command","tool_name":"run_shell_command","arguments":{"command":"pwd"}}

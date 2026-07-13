@@ -1,0 +1,1 @@
+{"type":"transcript_sync_item","sync_id":"sync-001","index":0,"item":{"kind":"message","message_id":"message-001","role":"user","content":[{"type":"file","path":"/private/workspace/secret.txt"}]}}

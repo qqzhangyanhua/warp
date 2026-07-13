@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/earendil-works/pi.git",
+  "tag": "v0.80.6",
+  "commit": "2b3fda9921b5590f285165287bd442a25817f17b",
+  "license": "MIT",
+  "packages": [
+    {
+      "name": "@earendil-works/pi-agent-core",
+      "version": "0.80.6",
+      "archive": "packages/pi-agent-core-0.80.6.tgz",
+      "size": 220023,
+      "sha256": "d92a4c202dbc77af0e740553ddf7e2bcb7876dda54cbccdf8dd7adbbe7e7f432",
+      "registry_integrity": "sha512-Lvn89ko42h5ETUb6Z0Ku6ldskEqXaTdQBYvSa0+7bdG9V6rUEpXptv5e0OVZ1HDcvi8s6/2lGCQWsxKX+DFHNw=="
+    },
+    {
+      "name": "@earendil-works/pi-ai",
+      "version": "0.80.6",
+      "archive": "packages/pi-ai-0.80.6.tgz",
+      "size": 701178,
+      "sha256": "1aa05502e0c3d7d4e756ec089ace195fcd9befc9566898d6c870f7be1f7a12b5",
+      "registry_integrity": "sha512-7xfLk8sANBp+bpPEbjoOZTbPxsa+++b1JXAoSJsNa3vbs9AHHEclmvg54XLQcxH+fuwaeti/g2jeIfJ+mVYLpA=="
+    }
+  ]
+}

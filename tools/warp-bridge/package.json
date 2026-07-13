@@ -1,0 +1,26 @@
+{
+  "name": "@warp/agent-runtime-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "file:../../third_party/pi/packages/pi-agent-core-0.80.6.tgz",
+    "@earendil-works/pi-ai": "file:../../third_party/pi/packages/pi-ai-0.80.6.tgz",
+    "ajv": "8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.4",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9"
+  },
+  "pnpm": {
+    "overrides": {
+      "@earendil-works/pi-ai": "file:../../third_party/pi/packages/pi-ai-0.80.6.tgz"
+    }
+  }
+}

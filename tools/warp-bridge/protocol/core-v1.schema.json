@@ -1,0 +1,551 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://warp.dev/schemas/agent-runtime/bridge-core-v1.schema.json",
+  "title": "Warp Bridge Core Protocol v1",
+  "$defs": {
+    "runtime_content_block": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text"],
+          "properties": {
+            "type": { "const": "text" },
+            "text": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "mime_type", "data_base64"],
+          "properties": {
+            "type": { "const": "image" },
+            "mime_type": {
+              "enum": ["image/gif", "image/jpeg", "image/png", "image/webp"]
+            },
+            "data_base64": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "transcript_item": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "message_id", "role", "content"],
+          "properties": {
+            "kind": { "const": "message" },
+            "message_id": { "type": "string", "minLength": 1 },
+            "role": { "enum": ["user", "assistant"] },
+            "content": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/runtime_content_block" }
+            }
+          }
+        }
+      ]
+    },
+    "provider_configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "base_url",
+        "provider_origin",
+        "model",
+        "api_key",
+        "max_provider_attempts",
+        "max_redirects"
+      ],
+      "properties": {
+        "protocol": { "const": "chat_completions" },
+        "base_url": { "type": "string", "minLength": 1 },
+        "provider_origin": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "api_key": { "type": "string" },
+        "max_provider_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "max_redirects": { "type": "integer", "minimum": 0, "maximum": 3 }
+      }
+    },
+    "tool_catalog_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "description", "input_schema"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "description": { "type": "string" },
+        "input_schema": { "type": "object" }
+      }
+    },
+    "agent_resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "content"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/runtime_content_block" }
+        }
+      }
+    },
+    "run_configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "working_directory",
+        "context_limit",
+        "reasoning_effort",
+        "tool_request_limit",
+        "tools",
+        "resources"
+      ],
+      "properties": {
+        "provider": { "$ref": "#/$defs/provider_configuration" },
+        "working_directory": { "type": "string", "minLength": 1 },
+        "context_limit": { "type": "integer", "minimum": 1 },
+        "reasoning_effort": {
+          "enum": ["none", "minimal", "low", "medium", "high", "xhigh"]
+        },
+        "tool_request_limit": { "type": "integer", "minimum": 0, "maximum": 32 },
+        "tools": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/tool_catalog_entry" }
+        },
+        "resources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/agent_resource" }
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "protocol_version",
+        "core_schema_hash",
+        "bridge_version",
+        "capabilities",
+        "prompt_version"
+      ],
+      "properties": {
+        "type": { "const": "bridge_hello" },
+        "protocol_version": { "const": 1 },
+        "core_schema_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "bridge_version": { "type": "string", "minLength": 1 },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version", "schema_hash"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "version": { "type": "integer", "minimum": 1 },
+              "schema_hash": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "prompt_version": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "status",
+        "max_frame_bytes",
+        "max_transcript_bytes"
+      ],
+      "properties": {
+        "type": { "const": "handshake_result" },
+        "status": { "const": "accepted" },
+        "max_frame_bytes": { "type": "integer", "minimum": 1 },
+        "max_transcript_bytes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "status", "error_code", "diagnostic_id"],
+      "properties": {
+        "type": { "const": "handshake_result" },
+        "status": { "const": "rejected" },
+        "error_code": {
+          "enum": [
+            "protocol_version_mismatch",
+            "core_schema_mismatch",
+            "missing_required_capability"
+          ]
+        },
+        "diagnostic_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "sync_id",
+        "conversation_id",
+        "revision",
+        "item_count",
+        "total_bytes"
+      ],
+      "properties": {
+        "type": { "const": "transcript_sync_begin" },
+        "sync_id": { "type": "string", "minLength": 1 },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "item_count": { "type": "integer", "minimum": 0 },
+        "total_bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "sync_id", "index", "item"],
+      "properties": {
+        "type": { "const": "transcript_sync_item" },
+        "sync_id": { "type": "string", "minLength": 1 },
+        "index": { "type": "integer", "minimum": 0 },
+        "item": { "$ref": "#/$defs/transcript_item" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "sync_id"],
+      "properties": {
+        "type": { "const": "transcript_sync_commit" },
+        "sync_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "sync_id", "status", "revision"],
+      "properties": {
+        "type": { "const": "transcript_sync_result" },
+        "sync_id": { "type": "string", "minLength": 1 },
+        "status": { "const": "accepted" },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "conversation_id",
+        "run_id",
+        "transcript_revision",
+        "configuration"
+      ],
+      "properties": {
+        "type": { "const": "run_start" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "transcript_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "configuration": { "$ref": "#/$defs/run_configuration" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conversation_id", "run_id", "status"],
+      "properties": {
+        "type": { "const": "run_status" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "status": {
+          "enum": ["running", "waiting_for_commit", "waiting_for_tool_result"]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conversation_id", "run_id", "event_id", "delta"],
+      "properties": {
+        "type": { "const": "text_delta" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "event_id": { "type": "string", "minLength": 1 },
+        "delta": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "conversation_id",
+        "run_id",
+        "event_id",
+        "commit_id",
+        "message_id",
+        "expected_revision",
+        "content"
+      ],
+      "properties": {
+        "type": { "const": "assistant_message_commit" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "event_id": { "type": "string", "minLength": 1 },
+        "commit_id": { "type": "string", "minLength": 1 },
+        "message_id": { "type": "string", "minLength": 1 },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/runtime_content_block" }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "conversation_id",
+        "run_id",
+        "commit_id",
+        "status",
+        "revision"
+      ],
+      "properties": {
+        "type": { "const": "commit_result" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "commit_id": { "type": "string", "minLength": 1 },
+        "status": { "const": "committed" },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conversation_id", "run_id"],
+      "properties": {
+        "type": { "const": "run_cancel" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conversation_id", "run_id", "outcome"],
+      "properties": {
+        "type": { "const": "run_finished" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "outcome": { "const": "completed" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conversation_id", "run_id", "outcome"],
+      "properties": {
+        "type": { "const": "run_finished" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "outcome": { "const": "cancelled" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "conversation_id", "run_id", "outcome", "error_code", "diagnostic_id"
+      ],
+      "properties": {
+        "type": { "const": "run_finished" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "outcome": { "const": "failed" },
+        "error_code": {
+          "enum": [
+            "bridge_protocol_error",
+            "commit_timeout",
+            "provider_http_error",
+            "provider_protocol_error",
+            "provider_transport_error",
+            "revision_conflict",
+            "runtime_failure",
+            "transcript_sync_error"
+          ]
+        },
+        "diagnostic_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "conversation_id", "run_id", "outcome", "tool_request_limit"
+      ],
+      "properties": {
+        "type": { "const": "run_finished" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "outcome": { "const": "limit_reached" },
+        "tool_request_limit": { "type": "integer", "minimum": 0, "maximum": 32 }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "conversation_id", "run_id", "tool_call_id",
+        "tool_id", "tool_name", "arguments"
+      ],
+      "properties": {
+        "type": { "const": "tool_request" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "tool_id": { "type": "string", "minLength": 1 },
+        "tool_name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "arguments": { "type": "object" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "conversation_id", "run_id", "tool_call_id",
+        "status", "content", "truncated"
+      ],
+      "properties": {
+        "type": { "const": "tool_result" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "status": { "const": "success" },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/runtime_content_block" }
+        },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "conversation_id", "run_id", "tool_call_id",
+        "status", "denied_by", "content", "truncated"
+      ],
+      "properties": {
+        "type": { "const": "tool_result" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "status": { "const": "denied" },
+        "denied_by": { "enum": ["policy", "user"] },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/runtime_content_block" }
+        },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "conversation_id", "run_id", "tool_call_id", "status",
+        "error_code", "may_have_executed", "content", "truncated"
+      ],
+      "properties": {
+        "type": { "const": "tool_result" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "status": { "const": "error" },
+        "error_code": {
+          "enum": [
+            "invalid_tool_request",
+            "tool_execution_failed",
+            "tool_request_limit_exceeded"
+          ]
+        },
+        "may_have_executed": { "const": false },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/runtime_content_block" }
+        },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type", "conversation_id", "run_id", "tool_call_id", "status",
+        "error_code", "may_have_executed", "content", "truncated"
+      ],
+      "properties": {
+        "type": { "const": "tool_result" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "tool_call_id": { "type": "string", "minLength": 1 },
+        "status": { "const": "error" },
+        "error_code": { "const": "tool_outcome_unknown" },
+        "may_have_executed": { "const": true },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/runtime_content_block" }
+        },
+        "truncated": { "type": "boolean" }
+      }
+    }
+  ]
+}
