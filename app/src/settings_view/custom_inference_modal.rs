@@ -8,7 +8,6 @@ use warpui::elements::{
     Shrinkable, Text,
 };
 use warpui::fonts::FamilyId;
-use warpui::r#async::SpawnedFutureHandle;
 use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::units::Pixels;
@@ -24,6 +23,9 @@ use crate::editor::{
 };
 use crate::i18n::{tr, Message};
 use crate::modal::{Modal, ModalViewState};
+use crate::settings_view::custom_inference_connection_test::{
+    render_connection_test_control, ConnectionTestController, ConnectionTestFailure,
+};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, DangerSecondaryTheme};
 
@@ -79,13 +81,6 @@ pub enum CustomEndpointModalAction {
     RemoveEndpoint,
 }
 
-enum ConnectionTestState {
-    Idle,
-    Testing,
-    Succeeded,
-    Failed(String),
-}
-
 struct ModelRow {
     name_editor: ViewHandle<EditorView>,
     alias_editor: ViewHandle<EditorView>,
@@ -106,9 +101,7 @@ pub struct CustomEndpointModal {
     editing_index: Option<usize>,
     url_has_error: bool,
     scroll_state: ClippedScrollStateHandle,
-    connection_test_state: ConnectionTestState,
-    connection_test_handle: Option<SpawnedFutureHandle>,
-    connection_test_generation: u64,
+    connection_test: ConnectionTestController,
 }
 
 impl CustomEndpointModal {
@@ -259,9 +252,7 @@ impl CustomEndpointModal {
             editing_index,
             url_has_error,
             scroll_state: Default::default(),
-            connection_test_state: ConnectionTestState::Idle,
-            connection_test_handle: None,
-            connection_test_generation: 0,
+            connection_test: ConnectionTestController::default(),
         }
     }
 
@@ -476,22 +467,14 @@ impl CustomEndpointModal {
     }
 
     fn cancel_connection_test(&mut self) {
-        if let Some(handle) = self.connection_test_handle.take() {
-            handle.abort();
-        }
-        self.connection_test_generation = self.connection_test_generation.wrapping_add(1);
-        self.connection_test_state = ConnectionTestState::Idle;
+        self.connection_test.cancel();
     }
 
     fn test_connection(&mut self, ctx: &mut ViewContext<Self>) {
         if !self.is_valid(ctx) {
             return;
         }
-        if let Some(handle) = self.connection_test_handle.take() {
-            handle.abort();
-        }
-        self.connection_test_generation = self.connection_test_generation.wrapping_add(1);
-        let generation = self.connection_test_generation;
+        let generation = self.connection_test.begin();
         let base_url = self.endpoint_url_editor.as_ref(ctx).buffer_text(ctx);
         let api_key = self.api_key_editor.as_ref(ctx).buffer_text(ctx);
         let Some(model) = self.model_rows.iter().find_map(|row| {
@@ -500,22 +483,18 @@ impl CustomEndpointModal {
         }) else {
             return;
         };
-        self.connection_test_state = ConnectionTestState::Testing;
         let handle = ctx.spawn(
             test_provider_connection(base_url, api_key, model),
             move |me, result, ctx| {
-                if me.connection_test_generation != generation {
-                    return;
-                }
-                me.connection_test_handle = None;
-                me.connection_test_state = match result {
-                    Ok(()) => ConnectionTestState::Succeeded,
-                    Err(error) => ConnectionTestState::Failed(error.to_string()),
-                };
+                me.connection_test.complete(
+                    generation,
+                    result.map_err(ConnectionTestFailure::from_api_error),
+                );
                 ctx.notify();
             },
         );
-        self.connection_test_handle = Some(handle);
+        self.connection_test
+            .set_cancellation(generation, move || handle.abort());
         ctx.notify();
     }
 
@@ -999,64 +978,13 @@ impl View for CustomEndpointModal {
                 .finish(),
         );
 
-        let test_label = if matches!(self.connection_test_state, ConnectionTestState::Testing) {
-            tr(app, Message::CustomInferenceTestingConnection)
-        } else {
-            tr(app, Message::CustomInferenceTestConnection)
-        };
-        let mut test_button = appearance
-            .ui_builder()
-            .button(
-                ButtonVariant::Secondary,
-                self.test_connection_button_mouse_state.clone(),
-            )
-            .with_text_label(test_label.to_string())
-            .with_style(button_style);
-        if !is_valid {
-            test_button = test_button.disabled();
-        }
-        column.add_child(
-            Container::new(
-                test_button
-                    .build()
-                    .on_click(move |ctx, _, _| {
-                        ctx.dispatch_typed_action(CustomEndpointModalAction::TestConnection);
-                    })
-                    .finish(),
-            )
-            .with_margin_bottom(8.)
-            .finish(),
-        );
-        match &self.connection_test_state {
-            ConnectionTestState::Succeeded => column.add_child(
-                Container::new(
-                    Text::new(
-                        tr(app, Message::CustomInferenceConnectionSucceeded),
-                        appearance.ui_font_family(),
-                        LABEL_FONT_SIZE,
-                    )
-                    .with_color(theme.ansi_fg_green().into())
-                    .finish(),
-                )
-                .with_margin_bottom(16.)
-                .finish(),
-            ),
-            ConnectionTestState::Failed(message) => column.add_child(
-                Container::new(
-                    Text::new(
-                        message.clone(),
-                        appearance.ui_font_family(),
-                        LABEL_FONT_SIZE,
-                    )
-                    .with_color(theme.ui_error_color().into())
-                    .soft_wrap(true)
-                    .finish(),
-                )
-                .with_margin_bottom(16.)
-                .finish(),
-            ),
-            ConnectionTestState::Idle | ConnectionTestState::Testing => {}
-        }
+        column.add_child(render_connection_test_control(
+            self.connection_test.state(),
+            self.test_connection_button_mouse_state.clone(),
+            is_valid,
+            button_style,
+            app,
+        ));
 
         // Bottom buttons row
         let mut buttons_row = Flex::row()

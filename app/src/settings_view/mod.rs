@@ -86,6 +86,7 @@ mod billing_and_usage_dispatch;
 mod billing_and_usage_page;
 mod billing_and_usage_page_v2;
 mod code_page;
+mod custom_inference_connection_test;
 pub(crate) mod custom_inference_modal;
 mod custom_router_view;
 mod delete_environment_confirmation_dialog;

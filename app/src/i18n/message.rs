@@ -218,6 +218,14 @@ pub enum Message {
     CustomInferenceTestConnection,
     CustomInferenceTestingConnection,
     CustomInferenceConnectionSucceeded,
+    CustomInferenceConnectionAuthFailed,
+    CustomInferenceConnectionModelMissing,
+    CustomInferenceConnectionMalformedProtocol,
+    CustomInferenceConnectionTimedOut,
+    CustomInferenceConnectionRateLimited,
+    CustomInferenceConnectionServerError,
+    CustomInferenceConnectionFailed,
+    CustomInferenceConnectionUnexpectedError,
 
     // Settings chrome / shared UI
     SettingsResetToDefault,
