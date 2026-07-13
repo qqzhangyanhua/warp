@@ -860,10 +860,12 @@ impl From<&Arc<AIApiError>> for RenderableAIError {
                 "Grok subscription token could not be refreshed. Please try reconnecting your subscription.",
                 true,
             ),
+            AIApiError::ProviderErrorStatus { message, .. } => {
+                Self::other(message.clone(), is_user_error)
+            }
             AIApiError::Deserialization(DeserializationError::Json(_))
             | AIApiError::NoContextFound
             | AIApiError::ErrorStatus(_, _)
-            | AIApiError::ProviderErrorStatus { .. }
             | AIApiError::Other(_)
             | AIApiError::Stream { .. } => Self::Other {
                 error_message: format!("Request failed with error: {value:?}"),

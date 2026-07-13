@@ -124,6 +124,21 @@ fn transient_network_error_reports_pending_resume() {
 }
 
 #[test]
+fn provider_error_renders_only_sanitized_actionable_message() {
+    let error = Arc::new(AIApiError::ProviderErrorStatus {
+        status: http::StatusCode::TOO_MANY_REQUESTS,
+        message: "Provider rate limit reached. Wait and try again.".to_string(),
+        retry_after: Some(std::time::Duration::from_secs(12)),
+    });
+
+    let rendered = RenderableAIError::from(&error).to_string();
+
+    assert_eq!(rendered, "Provider rate limit reached. Wait and try again.");
+    assert!(!rendered.contains("ProviderErrorStatus"));
+    assert!(!rendered.contains("retry_after"));
+}
+
+#[test]
 fn test_convert_files() {
     let a = FileContext::new(
         "a.txt".to_string(),
