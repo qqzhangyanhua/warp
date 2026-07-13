@@ -28,3 +28,16 @@ fn local_only_forbidden_request_guard_blocks_warp_identity_and_sentry_hosts() {
         );
     }
 }
+
+#[test]
+fn agent_api_safe_diagnostic_excludes_error_payloads() {
+    let error = super::AIApiError::Other(anyhow::anyhow!(
+        "request failed for https://user:secret-token@provider.example/v1"
+    ));
+
+    let diagnostic = error.safe_diagnostic();
+
+    assert_eq!(diagnostic, "unexpected_agent_api_error");
+    assert!(!diagnostic.contains("provider.example"));
+    assert!(!diagnostic.contains("secret-token"));
+}

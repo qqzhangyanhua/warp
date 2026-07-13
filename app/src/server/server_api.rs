@@ -352,6 +352,33 @@ impl AIApiError {
             _ => None,
         }
     }
+
+    pub fn safe_diagnostic(&self) -> &'static str {
+        match self {
+            AIApiError::QuotaLimit { .. } => "warp_quota_limit",
+            AIApiError::ServerOverloaded => "warp_server_overloaded",
+            AIApiError::Transport(_) => "agent_transport_error",
+            AIApiError::Deserialization(_) => "agent_response_deserialization_error",
+            AIApiError::NoContextFound => "agent_context_not_found",
+            AIApiError::ErrorStatus(_, _) => "agent_http_status_error",
+            AIApiError::ProviderErrorStatus { status, .. } => match *status {
+                http::StatusCode::UNAUTHORIZED | http::StatusCode::FORBIDDEN => {
+                    "provider_authentication_error"
+                }
+                http::StatusCode::NOT_FOUND => "provider_not_found_error",
+                http::StatusCode::REQUEST_TIMEOUT => "provider_timeout_error",
+                http::StatusCode::TOO_MANY_REQUESTS => "provider_rate_limit_error",
+                status if status.is_server_error() => "provider_server_error",
+                _ => "provider_http_status_error",
+            },
+            AIApiError::Other(_) => "unexpected_agent_api_error",
+            AIApiError::Stream { .. } => "agent_stream_error",
+            AIApiError::UnexpectedEof => "agent_stream_unexpected_eof",
+            AIApiError::GrokSubscriptionTokenRefreshFailed => {
+                "grok_subscription_token_refresh_failed"
+            }
+        }
+    }
 }
 
 impl ErrorExt for AIApiError {

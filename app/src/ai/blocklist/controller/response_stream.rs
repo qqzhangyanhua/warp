@@ -539,9 +539,10 @@ impl ResponseStream {
                 ctx.emit(ResponseStreamEvent::ReceivedEvent(Consumable::new(event)));
             }
             Err(e) => {
+                let diagnostic = e.safe_diagnostic();
                 // Store original error if this is the first error
                 if self.retry_count == 0 {
-                    self.original_error = Some(format!("{e:?}"));
+                    self.original_error = Some(diagnostic.to_string());
                 }
 
                 let is_online = NetworkStatus::as_ref(ctx).is_online();
@@ -556,13 +557,13 @@ impl ResponseStream {
                 ) {
                     RecoveryAction::RetryNow => {
                         log::warn!(
-                            "Agent request failed, retrying (attempt {}/{}) - Error: {e:?}",
+                            "Agent request failed, retrying (attempt {}/{}) - error={diagnostic}",
                             self.retry_count + 1,
                             max_retries
                         );
                         // Only emit error telemetry here if we're retrying.
                         // Final errors that aren't being retried are emitted elsewhere.
-                        self.emit_retryable_agent_mode_error_telemetry(format!("{e:?}"), ctx);
+                        self.emit_retryable_agent_mode_error_telemetry(diagnostic.to_string(), ctx);
                         if let Some(delay) = e.retry_after() {
                             self.defer_retry_for(delay, ctx);
                         } else {
@@ -573,11 +574,11 @@ impl ResponseStream {
                     }
                     RecoveryAction::RetryWhenOnline => {
                         log::warn!(
-                            "Agent request failed while offline; retrying (attempt {}/{}) once connectivity returns - Error: {e:?}",
+                            "Agent request failed while offline; retrying (attempt {}/{}) once connectivity returns - error={diagnostic}",
                             self.retry_count + 1,
                             max_retries
                         );
-                        self.emit_retryable_agent_mode_error_telemetry(format!("{e:?}"), ctx);
+                        self.emit_retryable_agent_mode_error_telemetry(diagnostic.to_string(), ctx);
                         self.defer_retry_until_online(e.retry_after(), ctx);
                         return;
                     }
@@ -587,7 +588,7 @@ impl ResponseStream {
                         // error, so the UI suppresses the banner. Log it so the
                         // auto-recovery isn't completely silent.
                         log::warn!(
-                            "Agent request failed after client actions; resuming conversation after stream finishes - Error: {e:?}"
+                            "Agent request failed after client actions; resuming conversation after stream finishes - error={diagnostic}"
                         );
                         // The resume spawn itself waits for connectivity.
                         self.should_resume_conversation_after_stream_finished = true;
@@ -696,7 +697,7 @@ impl ResponseStream {
                     "has_received_client_actions",
                     self.has_received_client_actions,
                 );
-                scope.set_tag("error", format!("{error:?}"));
+                scope.set_tag("error", error.safe_diagnostic());
                 scope.set_tag("is_recoverable", error.is_recoverable());
                 scope.set_tag(
                     "will_attempt_resume",
