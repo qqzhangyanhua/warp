@@ -12,6 +12,10 @@ use url::Url;
 use uuid::Uuid;
 use warp_multi_agent_api as api;
 
+mod transport;
+
+use transport::{LocalProviderTransport, ReqwestLocalProviderTransport};
+
 use super::{ConvertToAPITypeError, RequestParams, ResponseStream, ServerConversationToken};
 use crate::ai::agent::AIAgentInput;
 use crate::server::server_api::AIApiError;
@@ -70,6 +74,19 @@ pub(super) async fn generate_local_provider_output(
     params: RequestParams,
     cancellation_rx: oneshot::Receiver<()>,
 ) -> Result<ResponseStream, ConvertToAPITypeError> {
+    generate_local_provider_output_with_transport(
+        params,
+        cancellation_rx,
+        Arc::new(ReqwestLocalProviderTransport),
+    )
+    .await
+}
+
+async fn generate_local_provider_output_with_transport(
+    params: RequestParams,
+    cancellation_rx: oneshot::Receiver<()>,
+    transport: Arc<dyn LocalProviderTransport>,
+) -> Result<ResponseStream, ConvertToAPITypeError> {
     let stream = stream! {
         let request_id = Uuid::new_v4().to_string();
         let conversation_id = params
@@ -106,7 +123,7 @@ pub(super) async fn generate_local_provider_output(
             }
         };
 
-        let response = match send_chat_completion_request(provider_model, request).await {
+        let response = match transport.send(provider_model, request).await {
             Ok(response) => response,
             Err(error) => {
                 yield Err(Arc::new(error));
@@ -114,7 +131,12 @@ pub(super) async fn generate_local_provider_output(
             }
         };
 
-        let mut byte_stream = response.bytes_stream();
+        if !response.status.is_success() {
+            yield Err(Arc::new(provider_status_error(response.status, &response.headers)));
+            return;
+        }
+
+        let mut byte_stream = response.body;
         let mut parser = SseDataParser::default();
         let message_id = Uuid::new_v4().to_string();
         let mut created_message = false;
@@ -123,7 +145,7 @@ pub(super) async fn generate_local_provider_output(
             let chunk = match chunk {
                 Ok(chunk) => chunk,
                 Err(error) => {
-                    yield Err(Arc::new(AIApiError::from(error)));
+                    yield Err(Arc::new(error));
                     return;
                 }
             };
@@ -258,28 +280,7 @@ fn chat_messages_from_inputs(inputs: &[AIAgentInput]) -> Vec<ChatMessage> {
         .collect()
 }
 
-async fn send_chat_completion_request(
-    provider_model: LocalProviderModel,
-    request: ChatCompletionRequest,
-) -> Result<reqwest::Response, AIApiError> {
-    let url = chat_completions_url(&provider_model.base_url)?;
-    let response = reqwest::Client::new()
-        .post(url)
-        .bearer_auth(provider_model.api_key)
-        .json(&request)
-        .send()
-        .await
-        .map_err(AIApiError::from)?;
-
-    let status = response.status();
-    if !status.is_success() {
-        return Err(provider_status_error(status, response.headers()));
-    }
-
-    Ok(response)
-}
-
-fn chat_completions_url(base_url: &str) -> Result<Url, AIApiError> {
+pub(super) fn chat_completions_url(base_url: &str) -> Result<Url, AIApiError> {
     let mut url = Url::parse(base_url).map_err(|error| AIApiError::Other(anyhow!(error)))?;
     if url
         .path()

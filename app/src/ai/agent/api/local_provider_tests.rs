@@ -1,16 +1,21 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
+use bytes::Bytes;
 use futures::channel::oneshot;
+use futures::stream;
 use futures_lite::StreamExt as _;
 use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER};
 use warp_multi_agent_api as api;
+use warpui::r#async::BoxFuture;
 
+use super::transport::{LocalProviderResponse, LocalProviderTransport, ProviderByteStream};
 use super::{
     build_chat_completion_request, content_deltas_from_sse_data, generate_local_provider_output,
-    provider_status_error, resolve_local_provider_model, retry_after_duration,
-    stream_finished_event, ChatRole, SseDataParser,
+    generate_local_provider_output_with_transport, provider_status_error,
+    resolve_local_provider_model, retry_after_duration, stream_finished_event,
+    ChatCompletionRequest, ChatRole, LocalProviderModel, SseDataParser,
 };
 use crate::ai::agent::api::RequestParams;
 use crate::ai::agent::{AIAgentInput, UserQueryMode};
@@ -79,6 +84,122 @@ fn params_with_custom_model() -> RequestParams {
     }];
     params.input = vec![user_query("hello")];
     params
+}
+
+struct FakeProviderTransport {
+    captured_request: Arc<Mutex<Option<(LocalProviderModel, ChatCompletionRequest)>>>,
+}
+
+impl LocalProviderTransport for FakeProviderTransport {
+    fn send(
+        &self,
+        provider_model: LocalProviderModel,
+        request: ChatCompletionRequest,
+    ) -> BoxFuture<'static, Result<LocalProviderResponse, AIApiError>> {
+        *self.captured_request.lock().unwrap() = Some((provider_model, request));
+        Box::pin(async {
+            Ok(LocalProviderResponse {
+                status: http::StatusCode::OK,
+                headers: HeaderMap::new(),
+                body: Box::pin(stream::iter([
+                    Ok(Bytes::from_static(
+                        br#"data: {"choices":[{"delta":{"content":"hel"}}]}
+
+"#,
+                    )),
+                    Ok(Bytes::from_static(
+                        br#"data: {"choices":[{"delta":{"content":"lo"}}]}
+
+data: [DONE]
+
+"#,
+                    )),
+                ])) as ProviderByteStream,
+            })
+        })
+    }
+}
+
+#[test]
+fn agent_event_stream_sends_typed_request_and_streams_provider_text() {
+    let captured_request = Arc::new(Mutex::new(None));
+    let transport = Arc::new(FakeProviderTransport {
+        captured_request: captured_request.clone(),
+    });
+    let params = params_with_custom_model();
+    let (_tx, rx) = oneshot::channel();
+
+    let mut output = futures::executor::block_on(generate_local_provider_output_with_transport(
+        params, rx, transport,
+    ))
+    .expect("stream should be created");
+    let events = futures::executor::block_on(async {
+        let mut events = Vec::new();
+        while let Some(event) = output.next().await {
+            events.push(event.expect("provider event should succeed"));
+        }
+        events
+    });
+
+    let captured = captured_request
+        .lock()
+        .unwrap()
+        .clone()
+        .expect("request should be sent");
+    assert_eq!(captured.0.base_url, "http://localhost:8080/v1");
+    assert_eq!(captured.0.model, "provider-model");
+    assert_eq!(captured.1.model, "provider-model");
+    assert_eq!(captured.1.messages.len(), 1);
+    assert_eq!(captured.1.messages[0].content, "hello");
+
+    assert_eq!(events.len(), 4);
+    assert!(matches!(
+        events[0].r#type,
+        Some(api::response_event::Type::Init(_))
+    ));
+    assert!(matches!(
+        events[1].r#type,
+        Some(api::response_event::Type::ClientActions(_))
+    ));
+    assert!(matches!(
+        events[2].r#type,
+        Some(api::response_event::Type::ClientActions(_))
+    ));
+    assert!(matches!(
+        events[3].r#type,
+        Some(api::response_event::Type::Finished(_))
+    ));
+
+    let Some(api::response_event::Type::ClientActions(first_actions)) = &events[1].r#type else {
+        panic!("expected first text action");
+    };
+    let Some(api::client_action::Action::AddMessagesToTask(first_text)) =
+        &first_actions.actions[0].action
+    else {
+        panic!("expected add-message action");
+    };
+    let Some(api::message::Message::AgentOutput(first_output)) = &first_text.messages[0].message
+    else {
+        panic!("expected first agent output");
+    };
+    assert_eq!(first_output.text, "hel");
+
+    let Some(api::response_event::Type::ClientActions(second_actions)) = &events[2].r#type else {
+        panic!("expected second text action");
+    };
+    let Some(api::client_action::Action::AppendToMessageContent(second_text)) =
+        &second_actions.actions[0].action
+    else {
+        panic!("expected append-message action");
+    };
+    let Some(api::message::Message::AgentOutput(second_output)) = second_text
+        .message
+        .as_ref()
+        .and_then(|message| message.message.as_ref())
+    else {
+        panic!("expected appended agent output");
+    };
+    assert_eq!(second_output.text, "lo");
 }
 
 #[test]
