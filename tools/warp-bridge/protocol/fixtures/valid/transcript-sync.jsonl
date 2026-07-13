@@ -1,4 +1,4 @@
-{"type":"transcript_sync_begin","sync_id":"sync-001","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","revision":7,"item_count":1,"total_bytes":112}
+{"type":"transcript_sync_begin","sync_id":"sync-001","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","revision":7,"item_count":1,"total_bytes":197}
 {"type":"transcript_sync_item","sync_id":"sync-001","index":0,"item":{"kind":"message","message_id":"message-001","role":"user","content":[{"type":"text","text":"Inspect the current workspace."}]}}
 {"type":"transcript_sync_commit","sync_id":"sync-001"}
 {"type":"transcript_sync_result","sync_id":"sync-001","status":"accepted","revision":7}

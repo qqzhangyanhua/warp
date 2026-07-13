@@ -53,7 +53,7 @@ describe("Bridge Protocol session", () => {
     const session = new BridgeProtocolSession();
     session.receiveInboundLine(acceptedHandshake);
     const oversizedBegin = (transcriptSync[0] ?? "").replace(
-      '"total_bytes":112',
+      '"total_bytes":197',
       '"total_bytes":16777217',
     );
 
@@ -63,6 +63,38 @@ describe("Bridge Protocol session", () => {
   test("accepts an ordered complete Transcript Sync", () => {
     const session = new BridgeProtocolSession();
     session.receiveInboundLine(acceptedHandshake);
+
+    for (const line of transcriptSync.slice(0, 3)) {
+      session.receiveInboundLine(line);
+    }
+  });
+
+  test("discards an out-of-order Transcript Sync before the next sync", () => {
+    const session = new BridgeProtocolSession();
+    session.receiveInboundLine(acceptedHandshake);
+    session.receiveInboundLine(transcriptSync[0] ?? "");
+
+    const outOfOrderItem = (transcriptSync[1] ?? "").replace('"index":0', '"index":1');
+    expect(() => session.receiveInboundLine(outOfOrderItem)).toThrow(BridgeSessionError);
+
+    for (const line of transcriptSync.slice(0, 3)) {
+      session.receiveInboundLine(line);
+    }
+  });
+
+  test("rejects a declared Transcript byte total that does not match its items", () => {
+    const session = new BridgeProtocolSession();
+    session.receiveInboundLine(acceptedHandshake);
+    const inaccurateBegin = (transcriptSync[0] ?? "").replace(
+      '"total_bytes":197',
+      '"total_bytes":198',
+    );
+
+    session.receiveInboundLine(inaccurateBegin);
+    session.receiveInboundLine(transcriptSync[1] ?? "");
+    expect(() => session.receiveInboundLine(transcriptSync[2] ?? "")).toThrow(
+      BridgeSessionError,
+    );
 
     for (const line of transcriptSync.slice(0, 3)) {
       session.receiveInboundLine(line);

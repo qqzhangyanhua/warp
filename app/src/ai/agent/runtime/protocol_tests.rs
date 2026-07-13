@@ -74,6 +74,32 @@ fn accepts_bridge_hello_with_current_core_schema() {
 }
 
 #[test]
+fn rejects_bridge_hello_with_mismatched_core_identity() {
+    let message = ProtocolMessage::parse_line(VALID_BRIDGE_HELLO.trim())
+        .expect("valid bridge hello fixture should parse");
+    let ProtocolMessage::BridgeHello(mut hello) = message else {
+        panic!("expected bridge hello");
+    };
+
+    hello.protocol_version = 2;
+    assert_eq!(
+        HandshakePolicy::current().validate(&hello),
+        Err(HandshakeError::ProtocolVersionMismatch {
+            expected: 1,
+            actual: 2,
+        })
+    );
+
+    hello.protocol_version = 1;
+    hello.core_schema_hash =
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
+    assert_eq!(
+        HandshakePolicy::current().validate(&hello),
+        Err(HandshakeError::CoreSchemaMismatch)
+    );
+}
+
+#[test]
 fn rejects_bridge_hello_without_required_capability() {
     let message = ProtocolMessage::parse_line(VALID_BRIDGE_HELLO.trim())
         .expect("valid bridge hello fixture should parse");
@@ -93,6 +119,38 @@ fn rejects_bridge_hello_without_required_capability() {
             name: "parallel_tools.v1".to_string(),
         })
     );
+}
+
+#[test]
+fn rejects_required_capability_with_mismatched_version_or_schema() {
+    let message = ProtocolMessage::parse_line(VALID_BRIDGE_HELLO.trim())
+        .expect("valid bridge hello fixture should parse");
+    let ProtocolMessage::BridgeHello(hello) = message else {
+        panic!("expected bridge hello");
+    };
+
+    for required in [
+        ProtocolCapability {
+            name: "usage.v1".to_string(),
+            version: 2,
+            schema_hash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                .to_string(),
+        },
+        ProtocolCapability {
+            name: "usage.v1".to_string(),
+            version: 1,
+            schema_hash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                .to_string(),
+        },
+    ] {
+        let policy = HandshakePolicy::current().requiring_capability(required);
+        assert_eq!(
+            policy.validate(&hello),
+            Err(HandshakeError::MissingRequiredCapability {
+                name: "usage.v1".to_string(),
+            })
+        );
+    }
 }
 
 #[test]
@@ -340,6 +398,56 @@ fn protocol_errors_and_debug_output_redact_supplied_content() {
     let error = ProtocolMessage::parse_line(malformed)
         .expect_err("malformed JSON must produce a protocol error");
     assert!(!format!("{error:?} {error}").contains("secret-provider-body"));
+}
+
+#[test]
+fn sensitive_payload_debug_output_is_content_free() {
+    let text_messages = TEXT_RUN_LIFECYCLE
+        .lines()
+        .map(ProtocolMessage::parse_line)
+        .collect::<Result<Vec<_>, _>>()
+        .expect("text lifecycle fixture should parse");
+    let tool_messages = TOOL_LIFECYCLE
+        .lines()
+        .map(ProtocolMessage::parse_line)
+        .collect::<Result<Vec<_>, _>>()
+        .expect("tool lifecycle fixture should parse");
+
+    let debug = format!(
+        "{:?} {:?} {:?} {:?} {:?}",
+        match &text_messages[0] {
+            ProtocolMessage::RunStart(payload) => payload,
+            _ => panic!("expected run start"),
+        },
+        match &text_messages[2] {
+            ProtocolMessage::TextDelta(payload) => payload,
+            _ => panic!("expected text delta"),
+        },
+        match &text_messages[3] {
+            ProtocolMessage::AssistantMessageCommit(payload) => payload,
+            _ => panic!("expected assistant message commit"),
+        },
+        match &tool_messages[0] {
+            ProtocolMessage::ToolRequest(payload) => payload,
+            _ => panic!("expected tool request"),
+        },
+        match &tool_messages[1] {
+            ProtocolMessage::ToolResult(payload) => payload,
+            _ => panic!("expected tool result"),
+        },
+    );
+
+    for content in [
+        "fixture-key",
+        "local-model",
+        "/workspace",
+        "127.0.0.1",
+        "Running tests now.",
+        "pwd",
+        "/workspace/project",
+    ] {
+        assert!(!debug.contains(content), "Debug leaked protocol content");
+    }
 }
 
 #[test]

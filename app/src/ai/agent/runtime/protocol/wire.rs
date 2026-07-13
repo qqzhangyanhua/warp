@@ -4,6 +4,16 @@ use std::sync::LazyLock;
 use serde::Deserialize;
 use thiserror::Error;
 
+macro_rules! impl_content_free_debug {
+    ($type:ty, $name:literal) => {
+        impl fmt::Debug for $type {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str($name)
+            }
+        }
+    };
+}
+
 pub(super) const CORE_SCHEMA: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../tools/warp-bridge/protocol/core-v1.schema.json"
@@ -64,7 +74,7 @@ pub(super) struct TranscriptSyncBegin {
     total_bytes: u64,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct TranscriptSyncItem {
     pub(super) sync_id: String,
@@ -72,7 +82,9 @@ pub(super) struct TranscriptSyncItem {
     item: TranscriptItem,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+impl_content_free_debug!(TranscriptSyncItem, "TranscriptSyncItem");
+
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 enum TranscriptItem {
     Message {
@@ -97,7 +109,7 @@ enum TranscriptItem {
     },
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 enum TranscriptToolResult {
     Success {
@@ -124,7 +136,7 @@ enum TranscriptMessageRole {
     Assistant,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum RuntimeContentBlock {
     Text {
@@ -135,6 +147,8 @@ pub(super) enum RuntimeContentBlock {
         data_base64: String,
     },
 }
+
+impl_content_free_debug!(RuntimeContentBlock, "RuntimeContentBlock");
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 pub(super) enum ImageMimeType {
@@ -160,7 +174,7 @@ pub(super) enum TranscriptSyncResult {
     Accepted { sync_id: String, revision: u64 },
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct RunStart {
     conversation_id: String,
@@ -169,7 +183,9 @@ pub(super) struct RunStart {
     configuration: RunConfiguration,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+impl_content_free_debug!(RunStart, "RunStart");
+
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct RunConfiguration {
     provider: ProviderConfiguration,
@@ -181,7 +197,7 @@ struct RunConfiguration {
     resources: Vec<AgentResource>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct ProviderConfiguration {
     protocol: ProviderProtocol,
@@ -220,7 +236,7 @@ enum ReasoningEffort {
     Xhigh,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct ToolCatalogEntry {
     id: String,
@@ -229,7 +245,7 @@ struct ToolCatalogEntry {
     input_schema: serde_json::Map<String, serde_json::Value>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 struct AgentResource {
     id: String,
@@ -253,7 +269,7 @@ enum RunState {
     WaitingForToolResult,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct TextDelta {
     conversation_id: String,
@@ -262,7 +278,9 @@ pub(super) struct TextDelta {
     delta: String,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+impl_content_free_debug!(TextDelta, "TextDelta");
+
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct AssistantMessageCommit {
     conversation_id: String,
@@ -273,6 +291,8 @@ pub(super) struct AssistantMessageCommit {
     pub(super) expected_revision: u64,
     content: Vec<RuntimeContentBlock>,
 }
+
+impl_content_free_debug!(AssistantMessageCommit, "AssistantMessageCommit");
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
@@ -329,7 +349,7 @@ pub(super) enum RunFailureCode {
     TranscriptSyncError,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ToolRequest {
     conversation_id: String,
@@ -340,7 +360,9 @@ pub(super) struct ToolRequest {
     arguments: serde_json::Map<String, serde_json::Value>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+impl_content_free_debug!(ToolRequest, "ToolRequest");
+
+#[derive(Deserialize, PartialEq, Eq)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum ToolResult {
     Success {
@@ -368,6 +390,8 @@ pub(super) enum ToolResult {
         truncated: bool,
     },
 }
+
+impl_content_free_debug!(ToolResult, "ToolResult");
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]

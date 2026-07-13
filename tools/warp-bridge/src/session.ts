@@ -14,6 +14,7 @@ type SessionState = "awaiting_handshake" | "ready" | "rejected";
 interface TranscriptCandidate {
   syncId: string;
   expectedItems: number;
+  expectedBytes: number;
   nextIndex: number;
   receivedBytes: number;
 }
@@ -51,7 +52,15 @@ export class BridgeProtocolSession {
       throw new BridgeSessionError();
     }
 
-    const message = parseProtocolLine(line, this.maxFrameBytes);
+    let message: ProtocolMessage;
+    try {
+      message = parseProtocolLine(line, this.maxFrameBytes);
+    } catch (error) {
+      if (this.state === "ready") {
+        this.transcriptCandidate = undefined;
+      }
+      throw error;
+    }
     if (this.state === "awaiting_handshake") {
       if (message.type !== "handshake_result") {
         throw new BridgeSessionError();
@@ -69,7 +78,12 @@ export class BridgeProtocolSession {
     if (message.type === "bridge_hello" || message.type === "handshake_result") {
       throw new BridgeSessionError();
     }
-    this.validateTranscriptSync(message, line);
+    try {
+      this.validateTranscriptSync(message, line);
+    } catch (error) {
+      this.transcriptCandidate = undefined;
+      throw error;
+    }
     return message;
   }
 
@@ -81,6 +95,7 @@ export class BridgeProtocolSession {
       this.transcriptCandidate = {
         syncId: message.sync_id,
         expectedItems: message.item_count,
+        expectedBytes: message.total_bytes,
         nextIndex: 0,
         receivedBytes: 0,
       };
@@ -99,7 +114,10 @@ export class BridgeProtocolSession {
       }
       candidate.nextIndex += 1;
       candidate.receivedBytes += Buffer.byteLength(line, "utf8");
-      if (candidate.receivedBytes > this.maxTranscriptBytes) {
+      if (
+        candidate.receivedBytes > candidate.expectedBytes ||
+        candidate.receivedBytes > this.maxTranscriptBytes
+      ) {
         throw new BridgeSessionError();
       }
       return;
@@ -109,7 +127,8 @@ export class BridgeProtocolSession {
       if (
         candidate === undefined ||
         message.sync_id !== candidate.syncId ||
-        candidate.nextIndex !== candidate.expectedItems
+        candidate.nextIndex !== candidate.expectedItems ||
+        candidate.receivedBytes !== candidate.expectedBytes
       ) {
         throw new BridgeSessionError();
       }

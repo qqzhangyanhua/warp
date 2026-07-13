@@ -17,3 +17,6 @@ Bridge stdout is reserved for one JSON object per line. Warp accepts `bridge_hel
 no Run Configuration, Provider API Key, Transcript, Tool Catalog, or Resource Catalog until the
 handshake succeeds. Negotiated frame and Transcript Sync byte limits apply before parsing or
 buffering content.
+
+`transcript_sync_begin.total_bytes` is the sum of the UTF-8 byte lengths of the exact
+`transcript_sync_item` JSON frames in that sync. JSONL newline delimiters are not included.
