@@ -75,15 +75,28 @@ enum HandshakeState {
     Rejected,
 }
 
-struct ProtocolSession {
+pub(super) struct ProtocolSession {
     codec: ProtocolCodec,
     handshake_policy: HandshakePolicy,
     handshake_state: HandshakeState,
     tool_request_fingerprints: HashMap<(String, String), [u8; 32]>,
 }
 
+pub(super) enum LifecycleMessage {
+    BridgeHello,
+    RunCancelled {
+        conversation_id: String,
+        run_id: String,
+    },
+    Other,
+}
+
+#[derive(Debug, Error, PartialEq, Eq)]
+#[error("Bridge Protocol lifecycle validation failed")]
+pub(super) struct LifecycleSessionError;
+
 impl ProtocolSession {
-    fn new(max_frame_bytes: usize, handshake_policy: HandshakePolicy) -> Self {
+    pub(super) fn new(max_frame_bytes: usize, handshake_policy: HandshakePolicy) -> Self {
         Self {
             codec: ProtocolCodec::new(max_frame_bytes),
             handshake_policy,
@@ -145,6 +158,50 @@ impl ProtocolSession {
         }
         Ok(message)
     }
+
+    pub(super) fn authorize_lifecycle_outbound_line(
+        &mut self,
+        line: &str,
+    ) -> Result<(), LifecycleSessionError> {
+        self.authorize_outbound_line(line)
+            .map(|_| ())
+            .map_err(|_| LifecycleSessionError)
+    }
+
+    pub(super) fn receive_lifecycle_inbound(
+        &mut self,
+        line: &str,
+    ) -> Result<LifecycleMessage, LifecycleSessionError> {
+        let message = self
+            .receive_inbound(line)
+            .map_err(|_| LifecycleSessionError)?;
+        Ok(match message {
+            ProtocolMessage::BridgeHello(_) => LifecycleMessage::BridgeHello,
+            ProtocolMessage::RunFinished(finished) => {
+                if let Some((conversation_id, run_id)) = finished.cancelled_identity() {
+                    LifecycleMessage::RunCancelled {
+                        conversation_id: conversation_id.to_owned(),
+                        run_id: run_id.to_owned(),
+                    }
+                } else {
+                    LifecycleMessage::Other
+                }
+            }
+            ProtocolMessage::HandshakeResult(_)
+            | ProtocolMessage::TranscriptSyncBegin(_)
+            | ProtocolMessage::TranscriptSyncItem(_)
+            | ProtocolMessage::TranscriptSyncCommit(_)
+            | ProtocolMessage::TranscriptSyncResult(_)
+            | ProtocolMessage::RunStart(_)
+            | ProtocolMessage::RunStatus(_)
+            | ProtocolMessage::TextDelta(_)
+            | ProtocolMessage::AssistantMessageCommit(_)
+            | ProtocolMessage::CommitResult(_)
+            | ProtocolMessage::RunCancel(_)
+            | ProtocolMessage::ToolRequest(_)
+            | ProtocolMessage::ToolResult(_) => LifecycleMessage::Other,
+        })
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -157,14 +214,14 @@ enum HandshakeError {
     MissingRequiredCapability { name: String },
 }
 
-struct HandshakePolicy {
+pub(super) struct HandshakePolicy {
     protocol_version: u32,
     core_schema_hash: String,
     required_capabilities: Vec<ProtocolCapability>,
 }
 
 impl HandshakePolicy {
-    fn current() -> Self {
+    pub(super) fn current() -> Self {
         let digest = Sha256::digest(CORE_SCHEMA);
         Self {
             protocol_version: CORE_PROTOCOL_VERSION,

@@ -336,6 +336,18 @@ pub(super) enum RunFinished {
     },
 }
 
+impl RunFinished {
+    pub(super) fn cancelled_identity(&self) -> Option<(&str, &str)> {
+        match self {
+            Self::Cancelled {
+                conversation_id,
+                run_id,
+            } => Some((conversation_id, run_id)),
+            Self::Completed { .. } | Self::Failed { .. } | Self::LimitReached { .. } => None,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub(super) enum RunFailureCode {
