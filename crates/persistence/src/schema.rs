@@ -18,11 +18,44 @@ diesel::table! {
 }
 
 diesel::table! {
+    agent_runtime_runs (id) {
+        id -> Integer,
+        conversation_id -> Text,
+        run_id -> Text,
+        retry_of_run_id -> Nullable<Text>,
+        starting_revision -> BigInt,
+        state -> Text,
+        terminal_outcome -> Nullable<Text>,
+        last_commit_id -> Nullable<Text>,
+        last_committed_revision -> Nullable<BigInt>,
+        created_at -> Timestamp,
+        last_modified_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     agent_tasks (id) {
         id -> Integer,
         conversation_id -> Text,
         task_id -> Text,
         task -> Binary,
+        last_modified_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    agent_tool_execution_records (id) {
+        id -> Integer,
+        conversation_id -> Text,
+        run_id -> Text,
+        tool_call_id -> Text,
+        request_fingerprint -> Binary,
+        state -> Text,
+        complete_outcome_encoding_version -> Nullable<Integer>,
+        complete_outcome -> Nullable<Binary>,
+        tool_result_projection_encoding_version -> Nullable<Integer>,
+        tool_result_projection -> Nullable<Binary>,
+        created_at -> Timestamp,
         last_modified_at -> Timestamp,
     }
 }

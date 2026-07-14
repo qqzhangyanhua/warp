@@ -8,6 +8,13 @@ use serde::{Deserialize, Deserializer, Serialize};
 use warp_multi_agent_api::response_event::stream_finished;
 use warp_multi_agent_api::{self as api};
 
+pub use super::agent_runtime::{
+    AgentRuntimeRunRecord, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
+    AgentToolExecutionRecord, AgentToolExecutionState, CompleteAgentToolExecution,
+    NewAgentRuntimeRunRecord, NewAgentToolExecutionRecord, VersionedCompleteToolOutcome,
+    VersionedToolResultProjection, COMPLETE_TOOL_OUTCOME_ENCODING_VERSION,
+    TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+};
 use super::schema::{
     active_mcp_servers, agent_conversations, agent_tasks, ai_document_panes, ai_memory_panes,
     ambient_agent_panes, app, blocks, cloud_objects_refreshes, code_pane_tabs, code_panes,
@@ -1160,6 +1167,13 @@ fn is_false(value: &bool) -> bool {
 }
 
 // Serializes to `conversation_data` column in `agent_conversations`.
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentRuntimeBinding {
+    Rust,
+    Pi,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AgentConversationData {
     pub server_conversation_token: Option<String>,
@@ -1215,10 +1229,28 @@ pub struct AgentConversationData {
     /// delivery without re-delivering already-processed events.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_event_sequence: Option<i64>,
+    /// Runtime implementation that owns this Conversation Record. Legacy
+    /// records omit the field and are treated as Rust-bound.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime_binding: Option<AgentRuntimeBinding>,
+    /// Current Conversation Record Revision used by the Agent Runtime.
+    /// Legacy records omit the field and start at revision zero.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub runtime_transcript_revision: Option<u64>,
     /// Whether the user has pinned this child agent in the orchestration
     /// pill bar. Orchestrator conversations always serialize as `false`.
     #[serde(default, skip_serializing_if = "is_false")]
     pub pinned: bool,
+}
+
+impl AgentConversationData {
+    pub fn effective_runtime_binding(&self) -> AgentRuntimeBinding {
+        self.runtime_binding.unwrap_or(AgentRuntimeBinding::Rust)
+    }
+
+    pub fn effective_runtime_transcript_revision(&self) -> u64 {
+        self.runtime_transcript_revision.unwrap_or(0)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

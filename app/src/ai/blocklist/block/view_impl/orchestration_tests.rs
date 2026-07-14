@@ -298,6 +298,8 @@ fn participant_for_restored_child_run_id_resolves_to_agent_name() {
                     run_id: Some(child_run_id.clone()),
                     autoexecute_override: None,
                     last_event_sequence: None,
+                    runtime_binding: None,
+                    runtime_transcript_revision: None,
                     pinned: false,
                 })
                 .expect("child conversation data should serialize"),
@@ -352,6 +354,8 @@ fn participant_for_restored_child_run_id_resolves_to_agent_name() {
                     run_id: Some(parent_run_id.clone()),
                     autoexecute_override: None,
                     last_event_sequence: None,
+                    runtime_binding: None,
+                    runtime_transcript_revision: None,
                     pinned: false,
                 })
                 .expect("parent conversation data should serialize"),

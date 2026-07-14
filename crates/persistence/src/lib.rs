@@ -1,3 +1,4 @@
+pub mod agent_runtime;
 pub mod model;
 pub mod schema;
 

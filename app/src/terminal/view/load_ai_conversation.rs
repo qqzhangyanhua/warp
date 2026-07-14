@@ -973,6 +973,8 @@ impl TerminalView {
             run_id: None,
             autoexecute_override: None,
             last_event_sequence: None,
+            runtime_binding: None,
+            runtime_transcript_revision: None,
             pinned: false,
         };
 

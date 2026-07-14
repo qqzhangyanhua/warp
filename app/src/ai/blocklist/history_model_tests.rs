@@ -631,6 +631,8 @@ fn test_initialize_historical_conversations_resolves_parent_agent_id_children_vi
                     run_id: None,
                     autoexecute_override: None,
                     last_event_sequence: None,
+                    runtime_binding: None,
+                    runtime_transcript_revision: None,
                     pinned: false,
                 },
                 now,
@@ -653,6 +655,8 @@ fn test_initialize_historical_conversations_resolves_parent_agent_id_children_vi
                     run_id: Some(parent_run_id.clone()),
                     autoexecute_override: None,
                     last_event_sequence: None,
+                    runtime_binding: None,
+                    runtime_transcript_revision: None,
                     pinned: false,
                 },
                 now - chrono::Duration::seconds(1),
@@ -703,6 +707,8 @@ fn test_initialize_historical_conversations_uses_root_task_description_title() {
                     run_id: None,
                     autoexecute_override: None,
                     last_event_sequence: None,
+                    runtime_binding: None,
+                    runtime_transcript_revision: None,
                     pinned: false,
                 })
                 .expect("conversation data should serialize"),
@@ -869,6 +875,8 @@ fn test_initialize_historical_conversations_eagerly_hydrates_orchestration_child
                     run_id: Some(child_run_id.clone()),
                     autoexecute_override: None,
                     last_event_sequence: None,
+                    runtime_binding: None,
+                    runtime_transcript_revision: None,
                     pinned: false,
                 },
                 now,
@@ -892,6 +900,8 @@ fn test_initialize_historical_conversations_eagerly_hydrates_orchestration_child
                     run_id: Some(parent_run_id.clone()),
                     autoexecute_override: None,
                     last_event_sequence: None,
+                    runtime_binding: None,
+                    runtime_transcript_revision: None,
                     pinned: false,
                 },
                 now - chrono::Duration::seconds(1),
@@ -3214,6 +3224,8 @@ fn test_find_by_token_after_insert_forked_conversation_from_tasks() {
             run_id: None,
             autoexecute_override: None,
             last_event_sequence: None,
+            runtime_binding: None,
+            runtime_transcript_revision: None,
             pinned: false,
         };
         let tasks = vec![warp_multi_agent_api::Task {
@@ -3412,6 +3424,8 @@ fn test_fork_then_bind_handoff_token_resolves_to_forked_conversation() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )
@@ -3500,6 +3514,8 @@ fn test_fork_then_bind_handoff_token_persists_to_restored_conversation() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )
@@ -3613,6 +3629,8 @@ fn test_fork_then_bind_handoff_token_updates_cached_metadata_and_emits_refresh_e
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )
@@ -3742,6 +3760,8 @@ fn test_fork_conversation_preserves_task_ids_when_requested() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )
@@ -3893,6 +3913,8 @@ fn test_fork_conversation_title_override_replaces_prefix() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )
@@ -3986,6 +4008,8 @@ fn hydrate_remote_child_placeholder_with_cloud_transcript_preserves_placeholder_
                 run_id: Some(placeholder_task_id_str.clone()),
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )
@@ -4032,6 +4056,8 @@ fn hydrate_remote_child_placeholder_with_cloud_transcript_preserves_placeholder_
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )
@@ -4788,6 +4814,8 @@ fn straddle_rewind_followup_requests_are_clean_and_durable() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             }),
         )

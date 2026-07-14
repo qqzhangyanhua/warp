@@ -1,0 +1,125 @@
+use diesel::migration::{Migration, MigrationSource};
+use diesel::sql_types::{Binary, Text};
+use diesel::sqlite::Sqlite;
+use diesel_migrations::MigrationHarness;
+
+use super::*;
+
+const RUNTIME_MIGRATION_VERSION: &str = "20260713000000";
+
+fn task_with_user_query(task_id: &str, query: &str, description: &str) -> api::Task {
+    api::Task {
+        id: task_id.to_string(),
+        description: description.to_string(),
+        dependencies: None,
+        messages: vec![api::Message {
+            id: format!("{task_id}-user-query"),
+            task_id: task_id.to_string(),
+            message: Some(api::message::Message::UserQuery(api::message::UserQuery {
+                query: query.to_string(),
+                ..Default::default()
+            })),
+            ..Default::default()
+        }],
+        summary: String::new(),
+        server_data: String::new(),
+    }
+}
+
+#[derive(QueryableByName)]
+struct SqliteTable {
+    #[diesel(sql_type = Text)]
+    name: String,
+}
+
+fn runtime_sidecar_table_names(conn: &mut SqliteConnection) -> Vec<String> {
+    diesel::sql_query(
+        "SELECT name FROM sqlite_master \
+         WHERE type = 'table' \
+         AND name IN ('agent_runtime_runs', 'agent_tool_execution_records') \
+         ORDER BY name",
+    )
+    .load::<SqliteTable>(conn)
+    .expect("sqlite schema should be readable")
+    .into_iter()
+    .map(|table| table.name)
+    .collect()
+}
+
+#[test]
+fn runtime_sidecar_migration_preserves_legacy_conversations_and_supports_redo() {
+    let mut conn =
+        SqliteConnection::establish(":memory:").expect("in-memory sqlite connection should open");
+    let migrations: Vec<Box<dyn Migration<Sqlite>>> =
+        MigrationSource::migrations(&::persistence::MIGRATIONS)
+            .expect("embedded migrations should load");
+    let runtime_migration_index = migrations
+        .iter()
+        .position(|migration| migration.name().version().to_string() == RUNTIME_MIGRATION_VERSION)
+        .expect("the runtime migration should exist");
+    let (earlier_migrations, runtime_and_later_migrations) =
+        migrations.split_at(runtime_migration_index);
+    let runtime_migration = runtime_and_later_migrations
+        .first()
+        .expect("the runtime migration should exist");
+
+    conn.applied_migrations()
+        .expect("diesel migration metadata should initialize");
+    conn.run_migrations(earlier_migrations)
+        .expect("pre-runtime migrations should run");
+    diesel::sql_query(
+        "INSERT INTO agent_conversations (conversation_id, conversation_data) \
+         VALUES ('legacy-conversation', '{\"server_conversation_token\":null}')",
+    )
+    .execute(&mut conn)
+    .expect("legacy conversation fixture should insert");
+    let legacy_task = task_with_user_query("legacy-task", "Legacy query", "Legacy title");
+    diesel::sql_query("INSERT INTO agent_tasks (conversation_id, task_id, task) VALUES (?, ?, ?)")
+        .bind::<Text, _>("legacy-conversation")
+        .bind::<Text, _>(&legacy_task.id)
+        .bind::<Binary, _>(legacy_task.encode_to_vec())
+        .execute(&mut conn)
+        .expect("legacy task fixture should insert");
+
+    conn.run_migration(runtime_migration.as_ref())
+        .expect("runtime sidecar migration should run");
+
+    let restored = read_agent_conversation_by_id(&mut conn, "legacy-conversation")
+        .expect("legacy conversation should remain readable")
+        .expect("legacy conversation should still exist");
+    let data: AgentConversationData =
+        serde_json::from_str(&restored.conversation.conversation_data)
+            .expect("legacy conversation data should deserialize");
+    assert_eq!(
+        data.effective_runtime_binding(),
+        ::persistence::model::AgentRuntimeBinding::Rust
+    );
+    assert_eq!(data.effective_runtime_transcript_revision(), 0);
+    assert_eq!(restored.tasks, [legacy_task]);
+    assert_eq!(
+        runtime_sidecar_table_names(&mut conn),
+        ["agent_runtime_runs", "agent_tool_execution_records"]
+    );
+    let pending_versions = conn
+        .pending_migrations(::persistence::MIGRATIONS)
+        .expect("pending migrations should load")
+        .into_iter()
+        .map(|migration| migration.name().version().to_string())
+        .collect::<Vec<_>>();
+    assert!(
+        !pending_versions
+            .iter()
+            .any(|version| version == RUNTIME_MIGRATION_VERSION),
+        "a second startup must not rerun the runtime migration"
+    );
+
+    conn.revert_migration(runtime_migration.as_ref())
+        .expect("runtime migration should revert on a disposable database");
+    assert!(runtime_sidecar_table_names(&mut conn).is_empty());
+    conn.run_migration(runtime_migration.as_ref())
+        .expect("runtime migration should apply again after revert");
+    assert_eq!(
+        runtime_sidecar_table_names(&mut conn),
+        ["agent_runtime_runs", "agent_tool_execution_records"]
+    );
+}

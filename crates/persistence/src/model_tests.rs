@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use warp_multi_agent_api as api;
 
-use super::{AgentConversation, AgentConversationData, AgentConversationSummary, ModelTokenUsage};
+use super::{
+    AgentConversation, AgentConversationData, AgentConversationSummary, AgentRuntimeBinding,
+    ModelTokenUsage,
+};
 
 fn parentless_task(id: &str, message_count: usize) -> api::Task {
     api::Task {
@@ -239,6 +242,8 @@ fn agent_conversation_data_roundtrips_last_event_sequence() {
         run_id: None,
         autoexecute_override: None,
         last_event_sequence: Some(42),
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: false,
     };
     let json = serde_json::to_string(&data).expect("serialize");
@@ -276,6 +281,8 @@ fn agent_conversation_data_roundtrips_remote_child_marker() {
         run_id: None,
         autoexecute_override: None,
         last_event_sequence: None,
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: false,
     };
     let json = serde_json::to_string(&data).expect("serialize");
@@ -300,6 +307,8 @@ fn agent_conversation_data_roundtrips_optimistic_root_marker() {
         run_id: None,
         autoexecute_override: None,
         last_event_sequence: None,
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: false,
     };
     let json = serde_json::to_string(&data).expect("serialize");
@@ -336,6 +345,8 @@ fn agent_conversation_data_skips_serializing_none_last_event_sequence() {
         run_id: None,
         autoexecute_override: None,
         last_event_sequence: None,
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: false,
     };
     let json = serde_json::to_string(&data).expect("serialize");
@@ -362,6 +373,8 @@ fn agent_conversation_data_roundtrips_pinned() {
         run_id: None,
         autoexecute_override: None,
         last_event_sequence: None,
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: true,
     };
     let json = serde_json::to_string(&data).expect("serialize");
@@ -386,6 +399,8 @@ fn agent_conversation_data_skips_serializing_unpinned() {
         run_id: None,
         autoexecute_override: None,
         last_event_sequence: None,
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: false,
     };
     let json = serde_json::to_string(&data).expect("serialize");
@@ -401,6 +416,49 @@ fn agent_conversation_data_legacy_rows_default_to_unpinned() {
     let data: AgentConversationData =
         serde_json::from_str(legacy_json).expect("legacy rows must deserialize");
     assert!(!data.pinned);
+}
+
+#[test]
+fn agent_conversation_data_legacy_rows_default_to_rust_revision_zero() {
+    let legacy_json = r#"{"server_conversation_token":null}"#;
+    let data: AgentConversationData =
+        serde_json::from_str(legacy_json).expect("legacy rows must deserialize");
+
+    assert_eq!(data.runtime_binding, None);
+    assert_eq!(data.runtime_transcript_revision, None);
+    assert_eq!(data.effective_runtime_binding(), AgentRuntimeBinding::Rust);
+    assert_eq!(data.effective_runtime_transcript_revision(), 0);
+}
+
+#[test]
+fn agent_conversation_data_roundtrips_pi_runtime_metadata() {
+    let json = r#"{"runtime_binding":"pi","runtime_transcript_revision":7}"#;
+    let data: AgentConversationData =
+        serde_json::from_str(json).expect("Pi runtime metadata must deserialize");
+
+    assert_eq!(data.effective_runtime_binding(), AgentRuntimeBinding::Pi);
+    assert_eq!(data.effective_runtime_transcript_revision(), 7);
+    assert_eq!(
+        serde_json::to_value(data).expect("Pi runtime metadata must serialize"),
+        serde_json::json!({
+            "server_conversation_token": null,
+            "runtime_binding": "pi",
+            "runtime_transcript_revision": 7,
+        })
+    );
+}
+
+#[test]
+fn agent_conversation_data_ignores_unknown_legacy_fields() {
+    let json = r#"{
+        "server_conversation_token": null,
+        "future_runtime_metadata": {"version": 2}
+    }"#;
+    let data: AgentConversationData =
+        serde_json::from_str(json).expect("unknown legacy fields must remain compatible");
+
+    assert_eq!(data.effective_runtime_binding(), AgentRuntimeBinding::Rust);
+    assert_eq!(data.effective_runtime_transcript_revision(), 0);
 }
 
 #[allow(deprecated)]

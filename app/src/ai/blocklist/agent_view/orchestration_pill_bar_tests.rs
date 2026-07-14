@@ -170,6 +170,8 @@ fn pill_bar_data_layer_finds_restored_children_before_pane_creation() {
                         run_id: Some(child_run_id.clone()),
                         autoexecute_override: None,
                         last_event_sequence: None,
+                        runtime_binding: None,
+                        runtime_transcript_revision: None,
                         pinned: false,
                     })
                     .expect("child conversation data should serialize"),
@@ -221,6 +223,8 @@ fn pill_bar_data_layer_finds_restored_children_before_pane_creation() {
                         run_id: Some(parent_run_id.clone()),
                         autoexecute_override: None,
                         last_event_sequence: None,
+                        runtime_binding: None,
+                        runtime_transcript_revision: None,
                         pinned: false,
                     })
                     .expect("parent conversation data should serialize"),

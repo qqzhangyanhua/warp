@@ -12,7 +12,9 @@ use warp_multi_agent_api as api;
 use super::model::{AgentConversation, AgentConversationData, AgentConversationSummary};
 use super::ConversationSummaryBackfill;
 use crate::persistence::model::{AgentConversationRecord, AgentTaskRecord};
-use crate::persistence::schema::{self, agent_conversations, agent_tasks};
+use crate::persistence::schema::{
+    self, agent_conversations, agent_runtime_runs, agent_tasks, agent_tool_execution_records,
+};
 
 #[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = agent_conversations)]
@@ -32,8 +34,10 @@ struct NewAgentTask {
 
 #[derive(Debug, thiserror::Error)]
 pub(super) enum UpsertConversationError {
-    #[error("Failed to serialize conversation data: {0:?}")]
-    Serialization(#[from] serde_json::Error),
+    #[error("Invalid conversation data JSON: {0:?}")]
+    ConversationData(#[from] serde_json::Error),
+    #[error("Cannot change an existing conversation's Agent Runtime binding")]
+    RuntimeBindingConflict,
     #[error("Failed to upsert conversation to sqlite: {0:?}")]
     DB(#[from] diesel::result::Error),
 }
@@ -48,13 +52,11 @@ pub(super) fn upsert_agent_conversation<'a>(
     conn: &mut SqliteConnection,
     conversation_id_param: &str,
     tasks: impl IntoIterator<Item = &'a api::Task>,
-    conversation_data_param: AgentConversationData,
+    mut conversation_data_param: AgentConversationData,
 ) -> Result<(), UpsertConversationError> {
     use diesel::QueryDsl;
     use schema::agent_conversations::dsl::*;
     use schema::agent_tasks::dsl as tasks_dsl;
-
-    let serialized_conversation_data = serde_json::to_string(&conversation_data_param)?;
 
     // `updated_tasks` is always a full snapshot of the conversation's current
     // task set (see `write_updated_conversation_state` and the fork paths), so
@@ -71,7 +73,31 @@ pub(super) fn upsert_agent_conversation<'a>(
     let serialized_summary =
         serde_json::to_string(&AgentConversationSummary::from_tasks(tasks.iter().copied())).ok();
 
-    conn.transaction::<_, Error, _>(|conn| {
+    conn.transaction::<_, UpsertConversationError, _>(|conn| {
+        let existing_data: Option<String> = agent_conversations::table()
+            .filter(conversation_id.eq(conversation_id_param))
+            .select(conversation_data)
+            .first(conn)
+            .optional()?;
+        if let Some(existing_data) = existing_data {
+            let existing_data: AgentConversationData = serde_json::from_str(&existing_data)?;
+            if let Some(incoming_binding) = conversation_data_param.runtime_binding {
+                if incoming_binding != existing_data.effective_runtime_binding() {
+                    return Err(UpsertConversationError::RuntimeBindingConflict);
+                }
+            } else {
+                conversation_data_param.runtime_binding = existing_data.runtime_binding;
+            }
+            if conversation_data_param
+                .runtime_transcript_revision
+                .is_none()
+            {
+                conversation_data_param.runtime_transcript_revision =
+                    existing_data.runtime_transcript_revision;
+            }
+        }
+        let serialized_conversation_data = serde_json::to_string(&conversation_data_param)?;
+
         // Upsert the conversation level metadata
         let new_conversation = NewAgentConversation {
             conversation_id: conversation_id_param.to_owned(),
@@ -103,7 +129,7 @@ pub(super) fn upsert_agent_conversation<'a>(
                 .execute(conn)
             {
                 log::warn!("Failed to upsert task {e:?}");
-                return Err(e);
+                return Err(e.into());
             }
         }
 
@@ -396,9 +422,22 @@ pub(super) fn delete_agent_conversations(
 ) -> Result<(), diesel::result::Error> {
     use diesel::{ExpressionMethods, QueryDsl};
     use schema::agent_conversations::dsl::*;
+    use schema::agent_runtime_runs::dsl as runs_dsl;
     use schema::agent_tasks::dsl as tasks_dsl;
+    use schema::agent_tool_execution_records::dsl as tools_dsl;
 
     conn.transaction::<_, Error, _>(|conn| {
+        diesel::delete(
+            agent_tool_execution_records::table
+                .filter(tools_dsl::conversation_id.eq_any(&conversation_ids)),
+        )
+        .execute(conn)?;
+
+        diesel::delete(
+            agent_runtime_runs::table.filter(runs_dsl::conversation_id.eq_any(&conversation_ids)),
+        )
+        .execute(conn)?;
+
         // Delete tasks for these conversations first (due to foreign key constraint)
         diesel::delete(
             agent_tasks::table.filter(tasks_dsl::conversation_id.eq_any(&conversation_ids)),
@@ -420,3 +459,11 @@ pub(super) fn delete_agent_conversations(
 #[cfg(test)]
 #[path = "agent_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "agent_runtime_migration_tests.rs"]
+mod runtime_migration_tests;
+
+#[cfg(test)]
+#[path = "agent_runtime_tests.rs"]
+mod runtime_tests;

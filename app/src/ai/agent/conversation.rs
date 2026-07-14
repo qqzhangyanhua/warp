@@ -3555,6 +3555,8 @@ impl AIConversation {
                 run_id: self.task_id.map(|id| id.to_string()),
                 autoexecute_override: Some(self.autoexecute_override.into()),
                 last_event_sequence: self.last_event_sequence,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: self.pinned,
             },
         };

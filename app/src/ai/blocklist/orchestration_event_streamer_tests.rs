@@ -161,6 +161,8 @@ fn ai_conversation_new_restored_preserves_last_event_sequence() {
         run_id: None,
         autoexecute_override: None,
         last_event_sequence: Some(42),
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: false,
     };
     let conversation =

@@ -395,6 +395,8 @@ fn persisted_remote_child_conversation(
                 run_id: Some(task_id.to_string()),
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             })
             .expect("conversation data should serialize"),

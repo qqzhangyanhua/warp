@@ -1589,6 +1589,8 @@ impl BlocklistAIHistoryModel {
             run_id: None,
             autoexecute_override: Some(source_conversation.autoexecute_override().into()),
             last_event_sequence: None,
+            runtime_binding: None,
+            runtime_transcript_revision: None,
             pinned: false,
         };
         let forked_conversation_id = AIConversationId::new();
@@ -1767,6 +1769,8 @@ impl BlocklistAIHistoryModel {
             run_id: None,
             autoexecute_override: Some(conversation.autoexecute_override().into()),
             last_event_sequence: None,
+            runtime_binding: None,
+            runtime_transcript_revision: None,
             pinned: false,
         };
 
@@ -2799,6 +2803,8 @@ fn merged_remote_child_placeholder_conversation_data(
             .parent_conversation_id()
             .map(|id| id.to_string()),
         is_remote_child: placeholder.is_remote_child(),
+        runtime_binding: None,
+        runtime_transcript_revision: None,
         pinned: placeholder.is_pinned(),
 
         // Reset on merge.

@@ -90,6 +90,8 @@ pub fn convert_conversation_data_to_ai_conversation(
             run_id: None,
             autoexecute_override: None,
             last_event_sequence: None,
+            runtime_binding: None,
+            runtime_transcript_revision: None,
             pinned: false,
         },
         RestorationMode::Continue => AgentConversationData {
@@ -111,6 +113,8 @@ pub fn convert_conversation_data_to_ai_conversation(
                 .map(|task_id| task_id.to_string()),
             autoexecute_override: None,
             last_event_sequence: None,
+            runtime_binding: None,
+            runtime_transcript_revision: None,
             pinned: false,
         },
     };

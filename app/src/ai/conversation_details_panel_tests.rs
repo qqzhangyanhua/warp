@@ -74,6 +74,8 @@ fn test_from_conversation_prefers_server_creator_profile() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             },
         );
@@ -237,6 +239,8 @@ fn test_from_task_includes_linked_directory_when_run_id_matches() {
                 run_id: Some(task_id.to_string()),
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             },
         );
@@ -381,6 +385,8 @@ fn test_from_conversation_populates_local_conversation_fields() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 is_remote_child: false,
                 root_task_is_optimistic: None,
                 pinned: false,
@@ -497,6 +503,8 @@ fn test_from_task_includes_linked_directory_when_server_token_matches() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
+                runtime_binding: None,
+                runtime_transcript_revision: None,
                 pinned: false,
             },
         );
