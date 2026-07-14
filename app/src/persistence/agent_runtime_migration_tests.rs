@@ -1,11 +1,12 @@
 use diesel::migration::{Migration, MigrationSource};
-use diesel::sql_types::{Binary, Text};
+use diesel::sql_types::{Binary, Nullable, Text};
 use diesel::sqlite::Sqlite;
 use diesel_migrations::MigrationHarness;
 
 use super::*;
 
 const RUNTIME_MIGRATION_VERSION: &str = "20260713000000";
+const COMMIT_FINGERPRINT_MIGRATION_VERSION: &str = "20260714000000";
 
 fn task_with_user_query(task_id: &str, query: &str, description: &str) -> api::Task {
     api::Task {
@@ -32,6 +33,12 @@ struct SqliteTable {
     name: String,
 }
 
+#[derive(QueryableByName)]
+struct RuntimeCommitFingerprint {
+    #[diesel(sql_type = Nullable<Binary>)]
+    fingerprint: Option<Vec<u8>>,
+}
+
 fn runtime_sidecar_table_names(conn: &mut SqliteConnection) -> Vec<String> {
     diesel::sql_query(
         "SELECT name FROM sqlite_master \
@@ -46,8 +53,18 @@ fn runtime_sidecar_table_names(conn: &mut SqliteConnection) -> Vec<String> {
     .collect()
 }
 
+fn legacy_run_commit_fingerprint(conn: &mut SqliteConnection) -> Option<Vec<u8>> {
+    diesel::sql_query(
+        "SELECT last_commit_payload_fingerprint AS fingerprint \
+         FROM agent_runtime_runs WHERE run_id = 'legacy-run'",
+    )
+    .get_result::<RuntimeCommitFingerprint>(conn)
+    .expect("legacy Agent Run Record should remain readable")
+    .fingerprint
+}
+
 #[test]
-fn runtime_sidecar_migration_preserves_legacy_conversations_and_supports_redo() {
+fn runtime_migrations_preserve_legacy_records_and_support_redo() {
     let mut conn =
         SqliteConnection::establish(":memory:").expect("in-memory sqlite connection should open");
     let migrations: Vec<Box<dyn Migration<Sqlite>>> =
@@ -57,11 +74,15 @@ fn runtime_sidecar_migration_preserves_legacy_conversations_and_supports_redo() 
         .iter()
         .position(|migration| migration.name().version().to_string() == RUNTIME_MIGRATION_VERSION)
         .expect("the runtime migration should exist");
-    let (earlier_migrations, runtime_and_later_migrations) =
-        migrations.split_at(runtime_migration_index);
-    let runtime_migration = runtime_and_later_migrations
-        .first()
-        .expect("the runtime migration should exist");
+    let fingerprint_migration_index = migrations
+        .iter()
+        .position(|migration| {
+            migration.name().version().to_string() == COMMIT_FINGERPRINT_MIGRATION_VERSION
+        })
+        .expect("the commit fingerprint migration should exist");
+    let earlier_migrations = &migrations[..runtime_migration_index];
+    let runtime_migration = migrations[runtime_migration_index].as_ref();
+    let fingerprint_migration = migrations[fingerprint_migration_index].as_ref();
 
     conn.applied_migrations()
         .expect("diesel migration metadata should initialize");
@@ -81,7 +102,7 @@ fn runtime_sidecar_migration_preserves_legacy_conversations_and_supports_redo() 
         .execute(&mut conn)
         .expect("legacy task fixture should insert");
 
-    conn.run_migration(runtime_migration.as_ref())
+    conn.run_migration(runtime_migration)
         .expect("runtime sidecar migration should run");
 
     let restored = read_agent_conversation_by_id(&mut conn, "legacy-conversation")
@@ -113,11 +134,39 @@ fn runtime_sidecar_migration_preserves_legacy_conversations_and_supports_redo() 
         "a second startup must not rerun the runtime migration"
     );
 
-    conn.revert_migration(runtime_migration.as_ref())
+    diesel::sql_query(
+        "INSERT INTO agent_runtime_runs \
+         (conversation_id, run_id, starting_revision, state) \
+         VALUES ('legacy-conversation', 'legacy-run', 0, 'running')",
+    )
+    .execute(&mut conn)
+    .expect("legacy Agent Run Record fixture should insert");
+    conn.run_migration(fingerprint_migration)
+        .expect("commit fingerprint migration should run");
+    assert_eq!(legacy_run_commit_fingerprint(&mut conn), None);
+    assert!(
+        conn.run_pending_migrations(::persistence::MIGRATIONS)
+            .expect("a second startup migration pass should succeed")
+            .is_empty(),
+        "a second startup must not rerun applied runtime migrations"
+    );
+
+    conn.revert_migration(fingerprint_migration)
+        .expect("commit fingerprint migration should revert on a disposable database");
+    conn.run_migration(fingerprint_migration)
+        .expect("commit fingerprint migration should apply again after revert");
+    assert_eq!(legacy_run_commit_fingerprint(&mut conn), None);
+
+    conn.revert_migration(fingerprint_migration)
+        .expect("commit fingerprint migration should revert before the sidecar migration");
+
+    conn.revert_migration(runtime_migration)
         .expect("runtime migration should revert on a disposable database");
     assert!(runtime_sidecar_table_names(&mut conn).is_empty());
-    conn.run_migration(runtime_migration.as_ref())
+    conn.run_migration(runtime_migration)
         .expect("runtime migration should apply again after revert");
+    conn.run_migration(fingerprint_migration)
+        .expect("commit fingerprint migration should apply after sidecar migration redo");
     assert_eq!(
         runtime_sidecar_table_names(&mut conn),
         ["agent_runtime_runs", "agent_tool_execution_records"]

@@ -30,6 +30,7 @@ diesel::table! {
         last_committed_revision -> Nullable<BigInt>,
         created_at -> Timestamp,
         last_modified_at -> Timestamp,
+        last_commit_payload_fingerprint -> Nullable<Binary>,
     }
 }
 

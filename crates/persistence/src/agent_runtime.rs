@@ -100,6 +100,7 @@ pub struct AgentRuntimeRunRecord {
     pub last_committed_revision: Option<i64>,
     pub created_at: NaiveDateTime,
     pub last_modified_at: NaiveDateTime,
+    pub last_commit_payload_fingerprint: Option<Vec<u8>>,
 }
 
 impl AgentRuntimeRunRecord {

@@ -1,0 +1,2 @@
+ALTER TABLE agent_runtime_runs
+DROP COLUMN last_commit_payload_fingerprint;

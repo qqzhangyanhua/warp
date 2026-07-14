@@ -52,6 +52,7 @@ use super::agent::{
     backfill_conversation_summaries, delete_agent_conversations, read_agent_conversation_metadata,
     upsert_agent_conversation,
 };
+use super::agent_runtime::commit_agent_runtime_mutation;
 use super::block_list::{
     delete_ai_conversation, delete_blocks, save_block, update_block_agent_view_visibility,
     upsert_ai_query,
@@ -738,6 +739,12 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
             conversation_data,
         )
         .map_err(anyhow::Error::from),
+        ModelEvent::CommitAgentRuntimeMutation(mutation) => {
+            let result = commit_agent_runtime_mutation(connection, &mutation);
+            // A dropped receiver does not undo a durable commit; redelivery is idempotent.
+            let _ = mutation.acknowledgement.send(result);
+            Ok(())
+        }
         ModelEvent::BackfillConversationSummaries { backfills } => {
             backfill_conversation_summaries(connection, backfills)
                 .map_err(anyhow::Error::from)
@@ -3196,3 +3203,7 @@ fn delete_objects(
 #[cfg(test)]
 #[path = "sqlite_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "sqlite_agent_runtime_tests.rs"]
+mod agent_runtime_tests;

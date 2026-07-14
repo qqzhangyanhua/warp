@@ -3,12 +3,18 @@
 cfg_if::cfg_if! {
     if #[cfg(feature = "local_fs")] {
         pub mod agent;
+        mod agent_runtime;
         mod block_list;
         mod sqlite;
         pub mod commands;
     }
 }
-
+mod agent_runtime_command;
+#[cfg_attr(not(test), allow(unused_imports))]
+pub use agent_runtime_command::{
+    AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation, CommitAgentRuntimeMutationError,
+    CompleteToolOutcomePayload, ToolResultProjectionPayload,
+};
 pub use persistence::model;
 #[cfg_attr(not(feature = "local_fs"), expect(unused_imports))]
 pub use persistence::schema;
@@ -419,6 +425,7 @@ pub enum ModelEvent {
         updated_tasks: Vec<api::Task>,
         conversation_data: AgentConversationData,
     },
+    CommitAgentRuntimeMutation(CommitAgentRuntimeMutation),
     /// Persists read-time-derived conversation summaries for rows written
     /// before the `summary` column existed.
     BackfillConversationSummaries {
