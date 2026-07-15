@@ -1,3 +1,4 @@
 {"type":"run_finished","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-002","outcome":"cancelled"}
 {"type":"run_finished","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-003","outcome":"failed","error_code":"provider_transport_error","diagnostic_id":"diag-003"}
+{"type":"run_finished","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-redirect","outcome":"failed","error_code":"provider_redirect_not_allowed","diagnostic_id":"diag-redirect"}
 {"type":"run_finished","conversation_id":"018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20","run_id":"run-004","outcome":"limit_reached","tool_request_limit":32}

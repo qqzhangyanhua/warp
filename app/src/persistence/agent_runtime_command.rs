@@ -4,10 +4,52 @@ use sha2::{Digest as _, Sha256};
 use warp_multi_agent_api as api;
 
 use super::model::{
-    AgentConversationData, AgentRuntimeBinding, VersionedCompleteToolOutcome,
-    VersionedToolResultProjection, COMPLETE_TOOL_OUTCOME_ENCODING_VERSION,
-    TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+    AgentConversationData, AgentRuntimeBinding, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
+    VersionedCompleteToolOutcome, VersionedToolResultProjection,
+    COMPLETE_TOOL_OUTCOME_ENCODING_VERSION, TOOL_RESULT_PROJECTION_ENCODING_VERSION,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AgentRuntimeRunMutation {
+    Start {
+        retry_of_run_id: Option<String>,
+        starting_revision: u64,
+    },
+    SetState(AgentRuntimeRunState),
+    Finish(AgentRuntimeTerminalOutcome),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum PersistAgentRuntimeRunError {
+    #[error("Conversation Record does not exist")]
+    ConversationNotFound,
+    #[error("Conversation Record is not Pi-bound")]
+    RuntimeBindingMismatch,
+    #[error("Agent Run Record does not exist")]
+    RunNotFound,
+    #[error("Agent Run lifecycle transition is invalid")]
+    InvalidTransition,
+    #[error("Conversation Record revision conflict: expected {expected}, found {actual}")]
+    RevisionConflict { expected: u64, actual: u64 },
+    #[error("Agent Run revision cannot be represented by SQLite")]
+    RevisionOverflow,
+    #[error("Failed to persist Agent Run lifecycle")]
+    Persistence,
+}
+
+impl From<diesel::result::Error> for PersistAgentRuntimeRunError {
+    fn from(_: diesel::result::Error) -> Self {
+        Self::Persistence
+    }
+}
+
+#[derive(Debug)]
+pub struct PersistAgentRuntimeRun {
+    pub conversation_id: String,
+    pub run_id: String,
+    pub mutation: AgentRuntimeRunMutation,
+    pub acknowledgement: oneshot::Sender<Result<(), PersistAgentRuntimeRunError>>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompleteToolOutcomePayload {

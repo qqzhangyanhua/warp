@@ -1,7 +1,7 @@
 # Warp Agent Runtime Bridge
 
 This Warp-owned package implements the local Bridge Protocol and will host the standalone Pi Agent
-Runtime adapter. `protocol/core-v1.schema.json` and its fixtures are authoritative; vendored Pi code
+Runtime adapter. `protocol/core-v2.schema.json` and its fixtures are authoritative; vendored Pi code
 cannot add or alter protocol messages.
 
 ## Development

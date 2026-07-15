@@ -16,7 +16,7 @@ pub enum AgentRuntimeRunState {
 }
 
 impl AgentRuntimeRunState {
-    fn as_database_value(self) -> &'static str {
+    pub fn as_database_value(self) -> &'static str {
         match self {
             Self::Starting => "starting",
             Self::Running => "running",
@@ -74,6 +74,15 @@ pub enum AgentRuntimeTerminalOutcome {
 }
 
 impl AgentRuntimeTerminalOutcome {
+    pub fn as_database_value(self) -> &'static str {
+        match self {
+            Self::Completed => "completed",
+            Self::Cancelled => "cancelled",
+            Self::Failed => "failed",
+            Self::LimitReached => "limit_reached",
+        }
+    }
+
     fn from_database_value(value: &str) -> Option<Self> {
         match value {
             "completed" => Some(Self::Completed),

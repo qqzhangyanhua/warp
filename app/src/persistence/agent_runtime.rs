@@ -1,14 +1,129 @@
+use std::collections::HashSet;
+
 use diesel::prelude::*;
 use diesel::SqliteConnection;
 
 use super::agent::upsert_agent_conversation;
-use super::model::{AgentConversationData, AgentRuntimeBinding, CompleteAgentToolExecution};
+use super::model::{
+    AgentConversationData, AgentRuntimeBinding, AgentRuntimeRunState, CompleteAgentToolExecution,
+    NewAgentRuntimeRunRecord,
+};
 use super::schema::agent_conversations::dsl as conversations_dsl;
 use super::schema::agent_runtime_runs::dsl as runs_dsl;
 use super::schema::agent_tool_execution_records::dsl as tools_dsl;
 use super::{
-    AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation, CommitAgentRuntimeMutationError,
+    AgentRuntimeRunMutation, AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation,
+    CommitAgentRuntimeMutationError, PersistAgentRuntimeRun, PersistAgentRuntimeRunError,
 };
+
+#[allow(
+    dead_code,
+    reason = "Runtime restart reconstruction consumes this query when selection is enabled in Phase 7"
+)]
+pub(crate) fn read_interrupted_agent_message_ids(
+    conn: &mut SqliteConnection,
+    conversation_id: &str,
+) -> Result<HashSet<String>, diesel::result::Error> {
+    let run_ids = runs_dsl::agent_runtime_runs
+        .filter(runs_dsl::conversation_id.eq(conversation_id))
+        .filter(runs_dsl::state.eq("finished"))
+        .filter(runs_dsl::terminal_outcome.ne("completed"))
+        .select(runs_dsl::run_id)
+        .load::<String>(conn)?;
+    Ok(run_ids
+        .into_iter()
+        .map(|run_id| format!("interrupted:{run_id}"))
+        .collect())
+}
+
+pub(super) fn persist_agent_runtime_run(
+    conn: &mut SqliteConnection,
+    command: &PersistAgentRuntimeRun,
+) -> Result<(), PersistAgentRuntimeRunError> {
+    match &command.mutation {
+        AgentRuntimeRunMutation::Start {
+            retry_of_run_id,
+            starting_revision,
+        } => conn.transaction::<(), PersistAgentRuntimeRunError, _>(|conn| {
+            let stored_data = conversations_dsl::agent_conversations
+                .filter(conversations_dsl::conversation_id.eq(&command.conversation_id))
+                .select(conversations_dsl::conversation_data)
+                .first::<String>(conn)
+                .optional()?
+                .ok_or(PersistAgentRuntimeRunError::ConversationNotFound)?;
+            let stored_data: AgentConversationData = serde_json::from_str(&stored_data)
+                .map_err(|_| PersistAgentRuntimeRunError::Persistence)?;
+            if stored_data.effective_runtime_binding() != AgentRuntimeBinding::Pi {
+                return Err(PersistAgentRuntimeRunError::RuntimeBindingMismatch);
+            }
+            let actual_revision = stored_data.effective_runtime_transcript_revision();
+            if actual_revision != *starting_revision {
+                return Err(PersistAgentRuntimeRunError::RevisionConflict {
+                    expected: *starting_revision,
+                    actual: actual_revision,
+                });
+            }
+            let starting_revision = i64::try_from(*starting_revision)
+                .map_err(|_| PersistAgentRuntimeRunError::RevisionOverflow)?;
+            diesel::insert_into(runs_dsl::agent_runtime_runs)
+                .values(NewAgentRuntimeRunRecord::starting(
+                    &command.conversation_id,
+                    &command.run_id,
+                    retry_of_run_id.as_deref(),
+                    starting_revision,
+                ))
+                .execute(conn)?;
+            Ok(())
+        }),
+        AgentRuntimeRunMutation::SetState(state) => {
+            if matches!(
+                state,
+                AgentRuntimeRunState::Starting | AgentRuntimeRunState::Finished
+            ) {
+                return Err(PersistAgentRuntimeRunError::InvalidTransition);
+            }
+            let updated = diesel::update(
+                runs_dsl::agent_runtime_runs
+                    .filter(runs_dsl::conversation_id.eq(&command.conversation_id))
+                    .filter(runs_dsl::run_id.eq(&command.run_id))
+                    .filter(runs_dsl::state.ne("finished")),
+            )
+            .set(runs_dsl::state.eq(state.as_database_value()))
+            .execute(conn)?;
+            match updated {
+                1 => Ok(()),
+                _ => Err(PersistAgentRuntimeRunError::RunNotFound),
+            }
+        }
+        AgentRuntimeRunMutation::Finish(outcome) => conn
+            .transaction::<(), PersistAgentRuntimeRunError, _>(|conn| {
+                let current = runs_dsl::agent_runtime_runs
+                    .filter(runs_dsl::conversation_id.eq(&command.conversation_id))
+                    .filter(runs_dsl::run_id.eq(&command.run_id))
+                    .select((runs_dsl::state, runs_dsl::terminal_outcome))
+                    .first::<(String, Option<String>)>(conn)
+                    .optional()?
+                    .ok_or(PersistAgentRuntimeRunError::RunNotFound)?;
+                let outcome_value = outcome.as_database_value();
+                if current.0 == "finished" {
+                    return (current.1.as_deref() == Some(outcome_value))
+                        .then_some(())
+                        .ok_or(PersistAgentRuntimeRunError::InvalidTransition);
+                }
+                diesel::update(
+                    runs_dsl::agent_runtime_runs
+                        .filter(runs_dsl::conversation_id.eq(&command.conversation_id))
+                        .filter(runs_dsl::run_id.eq(&command.run_id)),
+                )
+                .set((
+                    runs_dsl::state.eq("finished"),
+                    runs_dsl::terminal_outcome.eq(outcome_value),
+                ))
+                .execute(conn)?;
+                Ok(())
+            }),
+    }
+}
 
 pub(super) fn commit_agent_runtime_mutation(
     conn: &mut SqliteConnection,

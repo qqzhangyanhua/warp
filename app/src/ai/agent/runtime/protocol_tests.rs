@@ -44,12 +44,12 @@ fn parses_valid_bridge_hello_fixture() {
     let ProtocolMessage::BridgeHello(hello) = message else {
         panic!("expected bridge hello");
     };
-    assert_eq!(hello.protocol_version, 1);
+    assert_eq!(hello.protocol_version, 2);
     assert_eq!(hello.bridge_version, "0.1.0");
     assert_eq!(hello.prompt_version, "warp.v1");
     assert_eq!(
         hello.core_schema_hash,
-        "sha256:b0c4c909ff976b69930e51cb6fb60e12e2e0421992f2e7a69520963d1c95914c"
+        "sha256:7a44caef7fc85b2719d1c3ae7f98bab98f221287a4de6541d6386d1f590c578c"
     );
     assert_eq!(hello.capabilities.len(), 1);
     assert_eq!(hello.capabilities[0].name, "usage.v1");
@@ -81,16 +81,16 @@ fn rejects_bridge_hello_with_mismatched_core_identity() {
         panic!("expected bridge hello");
     };
 
-    hello.protocol_version = 2;
+    hello.protocol_version = 3;
     assert_eq!(
         HandshakePolicy::current().validate(&hello),
         Err(HandshakeError::ProtocolVersionMismatch {
-            expected: 1,
-            actual: 2,
+            expected: 2,
+            actual: 3,
         })
     );
 
-    hello.protocol_version = 1;
+    hello.protocol_version = 2;
     hello.core_schema_hash =
         "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
     assert_eq!(
@@ -280,7 +280,7 @@ fn parses_typed_content_free_terminal_outcomes() {
         .collect::<Result<Vec<_>, _>>()
         .expect("terminal outcome fixtures should parse");
 
-    assert_eq!(messages.len(), 3);
+    assert_eq!(messages.len(), 4);
     assert!(matches!(
         &messages[0],
         ProtocolMessage::RunFinished(finished) if finished.is_cancelled()
@@ -292,6 +292,11 @@ fn parses_typed_content_free_terminal_outcomes() {
     ));
     assert!(matches!(
         &messages[2],
+        ProtocolMessage::RunFinished(finished)
+            if finished.error_code() == Some("provider_redirect_not_allowed")
+    ));
+    assert!(matches!(
+        &messages[3],
         ProtocolMessage::RunFinished(finished) if finished.tool_request_limit() == Some(32)
     ));
 }

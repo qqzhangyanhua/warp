@@ -1,15 +1,15 @@
 # Warp Bridge Protocol
 
-`core-v1.schema.json` is the authoritative Core Protocol schema. The TypeScript Bridge and Warp
+`core-v2.schema.json` is the authoritative Core Protocol schema. The TypeScript Bridge and Warp
 Rust implementation must both accept every fixture under `fixtures/valid` and reject every fixture
 under `fixtures/invalid`.
 
 The Core Protocol schema hash is the lowercase SHA-256 digest of the schema file's exact bytes,
-prefixed with `sha256:`. Changing the schema changes the hash; an incompatible Core change also
-requires a protocol major-version change.
+prefixed with `sha256:`. Changing the Core schema changes the hash and requires a protocol
+major-version change.
 
 The current Core identity is
-`sha256:b0c4c909ff976b69930e51cb6fb60e12e2e0421992f2e7a69520963d1c95914c`.
+`sha256:7a44caef7fc85b2719d1c3ae7f98bab98f221287a4de6541d6386d1f590c578c`.
 `src/protocol-identity.ts`, the valid Bridge hello fixture, and the fake Bridge must match these
 exact bytes. The Bridge test suite verifies that identity on every run.
 

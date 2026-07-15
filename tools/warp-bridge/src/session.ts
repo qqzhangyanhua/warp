@@ -5,7 +5,7 @@ import {
   PROMPT_VERSION,
 } from "./protocol-identity.js";
 import { parseProtocolLine } from "./protocol.js";
-import type { BridgeHello, ProtocolMessage } from "./protocol.js";
+import type { BridgeHello, ProtocolMessage, RunStart, TranscriptItem } from "./protocol.js";
 
 const MAX_HANDSHAKE_FRAME_BYTES = 64 * 1024;
 
@@ -13,10 +13,20 @@ type SessionState = "awaiting_handshake" | "ready" | "rejected";
 
 interface TranscriptCandidate {
   syncId: string;
+  conversationId: string;
+  revision: number;
   expectedItems: number;
   expectedBytes: number;
   nextIndex: number;
   receivedBytes: number;
+  items: TranscriptItem[];
+}
+
+export interface AcceptedTranscript {
+  syncId: string;
+  conversationId: string;
+  revision: number;
+  items: TranscriptItem[];
 }
 
 export class BridgeSessionError extends Error {
@@ -31,6 +41,7 @@ export class BridgeProtocolSession {
   private maxFrameBytes = MAX_HANDSHAKE_FRAME_BYTES;
   private maxTranscriptBytes = 0;
   private transcriptCandidate: TranscriptCandidate | undefined;
+  private acceptedTranscript: AcceptedTranscript | undefined;
 
   hello(): BridgeHello {
     return {
@@ -45,6 +56,25 @@ export class BridgeProtocolSession {
 
   isReady(): boolean {
     return this.state === "ready";
+  }
+
+  transcriptForRun(start: RunStart): TranscriptItem[] {
+    const transcript = this.acceptedTranscript;
+    if (
+      transcript === undefined ||
+      transcript.conversationId !== start.conversation_id ||
+      transcript.revision !== start.transcript_revision
+    ) {
+      throw new BridgeSessionError();
+    }
+    return [...transcript.items];
+  }
+
+  acceptedTranscriptIdentity(): AcceptedTranscript | undefined {
+    const transcript = this.acceptedTranscript;
+    return transcript === undefined
+      ? undefined
+      : { ...transcript, items: [...transcript.items] };
   }
 
   receiveInboundLine(line: string): ProtocolMessage {
@@ -94,10 +124,13 @@ export class BridgeProtocolSession {
       }
       this.transcriptCandidate = {
         syncId: message.sync_id,
+        conversationId: message.conversation_id,
+        revision: message.revision,
         expectedItems: message.item_count,
         expectedBytes: message.total_bytes,
         nextIndex: 0,
         receivedBytes: 0,
+        items: [],
       };
       return;
     }
@@ -114,6 +147,7 @@ export class BridgeProtocolSession {
       }
       candidate.nextIndex += 1;
       candidate.receivedBytes += Buffer.byteLength(line, "utf8");
+      candidate.items.push(message.item);
       if (
         candidate.receivedBytes > candidate.expectedBytes ||
         candidate.receivedBytes > this.maxTranscriptBytes
@@ -132,6 +166,12 @@ export class BridgeProtocolSession {
       ) {
         throw new BridgeSessionError();
       }
+      this.acceptedTranscript = {
+        syncId: candidate.syncId,
+        conversationId: candidate.conversationId,
+        revision: candidate.revision,
+        items: candidate.items,
+      };
       this.transcriptCandidate = undefined;
       return;
     }

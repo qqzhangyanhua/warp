@@ -42,5 +42,6 @@ test("fake Bridge handshakes before emitting scripted events", async () => {
     "run_finished",
     "run_finished",
     "run_finished",
+    "run_finished",
   ]);
 });

@@ -1,6 +1,6 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 
-import coreSchema from "../protocol/core-v1.schema.json" with { type: "json" };
+import coreSchema from "../protocol/core-v2.schema.json" with { type: "json" };
 
 export interface ProtocolCapability {
   name: string;
@@ -10,7 +10,7 @@ export interface ProtocolCapability {
 
 export interface BridgeHello {
   type: "bridge_hello";
-  protocol_version: 1;
+  protocol_version: 2;
   core_schema_hash: string;
   bridge_version: string;
   capabilities: ProtocolCapability[];
@@ -241,6 +241,7 @@ export type RunFailureCode =
   | "commit_timeout"
   | "provider_http_error"
   | "provider_protocol_error"
+  | "provider_redirect_not_allowed"
   | "provider_transport_error"
   | "revision_conflict"
   | "runtime_failure"

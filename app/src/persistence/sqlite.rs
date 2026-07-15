@@ -52,7 +52,7 @@ use super::agent::{
     backfill_conversation_summaries, delete_agent_conversations, read_agent_conversation_metadata,
     upsert_agent_conversation,
 };
-use super::agent_runtime::commit_agent_runtime_mutation;
+use super::agent_runtime::{commit_agent_runtime_mutation, persist_agent_runtime_run};
 use super::block_list::{
     delete_ai_conversation, delete_blocks, save_block, update_block_agent_view_visibility,
     upsert_ai_query,
@@ -409,7 +409,7 @@ fn migrate_old_sqlite_into_secure_container_if_needed(db_path: &Path) {
 }
 
 /// Creates or connects to the database at `database_path` and runs any migrations.
-fn setup_database(database_path: &Path) -> Result<SqliteConnection> {
+pub(crate) fn setup_database(database_path: &Path) -> Result<SqliteConnection> {
     let db_url = database_path
         .to_str()
         .ok_or_else(|| anyhow!("Failed to convert db path to a string"))?;
@@ -524,7 +524,10 @@ fn reconstruct_database(path: &Path) -> Result<SqliteConnection> {
     setup_database(path)
 }
 
-fn start_writer(conn: SqliteConnection, database_path: PathBuf) -> Result<WriterHandles> {
+pub(crate) fn start_writer(
+    conn: SqliteConnection,
+    database_path: PathBuf,
+) -> Result<WriterHandles> {
     let (tx, rx) = std::sync::mpsc::sync_channel(CHANNEL_SIZE);
     let mut current_conn = conn;
     let handle = thread::Builder::new()
@@ -743,6 +746,11 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
             let result = commit_agent_runtime_mutation(connection, &mutation);
             // A dropped receiver does not undo a durable commit; redelivery is idempotent.
             let _ = mutation.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::PersistAgentRuntimeRun(command) => {
+            let result = persist_agent_runtime_run(connection, &command);
+            let _ = command.acknowledgement.send(result);
             Ok(())
         }
         ModelEvent::BackfillConversationSummaries { backfills } => {
@@ -3207,3 +3215,7 @@ mod tests;
 #[cfg(test)]
 #[path = "sqlite_agent_runtime_tests.rs"]
 mod agent_runtime_tests;
+
+#[cfg(test)]
+#[path = "sqlite_agent_runtime_run_lifecycle_tests.rs"]
+mod agent_runtime_run_lifecycle_tests;

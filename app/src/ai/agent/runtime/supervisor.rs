@@ -4,12 +4,18 @@ use std::path::PathBuf;
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 
+use futures::channel::{mpsc, oneshot};
 use futures::lock::Mutex as AsyncMutex;
 use parking_lot::Mutex;
 use thiserror::Error;
 use warpui_core::r#async::executor::Background;
 
 use super::bridge_process::{BridgeLaunchConfig, BridgeProcess, BridgeProcessError};
+use super::text_run;
+pub(super) use super::text_run::{RuntimeEvent, TextRunRequest, TextRunResult};
+use crate::persistence::{
+    CommitAgentRuntimeMutationError, ModelEvent, PersistAgentRuntimeRunError,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct RuntimeSupervisorConfig {
@@ -40,18 +46,36 @@ pub(crate) enum RuntimeError {
     NoActiveRun,
     #[error("Agent Run identity does not match the active run")]
     RunIdentityMismatch,
+    #[error(transparent)]
+    RunPersistence(#[from] PersistAgentRuntimeRunError),
+    #[error(transparent)]
+    CommitPersistence(#[from] CommitAgentRuntimeMutationError),
+    #[error("Agent Runtime persistence writer is unavailable")]
+    PersistenceUnavailable,
+    #[error("Agent Runtime persistence acknowledgement was dropped")]
+    PersistenceAcknowledgementDropped,
+    #[error("Bridge assistant output is invalid for a text-only Agent Run")]
+    InvalidAssistantOutput,
 }
 
-struct RuntimeEntry {
-    conversation_id: String,
-    process: AsyncMutex<Option<BridgeProcess>>,
-    state: Mutex<RuntimeEntryState>,
+pub(super) struct RuntimeEntry {
+    pub(super) conversation_id: String,
+    pub(super) process: AsyncMutex<Option<BridgeProcess>>,
+    pub(super) state: Mutex<RuntimeEntryState>,
 }
 
-struct RuntimeEntryState {
-    active_run_id: Option<String>,
-    last_used: Instant,
-    evicted: bool,
+pub(super) struct RuntimeEntryState {
+    pub(super) active_run_id: Option<String>,
+    pub(super) text_run_commands: Option<mpsc::UnboundedSender<TextRunCommand>>,
+    pub(super) last_used: Instant,
+    pub(super) evicted: bool,
+}
+
+pub(super) enum TextRunCommand {
+    Cancel {
+        grace_period: Duration,
+        acknowledgement: oneshot::Sender<Result<(), BridgeProcessError>>,
+    },
 }
 
 impl RuntimeEntry {
@@ -61,6 +85,7 @@ impl RuntimeEntry {
             process: AsyncMutex::new(None),
             state: Mutex::new(RuntimeEntryState {
                 active_run_id: None,
+                text_run_commands: None,
                 last_used: Instant::now(),
                 evicted: false,
             }),
@@ -127,7 +152,10 @@ impl AgentRuntimeSupervisor {
             None => true,
         };
         if should_launch {
-            entry.state.lock().active_run_id = None;
+            let mut state = entry.state.lock();
+            state.active_run_id = None;
+            state.text_run_commands = None;
+            drop(state);
             let launched = BridgeProcess::launch(
                 &self.inner.launch_config,
                 self.inner.config.handshake_timeout,
@@ -154,6 +182,7 @@ impl AgentRuntimeSupervisor {
             {
                 let mut state = entry.state.lock();
                 state.active_run_id = None;
+                state.text_run_commands = None;
                 state.evicted = true;
             }
             entry.shutdown_process().await;
@@ -191,6 +220,7 @@ impl AgentRuntimeSupervisor {
         {
             let mut state = entry.state.lock();
             state.active_run_id = None;
+            state.text_run_commands = None;
             state.evicted = true;
         }
         entry.shutdown_process().await;
@@ -203,7 +233,51 @@ pub(crate) struct AgentRuntimeHandle {
 }
 
 impl AgentRuntimeHandle {
+    pub(super) async fn run_text<F>(
+        &self,
+        persistence: &std::sync::mpsc::SyncSender<ModelEvent>,
+        request: TextRunRequest,
+        on_event: F,
+    ) -> Result<TextRunResult, RuntimeError>
+    where
+        F: FnMut(RuntimeEvent),
+    {
+        let run_id = request.run_id().to_string();
+        let (commands, command_receiver) = mpsc::unbounded();
+        self.start_run_with_commands(run_id.clone(), Some(commands))
+            .await?;
+        let entry = self.entry.upgrade().ok_or(RuntimeError::StaleHandle)?;
+        let result = text_run::execute(
+            entry.clone(),
+            persistence,
+            request,
+            command_receiver,
+            on_event,
+        )
+        .await;
+        if result.is_err() {
+            if let Some(process) = entry.process.lock().await.take() {
+                process.shutdown().await;
+            }
+        }
+        let mut state = entry.state.lock();
+        if state.active_run_id.as_deref() == Some(run_id.as_str()) {
+            state.active_run_id = None;
+            state.text_run_commands = None;
+            state.last_used = Instant::now();
+        }
+        result
+    }
+
     pub(crate) async fn start_run(&self, run_id: impl Into<String>) -> Result<(), RuntimeError> {
+        self.start_run_with_commands(run_id, None).await
+    }
+
+    async fn start_run_with_commands(
+        &self,
+        run_id: impl Into<String>,
+        text_run_commands: Option<mpsc::UnboundedSender<TextRunCommand>>,
+    ) -> Result<(), RuntimeError> {
         let entry = self.entry.upgrade().ok_or(RuntimeError::StaleHandle)?;
         let mut process = entry.process.lock().await;
         let is_running = process
@@ -221,6 +295,7 @@ impl AgentRuntimeHandle {
             return Err(RuntimeError::RunAlreadyActive);
         }
         state.active_run_id = Some(run_id.into());
+        state.text_run_commands = text_run_commands;
         state.last_used = Instant::now();
         Ok(())
     }
@@ -234,6 +309,7 @@ impl AgentRuntimeHandle {
         match state.active_run_id.as_deref() {
             Some(active) if active == run_id => {
                 state.active_run_id = None;
+                state.text_run_commands = None;
                 state.last_used = Instant::now();
                 Ok(())
             }
@@ -244,16 +320,32 @@ impl AgentRuntimeHandle {
 
     pub(crate) async fn cancel_run(&self) -> Result<(), RuntimeError> {
         let entry = self.entry.upgrade().ok_or(RuntimeError::StaleHandle)?;
-        let run_id = {
+        let (run_id, text_run_commands) = {
             let state = entry.state.lock();
             if state.evicted {
                 return Err(RuntimeError::StaleHandle);
             }
-            state
-                .active_run_id
-                .clone()
-                .ok_or(RuntimeError::NoActiveRun)?
+            (
+                state
+                    .active_run_id
+                    .clone()
+                    .ok_or(RuntimeError::NoActiveRun)?,
+                state.text_run_commands.clone(),
+            )
         };
+        if let Some(commands) = text_run_commands {
+            let (acknowledgement, acknowledged) = oneshot::channel();
+            commands
+                .unbounded_send(TextRunCommand::Cancel {
+                    grace_period: self.cancellation_grace_period,
+                    acknowledgement,
+                })
+                .map_err(|_| BridgeProcessError::UnexpectedExit)?;
+            return acknowledged
+                .await
+                .map_err(|_| BridgeProcessError::UnexpectedExit)?
+                .map_err(RuntimeError::from);
+        }
         let mut process = entry.process.lock().await;
         let cancellation = process
             .as_mut()

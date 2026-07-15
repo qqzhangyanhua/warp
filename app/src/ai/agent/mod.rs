@@ -6,6 +6,7 @@ pub(crate) mod api;
 pub(crate) mod comment;
 pub(crate) mod icons;
 pub(crate) mod linearization;
+pub(crate) mod provider_tool_name;
 pub(crate) mod redaction;
 pub(crate) mod runtime;
 pub(crate) mod task;

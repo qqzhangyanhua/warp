@@ -4,11 +4,17 @@ use std::io::BufRead;
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 
+mod lifecycle;
 mod wire;
 
+use lifecycle::map_run_finished;
+pub(super) use lifecycle::{
+    LifecycleMessage, RuntimeAssistantCommit, RuntimeFailureCode, RuntimeRunFinished,
+    RuntimeRunOutcome, RuntimeRunStatus, RuntimeTextDelta,
+};
 use wire::*;
 
-const CORE_PROTOCOL_VERSION: u32 = 1;
+const CORE_PROTOCOL_VERSION: u32 = 2;
 
 struct ProtocolCodec {
     max_frame_bytes: usize,
@@ -80,15 +86,6 @@ pub(super) struct ProtocolSession {
     handshake_policy: HandshakePolicy,
     handshake_state: HandshakeState,
     tool_request_fingerprints: HashMap<(String, String), [u8; 32]>,
-}
-
-pub(super) enum LifecycleMessage {
-    BridgeHello,
-    RunCancelled {
-        conversation_id: String,
-        run_id: String,
-    },
-    Other,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -177,25 +174,44 @@ impl ProtocolSession {
             .map_err(|_| LifecycleSessionError)?;
         Ok(match message {
             ProtocolMessage::BridgeHello(_) => LifecycleMessage::BridgeHello,
+            ProtocolMessage::TranscriptSyncResult(TranscriptSyncResult::Accepted {
+                sync_id,
+                revision,
+            }) => LifecycleMessage::TranscriptSyncAccepted { sync_id, revision },
+            ProtocolMessage::RunStatus(status) => LifecycleMessage::RunStatus {
+                conversation_id: status.conversation_id,
+                run_id: status.run_id,
+                status: match status.status {
+                    RunState::Running => RuntimeRunStatus::Running,
+                    RunState::WaitingForCommit => RuntimeRunStatus::WaitingForCommit,
+                    RunState::WaitingForToolResult => RuntimeRunStatus::WaitingForToolResult,
+                },
+            },
+            ProtocolMessage::TextDelta(delta) => LifecycleMessage::TextDelta(RuntimeTextDelta {
+                conversation_id: delta.conversation_id,
+                run_id: delta.run_id,
+                event_id: delta.event_id,
+                delta: delta.delta,
+            }),
+            ProtocolMessage::AssistantMessageCommit(commit) => {
+                LifecycleMessage::AssistantMessageCommit(RuntimeAssistantCommit {
+                    conversation_id: commit.conversation_id,
+                    run_id: commit.run_id,
+                    event_id: commit.event_id,
+                    commit_id: commit.commit_id,
+                    message_id: commit.message_id,
+                    expected_revision: commit.expected_revision,
+                    content: commit.content,
+                })
+            }
             ProtocolMessage::RunFinished(finished) => {
-                if let Some((conversation_id, run_id)) = finished.cancelled_identity() {
-                    LifecycleMessage::RunCancelled {
-                        conversation_id: conversation_id.to_owned(),
-                        run_id: run_id.to_owned(),
-                    }
-                } else {
-                    LifecycleMessage::Other
-                }
+                LifecycleMessage::RunFinished(map_run_finished(finished))
             }
             ProtocolMessage::HandshakeResult(_)
             | ProtocolMessage::TranscriptSyncBegin(_)
             | ProtocolMessage::TranscriptSyncItem(_)
             | ProtocolMessage::TranscriptSyncCommit(_)
-            | ProtocolMessage::TranscriptSyncResult(_)
             | ProtocolMessage::RunStart(_)
-            | ProtocolMessage::RunStatus(_)
-            | ProtocolMessage::TextDelta(_)
-            | ProtocolMessage::AssistantMessageCommit(_)
             | ProtocolMessage::CommitResult(_)
             | ProtocolMessage::RunCancel(_)
             | ProtocolMessage::ToolRequest(_)
@@ -370,6 +386,10 @@ impl RunFinished {
                 error_code: RunFailureCode::ProviderProtocolError,
                 ..
             } => Some("provider_protocol_error"),
+            Self::Failed {
+                error_code: RunFailureCode::ProviderRedirectNotAllowed,
+                ..
+            } => Some("provider_redirect_not_allowed"),
             Self::Failed {
                 error_code: RunFailureCode::ProviderTransportError,
                 ..

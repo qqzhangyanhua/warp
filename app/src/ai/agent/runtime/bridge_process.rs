@@ -8,13 +8,21 @@ use command::r#async::Command;
 use command::Stdio;
 use futures::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
 use parking_lot::Mutex;
+use serde::Serialize;
 use serde_json::json;
 use tempfile::TempDir;
 use thiserror::Error;
 use warpui_core::r#async::executor::{Background, BackgroundTask};
 use warpui_core::r#async::FutureExt as _;
 
-use super::protocol::{HandshakePolicy, LifecycleMessage, LifecycleSessionError, ProtocolSession};
+use super::configuration::RunConfiguration;
+use super::protocol::{
+    HandshakePolicy, LifecycleMessage, LifecycleSessionError, ProtocolSession,
+    RuntimeAssistantCommit, RuntimeRunFinished, RuntimeRunOutcome, RuntimeRunStatus,
+    RuntimeTextDelta,
+};
+use super::transcript::RuntimeTranscript;
+use super::transcript_sync::TranscriptSync;
 
 const MAX_HANDSHAKE_FRAME_BYTES: usize = 64 * 1024;
 const MAX_FRAME_BYTES: usize = 1024 * 1024;
@@ -46,7 +54,7 @@ pub(super) struct BridgeStderrSummary {
     pub truncated: bool,
 }
 
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Error, PartialEq, Eq)]
 pub(crate) enum BridgeProcessError {
     #[error("Bridge process could not be started")]
     SpawnFailed,
@@ -81,6 +89,13 @@ pub(super) struct BridgeProcess {
     working_directory: TempDir,
     stderr_summary: Arc<Mutex<BridgeStderrSummary>>,
     stderr_task: Option<BackgroundTask>,
+}
+
+pub(super) enum BridgeRunEvent {
+    Status(RuntimeRunStatus),
+    TextDelta(RuntimeTextDelta),
+    AssistantMessageCommit(RuntimeAssistantCommit),
+    Finished(RuntimeRunFinished),
 }
 
 impl BridgeProcess {
@@ -188,16 +203,104 @@ impl BridgeProcess {
             Err(_) => return Err(BridgeProcessError::CancellationTimedOut),
         };
         match response {
-            LifecycleMessage::RunCancelled {
-                conversation_id: cancelled_conversation_id,
-                run_id: cancelled_run_id,
-            } if cancelled_conversation_id == conversation_id && cancelled_run_id == run_id => {
+            LifecycleMessage::RunFinished(finished)
+                if finished.conversation_id == conversation_id
+                    && finished.run_id == run_id
+                    && finished.outcome == RuntimeRunOutcome::Cancelled =>
+            {
                 Ok(())
             }
             LifecycleMessage::BridgeHello
-            | LifecycleMessage::RunCancelled { .. }
+            | LifecycleMessage::TranscriptSyncAccepted { .. }
+            | LifecycleMessage::RunStatus { .. }
+            | LifecycleMessage::TextDelta(_)
+            | LifecycleMessage::AssistantMessageCommit(_)
+            | LifecycleMessage::RunFinished(_)
             | LifecycleMessage::Other => Err(BridgeProcessError::UnexpectedCancellationResponse),
         }
+    }
+
+    pub(super) async fn start_text_run(
+        &mut self,
+        transcript: &RuntimeTranscript,
+        run_id: &str,
+        configuration: &RunConfiguration,
+    ) -> Result<(), BridgeProcessError> {
+        let sync_id = format!("{run_id}:transcript:{}", transcript.revision());
+        let sync = TranscriptSync::new(&sync_id, transcript, MAX_FRAME_BYTES, MAX_TRANSCRIPT_BYTES)
+            .map_err(|_| BridgeProcessError::ProtocolViolation)?;
+        for line in sync.lines() {
+            self.write_message(line).await?;
+        }
+        match self.read_message().await? {
+            LifecycleMessage::TranscriptSyncAccepted {
+                sync_id: accepted_sync_id,
+                revision,
+            } if accepted_sync_id == sync_id && revision == transcript.revision() => {}
+            _ => return Err(BridgeProcessError::ProtocolViolation),
+        }
+
+        let run_start = serde_json::to_string(&RunStartFrame {
+            message_type: "run_start",
+            conversation_id: transcript.conversation_id(),
+            run_id,
+            transcript_revision: transcript.revision(),
+            configuration,
+        })
+        .map_err(|_| BridgeProcessError::ProtocolViolation)?;
+        self.write_message(&run_start).await
+    }
+
+    pub(super) async fn read_run_event(
+        &mut self,
+        conversation_id: &str,
+        run_id: &str,
+    ) -> Result<BridgeRunEvent, BridgeProcessError> {
+        let event = match self.read_message().await? {
+            LifecycleMessage::RunStatus {
+                conversation_id: event_conversation_id,
+                run_id: event_run_id,
+                status,
+            } if event_conversation_id == conversation_id && event_run_id == run_id => {
+                BridgeRunEvent::Status(status)
+            }
+            LifecycleMessage::TextDelta(delta)
+                if delta.conversation_id == conversation_id && delta.run_id == run_id =>
+            {
+                BridgeRunEvent::TextDelta(delta)
+            }
+            LifecycleMessage::AssistantMessageCommit(commit)
+                if commit.conversation_id == conversation_id && commit.run_id == run_id =>
+            {
+                BridgeRunEvent::AssistantMessageCommit(commit)
+            }
+            LifecycleMessage::RunFinished(finished)
+                if finished.conversation_id == conversation_id && finished.run_id == run_id =>
+            {
+                BridgeRunEvent::Finished(finished)
+            }
+            _ => return Err(BridgeProcessError::ProtocolViolation),
+        };
+        Ok(event)
+    }
+
+    pub(super) async fn acknowledge_commit(
+        &mut self,
+        conversation_id: &str,
+        run_id: &str,
+        commit_id: &str,
+        revision: u64,
+    ) -> Result<(), BridgeProcessError> {
+        let message = json!({
+            "type": "commit_result",
+            "conversation_id": conversation_id,
+            "run_id": run_id,
+            "commit_id": commit_id,
+            "status": "committed",
+            "revision": revision,
+        })
+        .to_string();
+        self.write_message(&message).await
     }
 
     pub(super) async fn shutdown(mut self) {
@@ -261,6 +364,16 @@ impl BridgeProcess {
             .receive_lifecycle_inbound(line)
             .map_err(BridgeProcessError::from)
     }
+}
+
+#[derive(Serialize)]
+struct RunStartFrame<'a> {
+    #[serde(rename = "type")]
+    message_type: &'static str,
+    conversation_id: &'a str,
+    run_id: &'a str,
+    transcript_revision: u64,
+    configuration: &'a RunConfiguration,
 }
 
 async fn drain_stderr(mut stderr: ChildStderr, summary: Arc<Mutex<BridgeStderrSummary>>) {

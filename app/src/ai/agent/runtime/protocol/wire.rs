@@ -4,6 +4,8 @@ use std::sync::LazyLock;
 use serde::Deserialize;
 use thiserror::Error;
 
+use super::super::transcript::RuntimeContentBlock;
+
 macro_rules! impl_content_free_debug {
     ($type:ty, $name:literal) => {
         impl fmt::Debug for $type {
@@ -16,7 +18,7 @@ macro_rules! impl_content_free_debug {
 
 pub(super) const CORE_SCHEMA: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../tools/warp-bridge/protocol/core-v1.schema.json"
+    "/../tools/warp-bridge/protocol/core-v2.schema.json"
 ));
 
 static CORE_PROTOCOL_VALIDATOR: LazyLock<jsonschema::Validator> = LazyLock::new(|| {
@@ -136,32 +138,6 @@ enum TranscriptMessageRole {
     Assistant,
 }
 
-#[derive(Deserialize, PartialEq, Eq)]
-#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
-pub(super) enum RuntimeContentBlock {
-    Text {
-        text: String,
-    },
-    Image {
-        mime_type: ImageMimeType,
-        data_base64: String,
-    },
-}
-
-impl_content_free_debug!(RuntimeContentBlock, "RuntimeContentBlock");
-
-#[derive(Debug, Deserialize, PartialEq, Eq)]
-pub(super) enum ImageMimeType {
-    #[serde(rename = "image/gif")]
-    Gif,
-    #[serde(rename = "image/jpeg")]
-    Jpeg,
-    #[serde(rename = "image/png")]
-    Png,
-    #[serde(rename = "image/webp")]
-    Webp,
-}
-
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct TranscriptSyncCommit {
@@ -256,14 +232,14 @@ struct AgentResource {
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct RunStatus {
-    conversation_id: String,
-    run_id: String,
-    status: RunState,
+    pub(super) conversation_id: String,
+    pub(super) run_id: String,
+    pub(super) status: RunState,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum RunState {
+pub(super) enum RunState {
     Running,
     WaitingForCommit,
     WaitingForToolResult,
@@ -272,10 +248,10 @@ enum RunState {
 #[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct TextDelta {
-    conversation_id: String,
-    run_id: String,
-    event_id: String,
-    delta: String,
+    pub(super) conversation_id: String,
+    pub(super) run_id: String,
+    pub(super) event_id: String,
+    pub(super) delta: String,
 }
 
 impl_content_free_debug!(TextDelta, "TextDelta");
@@ -283,13 +259,13 @@ impl_content_free_debug!(TextDelta, "TextDelta");
 #[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct AssistantMessageCommit {
-    conversation_id: String,
-    run_id: String,
-    event_id: String,
+    pub(super) conversation_id: String,
+    pub(super) run_id: String,
+    pub(super) event_id: String,
     pub(super) commit_id: String,
-    message_id: String,
+    pub(super) message_id: String,
     pub(super) expected_revision: u64,
-    content: Vec<RuntimeContentBlock>,
+    pub(super) content: Vec<RuntimeContentBlock>,
 }
 
 impl_content_free_debug!(AssistantMessageCommit, "AssistantMessageCommit");
@@ -336,18 +312,6 @@ pub(super) enum RunFinished {
     },
 }
 
-impl RunFinished {
-    pub(super) fn cancelled_identity(&self) -> Option<(&str, &str)> {
-        match self {
-            Self::Cancelled {
-                conversation_id,
-                run_id,
-            } => Some((conversation_id, run_id)),
-            Self::Completed { .. } | Self::Failed { .. } | Self::LimitReached { .. } => None,
-        }
-    }
-}
-
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub(super) enum RunFailureCode {
@@ -355,6 +319,7 @@ pub(super) enum RunFailureCode {
     CommitTimeout,
     ProviderHttpError,
     ProviderProtocolError,
+    ProviderRedirectNotAllowed,
     ProviderTransportError,
     RevisionConflict,
     RuntimeFailure,

@@ -10,14 +10,25 @@ cfg_if::cfg_if! {
     }
 }
 mod agent_runtime_command;
+#[cfg(all(test, feature = "local_fs"))]
+pub(crate) use agent::upsert_agent_conversation;
+#[cfg(feature = "local_fs")]
+#[allow(
+    unused_imports,
+    reason = "Runtime restart reconstruction consumes this query when selection is enabled in Phase 7"
+)]
+pub(crate) use agent_runtime::read_interrupted_agent_message_ids;
 #[cfg_attr(not(test), allow(unused_imports))]
 pub use agent_runtime_command::{
-    AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation, CommitAgentRuntimeMutationError,
-    CompleteToolOutcomePayload, ToolResultProjectionPayload,
+    AgentRuntimeRunMutation, AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation,
+    CommitAgentRuntimeMutationError, CompleteToolOutcomePayload, PersistAgentRuntimeRun,
+    PersistAgentRuntimeRunError, ToolResultProjectionPayload,
 };
 pub use persistence::model;
 #[cfg_attr(not(feature = "local_fs"), expect(unused_imports))]
 pub use persistence::schema;
+#[cfg(all(test, feature = "local_fs"))]
+pub(crate) use sqlite::{setup_database, start_writer};
 
 #[cfg(feature = "integration_tests")]
 pub mod testing;
@@ -426,6 +437,7 @@ pub enum ModelEvent {
         conversation_data: AgentConversationData,
     },
     CommitAgentRuntimeMutation(CommitAgentRuntimeMutation),
+    PersistAgentRuntimeRun(PersistAgentRuntimeRun),
     /// Persists read-time-derived conversation summaries for rows written
     /// before the `summary` column existed.
     BackfillConversationSummaries {

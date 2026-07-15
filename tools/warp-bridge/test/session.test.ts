@@ -24,7 +24,7 @@ const transcriptSync = readFileSync(
 
 describe("Bridge Protocol session", () => {
   test("pins the exact Core Protocol schema bytes", () => {
-    const schema = readFileSync(resolve(root, "protocol/core-v1.schema.json"));
+    const schema = readFileSync(resolve(root, "protocol/core-v2.schema.json"));
     const actual = `sha256:${createHash("sha256").update(schema).digest("hex")}`;
 
     expect(CORE_SCHEMA_HASH).toBe(actual);
@@ -46,7 +46,7 @@ describe("Bridge Protocol session", () => {
     const hello = new BridgeProtocolSession().hello();
 
     expect(hello.core_schema_hash).toBe(CORE_SCHEMA_HASH);
-    expect(hello.protocol_version).toBe(1);
+    expect(hello.protocol_version).toBe(2);
   });
 
   test("rejects a Transcript Sync above the negotiated total limit", () => {

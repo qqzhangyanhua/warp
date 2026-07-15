@@ -33,7 +33,7 @@ struct NewAgentTask {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(super) enum UpsertConversationError {
+pub(crate) enum UpsertConversationError {
     #[error("Invalid conversation data JSON: {0:?}")]
     ConversationData(#[from] serde_json::Error),
     #[error("Cannot change an existing conversation's Agent Runtime binding")]
@@ -48,7 +48,7 @@ pub(super) enum UpsertConversationError {
 /// an active session is never split even if it pushes past the cap.
 pub(super) const MAX_PERSISTED_CONVERSATION_COUNT: usize = 200;
 
-pub(super) fn upsert_agent_conversation<'a>(
+pub(crate) fn upsert_agent_conversation<'a>(
     conn: &mut SqliteConnection,
     conversation_id_param: &str,
     tasks: impl IntoIterator<Item = &'a api::Task>,
