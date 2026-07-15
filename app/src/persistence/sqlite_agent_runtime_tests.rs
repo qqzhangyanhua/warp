@@ -9,8 +9,8 @@ use super::{setup_database, start_writer, upsert_agent_conversation};
 use crate::persistence::agent::read_agent_conversation_by_id;
 use crate::persistence::model::{
     AgentConversationData, AgentRuntimeBinding, AgentToolExecutionRecord, AgentToolExecutionState,
-    NewAgentRuntimeRunRecord, NewAgentToolExecutionRecord, COMPLETE_TOOL_OUTCOME_ENCODING_VERSION,
-    TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+    NewAgentRuntimeRunRecord, NewAgentToolExecutionRecord, VersionedToolRequest,
+    COMPLETE_TOOL_OUTCOME_ENCODING_VERSION, TOOL_RESULT_PROJECTION_ENCODING_VERSION,
 };
 use crate::persistence::schema::agent_runtime_runs::dsl as runs_dsl;
 use crate::persistence::schema::agent_tool_execution_records::dsl as tools_dsl;
@@ -72,6 +72,7 @@ impl RuntimeWriterHarness {
                     RUN_ID,
                     TOOL_CALL_ID,
                     &request_fingerprint,
+                    VersionedToolRequest::current(b"request"),
                 ))
                 .execute(&mut conn)
                 .expect("Tool Execution Record should insert");

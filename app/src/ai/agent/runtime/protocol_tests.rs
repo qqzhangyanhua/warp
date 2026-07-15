@@ -360,34 +360,6 @@ fn refuses_run_configuration_until_bridge_handshake_succeeds() {
 }
 
 #[test]
-fn accepts_identical_tool_redelivery_but_rejects_identity_reuse_with_new_arguments() {
-    let request = TOOL_LIFECYCLE
-        .lines()
-        .next()
-        .expect("tool lifecycle fixture must contain a request");
-    let changed_request = request.replace(r#""pwd""#, r#""whoami""#);
-    let mut session = ProtocolSession::new(1_048_576, HandshakePolicy::current());
-    session
-        .receive_inbound(VALID_BRIDGE_HELLO.trim())
-        .expect("valid Bridge hello should validate compatibility");
-    session
-        .authorize_outbound_line(ACCEPTED_HANDSHAKE_RESULT.trim())
-        .expect("accepted handshake result should complete the handshake");
-
-    session
-        .receive_inbound(request)
-        .expect("first tool request should be accepted");
-    session
-        .receive_inbound(request)
-        .expect("identical tool request redelivery should be idempotent");
-    let error = session
-        .receive_inbound(&changed_request)
-        .expect_err("tool identity reuse for a different request must fail");
-
-    assert_eq!(error, SessionError::ToolCallIdentityReused);
-}
-
-#[test]
 fn protocol_errors_and_debug_output_redact_supplied_content() {
     let run_start = TEXT_RUN_LIFECYCLE
         .lines()
@@ -404,6 +376,9 @@ fn protocol_errors_and_debug_output_redact_supplied_content() {
         .expect_err("malformed JSON must produce a protocol error");
     assert!(!format!("{error:?} {error}").contains("secret-provider-body"));
 }
+
+#[path = "protocol/tool_identity_tests.rs"]
+mod tool_identity_tests;
 
 #[test]
 fn sensitive_payload_debug_output_is_content_free() {

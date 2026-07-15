@@ -1,0 +1,2 @@
+ALTER TABLE agent_tool_execution_records DROP COLUMN request_payload;
+ALTER TABLE agent_tool_execution_records DROP COLUMN request_encoding_version;

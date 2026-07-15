@@ -13,6 +13,7 @@ use warpui_core::r#async::executor::Background;
 use super::bridge_process::{BridgeLaunchConfig, BridgeProcess, BridgeProcessError};
 use super::text_run;
 pub(super) use super::text_run::{RuntimeEvent, TextRunRequest, TextRunResult};
+use super::tool_execution::ToolExecutionError;
 use crate::persistence::{
     CommitAgentRuntimeMutationError, ModelEvent, PersistAgentRuntimeRunError,
 };
@@ -56,6 +57,8 @@ pub(crate) enum RuntimeError {
     PersistenceAcknowledgementDropped,
     #[error("Bridge assistant output is invalid for a text-only Agent Run")]
     InvalidAssistantOutput,
+    #[error(transparent)]
+    ToolExecution(#[from] ToolExecutionError),
 }
 
 pub(super) struct RuntimeEntry {

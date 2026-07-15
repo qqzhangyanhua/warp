@@ -12,6 +12,8 @@ mod resources;
 mod supervisor;
 #[cfg(not(target_family = "wasm"))]
 mod text_run;
+mod tool_catalog;
+mod tool_execution;
 mod transcript;
 mod transcript_sync;
 
@@ -49,3 +51,7 @@ mod text_run_integration_tests;
 #[cfg(all(test, not(target_family = "wasm"), feature = "local_fs"))]
 #[path = "text_run_sync_integration_tests.rs"]
 mod text_run_sync_integration_tests;
+
+#[cfg(all(test, not(target_family = "wasm"), feature = "local_fs"))]
+#[path = "tool_run_integration_tests.rs"]
+mod tool_run_integration_tests;

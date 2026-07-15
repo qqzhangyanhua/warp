@@ -9,7 +9,8 @@ const supportsTextRuns =
   mode === "text-run-exit" ||
   mode === "text-run-cancel" ||
   mode === "text-run-hang-cancel" ||
-  mode === "text-run-hang-sync";
+  mode === "text-run-hang-sync" ||
+  mode === "text-run-tool";
 
 if (mode === "hang-handshake") {
   process.stdin.once("data", () => {
@@ -134,6 +135,28 @@ if (mode === "hang-handshake") {
           status: "running",
         })}\n`,
       );
+      if (mode === "text-run-tool") {
+        process.stdout.write(
+          `${JSON.stringify({
+            type: "run_status",
+            conversation_id: message.conversation_id,
+            run_id: message.run_id,
+            status: "waiting_for_tool_result",
+          })}\n`,
+        );
+        process.stdout.write(
+          `${JSON.stringify({
+            type: "tool_request",
+            conversation_id: message.conversation_id,
+            run_id: message.run_id,
+            tool_call_id: "call-1",
+            tool_id: "builtin.run_shell_command",
+            tool_name: "run_shell_command",
+            arguments: { command: "pwd", wait_until_complete: true },
+          })}\n`,
+        );
+        continue;
+      }
       if (mode === "text-run-cancel" || mode === "text-run-hang-cancel") {
         process.stdout.write(
           `${JSON.stringify({
@@ -204,6 +227,29 @@ if (mode === "hang-handshake") {
       ) {
         process.exit(34);
       }
+      process.stdout.write(
+        `${JSON.stringify({
+          type: "run_finished",
+          conversation_id: message.conversation_id,
+          run_id: message.run_id,
+          outcome: "completed",
+        })}\n`,
+      );
+      activeRun = undefined;
+      continue;
+    }
+    if (mode === "text-run-tool" && message.type === "tool_result") {
+      if (
+        activeRun?.run_id !== message.run_id ||
+        message.tool_call_id !== "call-1" ||
+        message.status !== "success"
+      ) {
+        process.exit(36);
+      }
+      appendFileSync(
+        join(observerDirectory, "tool-results.jsonl"),
+        `${JSON.stringify(message)}\n`,
+      );
       process.stdout.write(
         `${JSON.stringify({
           type: "run_finished",

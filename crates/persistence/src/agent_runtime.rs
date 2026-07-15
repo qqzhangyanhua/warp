@@ -5,6 +5,7 @@ use super::schema::{agent_runtime_runs, agent_tool_execution_records};
 
 pub const COMPLETE_TOOL_OUTCOME_ENCODING_VERSION: i32 = 1;
 pub const TOOL_RESULT_PROJECTION_ENCODING_VERSION: i32 = 1;
+pub const TOOL_REQUEST_ENCODING_VERSION: i32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AgentRuntimeRunState {
@@ -132,7 +133,7 @@ pub enum AgentToolExecutionState {
 }
 
 impl AgentToolExecutionState {
-    fn as_database_value(self) -> &'static str {
+    pub fn as_database_value(self) -> &'static str {
         match self {
             Self::Pending => "pending",
             Self::Executing => "executing",
@@ -140,7 +141,7 @@ impl AgentToolExecutionState {
         }
     }
 
-    fn from_database_value(value: &str) -> Option<Self> {
+    pub fn from_database_value(value: &str) -> Option<Self> {
         match value {
             "pending" => Some(Self::Pending),
             "executing" => Some(Self::Executing),
@@ -154,6 +155,36 @@ impl AgentToolExecutionState {
 pub struct VersionedCompleteToolOutcome<'a> {
     encoding_version: i32,
     bytes: &'a [u8],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VersionedToolRequest<'a> {
+    encoding_version: i32,
+    bytes: &'a [u8],
+}
+
+impl<'a> VersionedToolRequest<'a> {
+    pub fn current(bytes: &'a [u8]) -> Self {
+        Self {
+            encoding_version: TOOL_REQUEST_ENCODING_VERSION,
+            bytes,
+        }
+    }
+
+    pub fn from_parts(encoding_version: i32, bytes: &'a [u8]) -> Option<Self> {
+        (encoding_version == TOOL_REQUEST_ENCODING_VERSION).then_some(Self {
+            encoding_version,
+            bytes,
+        })
+    }
+
+    pub fn encoding_version(self) -> i32 {
+        self.encoding_version
+    }
+
+    pub fn bytes(self) -> &'a [u8] {
+        self.bytes
+    }
 }
 
 impl<'a> VersionedCompleteToolOutcome<'a> {
@@ -217,6 +248,8 @@ pub struct NewAgentToolExecutionRecord<'a> {
     run_id: &'a str,
     tool_call_id: &'a str,
     request_fingerprint: &'a [u8],
+    request_encoding_version: i32,
+    request_payload: &'a [u8],
     state: &'static str,
 }
 
@@ -226,12 +259,15 @@ impl<'a> NewAgentToolExecutionRecord<'a> {
         run_id: &'a str,
         tool_call_id: &'a str,
         request_fingerprint: &'a [u8; 32],
+        request: VersionedToolRequest<'a>,
     ) -> Self {
         Self {
             conversation_id,
             run_id,
             tool_call_id,
             request_fingerprint,
+            request_encoding_version: request.encoding_version,
+            request_payload: request.bytes,
             state: AgentToolExecutionState::Pending.as_database_value(),
         }
     }
@@ -271,6 +307,8 @@ pub struct AgentToolExecutionRecord {
     pub run_id: String,
     pub tool_call_id: String,
     pub request_fingerprint: Vec<u8>,
+    request_encoding_version: i32,
+    request_payload: Vec<u8>,
     state: String,
     complete_outcome_encoding_version: Option<i32>,
     complete_outcome: Option<Vec<u8>>,
@@ -281,6 +319,10 @@ pub struct AgentToolExecutionRecord {
 }
 
 impl AgentToolExecutionRecord {
+    pub fn tool_request(&self) -> Option<VersionedToolRequest<'_>> {
+        VersionedToolRequest::from_parts(self.request_encoding_version, &self.request_payload)
+    }
+
     pub fn state(&self) -> Option<AgentToolExecutionState> {
         AgentToolExecutionState::from_database_value(&self.state)
     }

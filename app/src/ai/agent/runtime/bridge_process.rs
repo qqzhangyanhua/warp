@@ -19,9 +19,9 @@ use super::configuration::RunConfiguration;
 use super::protocol::{
     HandshakePolicy, LifecycleMessage, LifecycleSessionError, ProtocolSession,
     RuntimeAssistantCommit, RuntimeRunFinished, RuntimeRunOutcome, RuntimeRunStatus,
-    RuntimeTextDelta,
+    RuntimeTextDelta, RuntimeToolRequest,
 };
-use super::transcript::RuntimeTranscript;
+use super::transcript::{RuntimeTranscript, ToolResultProjection};
 use super::transcript_sync::TranscriptSync;
 
 const MAX_HANDSHAKE_FRAME_BYTES: usize = 64 * 1024;
@@ -95,6 +95,7 @@ pub(super) enum BridgeRunEvent {
     Status(RuntimeRunStatus),
     TextDelta(RuntimeTextDelta),
     AssistantMessageCommit(RuntimeAssistantCommit),
+    ToolRequest(RuntimeToolRequest),
     Finished(RuntimeRunFinished),
 }
 
@@ -215,6 +216,7 @@ impl BridgeProcess {
             | LifecycleMessage::RunStatus { .. }
             | LifecycleMessage::TextDelta(_)
             | LifecycleMessage::AssistantMessageCommit(_)
+            | LifecycleMessage::ToolRequest(_)
             | LifecycleMessage::RunFinished(_)
             | LifecycleMessage::Other => Err(BridgeProcessError::UnexpectedCancellationResponse),
         }
@@ -274,6 +276,11 @@ impl BridgeProcess {
             {
                 BridgeRunEvent::AssistantMessageCommit(commit)
             }
+            LifecycleMessage::ToolRequest(request)
+                if request.conversation_id == conversation_id && request.run_id == run_id =>
+            {
+                BridgeRunEvent::ToolRequest(request)
+            }
             LifecycleMessage::RunFinished(finished)
                 if finished.conversation_id == conversation_id && finished.run_id == run_id =>
             {
@@ -300,6 +307,24 @@ impl BridgeProcess {
             "revision": revision,
         })
         .to_string();
+        self.write_message(&message).await
+    }
+
+    pub(super) async fn acknowledge_tool_result(
+        &mut self,
+        conversation_id: &str,
+        run_id: &str,
+        tool_call_id: &str,
+        result: &ToolResultProjection,
+    ) -> Result<(), BridgeProcessError> {
+        let message = serde_json::to_string(&ToolResultFrame {
+            message_type: "tool_result",
+            conversation_id,
+            run_id,
+            tool_call_id,
+            result,
+        })
+        .map_err(|_| BridgeProcessError::ProtocolViolation)?;
         self.write_message(&message).await
     }
 
@@ -374,6 +399,17 @@ struct RunStartFrame<'a> {
     run_id: &'a str,
     transcript_revision: u64,
     configuration: &'a RunConfiguration,
+}
+
+#[derive(Serialize)]
+struct ToolResultFrame<'a> {
+    #[serde(rename = "type")]
+    message_type: &'static str,
+    conversation_id: &'a str,
+    run_id: &'a str,
+    tool_call_id: &'a str,
+    #[serde(flatten)]
+    result: &'a ToolResultProjection,
 }
 
 async fn drain_stderr(mut stderr: ChildStderr, summary: Arc<Mutex<BridgeStderrSummary>>) {

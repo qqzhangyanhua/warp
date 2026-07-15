@@ -6,17 +6,18 @@ use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt as _};
 use warp_multi_agent_api as api;
 
+mod cancel;
 mod commit;
+mod recovery;
 
-use commit::{commit_interrupted_output, commit_output, OutputCommitRequest};
+use commit::{assistant_text, commit_interrupted_output, commit_output, OutputCommitRequest};
 
 use super::bridge_process::{BridgeProcessError, BridgeRunEvent};
 use super::configuration::RunConfiguration;
-use super::protocol::{
-    RuntimeAssistantCommit, RuntimeFailureCode, RuntimeRunOutcome, RuntimeRunStatus,
-};
+use super::protocol::{RuntimeFailureCode, RuntimeRunOutcome, RuntimeRunStatus};
 use super::supervisor::{RuntimeEntry, RuntimeError, TextRunCommand};
-use super::transcript::{RuntimeContentBlock, RuntimeTranscript};
+use super::tool_execution::{ToolExecutionAuthority, ToolRunState};
+use super::transcript::RuntimeTranscript;
 use crate::persistence::model::{
     AgentConversationData, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
 };
@@ -29,6 +30,7 @@ pub(super) struct TextRunRequest {
     tasks: Vec<api::Task>,
     conversation_data: AgentConversationData,
     output_task_id: String,
+    tool_execution_authority: Option<Arc<ToolExecutionAuthority>>,
 }
 
 impl TextRunRequest {
@@ -50,7 +52,16 @@ impl TextRunRequest {
             tasks,
             conversation_data,
             output_task_id: output_task_id.into(),
+            tool_execution_authority: None,
         }
+    }
+
+    pub(super) fn with_tool_execution_authority(
+        mut self,
+        authority: Arc<ToolExecutionAuthority>,
+    ) -> Self {
+        self.tool_execution_authority = Some(authority);
+        self
     }
 
     pub(super) fn run_id(&self) -> &str {
@@ -114,13 +125,14 @@ impl TextRunResult {
 pub(super) async fn execute<F>(
     entry: Arc<RuntimeEntry>,
     persistence: &SyncSender<ModelEvent>,
-    request: TextRunRequest,
+    mut request: TextRunRequest,
     commands: mpsc::UnboundedReceiver<TextRunCommand>,
     on_event: F,
 ) -> Result<TextRunResult, RuntimeError>
 where
     F: FnMut(RuntimeEvent),
 {
+    recovery::materialize_before_start(&entry, &mut request).await?;
     persist_run(
         persistence,
         &entry.conversation_id,
@@ -181,26 +193,17 @@ where
             let cancellation = process
                 .cancel_run(&entry.conversation_id, &request.run_id, grace_period)
                 .await;
-            let cancellation_for_caller = cancellation.as_ref().map(|_| ()).map_err(|error| *error);
-            let _ = acknowledgement.send(cancellation_for_caller);
-            cancellation?;
-            let outcome = TextRunOutcome::Cancelled;
-            persist_run(
+            let revision = request.transcript.revision();
+            return cancel::finish(
+                cancellation,
+                acknowledgement,
                 persistence,
                 &entry.conversation_id,
-                &request.run_id,
-                AgentRuntimeRunMutation::Finish(AgentRuntimeTerminalOutcome::Cancelled),
+                request,
+                revision,
+                &mut on_event,
             )
-            .await?;
-            on_event(RuntimeEvent::RunFinished {
-                run_id: request.run_id.clone(),
-                outcome: outcome.clone(),
-            });
-            return Ok(TextRunResult {
-                outcome,
-                revision: request.transcript.revision(),
-                tasks: request.tasks,
-            });
+            .await;
         }
         StartRunInput::Command(None) => {
             return Err(BridgeProcessError::UnexpectedExit.into());
@@ -250,27 +253,16 @@ where
                     &mut partial_event_id,
                 )
                 .await?;
-                let cancellation_for_caller =
-                    cancellation.as_ref().map(|_| ()).map_err(|error| *error);
-                let _ = acknowledgement.send(cancellation_for_caller);
-                cancellation?;
-                let outcome = TextRunOutcome::Cancelled;
-                persist_run(
+                return cancel::finish(
+                    cancellation,
+                    acknowledgement,
                     persistence,
                     &entry.conversation_id,
-                    &request.run_id,
-                    AgentRuntimeRunMutation::Finish(AgentRuntimeTerminalOutcome::Cancelled),
-                )
-                .await?;
-                on_event(RuntimeEvent::RunFinished {
-                    run_id: request.run_id.clone(),
-                    outcome: outcome.clone(),
-                });
-                return Ok(TextRunResult {
-                    outcome,
+                    request,
                     revision,
-                    tasks: request.tasks,
-                });
+                    &mut on_event,
+                )
+                .await;
             }
             NextRunInput::Command(None) => {
                 return Err(BridgeProcessError::UnexpectedExit.into());
@@ -344,6 +336,68 @@ where
                     )
                     .await?;
             }
+            BridgeRunEvent::ToolRequest(tool_request) => {
+                if !partial_text.is_empty() || partial_event_id.is_some() {
+                    return Err(BridgeProcessError::ProtocolViolation.into());
+                }
+                let authority = request
+                    .tool_execution_authority
+                    .as_ref()
+                    .ok_or(BridgeProcessError::ProtocolViolation)?
+                    .clone();
+                let mut state = ToolRunState {
+                    revision,
+                    tasks: request.tasks.clone(),
+                    conversation_data: request.conversation_data.clone(),
+                    task_id: request.output_task_id.clone(),
+                };
+                let tool_call_id = tool_request.tool_call_id.clone();
+                let result = {
+                    let execution = authority.handle(tool_request, &mut state);
+                    let command = commands.next();
+                    pin_mut!(execution, command);
+                    match select(command, execution).await {
+                        Either::Left((
+                            Some(TextRunCommand::Cancel {
+                                grace_period,
+                                acknowledgement,
+                            }),
+                            execution,
+                        )) => {
+                            drop(execution);
+                            let cancellation = process
+                                .cancel_run(&entry.conversation_id, &request.run_id, grace_period)
+                                .await;
+                            return cancel::finish(
+                                cancellation,
+                                acknowledgement,
+                                persistence,
+                                &entry.conversation_id,
+                                request,
+                                revision,
+                                &mut on_event,
+                            )
+                            .await;
+                        }
+                        Either::Left((None, execution)) => {
+                            drop(execution);
+                            return Err(BridgeProcessError::UnexpectedExit.into());
+                        }
+                        Either::Right((result, _)) => result?,
+                    }
+                };
+                revision = state.revision;
+                request.tasks = state.tasks;
+                request.conversation_data = state.conversation_data;
+                process
+                    .acknowledge_tool_result(
+                        &entry.conversation_id,
+                        &request.run_id,
+                        &tool_call_id,
+                        &result.projection,
+                    )
+                    .await?;
+            }
             BridgeRunEvent::Finished(finished) => {
                 let outcome = text_run_outcome(finished.outcome);
                 if outcome != TextRunOutcome::Completed {
@@ -386,21 +440,6 @@ enum NextRunInput {
 enum StartRunInput {
     Started(Result<(), BridgeProcessError>),
     Command(Option<TextRunCommand>),
-}
-
-fn assistant_text(commit: &RuntimeAssistantCommit) -> Result<String, RuntimeError> {
-    commit
-        .content
-        .iter()
-        .try_fold(String::new(), |mut text, block| {
-            match block {
-                RuntimeContentBlock::Text { text: block } => text.push_str(block),
-                RuntimeContentBlock::Image { .. } => {
-                    return Err(RuntimeError::InvalidAssistantOutput);
-                }
-            }
-            Ok::<_, RuntimeError>(text)
-        })
 }
 
 async fn persist_run(

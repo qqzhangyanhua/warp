@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
 
 use sha2::{Digest as _, Sha256};
@@ -10,7 +10,7 @@ mod wire;
 use lifecycle::map_run_finished;
 pub(super) use lifecycle::{
     LifecycleMessage, RuntimeAssistantCommit, RuntimeFailureCode, RuntimeRunFinished,
-    RuntimeRunOutcome, RuntimeRunStatus, RuntimeTextDelta,
+    RuntimeRunOutcome, RuntimeRunStatus, RuntimeTextDelta, RuntimeToolRequest,
 };
 use wire::*;
 
@@ -71,6 +71,10 @@ enum SessionError {
     UnexpectedBridgeHello,
     #[error("Tool call identity was reused for a different request")]
     ToolCallIdentityReused,
+    #[error("Tool call identity was duplicated before its result")]
+    ToolCallIdentityDuplicated,
+    #[error("Tool result has no pending request")]
+    UnexpectedToolResult,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -86,6 +90,7 @@ pub(super) struct ProtocolSession {
     handshake_policy: HandshakePolicy,
     handshake_state: HandshakeState,
     tool_request_fingerprints: HashMap<(String, String), [u8; 32]>,
+    pending_tool_requests: HashSet<(String, String)>,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -99,6 +104,7 @@ impl ProtocolSession {
             handshake_policy,
             handshake_state: HandshakeState::AwaitingBridgeHello,
             tool_request_fingerprints: HashMap::new(),
+            pending_tool_requests: HashSet::new(),
         }
     }
 
@@ -126,9 +132,13 @@ impl ProtocolSession {
                     if previous != &fingerprint {
                         return Err(SessionError::ToolCallIdentityReused);
                     }
-                } else {
-                    self.tool_request_fingerprints.insert(key, fingerprint);
+                    if self.pending_tool_requests.contains(&key) {
+                        return Err(SessionError::ToolCallIdentityDuplicated);
+                    }
                 }
+                self.tool_request_fingerprints
+                    .insert(key.clone(), fingerprint);
+                self.pending_tool_requests.insert(key);
             }
             _ => {}
         }
@@ -152,6 +162,13 @@ impl ProtocolSession {
         }
         if matches!(message, ProtocolMessage::BridgeHello(_)) {
             return Err(SessionError::UnexpectedBridgeHello);
+        }
+        if let ProtocolMessage::ToolResult(result) = &message {
+            let (run_id, tool_call_id) = result.identity();
+            let key = (run_id.to_string(), tool_call_id.to_string());
+            if !self.pending_tool_requests.remove(&key) {
+                return Err(SessionError::UnexpectedToolResult);
+            }
         }
         Ok(message)
     }
@@ -207,6 +224,16 @@ impl ProtocolSession {
             ProtocolMessage::RunFinished(finished) => {
                 LifecycleMessage::RunFinished(map_run_finished(finished))
             }
+            ProtocolMessage::ToolRequest(request) => {
+                LifecycleMessage::ToolRequest(RuntimeToolRequest {
+                    conversation_id: request.conversation_id,
+                    run_id: request.run_id,
+                    tool_call_id: request.tool_call_id,
+                    tool_id: request.tool_id,
+                    tool_name: request.tool_name,
+                    arguments: request.arguments,
+                })
+            }
             ProtocolMessage::HandshakeResult(_)
             | ProtocolMessage::TranscriptSyncBegin(_)
             | ProtocolMessage::TranscriptSyncItem(_)
@@ -214,7 +241,6 @@ impl ProtocolSession {
             | ProtocolMessage::RunStart(_)
             | ProtocolMessage::CommitResult(_)
             | ProtocolMessage::RunCancel(_)
-            | ProtocolMessage::ToolRequest(_)
             | ProtocolMessage::ToolResult(_) => LifecycleMessage::Other,
         })
     }

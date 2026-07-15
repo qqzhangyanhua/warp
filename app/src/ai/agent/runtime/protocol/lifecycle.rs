@@ -37,6 +37,21 @@ impl std::fmt::Debug for RuntimeAssistantCommit {
     }
 }
 
+pub(in crate::ai::agent::runtime) struct RuntimeToolRequest {
+    pub conversation_id: String,
+    pub run_id: String,
+    pub tool_call_id: String,
+    pub tool_id: String,
+    pub tool_name: String,
+    pub arguments: serde_json::Map<String, serde_json::Value>,
+}
+
+impl std::fmt::Debug for RuntimeToolRequest {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("RuntimeToolRequest")
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ai::agent::runtime) enum RuntimeFailureCode {
     BridgeProtocolError,
@@ -83,6 +98,7 @@ pub(in crate::ai::agent::runtime) enum LifecycleMessage {
     },
     TextDelta(RuntimeTextDelta),
     AssistantMessageCommit(RuntimeAssistantCommit),
+    ToolRequest(RuntimeToolRequest),
     RunFinished(RuntimeRunFinished),
     Other,
 }

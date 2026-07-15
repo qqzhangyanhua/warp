@@ -6,6 +6,8 @@ import type {
   CommittedResult,
   ProtocolMessage,
   RunStart,
+  ToolRequest,
+  ToolResult,
   TranscriptItem,
 } from "../src/protocol.js";
 import type { TextRuntime, TextRunCallbacks } from "../src/text-runtime.js";
@@ -113,6 +115,35 @@ describe("Bridge text runtime session", () => {
       ),
     ).toThrow();
   });
+
+  test("pauses a proxy tool until Warp returns the matching result", async () => {
+    const runtime = new FakeToolRuntime();
+    const outbound: ProtocolMessage[] = [];
+    const bridge = new BridgeTextRuntimeSession((message) => {
+      outbound.push(message);
+    }, runtime);
+    bridge.receive(JSON.stringify(acceptedHandshake()));
+    for (const frame of transcriptSync()) {
+      bridge.receive(JSON.stringify(frame));
+    }
+    bridge.receive(JSON.stringify(runStart()));
+
+    const request = await runtime.toolRequested.promise;
+    expect(outbound.at(-1)).toEqual(request);
+    const result = {
+      type: "tool_result",
+      conversation_id: request.conversation_id,
+      run_id: request.run_id,
+      tool_call_id: request.tool_call_id,
+      status: "success",
+      content: [{ type: "text", text: "workspace output" }],
+      truncated: false,
+    } satisfies ToolResult;
+    bridge.receive(JSON.stringify(result));
+
+    await bridge.waitForIdle();
+    expect(runtime.result).toEqual(result);
+  });
 });
 
 class FakeTextRuntime implements TextRuntime {
@@ -161,6 +192,34 @@ class FakeTextRuntime implements TextRuntime {
       run_id: start.run_id,
       outcome: "completed",
     });
+  }
+}
+
+class FakeToolRuntime implements TextRuntime {
+  readonly toolRequested = deferred<ToolRequest>();
+  result: ToolResult | undefined;
+
+  cancel(): void {}
+
+  async run(
+    _transcript: TranscriptItem[],
+    start: RunStart,
+    callbacks: TextRunCallbacks,
+  ): Promise<void> {
+    const request: ToolRequest = {
+      type: "tool_request",
+      conversation_id: start.conversation_id,
+      run_id: start.run_id,
+      tool_call_id: "call-1",
+      tool_id: "builtin.read_files",
+      tool_name: "read_files",
+      arguments: { files: [{ name: "README.md" }] },
+    };
+    this.toolRequested.resolve(request);
+    if (callbacks.tool === undefined) {
+      throw new Error("Bridge did not provide the Warp tool callback");
+    }
+    this.result = await callbacks.tool(request);
   }
 }
 

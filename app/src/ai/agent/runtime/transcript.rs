@@ -193,6 +193,15 @@ impl RuntimeTranscript {
     pub(super) fn items(&self) -> &[TranscriptItem] {
         &self.items
     }
+
+    pub(super) fn append_recovered_tool_activity(
+        &mut self,
+        revision: u64,
+        items: Vec<TranscriptItem>,
+    ) {
+        self.revision = revision;
+        self.items.extend(items);
+    }
 }
 
 fn paired_tool_call_ids(

@@ -5,9 +5,26 @@ use warp_multi_agent_api as api;
 
 use super::TextRunRequest;
 use crate::ai::agent::runtime::bridge_process::BridgeProcessError;
+use crate::ai::agent::runtime::protocol::RuntimeAssistantCommit;
 use crate::ai::agent::runtime::supervisor::RuntimeError;
+use crate::ai::agent::runtime::transcript::RuntimeContentBlock;
 use crate::persistence::model::{AgentConversationData, AgentRuntimeBinding};
 use crate::persistence::{CommitAgentRuntimeMutation, ModelEvent};
+
+pub(super) fn assistant_text(commit: &RuntimeAssistantCommit) -> Result<String, RuntimeError> {
+    commit
+        .content
+        .iter()
+        .try_fold(String::new(), |mut text, block| {
+            match block {
+                RuntimeContentBlock::Text { text: block } => text.push_str(block),
+                RuntimeContentBlock::Image { .. } => {
+                    return Err(RuntimeError::InvalidAssistantOutput);
+                }
+            }
+            Ok::<_, RuntimeError>(text)
+        })
+}
 
 pub(super) struct CommittedOutput {
     pub(super) tasks: Vec<api::Task>,

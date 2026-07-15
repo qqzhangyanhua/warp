@@ -10,10 +10,10 @@ use warp_multi_agent_api::{self as api};
 
 pub use super::agent_runtime::{
     AgentRuntimeRunRecord, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
-    AgentToolExecutionRecord, AgentToolExecutionState, CompleteAgentToolExecution,
-    NewAgentRuntimeRunRecord, NewAgentToolExecutionRecord, VersionedCompleteToolOutcome,
-    VersionedToolResultProjection, COMPLETE_TOOL_OUTCOME_ENCODING_VERSION,
-    TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+    AgentToolExecutionRecord, AgentToolExecutionState, COMPLETE_TOOL_OUTCOME_ENCODING_VERSION,
+    CompleteAgentToolExecution, NewAgentRuntimeRunRecord, NewAgentToolExecutionRecord,
+    TOOL_REQUEST_ENCODING_VERSION, TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+    VersionedCompleteToolOutcome, VersionedToolRequest, VersionedToolResultProjection,
 };
 use super::schema::{
     active_mcp_servers, agent_conversations, agent_tasks, ai_document_panes, ai_memory_panes,

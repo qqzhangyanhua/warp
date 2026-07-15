@@ -58,6 +58,8 @@ diesel::table! {
         tool_result_projection -> Nullable<Binary>,
         created_at -> Timestamp,
         last_modified_at -> Timestamp,
+        request_encoding_version -> Integer,
+        request_payload -> Binary,
     }
 }
 

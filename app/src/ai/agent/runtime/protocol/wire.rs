@@ -329,12 +329,12 @@ pub(super) enum RunFailureCode {
 #[derive(Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub(super) struct ToolRequest {
-    conversation_id: String,
+    pub(super) conversation_id: String,
     pub(super) run_id: String,
     pub(super) tool_call_id: String,
-    tool_id: String,
-    tool_name: String,
-    arguments: serde_json::Map<String, serde_json::Value>,
+    pub(super) tool_id: String,
+    pub(super) tool_name: String,
+    pub(super) arguments: serde_json::Map<String, serde_json::Value>,
 }
 
 impl_content_free_debug!(ToolRequest, "ToolRequest");
@@ -366,6 +366,28 @@ pub(super) enum ToolResult {
         content: Vec<RuntimeContentBlock>,
         truncated: bool,
     },
+}
+
+impl ToolResult {
+    pub(super) fn identity(&self) -> (&str, &str) {
+        match self {
+            Self::Success {
+                run_id,
+                tool_call_id,
+                ..
+            }
+            | Self::Denied {
+                run_id,
+                tool_call_id,
+                ..
+            }
+            | Self::Error {
+                run_id,
+                tool_call_id,
+                ..
+            } => (run_id, tool_call_id),
+        }
+    }
 }
 
 impl_content_free_debug!(ToolResult, "ToolResult");

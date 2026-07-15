@@ -2,6 +2,7 @@ use serde_json::json;
 
 use super::configuration::{ChatCompletionsProvider, ReasoningEffort, RunConfiguration};
 use super::resources::ResourceSnapshot;
+use super::tool_catalog::ToolCatalog;
 use super::transcript::RuntimeContentBlock;
 
 #[test]
@@ -73,4 +74,40 @@ fn preserves_an_existing_chat_completions_endpoint() {
 fn rejects_provider_urls_without_an_http_origin() {
     assert!(ChatCompletionsProvider::new("not a URL", "model", "key").is_err());
     assert!(ChatCompletionsProvider::new("file:///tmp/provider", "model", "key").is_err());
+}
+
+#[test]
+fn builds_an_immutable_initial_tool_catalog_for_an_agent_run() {
+    let provider =
+        ChatCompletionsProvider::new("https://provider.example/v1", "model", "key").unwrap();
+    let configuration = RunConfiguration::with_tools(
+        provider,
+        "/workspace",
+        32_768,
+        ReasoningEffort::Medium,
+        &ToolCatalog::initial(None).unwrap(),
+        vec![],
+    )
+    .unwrap();
+    let value = serde_json::to_value(configuration).unwrap();
+
+    assert_eq!(value["tool_request_limit"], 32);
+    assert_eq!(
+        value["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|tool| { (tool["id"].as_str().unwrap(), tool["name"].as_str().unwrap(),) })
+            .collect::<Vec<_>>(),
+        vec![
+            ("builtin.run_shell_command", "run_shell_command"),
+            ("builtin.read_files", "read_files"),
+            ("builtin.apply_file_diffs", "apply_file_diffs"),
+        ]
+    );
+    assert!(value["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|tool| tool["input_schema"]["additionalProperties"] == false));
 }

@@ -2,6 +2,8 @@ import type {
   AssistantMessageCommit,
   CommittedResult,
   ProtocolMessage,
+  ToolRequest,
+  ToolResult,
 } from "./protocol.js";
 import { BridgeProtocolSession, BridgeSessionError } from "./session.js";
 import { PiTextRuntime, type TextRuntime } from "./text-runtime.js";
@@ -14,12 +16,19 @@ interface PendingCommit {
   reject(error: Error): void;
 }
 
+interface PendingTool {
+  request: ToolRequest;
+  resolve(result: ToolResult): void;
+  reject(error: Error): void;
+}
+
 export class BridgeTextRuntimeSession {
   private readonly protocol = new BridgeProtocolSession();
   private readonly runtime: TextRuntime;
   private readonly emit: EmitProtocolMessage;
   private activeRun: Promise<void> | undefined;
   private pendingCommit: PendingCommit | undefined;
+  private pendingTool: PendingTool | undefined;
 
   constructor(emit: EmitProtocolMessage, runtime: TextRuntime = new PiTextRuntime()) {
     this.emit = emit;
@@ -54,19 +63,25 @@ export class BridgeTextRuntimeSession {
         const running = this.runtime.run(transcript, message, {
           emit: (event) => this.emit(event),
           commit: (request) => this.requestCommit(request),
+          tool: (request) => this.requestTool(request),
         });
         this.activeRun = running.finally(() => {
           this.activeRun = undefined;
           this.rejectPendingCommit();
+          this.rejectPendingTool();
         });
         return;
       }
       case "commit_result":
         this.acceptCommit(message);
         return;
+      case "tool_result":
+        this.acceptToolResult(message);
+        return;
       case "run_cancel":
         this.runtime.cancel();
         this.rejectPendingCommit();
+        this.rejectPendingTool();
         return;
       case "handshake_result":
       case "transcript_sync_begin":
@@ -79,7 +94,6 @@ export class BridgeTextRuntimeSession {
       case "assistant_message_commit":
       case "run_finished":
       case "tool_request":
-      case "tool_result":
         throw new BridgeSessionError();
     }
   }
@@ -91,6 +105,7 @@ export class BridgeTextRuntimeSession {
   close(): void {
     this.runtime.cancel();
     this.rejectPendingCommit();
+    this.rejectPendingTool();
   }
 
   private async requestCommit(request: AssistantMessageCommit): Promise<CommittedResult> {
@@ -121,6 +136,37 @@ export class BridgeTextRuntimeSession {
   private rejectPendingCommit(): void {
     const pending = this.pendingCommit;
     this.pendingCommit = undefined;
+    pending?.reject(new BridgeSessionError());
+  }
+
+  private async requestTool(request: ToolRequest): Promise<ToolResult> {
+    if (this.pendingTool !== undefined) {
+      throw new BridgeSessionError();
+    }
+    const result = new Promise<ToolResult>((resolve, reject) => {
+      this.pendingTool = { request, resolve, reject };
+    });
+    await this.emit(request);
+    return result;
+  }
+
+  private acceptToolResult(result: ToolResult): void {
+    const pending = this.pendingTool;
+    if (
+      pending === undefined ||
+      pending.request.conversation_id !== result.conversation_id ||
+      pending.request.run_id !== result.run_id ||
+      pending.request.tool_call_id !== result.tool_call_id
+    ) {
+      throw new BridgeSessionError();
+    }
+    this.pendingTool = undefined;
+    pending.resolve(result);
+  }
+
+  private rejectPendingTool(): void {
+    const pending = this.pendingTool;
+    this.pendingTool = undefined;
     pending?.reject(new BridgeSessionError());
   }
 }

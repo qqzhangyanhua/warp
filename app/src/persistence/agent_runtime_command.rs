@@ -5,7 +5,7 @@ use warp_multi_agent_api as api;
 
 use super::model::{
     AgentConversationData, AgentRuntimeBinding, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
-    VersionedCompleteToolOutcome, VersionedToolResultProjection,
+    VersionedCompleteToolOutcome, VersionedToolRequest, VersionedToolResultProjection,
     COMPLETE_TOOL_OUTCOME_ENCODING_VERSION, TOOL_RESULT_PROJECTION_ENCODING_VERSION,
 };
 
@@ -52,6 +52,137 @@ pub struct PersistAgentRuntimeRun {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AcceptAgentToolExecutionResult {
+    Pending {
+        newly_inserted: bool,
+    },
+    Executing,
+    Completed {
+        complete_outcome: CompleteToolOutcomePayload,
+        tool_result_projection: ToolResultProjectionPayload,
+    },
+    LimitReached {
+        newly_inserted: bool,
+    },
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum AcceptAgentToolExecutionError {
+    #[error("Tool Request identity was reused with different content")]
+    IdentityConflict,
+    #[error("Agent Run Record does not exist")]
+    RunNotFound,
+    #[error("Tool Request Limit is invalid")]
+    InvalidRequestLimit,
+    #[error("Failed to persist Tool Execution Record")]
+    Persistence,
+}
+
+impl From<diesel::result::Error> for AcceptAgentToolExecutionError {
+    fn from(_: diesel::result::Error) -> Self {
+        Self::Persistence
+    }
+}
+
+#[derive(Debug)]
+pub struct AcceptAgentToolExecution {
+    pub conversation_id: String,
+    pub run_id: String,
+    pub tool_call_id: String,
+    pub request_fingerprint: [u8; 32],
+    pub request_payload: ToolRequestPayload,
+    pub request_limit: u32,
+    pub acknowledgement:
+        oneshot::Sender<Result<AcceptAgentToolExecutionResult, AcceptAgentToolExecutionError>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolRequestPayload {
+    encoding_version: i32,
+    bytes: Vec<u8>,
+}
+
+impl ToolRequestPayload {
+    pub fn current(bytes: Vec<u8>) -> Self {
+        Self {
+            encoding_version: persistence::model::TOOL_REQUEST_ENCODING_VERSION,
+            bytes,
+        }
+    }
+
+    pub(super) fn from_parts(encoding_version: i32, bytes: Vec<u8>) -> Option<Self> {
+        VersionedToolRequest::from_parts(encoding_version, &bytes)?;
+        Some(Self {
+            encoding_version,
+            bytes,
+        })
+    }
+
+    pub(super) fn versioned(&self) -> VersionedToolRequest<'_> {
+        VersionedToolRequest::from_parts(self.encoding_version, &self.bytes)
+            .expect("Tool Request payload version was validated at construction")
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutingAgentToolExecution {
+    pub run_id: String,
+    pub tool_call_id: String,
+    pub request_payload: ToolRequestPayload,
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ReadExecutingAgentToolExecutionsError {
+    #[error("Failed to read executing Tool Execution Records")]
+    Persistence,
+}
+
+impl From<diesel::result::Error> for ReadExecutingAgentToolExecutionsError {
+    fn from(_: diesel::result::Error) -> Self {
+        Self::Persistence
+    }
+}
+
+#[derive(Debug)]
+pub struct ReadExecutingAgentToolExecutions {
+    pub conversation_id: String,
+    pub acknowledgement: oneshot::Sender<
+        Result<Vec<ExecutingAgentToolExecution>, ReadExecutingAgentToolExecutionsError>,
+    >,
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum MarkAgentToolExecutionExecutingError {
+    #[error("Tool Request identity was reused with different content")]
+    IdentityConflict,
+    #[error("Tool Execution Record does not exist")]
+    NotFound,
+    #[error("Failed to persist Tool Execution Record")]
+    Persistence,
+}
+
+impl From<diesel::result::Error> for MarkAgentToolExecutionExecutingError {
+    fn from(_: diesel::result::Error) -> Self {
+        Self::Persistence
+    }
+}
+
+#[derive(Debug)]
+pub struct MarkAgentToolExecutionExecuting {
+    pub conversation_id: String,
+    pub run_id: String,
+    pub tool_call_id: String,
+    pub request_fingerprint: [u8; 32],
+    pub acknowledgement: oneshot::Sender<
+        Result<AcceptAgentToolExecutionResult, MarkAgentToolExecutionExecutingError>,
+    >,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompleteToolOutcomePayload {
     encoding_version: i32,
     bytes: Vec<u8>,
@@ -76,6 +207,10 @@ impl CompleteToolOutcomePayload {
     pub(super) fn versioned(&self) -> VersionedCompleteToolOutcome<'_> {
         VersionedCompleteToolOutcome::from_parts(self.encoding_version, &self.bytes)
             .expect("Complete Tool Outcome payload version was validated at construction")
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
     }
 }
 
@@ -105,11 +240,20 @@ impl ToolResultProjectionPayload {
         VersionedToolResultProjection::from_parts(self.encoding_version, &self.bytes)
             .expect("Tool Result Projection payload version was validated at construction")
     }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AgentRuntimeSidecarMutation {
     CompleteToolExecution {
+        tool_call_id: String,
+        complete_outcome: CompleteToolOutcomePayload,
+        tool_result_projection: ToolResultProjectionPayload,
+    },
+    CompletePendingToolExecution {
         tool_call_id: String,
         complete_outcome: CompleteToolOutcomePayload,
         tool_result_projection: ToolResultProjectionPayload,
@@ -187,6 +331,18 @@ impl CommitAgentRuntimeMutation {
                 tool_result_projection,
             }) => {
                 hasher.update([1]);
+                hash_bytes(&mut hasher, tool_call_id.as_bytes());
+                hasher.update(complete_outcome.encoding_version.to_le_bytes());
+                hash_bytes(&mut hasher, &complete_outcome.bytes);
+                hasher.update(tool_result_projection.encoding_version.to_le_bytes());
+                hash_bytes(&mut hasher, &tool_result_projection.bytes);
+            }
+            Some(AgentRuntimeSidecarMutation::CompletePendingToolExecution {
+                tool_call_id,
+                complete_outcome,
+                tool_result_projection,
+            }) => {
+                hasher.update([2]);
                 hash_bytes(&mut hasher, tool_call_id.as_bytes());
                 hasher.update(complete_outcome.encoding_version.to_le_bytes());
                 hash_bytes(&mut hasher, &complete_outcome.bytes);

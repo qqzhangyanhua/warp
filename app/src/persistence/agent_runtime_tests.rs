@@ -123,8 +123,9 @@ fn runtime_sidecar_models_load_typed_states_and_versioned_payloads() {
     use ::persistence::model::{
         AgentRuntimeRunRecord, AgentRuntimeRunState, AgentToolExecutionRecord,
         AgentToolExecutionState, CompleteAgentToolExecution, NewAgentRuntimeRunRecord,
-        NewAgentToolExecutionRecord, VersionedCompleteToolOutcome, VersionedToolResultProjection,
-        COMPLETE_TOOL_OUTCOME_ENCODING_VERSION, TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+        NewAgentToolExecutionRecord, VersionedCompleteToolOutcome, VersionedToolRequest,
+        VersionedToolResultProjection, COMPLETE_TOOL_OUTCOME_ENCODING_VERSION,
+        TOOL_RESULT_PROJECTION_ENCODING_VERSION,
     };
     use schema::agent_runtime_runs::dsl as runs_dsl;
     use schema::agent_tool_execution_records::dsl as tools_dsl;
@@ -145,6 +146,7 @@ fn runtime_sidecar_models_load_typed_states_and_versioned_payloads() {
             "run-1",
             "call-1",
             &request_fingerprint,
+            VersionedToolRequest::current(b"request"),
         ))
         .execute(&mut conn)
         .expect("tool execution record should insert");
@@ -171,6 +173,7 @@ fn runtime_sidecar_models_load_typed_states_and_versioned_payloads() {
         .expect("tool execution record should load");
     assert_eq!(tool.state(), Some(AgentToolExecutionState::Completed));
     assert_eq!(tool.request_fingerprint.len(), 32);
+    assert_eq!(tool.tool_request().unwrap().bytes(), b"request");
     let complete_outcome = tool
         .complete_outcome()
         .expect("completed records have a complete outcome");
@@ -192,8 +195,9 @@ fn runtime_sidecar_models_load_typed_states_and_versioned_payloads() {
 #[test]
 fn runtime_payload_types_reject_unknown_encoding_versions() {
     use ::persistence::model::{
-        VersionedCompleteToolOutcome, VersionedToolResultProjection,
-        COMPLETE_TOOL_OUTCOME_ENCODING_VERSION, TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+        VersionedCompleteToolOutcome, VersionedToolRequest, VersionedToolResultProjection,
+        COMPLETE_TOOL_OUTCOME_ENCODING_VERSION, TOOL_REQUEST_ENCODING_VERSION,
+        TOOL_RESULT_PROJECTION_ENCODING_VERSION,
     };
 
     assert_eq!(
@@ -202,6 +206,10 @@ fn runtime_payload_types_reject_unknown_encoding_versions() {
     );
     assert_eq!(
         VersionedToolResultProjection::from_parts(TOOL_RESULT_PROJECTION_ENCODING_VERSION + 1, &[],),
+        None
+    );
+    assert_eq!(
+        VersionedToolRequest::from_parts(TOOL_REQUEST_ENCODING_VERSION + 1, &[]),
         None
     );
 }

@@ -3,6 +3,7 @@ use thiserror::Error;
 use url::Url;
 
 use super::resources::ResourceSnapshot;
+use super::tool_catalog::{ToolCatalog, ToolCatalogEntry, TOOL_REQUEST_LIMIT};
 use super::transcript::RuntimeContentBlock;
 
 const MAX_PROVIDER_ATTEMPTS: u8 = 2;
@@ -102,7 +103,45 @@ impl RunConfiguration {
         reasoning_effort: ReasoningEffort,
         resources: Vec<ResourceSnapshot>,
     ) -> Result<Self, RunConfigurationError> {
-        let working_directory = working_directory.into();
+        Self::build(
+            provider,
+            working_directory.into(),
+            context_limit,
+            reasoning_effort,
+            0,
+            Vec::new(),
+            resources,
+        )
+    }
+
+    pub(super) fn with_tools(
+        provider: ChatCompletionsProvider,
+        working_directory: impl Into<String>,
+        context_limit: u64,
+        reasoning_effort: ReasoningEffort,
+        catalog: &ToolCatalog,
+        resources: Vec<ResourceSnapshot>,
+    ) -> Result<Self, RunConfigurationError> {
+        Self::build(
+            provider,
+            working_directory.into(),
+            context_limit,
+            reasoning_effort,
+            TOOL_REQUEST_LIMIT,
+            catalog.entries().to_vec(),
+            resources,
+        )
+    }
+
+    fn build(
+        provider: ChatCompletionsProvider,
+        working_directory: String,
+        context_limit: u64,
+        reasoning_effort: ReasoningEffort,
+        tool_request_limit: u32,
+        tools: Vec<ToolCatalogEntry>,
+        resources: Vec<ResourceSnapshot>,
+    ) -> Result<Self, RunConfigurationError> {
         if working_directory.is_empty() {
             return Err(RunConfigurationError::EmptyWorkingDirectory);
         }
@@ -114,19 +153,11 @@ impl RunConfiguration {
             working_directory,
             context_limit,
             reasoning_effort,
-            tool_request_limit: 0,
-            tools: Vec::new(),
+            tool_request_limit,
+            tools,
             resources: resources.into_iter().map(AgentResource::from).collect(),
         })
     }
-}
-
-#[derive(Clone, Serialize)]
-struct ToolCatalogEntry {
-    id: String,
-    name: String,
-    description: String,
-    input_schema: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Clone, Serialize)]

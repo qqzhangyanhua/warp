@@ -5,6 +5,8 @@ import {
   createProviderFetch,
   type ProviderTransportFailure,
 } from "./provider-transport.js";
+import { createProxyTools } from "./proxy-tools.js";
+import type { ProxyTerminalOutcome } from "./proxy-tools.js";
 import type {
   AssistantMessageCommit,
   CancelledRun,
@@ -17,6 +19,8 @@ import type {
   RunStatus,
   RuntimeContentBlock,
   TextDelta,
+  ToolRequest,
+  ToolResult,
   TranscriptItem,
 } from "./protocol.js";
 import { transcriptMessages } from "./transcript-messages.js";
@@ -32,6 +36,7 @@ export type TextRunEvent =
 export interface TextRunCallbacks {
   emit(event: TextRunEvent): void | Promise<void>;
   commit(request: AssistantMessageCommit): Promise<CommittedResult>;
+  tool?(request: ToolRequest): Promise<ToolResult>;
 }
 
 export interface TextRuntime {
@@ -89,6 +94,27 @@ export class PiTextRuntime implements TextRuntime {
     ) {
       const result = await this.runAttempt(transcript, start, revision, callbacks);
       revision = result.revision;
+      if (result.terminalOutcome === "limit_reached") {
+        await callbacks.emit({
+          type: "run_finished",
+          conversation_id: start.conversation_id,
+          run_id: start.run_id,
+          outcome: "limit_reached",
+          tool_request_limit: start.configuration.tool_request_limit,
+        });
+        return;
+      }
+      if (result.terminalOutcome === "tool_outcome_unknown") {
+        await callbacks.emit({
+          type: "run_finished",
+          conversation_id: start.conversation_id,
+          run_id: start.run_id,
+          outcome: "failed",
+          error_code: "runtime_failure",
+          diagnostic_id: this.createId(),
+        });
+        return;
+      }
       if (result.failure === undefined) {
         await callbacks.emit({
           type: "run_finished",
@@ -136,15 +162,22 @@ export class PiTextRuntime implements TextRuntime {
     revision: number;
     emittedOutput: boolean;
     retryableProviderFailure: boolean;
+    terminalOutcome?: ProxyTerminalOutcome;
     failure?: AttemptFailure;
   }> {
-    const eventId = this.createId();
+    let eventId = this.createId();
     let emittedOutput = false;
     let failure: AttemptFailure | undefined;
     let retryableProviderFailure = false;
     let providerTransportFailure: ProviderTransportFailure | undefined;
     let committedRevision = revision;
     const configuration = start.configuration;
+    const proxyTools = createProxyTools(start, (request) => {
+      if (callbacks.tool === undefined) {
+        throw new Error("Warp tool callback is unavailable");
+      }
+      return callbacks.tool(request);
+    });
     const agent = new Agent({
       initialState: {
         systemPrompt: buildAgentPolicyPrompt(configuration),
@@ -153,7 +186,7 @@ export class PiTextRuntime implements TextRuntime {
           configuration.reasoning_effort === "none"
             ? "off"
             : configuration.reasoning_effort,
-        tools: [],
+        tools: proxyTools.tools,
         messages: transcriptMessages(
           transcript,
           new Set(configuration.resources.map((resource) => resource.id)),
@@ -163,6 +196,9 @@ export class PiTextRuntime implements TextRuntime {
       streamFn: (model, context, options) =>
         this.providerStream(model, context, { ...options, maxRetries: 0 }),
       toolExecution: "sequential",
+      afterToolCall: async ({ toolCall }) => ({
+        isError: proxyTools.takeResultError(toolCall.id),
+      }),
     });
     this.activeAgent = agent;
 
@@ -205,13 +241,15 @@ export class PiTextRuntime implements TextRuntime {
         retryableProviderFailure = providerFailure.retryable;
         return;
       }
-      if (event.message.content.some((content) => content.type === "toolCall")) {
-        failure = "protocol";
-        agent.abort();
-        return;
-      }
+      const hasToolCall = event.message.content.some(
+        (content) => content.type === "toolCall",
+      );
       const content = completedTextContent(event.message);
       if (content.length === 0) {
+        if (hasToolCall) {
+          eventId = this.createId();
+          return;
+        }
         failure = "protocol";
         return;
       }
@@ -249,6 +287,7 @@ export class PiTextRuntime implements TextRuntime {
           return;
         }
         committedRevision = acknowledgement.revision;
+        eventId = this.createId();
       } catch {
         failure = agent.signal?.aborted ? "cancelled" : "commit";
         agent.abort();
@@ -271,7 +310,12 @@ export class PiTextRuntime implements TextRuntime {
       },
     );
     try {
-      await agent.continue();
+      do {
+        await agent.continue();
+      } while (
+        proxyTools.terminalOutcome() === undefined &&
+        agent.state.messages.at(-1)?.role === "toolResult"
+      );
     } finally {
       globalThis.fetch = previousFetch;
       this.activeAgent = undefined;
@@ -288,11 +332,13 @@ export class PiTextRuntime implements TextRuntime {
         retryableProviderFailure = providerFailure.retryable;
       }
     }
+    const terminalOutcome = proxyTools.terminalOutcome();
     return failure === undefined
       ? {
           revision: committedRevision,
           emittedOutput,
           retryableProviderFailure,
+          ...(terminalOutcome === undefined ? {} : { terminalOutcome }),
         }
       : {
           revision: committedRevision,
@@ -312,11 +358,35 @@ function validateTextRun(start: RunStart): void {
     !providerUrl.pathname.endsWith("/chat/completions") ||
     configuration.provider.max_provider_attempts < 1 ||
     configuration.provider.max_provider_attempts > 2 ||
-    configuration.tool_request_limit !== 0 ||
-    configuration.tools.length !== 0
+    !validToolConfiguration(configuration.tool_request_limit, configuration.tools)
   ) {
     throw new Error("Invalid text-only Agent Run Configuration");
   }
+}
+
+function validToolConfiguration(
+  toolRequestLimit: number,
+  tools: RunConfiguration["tools"],
+): boolean {
+  if (tools.length === 0) {
+    return toolRequestLimit === 0;
+  }
+  if (toolRequestLimit < 1 || toolRequestLimit > 32) {
+    return false;
+  }
+  const ids = new Set(tools.map((tool) => tool.id));
+  const names = new Set(tools.map((tool) => tool.name));
+  return (
+    ids.size === tools.length &&
+    names.size === tools.length &&
+    tools.every(
+      (tool) =>
+        tool.id.length > 0 &&
+        tool.name.length > 0 &&
+        tool.name.length <= 64 &&
+        Object.keys(tool.input_schema).length > 0,
+    )
+  );
 }
 
 function providerModel(configuration: RunConfiguration): Model<"openai-completions"> {
@@ -351,7 +421,10 @@ function buildAgentPolicyPrompt(configuration: RunConfiguration): string {
       .map((content) => content.text)
       .join("\n")}`)
     .join("\n");
-  return `You are Warp's local Agent Runtime. Tools are disabled for this run. Working directory: ${configuration.working_directory}.${resources}`;
+  const tools = configuration.tools.length === 0
+    ? "Tools are disabled for this run."
+    : `Available tools: ${configuration.tools.map((tool) => tool.name).join(", ")}. Tool execution requires Warp approval.`;
+  return `You are Warp's local Agent Runtime. ${tools} Working directory: ${configuration.working_directory}.${resources}`;
 }
 
 function failureCode(failure: AttemptFailure): FailedRun["error_code"] {

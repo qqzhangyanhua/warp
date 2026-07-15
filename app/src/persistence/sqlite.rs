@@ -52,7 +52,11 @@ use super::agent::{
     backfill_conversation_summaries, delete_agent_conversations, read_agent_conversation_metadata,
     upsert_agent_conversation,
 };
-use super::agent_runtime::{commit_agent_runtime_mutation, persist_agent_runtime_run};
+use super::agent_runtime::{
+    accept_agent_tool_execution, commit_agent_runtime_mutation,
+    mark_agent_tool_execution_executing, persist_agent_runtime_run,
+    read_executing_agent_tool_executions,
+};
 use super::block_list::{
     delete_ai_conversation, delete_blocks, save_block, update_block_agent_view_visibility,
     upsert_ai_query,
@@ -750,6 +754,21 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         }
         ModelEvent::PersistAgentRuntimeRun(command) => {
             let result = persist_agent_runtime_run(connection, &command);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::AcceptAgentToolExecution(command) => {
+            let result = accept_agent_tool_execution(connection, &command);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::MarkAgentToolExecutionExecuting(command) => {
+            let result = mark_agent_tool_execution_executing(connection, &command);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::ReadExecutingAgentToolExecutions(command) => {
+            let result = read_executing_agent_tool_executions(connection, &command);
             let _ = command.acknowledgement.send(result);
             Ok(())
         }
@@ -3219,3 +3238,7 @@ mod agent_runtime_tests;
 #[cfg(test)]
 #[path = "sqlite_agent_runtime_run_lifecycle_tests.rs"]
 mod agent_runtime_run_lifecycle_tests;
+
+#[cfg(test)]
+#[path = "sqlite_agent_tool_execution_tests.rs"]
+mod agent_tool_execution_tests;

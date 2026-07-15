@@ -5,15 +5,23 @@ use diesel::SqliteConnection;
 
 use super::agent::upsert_agent_conversation;
 use super::model::{
-    AgentConversationData, AgentRuntimeBinding, AgentRuntimeRunState, CompleteAgentToolExecution,
-    NewAgentRuntimeRunRecord,
+    AgentConversationData, AgentRuntimeBinding, AgentRuntimeRunState, AgentToolExecutionState,
+    CompleteAgentToolExecution, NewAgentRuntimeRunRecord,
 };
 use super::schema::agent_conversations::dsl as conversations_dsl;
 use super::schema::agent_runtime_runs::dsl as runs_dsl;
 use super::schema::agent_tool_execution_records::dsl as tools_dsl;
 use super::{
     AgentRuntimeRunMutation, AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation,
-    CommitAgentRuntimeMutationError, PersistAgentRuntimeRun, PersistAgentRuntimeRunError,
+    CommitAgentRuntimeMutationError, CompleteToolOutcomePayload, PersistAgentRuntimeRun,
+    PersistAgentRuntimeRunError, ToolResultProjectionPayload,
+};
+
+mod tool_execution;
+
+pub(super) use tool_execution::{
+    accept_agent_tool_execution, mark_agent_tool_execution_executing,
+    read_executing_agent_tool_executions,
 };
 
 #[allow(
@@ -237,25 +245,56 @@ fn apply_agent_runtime_sidecar_mutation(
             tool_call_id,
             complete_outcome,
             tool_result_projection,
-        } => {
-            let updated_tools = diesel::update(
-                tools_dsl::agent_tool_execution_records
-                    .filter(tools_dsl::conversation_id.eq(conversation_id))
-                    .filter(tools_dsl::run_id.eq(run_id))
-                    .filter(tools_dsl::tool_call_id.eq(tool_call_id))
-                    .filter(tools_dsl::state.eq("executing")),
-            )
-            .set(CompleteAgentToolExecution::new(
-                complete_outcome.versioned(),
-                tool_result_projection.versioned(),
-            ))
-            .execute(conn)
-            .map_err(|_| CommitAgentRuntimeMutationError::Persistence)?;
-            if updated_tools != 1 {
-                return Err(CommitAgentRuntimeMutationError::Persistence);
-            }
-        }
+        } => complete_tool_execution(
+            conn,
+            conversation_id,
+            run_id,
+            tool_call_id,
+            AgentToolExecutionState::Executing,
+            complete_outcome,
+            tool_result_projection,
+        ),
+        AgentRuntimeSidecarMutation::CompletePendingToolExecution {
+            tool_call_id,
+            complete_outcome,
+            tool_result_projection,
+        } => complete_tool_execution(
+            conn,
+            conversation_id,
+            run_id,
+            tool_call_id,
+            AgentToolExecutionState::Pending,
+            complete_outcome,
+            tool_result_projection,
+        ),
     }
+}
 
+#[allow(clippy::too_many_arguments)]
+fn complete_tool_execution(
+    conn: &mut SqliteConnection,
+    conversation_id: &str,
+    run_id: &str,
+    tool_call_id: &str,
+    expected_state: AgentToolExecutionState,
+    complete_outcome: &CompleteToolOutcomePayload,
+    tool_result_projection: &ToolResultProjectionPayload,
+) -> Result<(), CommitAgentRuntimeMutationError> {
+    let updated_tools = diesel::update(
+        tools_dsl::agent_tool_execution_records
+            .filter(tools_dsl::conversation_id.eq(conversation_id))
+            .filter(tools_dsl::run_id.eq(run_id))
+            .filter(tools_dsl::tool_call_id.eq(tool_call_id))
+            .filter(tools_dsl::state.eq(expected_state.as_database_value())),
+    )
+    .set(CompleteAgentToolExecution::new(
+        complete_outcome.versioned(),
+        tool_result_projection.versioned(),
+    ))
+    .execute(conn)
+    .map_err(|_| CommitAgentRuntimeMutationError::Persistence)?;
+    if updated_tools != 1 {
+        return Err(CommitAgentRuntimeMutationError::Persistence);
+    }
     Ok(())
 }
