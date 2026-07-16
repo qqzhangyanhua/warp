@@ -1,0 +1,28 @@
+app/src/ai/blocklist/controller.rs
+  a65ff89e20e4f076 2627-2631,2633-2635,2664-2694
+app/src/ai/blocklist/controller_tests.rs
+  a65ff89e20e4f076 368-370
+app/src/ai/blocklist/history_model_tests.rs
+  a65ff89e20e4f076 5453,5550-5554,5556-5608,5614
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "f9cf51ae0aea693f6a6560209abcfd7f712ff395",
+  "prompts": {
+    "a65ff89e20e4f076": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6620-5ffa-7513-bea8-69e16f2c75b8",
+        "model": "gpt-5.5"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 527,
+      "total_deletions": 15,
+      "accepted_lines": 527,
+      "overriden_lines": 0,
+      "messages_url": "https://gitai.tongbaninfo.com/cas/69529abb330ad3bb768516db39947d2e439dec7c1640fe6236cbcb1c1c7ba9f4"
+    }
+  }
+}
