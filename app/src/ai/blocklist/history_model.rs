@@ -4,6 +4,7 @@ use std::sync::Arc;
 #[cfg(feature = "local_fs")]
 use std::sync::Mutex;
 
+use ai::api_keys::ApiKeyManager;
 use ai::skills::SkillPathOrigin;
 use anyhow::anyhow;
 use chrono::{DateTime, Local, NaiveDateTime};
@@ -39,7 +40,7 @@ use crate::ai::agent::{
 use crate::ai::artifacts::Artifact;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::input_suggestions::HistoryOrder;
-use crate::persistence::model::{AgentConversation, AgentConversationData};
+use crate::persistence::model::{AgentConversation, AgentConversationData, AgentRuntimeBinding};
 use crate::persistence::ModelEvent;
 #[cfg(feature = "local_fs")]
 use crate::persistence::{database_file_path_for_current_scope, establish_ro_connection};
@@ -47,7 +48,7 @@ use crate::server::server_api::ServerApiProvider;
 use crate::terminal::model::block::BlockId;
 use crate::terminal::view::blocklist_filter;
 use crate::ui_components::icons::Icon;
-use crate::GlobalResourceHandlesProvider;
+use crate::{local_mode, GlobalResourceHandlesProvider};
 
 mod conversation_loader;
 pub use conversation_loader::{
@@ -303,6 +304,31 @@ pub struct BlocklistAIHistoryModel {
 
     #[cfg(feature = "local_fs")]
     db_connection: Option<Arc<Mutex<SqliteConnection>>>,
+}
+
+fn runtime_binding_for_new_conversation(
+    is_viewing_shared_session: bool,
+    is_cli_agent_transcript: bool,
+    ctx: &AppContext,
+) -> AgentRuntimeBinding {
+    if is_viewing_shared_session || is_cli_agent_transcript {
+        return AgentRuntimeBinding::Rust;
+    }
+
+    if !FeatureFlag::PiAgentRuntime.is_enabled()
+        || !local_mode::is_local_only_custom_provider_mode()
+    {
+        return AgentRuntimeBinding::Rust;
+    }
+
+    if ApiKeyManager::as_ref(ctx)
+        .keys()
+        .has_valid_custom_endpoint()
+    {
+        AgentRuntimeBinding::Pi
+    } else {
+        AgentRuntimeBinding::Rust
+    }
 }
 
 impl BlocklistAIHistoryModel {
@@ -1274,6 +1300,11 @@ impl BlocklistAIHistoryModel {
     ) -> AIConversationId {
         let mut new_conversation =
             AIConversation::new(is_viewing_shared_session, is_cli_agent_transcript);
+        new_conversation.set_runtime_binding(runtime_binding_for_new_conversation(
+            is_viewing_shared_session,
+            is_cli_agent_transcript,
+            ctx,
+        ));
         if is_autoexecute_override {
             new_conversation.toggle_autoexecute_override();
         }
@@ -1625,8 +1656,8 @@ impl BlocklistAIHistoryModel {
             run_id: None,
             autoexecute_override: Some(source_conversation.autoexecute_override().into()),
             last_event_sequence: None,
-            runtime_binding: None,
-            runtime_transcript_revision: None,
+            runtime_binding: Some(source_conversation.runtime_binding()),
+            runtime_transcript_revision: Some(0),
             pinned: false,
         };
         let forked_conversation_id = AIConversationId::new();
@@ -1805,8 +1836,8 @@ impl BlocklistAIHistoryModel {
             run_id: None,
             autoexecute_override: Some(conversation.autoexecute_override().into()),
             last_event_sequence: None,
-            runtime_binding: None,
-            runtime_transcript_revision: None,
+            runtime_binding: Some(conversation.runtime_binding()),
+            runtime_transcript_revision: Some(0),
             pinned: false,
         };
 

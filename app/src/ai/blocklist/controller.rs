@@ -67,6 +67,7 @@ use crate::global_resource_handles::GlobalResourceHandlesProvider;
 use crate::i18n::{tr, Message};
 use crate::network::NetworkStatus;
 use crate::notebooks::editor::model::FileLinkResolutionContext;
+use crate::persistence::model::AgentRuntimeBinding;
 use crate::persistence::ModelEvent;
 use crate::send_telemetry_from_ctx;
 use crate::server::server_api::AIApiError;
@@ -85,6 +86,9 @@ use crate::terminal::ShellLaunchData;
 use crate::workspace::OneTimeModalModel;
 use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::UserWorkspaces;
+
+const PI_RUNTIME_NOT_READY_ERROR: &str =
+    "Pi Agent Runtime is selected for this conversation, but the local Bridge runtime is not ready.";
 
 #[derive(Debug, Clone)]
 pub struct SessionContext {
@@ -2331,6 +2335,7 @@ impl BlocklistAIController {
             active_tasks,
             parent_agent_id,
             agent_name,
+            runtime_binding,
         ) = {
             let Some(conversation) = history_model
                 .as_ref(ctx)
@@ -2353,6 +2358,7 @@ impl BlocklistAIController {
                 active_tasks,
                 conversation.parent_agent_id().map(str::to_string),
                 conversation.agent_name().map(str::to_string),
+                conversation.runtime_binding(),
             )
         };
 
@@ -2462,6 +2468,75 @@ impl BlocklistAIController {
                 SettingsSection::WarpAgent,
             ));
             return Err(anyhow!("{message}"));
+        }
+
+        if runtime_binding == AgentRuntimeBinding::Pi {
+            let response_stream_id = ResponseStreamId::new();
+            let input_contains_user_query = request_input
+                .all_inputs()
+                .any(|input| input.is_user_query());
+
+            history_model.update(ctx, |history_model, ctx| {
+                match history_model.update_conversation_for_new_request_input(
+                    request_input,
+                    response_stream_id.clone(),
+                    self.terminal_surface_id,
+                    ctx,
+                ) {
+                    Ok(_) => {
+                        history_model.update_conversation_status(
+                            self.terminal_surface_id,
+                            conversation_data.id,
+                            ConversationStatus::InProgress,
+                            ctx,
+                        );
+                        history_model.mark_response_stream_completed_with_error(
+                            RenderableAIError::other(PI_RUNTIME_NOT_READY_ERROR, false),
+                            /* recovery_pending */ false,
+                            &response_stream_id,
+                            conversation_data.id,
+                            self.terminal_surface_id,
+                            ctx,
+                        );
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Failed to push new Pi runtime exchange to AI conversation: {e:?}"
+                        );
+                    }
+                }
+            });
+
+            if input_contains_user_query && !is_queued_prompt {
+                let pending_document_id = self.context_model.as_ref(ctx).pending_document_id();
+                self.context_model.update(ctx, |context_model, ctx| {
+                    context_model.reset_context_to_default(ctx);
+                });
+                if let Some(doc_id) = pending_document_id {
+                    AIDocumentModel::handle(ctx).update(ctx, |model, mctx| {
+                        model.set_user_edit_status(
+                            &doc_id,
+                            AIDocumentUserEditStatus::UpToDate,
+                            mctx,
+                        );
+                    });
+                }
+            }
+
+            if !is_passive_request {
+                history_model.update(ctx, |history_model, ctx| {
+                    history_model.mark_active_conversation_id(
+                        conversation_data.id,
+                        self.terminal_surface_id,
+                        ctx,
+                    );
+                });
+            }
+            if input_contains_user_query {
+                ctx.dispatch_global_action("workspace:save_app", ());
+            }
+
+            return Ok((conversation_data.id, response_stream_id));
         }
 
         let server_conversation_token_for_identifiers =

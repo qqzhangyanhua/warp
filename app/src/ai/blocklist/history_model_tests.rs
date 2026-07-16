@@ -2,12 +2,13 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use ai::api_keys::ApiKeyManager;
 use chrono::{DateTime, Local, Utc};
 use itertools::Itertools;
 use uuid::Uuid;
 use warp_cli::agent::Harness;
 use warp_core::features::FeatureFlag;
-use warpui::{App, EntityId, ModelHandle};
+use warpui::{App, EntityId, ModelHandle, SingletonEntity};
 
 use super::{
     convert_persisted_conversation_to_ai_conversation_with_metadata, AIConversationMetadata,
@@ -35,7 +36,7 @@ use crate::cloud_object::{Owner, Revision, ServerMetadata, ServerPermissions};
 use crate::input_suggestions::HistoryInputSuggestion;
 use crate::persistence::model::{
     AgentConversation, AgentConversationData, AgentConversationRecord, AgentConversationSummary,
-    PersistedAutoexecuteMode,
+    AgentRuntimeBinding, PersistedAutoexecuteMode,
 };
 use crate::persistence::ModelEvent;
 use crate::server::ids::ServerId;
@@ -190,6 +191,179 @@ fn persisted_agent_conversation_from_update_event(event: ModelEvent) -> AgentCon
         },
         tasks: updated_tasks,
     }
+}
+
+fn add_valid_custom_endpoint(app: &mut App) {
+    ApiKeyManager::handle(app).update(app, |manager, ctx| {
+        manager.add_custom_endpoint(
+            "Local Provider".to_string(),
+            "http://localhost:11434/v1".to_string(),
+            "test-key".to_string(),
+            vec![(
+                "test-model".to_string(),
+                None,
+                Some("test-config-key".to_string()),
+            )],
+            ctx,
+        );
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn start_new_conversation_uses_rust_runtime_when_pi_flag_disabled() {
+    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(false);
+    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        app.add_singleton_model(ApiKeyManager::new);
+        add_valid_custom_endpoint(&mut app);
+
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_view_id = EntityId::new();
+
+        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
+            history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
+        });
+
+        history_model.update(&mut app, |history_model, _| {
+            assert_eq!(
+                history_model
+                    .conversation(&conversation_id)
+                    .expect("conversation should exist")
+                    .runtime_binding(),
+                AgentRuntimeBinding::Rust
+            );
+        });
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn start_new_conversation_uses_pi_runtime_for_eligible_local_only_provider() {
+    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
+    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        app.add_singleton_model(ApiKeyManager::new);
+        add_valid_custom_endpoint(&mut app);
+
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_view_id = EntityId::new();
+
+        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
+            history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
+        });
+
+        history_model.update(&mut app, |history_model, _| {
+            let conversation = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist");
+            assert_eq!(conversation.runtime_binding(), AgentRuntimeBinding::Pi);
+            assert_eq!(conversation.runtime_transcript_revision(), 0);
+        });
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn start_new_conversation_requires_valid_provider_for_pi_runtime() {
+    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
+    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        app.add_singleton_model(ApiKeyManager::new);
+
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_view_id = EntityId::new();
+
+        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
+            history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
+        });
+
+        history_model.update(&mut app, |history_model, _| {
+            assert_eq!(
+                history_model
+                    .conversation(&conversation_id)
+                    .expect("conversation should exist")
+                    .runtime_binding(),
+                AgentRuntimeBinding::Rust
+            );
+        });
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn start_new_conversation_keeps_non_interactive_records_rust_bound() {
+    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
+    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        app.add_singleton_model(ApiKeyManager::new);
+        add_valid_custom_endpoint(&mut app);
+
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_view_id = EntityId::new();
+
+        let shared_session_conversation_id =
+            history_model.update(&mut app, |history_model, ctx| {
+                history_model.start_new_conversation(terminal_view_id, false, true, false, ctx)
+            });
+        let cli_transcript_conversation_id =
+            history_model.update(&mut app, |history_model, ctx| {
+                history_model.start_new_conversation(terminal_view_id, false, false, true, ctx)
+            });
+
+        history_model.update(&mut app, |history_model, _| {
+            for conversation_id in [
+                shared_session_conversation_id,
+                cli_transcript_conversation_id,
+            ] {
+                assert_eq!(
+                    history_model
+                        .conversation(&conversation_id)
+                        .expect("conversation should exist")
+                        .runtime_binding(),
+                    AgentRuntimeBinding::Rust
+                );
+            }
+        });
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn start_new_conversation_requires_local_only_mode_for_pi_runtime() {
+    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
+    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        app.add_singleton_model(ApiKeyManager::new);
+        add_valid_custom_endpoint(&mut app);
+
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_view_id = EntityId::new();
+
+        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
+            history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
+        });
+
+        history_model.update(&mut app, |history_model, _| {
+            assert_eq!(
+                history_model
+                    .conversation(&conversation_id)
+                    .expect("conversation should exist")
+                    .runtime_binding(),
+                AgentRuntimeBinding::Rust
+            );
+        });
+    });
 }
 
 #[test]
@@ -5080,6 +5254,141 @@ fn install_mock_model_event_sender(app: &mut warpui::App) -> std::sync::mpsc::Re
     global_resource_handles.model_event_sender = Some(sender);
     app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
     receiver
+}
+
+#[test]
+fn fork_conversation_inherits_runtime_binding() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let receiver = install_mock_model_event_sender(&mut app);
+        let history_model =
+            app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
+
+        let root_task = create_api_task(
+            "root-task",
+            vec![create_user_query_message(
+                "message-1",
+                "root-task",
+                "request-1",
+                "source query",
+            )],
+        );
+        let source = AIConversation::new_restored(
+            AIConversationId::new(),
+            vec![root_task],
+            Some(AgentConversationData {
+                server_conversation_token: None,
+                conversation_usage_metadata: None,
+                reverted_action_ids: None,
+                forked_from_server_conversation_token: None,
+                artifacts_json: None,
+                parent_agent_id: None,
+                agent_name: None,
+                orchestration_harness_type: None,
+                parent_conversation_id: None,
+                is_remote_child: false,
+                root_task_is_optimistic: None,
+                run_id: None,
+                autoexecute_override: None,
+                last_event_sequence: None,
+                runtime_binding: Some(AgentRuntimeBinding::Pi),
+                runtime_transcript_revision: Some(7),
+                pinned: false,
+            }),
+        )
+        .expect("source conversation should build");
+
+        let forked = history_model.update(&mut app, |model, ctx| {
+            model
+                .fork_conversation(&source, "[Fork] ", false, None, ctx)
+                .expect("fork should succeed")
+        });
+
+        assert_eq!(forked.runtime_binding(), AgentRuntimeBinding::Pi);
+        assert_eq!(forked.runtime_transcript_revision(), 0);
+
+        let ModelEvent::UpdateMultiAgentConversation {
+            conversation_data, ..
+        } = receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("fork should persist conversation data")
+        else {
+            panic!("expected fork persistence event");
+        };
+        assert_eq!(
+            conversation_data.runtime_binding,
+            Some(AgentRuntimeBinding::Pi)
+        );
+        assert_eq!(conversation_data.runtime_transcript_revision, Some(0));
+    });
+}
+
+#[test]
+fn fork_conversation_at_exchange_inherits_runtime_binding() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let receiver = install_mock_model_event_sender(&mut app);
+        let history_model =
+            app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
+
+        let root_task = create_api_task(
+            "root-task",
+            vec![
+                create_user_query_message("message-1", "root-task", "request-1", "first"),
+                create_user_query_message("message-2", "root-task", "request-2", "second"),
+            ],
+        );
+        let source = AIConversation::new_restored(
+            AIConversationId::new(),
+            vec![root_task],
+            Some(AgentConversationData {
+                server_conversation_token: None,
+                conversation_usage_metadata: None,
+                reverted_action_ids: None,
+                forked_from_server_conversation_token: None,
+                artifacts_json: None,
+                parent_agent_id: None,
+                agent_name: None,
+                orchestration_harness_type: None,
+                parent_conversation_id: None,
+                is_remote_child: false,
+                root_task_is_optimistic: None,
+                run_id: None,
+                autoexecute_override: None,
+                last_event_sequence: None,
+                runtime_binding: Some(AgentRuntimeBinding::Pi),
+                runtime_transcript_revision: Some(7),
+                pinned: false,
+            }),
+        )
+        .expect("source conversation should build");
+        let (source_id, exchange_id) =
+            restore_and_find_exchange(&mut app, &history_model, source, "second");
+
+        let forked = history_model.update(&mut app, |model, ctx| {
+            let source = model.conversation(&source_id).unwrap().clone();
+            model
+                .fork_conversation_at_exchange(&source, exchange_id, true, "[Fork] ", None, ctx)
+                .expect("fork should succeed")
+        });
+
+        assert_eq!(forked.runtime_binding(), AgentRuntimeBinding::Pi);
+        assert_eq!(forked.runtime_transcript_revision(), 0);
+
+        let ModelEvent::UpdateMultiAgentConversation {
+            conversation_data, ..
+        } = receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("fork should persist conversation data")
+        else {
+            panic!("expected fork persistence event");
+        };
+        assert_eq!(
+            conversation_data.runtime_binding,
+            Some(AgentRuntimeBinding::Pi)
+        );
+        assert_eq!(conversation_data.runtime_transcript_revision, Some(0));
+    });
 }
 
 /// Forking at an exact exchange reconciles exactly the client tool_calls in

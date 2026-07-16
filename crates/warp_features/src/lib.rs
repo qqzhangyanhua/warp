@@ -812,6 +812,9 @@ pub enum FeatureFlag {
     /// services. AI requests use user-configured OpenAI-compatible Providers.
     LocalOnlyCustomProviderMode,
 
+    /// Routes eligible Local-only Interactive Agent Conversations through the Pi Agent Runtime.
+    PiAgentRuntime,
+
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 
@@ -1027,7 +1030,10 @@ pub const RELEASE_FLAGS: &[FeatureFlag] = &[
 ];
 
 /// Flags that we want to allow to switch at runtime (assuming RuntimeFeatureFlags is set)
-pub const RUNTIME_FEATURE_FLAGS: &[FeatureFlag] = &[FeatureFlag::LocalClaudeCodexChildHarnesses];
+pub const RUNTIME_FEATURE_FLAGS: &[FeatureFlag] = &[
+    FeatureFlag::LocalClaudeCodexChildHarnesses,
+    FeatureFlag::PiAgentRuntime,
+];
 
 impl FeatureFlag {
     pub fn is_enabled(&self) -> bool {

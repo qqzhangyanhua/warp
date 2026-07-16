@@ -6,7 +6,7 @@ use uuid::Uuid;
 use warp_multi_agent_api::response_event;
 use warpui::{App, SingletonEntity};
 
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{
     AIAgentAttachment, AIAgentContext, AIAgentInput, CancellationReason, ImageContext,
@@ -18,6 +18,7 @@ use crate::ai::blocklist::{
     ResponseStream, ResponseStreamId,
 };
 use crate::ai::llms::LLMId;
+use crate::persistence::model::AgentRuntimeBinding;
 use crate::test_util::terminal::{add_window_with_terminal, initialize_app_for_terminal_view};
 
 fn new_ambient_agent_task_id() -> AmbientAgentTaskId {
@@ -177,6 +178,57 @@ fn input_for_query_converts_prompt_attachments_and_ignores_live_staging() {
             assert!(referenced_attachments.contains_key("notes.txt"));
             assert!(referenced_attachments.contains_key("notes.txt (1)"));
             assert!(!referenced_attachments.contains_key("live.txt"));
+        });
+    });
+}
+
+#[test]
+fn pi_bound_conversation_does_not_fall_back_to_response_stream() {
+    App::test((), |mut app| async move {
+        initialize_app_for_terminal_view(&mut app);
+        let terminal = add_window_with_terminal(&mut app, None);
+
+        let conversation_id = terminal.update(&mut app, |terminal, ctx| {
+            let terminal_surface_id = terminal.id();
+            let conversation_id =
+                BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
+                    let conversation_id = history_model.start_new_conversation(
+                        terminal_surface_id,
+                        false,
+                        false,
+                        false,
+                        ctx,
+                    );
+                    history_model
+                        .conversation_mut(&conversation_id)
+                        .expect("conversation should exist")
+                        .set_runtime_binding(AgentRuntimeBinding::Pi);
+                    conversation_id
+                });
+
+            terminal.ai_controller().update(ctx, |controller, ctx| {
+                controller.send_user_query_in_conversation(
+                    "hello".to_string(),
+                    conversation_id,
+                    None,
+                    ctx,
+                );
+
+                assert!(
+                    !controller.has_active_stream_for_conversation(conversation_id, ctx),
+                    "Pi-bound requests must not fall back to the Rust response stream"
+                );
+            });
+
+            conversation_id
+        });
+
+        BlocklistAIHistoryModel::handle(&app).read(&app, |history, _| {
+            let conversation = history
+                .conversation(&conversation_id)
+                .expect("conversation should remain viewable");
+            assert_eq!(conversation.status(), &ConversationStatus::Error);
+            assert_eq!(conversation.runtime_binding(), AgentRuntimeBinding::Pi);
         });
     });
 }

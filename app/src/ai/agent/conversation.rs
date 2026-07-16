@@ -65,8 +65,8 @@ use crate::ai::skills::SkillDescriptor;
 use crate::code_review::CodeReviewTelemetryEvent;
 use crate::notebooks::NotebookId;
 use crate::persistence::model::{
-    AgentConversationData, ContextWindowSegment, ConversationUsageMetadata, ModelTokenUsage,
-    PersistedAutoexecuteMode, ToolUsageMetadata,
+    AgentConversationData, AgentRuntimeBinding, ContextWindowSegment, ConversationUsageMetadata,
+    ModelTokenUsage, PersistedAutoexecuteMode, ToolUsageMetadata,
 };
 use crate::persistence::ModelEvent;
 use crate::server::ids::ServerId;
@@ -327,6 +327,10 @@ pub struct AIConversation {
     /// in the agent view.
     is_cli_agent_transcript: bool,
 
+    /// Runtime implementation that owns Agent Runs for this Conversation Record.
+    runtime_binding: AgentRuntimeBinding,
+    runtime_transcript_revision: u64,
+
     // TODO(advait): Group child-agent-only fields (parent_agent_id,
     // agent_name, orchestration_harness_type, parent_conversation_id,
     // is_remote_child, pinned) into a ChildAgentState sub-struct. See
@@ -406,6 +410,8 @@ impl AIConversation {
             total_token_usage_by_model: Default::default(),
             fallback_display_title: None,
             artifacts: Vec::new(),
+            runtime_binding: AgentRuntimeBinding::Rust,
+            runtime_transcript_revision: 0,
             parent_agent_id: None,
             agent_name: None,
             orchestration_harness_type: None,
@@ -548,8 +554,12 @@ impl AIConversation {
             run_id,
             autoexecute_override,
             last_event_sequence,
+            runtime_binding,
+            runtime_transcript_revision,
             pinned,
         ) = if let Some(data) = conversation_data {
+            let runtime_binding = data.effective_runtime_binding();
+            let runtime_transcript_revision = data.effective_runtime_transcript_revision();
             let server_conversation_token = data
                 .server_conversation_token
                 .map(ServerConversationToken::new);
@@ -598,6 +608,8 @@ impl AIConversation {
                 data.run_id,
                 autoexecute_override,
                 data.last_event_sequence,
+                runtime_binding,
+                runtime_transcript_revision,
                 data.pinned,
             )
         } else {
@@ -615,6 +627,8 @@ impl AIConversation {
                 None,
                 AIConversationAutoexecuteMode::default(),
                 None,
+                AgentRuntimeBinding::Rust,
+                0,
                 false,
             )
         };
@@ -647,6 +661,8 @@ impl AIConversation {
             optimistic_cli_subagent_subtask_id: None,
             fallback_display_title: None,
             artifacts,
+            runtime_binding,
+            runtime_transcript_revision,
             parent_agent_id,
             agent_name,
             orchestration_harness_type,
@@ -684,6 +700,22 @@ impl AIConversation {
 
     pub fn is_cli_agent_transcript(&self) -> bool {
         self.is_cli_agent_transcript
+    }
+
+    pub fn runtime_binding(&self) -> AgentRuntimeBinding {
+        self.runtime_binding
+    }
+
+    pub fn set_runtime_binding(&mut self, runtime_binding: AgentRuntimeBinding) {
+        self.runtime_binding = runtime_binding;
+    }
+
+    pub fn runtime_transcript_revision(&self) -> u64 {
+        self.runtime_transcript_revision
+    }
+
+    pub fn set_runtime_transcript_revision(&mut self, revision: u64) {
+        self.runtime_transcript_revision = revision;
     }
 
     pub fn was_summarized(&self) -> bool {
@@ -3555,8 +3587,8 @@ impl AIConversation {
                 run_id: self.task_id.map(|id| id.to_string()),
                 autoexecute_override: Some(self.autoexecute_override.into()),
                 last_event_sequence: self.last_event_sequence,
-                runtime_binding: None,
-                runtime_transcript_revision: None,
+                runtime_binding: Some(self.runtime_binding),
+                runtime_transcript_revision: Some(self.runtime_transcript_revision),
                 pinned: self.pinned,
             },
         };
