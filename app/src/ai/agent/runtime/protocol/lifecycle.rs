@@ -38,6 +38,7 @@ impl std::fmt::Debug for RuntimeAssistantCommit {
 }
 
 pub(in crate::ai::agent::runtime) struct RuntimeToolRequest {
+    pub frame_fingerprint: [u8; 32],
     pub conversation_id: String,
     pub run_id: String,
     pub tool_call_id: String,

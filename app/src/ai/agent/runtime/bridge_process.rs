@@ -10,6 +10,7 @@ use futures::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, BufWr
 use parking_lot::Mutex;
 use serde::Serialize;
 use serde_json::json;
+use serde_json::value::RawValue;
 use tempfile::TempDir;
 use thiserror::Error;
 use warpui_core::r#async::executor::{Background, BackgroundTask};
@@ -21,7 +22,7 @@ use super::protocol::{
     RuntimeAssistantCommit, RuntimeRunFinished, RuntimeRunOutcome, RuntimeRunStatus,
     RuntimeTextDelta, RuntimeToolRequest,
 };
-use super::transcript::{RuntimeTranscript, ToolResultProjection};
+use super::transcript::RuntimeTranscript;
 use super::transcript_sync::TranscriptSync;
 
 const MAX_HANDSHAKE_FRAME_BYTES: usize = 64 * 1024;
@@ -315,16 +316,9 @@ impl BridgeProcess {
         conversation_id: &str,
         run_id: &str,
         tool_call_id: &str,
-        result: &ToolResultProjection,
+        result: &[u8],
     ) -> Result<(), BridgeProcessError> {
-        let message = serde_json::to_string(&ToolResultFrame {
-            message_type: "tool_result",
-            conversation_id,
-            run_id,
-            tool_call_id,
-            result,
-        })
-        .map_err(|_| BridgeProcessError::ProtocolViolation)?;
+        let message = serialize_tool_result_frame(conversation_id, run_id, tool_call_id, result)?;
         self.write_message(&message).await
     }
 
@@ -402,14 +396,43 @@ struct RunStartFrame<'a> {
 }
 
 #[derive(Serialize)]
-struct ToolResultFrame<'a> {
+struct ToolResultEnvelope<'a> {
     #[serde(rename = "type")]
     message_type: &'static str,
     conversation_id: &'a str,
     run_id: &'a str,
     tool_call_id: &'a str,
-    #[serde(flatten)]
-    result: &'a ToolResultProjection,
+}
+
+fn serialize_tool_result_frame(
+    conversation_id: &str,
+    run_id: &str,
+    tool_call_id: &str,
+    projection_bytes: &[u8],
+) -> Result<String, BridgeProcessError> {
+    let projection: Box<RawValue> = serde_json::from_slice(projection_bytes)
+        .map_err(|_| BridgeProcessError::ProtocolViolation)?;
+    let projection = projection.get().trim();
+    if !projection.starts_with('{') || !projection.ends_with('}') {
+        return Err(BridgeProcessError::ProtocolViolation);
+    }
+    let projection_fields = &projection[1..projection.len() - 1];
+    if projection_fields.trim().is_empty() {
+        return Err(BridgeProcessError::ProtocolViolation);
+    }
+
+    let mut frame = serde_json::to_string(&ToolResultEnvelope {
+        message_type: "tool_result",
+        conversation_id,
+        run_id,
+        tool_call_id,
+    })
+    .map_err(|_| BridgeProcessError::ProtocolViolation)?;
+    frame.pop();
+    frame.push(',');
+    frame.push_str(projection_fields);
+    frame.push('}');
+    Ok(frame)
 }
 
 async fn drain_stderr(mut stderr: ChildStderr, summary: Arc<Mutex<BridgeStderrSummary>>) {
@@ -436,6 +459,10 @@ fn preserve_required_windows_environment(command: &mut Command) {
     #[cfg(not(windows))]
     let _ = command;
 }
+
+#[cfg(test)]
+#[path = "bridge_process_tests.rs"]
+mod tests;
 
 fn set_private_directory_permissions(path: &Path) -> Result<(), BridgeProcessError> {
     #[cfg(unix)]

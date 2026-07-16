@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use prost_types::value::Kind;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use thiserror::Error;
@@ -61,10 +62,7 @@ impl ToolCatalog {
         &self.entries
     }
 
-    #[allow(
-        dead_code,
-        reason = "Tool Execution Authority consumes routes in Phase 6"
-    )]
+    #[cfg(test)]
     pub(super) fn route(&self, tool_id: &str) -> Option<&ToolRoute> {
         self.routes.get(tool_id)
     }
@@ -374,8 +372,6 @@ fn deserialize_arguments<T: for<'de> Deserialize<'de>>(
 }
 
 fn json_to_prost(value: &Value) -> Result<prost_types::Value, ToolRequestError> {
-    use prost_types::value::Kind;
-
     let kind = match value {
         Value::Null => Kind::NullValue(0),
         Value::Bool(value) => Kind::BoolValue(*value),

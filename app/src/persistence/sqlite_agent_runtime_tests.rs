@@ -209,8 +209,10 @@ fn runtime_task(task_id: &str, query: &str) -> api::Task {
 fn complete_tool_execution() -> AgentRuntimeSidecarMutation {
     AgentRuntimeSidecarMutation::CompleteToolExecution {
         tool_call_id: TOOL_CALL_ID.to_string(),
+        expected_state: AgentToolExecutionState::Executing,
         complete_outcome: CompleteToolOutcomePayload::current(vec![1, 2]),
         tool_result_projection: ToolResultProjectionPayload::current(vec![3, 4]),
+        run_terminal_outcome: None,
     }
 }
 

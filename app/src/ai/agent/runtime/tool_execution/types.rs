@@ -7,22 +7,31 @@ use crate::ai::agent::AIAgentAction;
 use crate::persistence::model::AgentConversationData;
 use crate::persistence::{
     AcceptAgentToolExecutionError, CommitAgentRuntimeMutationError,
-    MarkAgentToolExecutionExecutingError, ReadExecutingAgentToolExecutionsError,
+    MarkAgentToolExecutionExecutingError, ReadUnfinishedAgentToolExecutionsError,
 };
 
 pub(in crate::ai::agent::runtime) trait RuntimeToolActionAdapter:
     Send + Sync
 {
+    fn cancel_run(&self, _run_id: String) -> BoxFuture<'static, ()> {
+        Box::pin(async {})
+    }
+
     fn request_permission(
         &self,
+        run_id: String,
         action: AIAgentAction,
     ) -> BoxFuture<'static, ToolPermissionDecision>;
 
-    fn execute(&self, action: AIAgentAction) -> BoxFuture<'static, ToolEffectOutcome>;
+    fn execute(
+        &self,
+        run_id: String,
+        action: AIAgentAction,
+    ) -> BoxFuture<'static, ToolEffectOutcome>;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(in crate::ai::agent::runtime) enum ToolPermissionDecision {
+pub(crate) enum ToolPermissionDecision {
     Approved,
     DeniedByPolicy,
     DeniedByUser,
@@ -44,6 +53,7 @@ pub(in crate::ai::agent::runtime) struct ToolRunState {
 #[derive(Debug)]
 pub(in crate::ai::agent::runtime) struct ToolExecutionResult {
     pub projection: ToolResultProjection,
+    pub projection_bytes: Vec<u8>,
     pub run_must_end: bool,
 }
 
@@ -60,7 +70,7 @@ pub(crate) enum ToolExecutionError {
     #[error(transparent)]
     Commit(#[from] CommitAgentRuntimeMutationError),
     #[error(transparent)]
-    ReadExecuting(#[from] ReadExecutingAgentToolExecutionsError),
+    ReadUnfinished(#[from] ReadUnfinishedAgentToolExecutionsError),
     #[error("Tool Execution Record has an invalid durable state")]
     InvalidPersistenceState,
     #[error("Stored Tool Result Projection is invalid")]
@@ -73,6 +83,9 @@ pub(crate) enum ToolExecutionError {
     TaskNotFound,
     #[error("Tool Execution payload serialization failed")]
     Serialization,
+    #[cfg(test)]
+    #[error("Injected Tool Execution fault at {0:?}")]
+    InjectedFault(super::fault_injection::ToolExecutionFaultPoint),
 }
 
 impl From<serde_json::Error> for ToolExecutionError {

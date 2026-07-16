@@ -21,7 +21,7 @@ mod tool_execution;
 
 pub(super) use tool_execution::{
     accept_agent_tool_execution, mark_agent_tool_execution_executing,
-    read_executing_agent_tool_executions,
+    read_unfinished_agent_tool_executions,
 };
 
 #[allow(
@@ -243,31 +243,50 @@ fn apply_agent_runtime_sidecar_mutation(
     match mutation {
         AgentRuntimeSidecarMutation::CompleteToolExecution {
             tool_call_id,
+            expected_state,
             complete_outcome,
             tool_result_projection,
-        } => complete_tool_execution(
-            conn,
-            conversation_id,
-            run_id,
-            tool_call_id,
-            AgentToolExecutionState::Executing,
-            complete_outcome,
-            tool_result_projection,
-        ),
-        AgentRuntimeSidecarMutation::CompletePendingToolExecution {
-            tool_call_id,
-            complete_outcome,
-            tool_result_projection,
-        } => complete_tool_execution(
-            conn,
-            conversation_id,
-            run_id,
-            tool_call_id,
-            AgentToolExecutionState::Pending,
-            complete_outcome,
-            tool_result_projection,
-        ),
+            run_terminal_outcome,
+        } => {
+            complete_tool_execution(
+                conn,
+                conversation_id,
+                run_id,
+                tool_call_id,
+                *expected_state,
+                complete_outcome,
+                tool_result_projection,
+            )?;
+            if let Some(outcome) = run_terminal_outcome {
+                finish_agent_runtime_run(conn, conversation_id, run_id, *outcome)?;
+            }
+            Ok(())
+        }
     }
+}
+
+fn finish_agent_runtime_run(
+    conn: &mut SqliteConnection,
+    conversation_id: &str,
+    run_id: &str,
+    outcome: super::model::AgentRuntimeTerminalOutcome,
+) -> Result<(), CommitAgentRuntimeMutationError> {
+    let updated = diesel::update(
+        runs_dsl::agent_runtime_runs
+            .filter(runs_dsl::conversation_id.eq(conversation_id))
+            .filter(runs_dsl::run_id.eq(run_id))
+            .filter(runs_dsl::state.ne(AgentRuntimeRunState::Finished.as_database_value())),
+    )
+    .set((
+        runs_dsl::state.eq(AgentRuntimeRunState::Finished.as_database_value()),
+        runs_dsl::terminal_outcome.eq(outcome.as_database_value()),
+    ))
+    .execute(conn)
+    .map_err(|_| CommitAgentRuntimeMutationError::Persistence)?;
+    if updated != 1 {
+        return Err(CommitAgentRuntimeMutationError::Persistence);
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]

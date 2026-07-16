@@ -12,9 +12,10 @@ use warp_multi_agent_api as api;
 
 use super::*;
 use crate::ai::agent::runtime::transcript::TranscriptItem;
+use crate::ai::agent::AIAgentAction;
 use crate::persistence::model::{
-    AgentConversationData, AgentRuntimeBinding, AgentToolExecutionRecord, AgentToolExecutionState,
-    NewAgentRuntimeRunRecord,
+    AgentConversationData, AgentRuntimeBinding, AgentRuntimeRunRecord, AgentRuntimeTerminalOutcome,
+    AgentToolExecutionRecord, AgentToolExecutionState, NewAgentRuntimeRunRecord,
 };
 use crate::persistence::schema::{agent_runtime_runs, agent_tool_execution_records};
 use crate::persistence::{
@@ -59,6 +60,7 @@ impl FakeAdapter {
 impl RuntimeToolActionAdapter for FakeAdapter {
     fn request_permission(
         &self,
+        _run_id: String,
         _action: AIAgentAction,
     ) -> BoxFuture<'static, ToolPermissionDecision> {
         self.permission_count.fetch_add(1, Ordering::SeqCst);
@@ -71,7 +73,11 @@ impl RuntimeToolActionAdapter for FakeAdapter {
         Box::pin(async move { decision })
     }
 
-    fn execute(&self, _action: AIAgentAction) -> BoxFuture<'static, ToolEffectOutcome> {
+    fn execute(
+        &self,
+        _run_id: String,
+        _action: AIAgentAction,
+    ) -> BoxFuture<'static, ToolEffectOutcome> {
         self.execution_count.fetch_add(1, Ordering::SeqCst);
         let database_path = self.database_path.clone();
         let observed_executing = &self.observed_executing;
@@ -177,7 +183,7 @@ impl Harness {
                     conversation_id: request.conversation_id.clone(),
                     run_id: request.run_id.clone(),
                     tool_call_id: request.tool_call_id.clone(),
-                    request_fingerprint: request_fingerprint(request),
+                    request_fingerprint: request.frame_fingerprint,
                     request_payload: ToolRequestPayload::current(request_payload(request, TASK_ID)),
                     request_limit: TOOL_REQUEST_LIMIT,
                     acknowledgement,
@@ -190,6 +196,17 @@ impl Harness {
                 newly_inserted: true
             }
         );
+    }
+
+    fn set_tool_state(&self, tool_call_id: &str, state: AgentToolExecutionState) {
+        let mut conn = SqliteConnection::establish(self.database_path.to_str().unwrap()).unwrap();
+        diesel::update(
+            agent_tool_execution_records::table
+                .filter(agent_tool_execution_records::tool_call_id.eq(tool_call_id)),
+        )
+        .set(agent_tool_execution_records::state.eq(state.as_database_value()))
+        .execute(&mut conn)
+        .unwrap();
     }
 
     fn finish(self) {
@@ -324,77 +341,6 @@ async fn approved_effect_starts_after_executing_and_completed_redelivery_is_fixe
 }
 
 #[tokio::test]
-async fn failed_outcome_commit_leaves_executing_and_recovers_as_unknown() {
-    let harness = Harness::new(ToolPermissionDecision::Approved);
-    harness.install_completion_failure();
-    let mut state = harness.state(0);
-
-    let error = harness
-        .authority
-        .handle(valid_request("call-1"), &mut state)
-        .await
-        .unwrap_err();
-    assert_eq!(
-        error,
-        ToolExecutionError::Commit(CommitAgentRuntimeMutationError::Persistence)
-    );
-    assert_eq!(
-        tool_state(&harness.database_path, "call-1"),
-        Some(AgentToolExecutionState::Executing)
-    );
-
-    harness.remove_completion_failure();
-    let mut recovered_state = harness.state(0);
-    let recovered = harness
-        .authority
-        .recover_indeterminate(CONVERSATION_ID, &mut recovered_state)
-        .await
-        .unwrap();
-    assert!(matches!(
-        recovered.as_slice(),
-        [
-            TranscriptItem::ToolRequest { tool_call_id, .. },
-            TranscriptItem::ToolResult { result, .. },
-        ] if tool_call_id == "call-1" && matches!(
-            result,
-            ToolResultProjection::Error {
-                error_code: ToolErrorCode::ToolOutcomeUnknown,
-                may_have_executed: true,
-                ..
-            }
-        )
-    ));
-    assert_eq!(recovered_state.revision, 1);
-    assert_eq!(recovered_state.tasks[0].messages.len(), 3);
-    assert_eq!(harness.adapter.execution_count.load(Ordering::SeqCst), 1);
-    assert_eq!(
-        tool_state(&harness.database_path, "call-1"),
-        Some(AgentToolExecutionState::Completed)
-    );
-    harness.finish();
-}
-
-#[tokio::test]
-async fn pending_recovery_does_not_prompt_or_execute() {
-    let harness = Harness::new(ToolPermissionDecision::Approved);
-    let request = valid_request("call-1");
-    harness.accept_only(&request).await;
-    let mut state = harness.state(0);
-
-    let recovered = harness.authority.handle(request, &mut state).await.unwrap();
-
-    assert_error(
-        &recovered.projection,
-        ToolErrorCode::ToolExecutionFailed,
-        false,
-    );
-    assert!(recovered.run_must_end);
-    assert_eq!(harness.adapter.permission_count.load(Ordering::SeqCst), 0);
-    assert_eq!(harness.adapter.execution_count.load(Ordering::SeqCst), 0);
-    harness.finish();
-}
-
-#[tokio::test]
 async fn thirty_third_request_is_durably_completed_at_the_limit() {
     let harness = Harness::new(ToolPermissionDecision::DeniedByPolicy);
     let mut state = harness.state(0);
@@ -425,6 +371,10 @@ async fn thirty_third_request_is_durably_completed_at_the_limit() {
     assert_eq!(
         tool_state(&harness.database_path, "call-33"),
         Some(AgentToolExecutionState::Completed)
+    );
+    assert_eq!(
+        run_terminal_outcome(&harness.database_path, RUN_ID),
+        Some(AgentRuntimeTerminalOutcome::LimitReached)
     );
     harness.finish();
 }
@@ -464,6 +414,7 @@ fn request(
     arguments: serde_json::Map<String, serde_json::Value>,
 ) -> RuntimeToolRequest {
     RuntimeToolRequest {
+        frame_fingerprint: [1; 32],
         conversation_id: CONVERSATION_ID.to_string(),
         run_id: RUN_ID.to_string(),
         tool_call_id: tool_call_id.to_string(),
@@ -490,3 +441,21 @@ fn tool_state(database_path: &Path, tool_call_id: &str) -> Option<AgentToolExecu
         .unwrap()
         .and_then(|record| record.state())
 }
+
+fn run_terminal_outcome(database_path: &Path, run_id: &str) -> Option<AgentRuntimeTerminalOutcome> {
+    let mut conn = SqliteConnection::establish(database_path.to_str().unwrap()).unwrap();
+    agent_runtime_runs::table
+        .filter(agent_runtime_runs::run_id.eq(run_id))
+        .select(AgentRuntimeRunRecord::as_select())
+        .first::<AgentRuntimeRunRecord>(&mut conn)
+        .optional()
+        .unwrap()
+        .and_then(|record| record.terminal_outcome())
+}
+
+#[path = "tool_execution/crash_boundary_tests.rs"]
+mod crash_boundary_tests;
+#[path = "tool_execution/crash_tests.rs"]
+mod crash_tests;
+#[path = "tool_execution/recovery_tests.rs"]
+mod recovery_tests;

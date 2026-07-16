@@ -2,39 +2,39 @@ use futures::channel::oneshot;
 use serde::Deserialize;
 
 use super::{
-    unknown_outcome_projection, CompletionState, ToolExecutionAuthority, ToolExecutionError,
-    ToolRunState,
+    error_projection, unknown_outcome_projection, CompletionState, ToolExecutionAuthority,
+    ToolExecutionError, ToolRunState,
 };
 use crate::ai::agent::runtime::protocol::RuntimeToolRequest;
-use crate::ai::agent::runtime::transcript::TranscriptItem;
-use crate::persistence::{ModelEvent, ReadExecutingAgentToolExecutions};
+use crate::ai::agent::runtime::transcript::{ToolErrorCode, TranscriptItem};
+use crate::persistence::model::AgentToolExecutionState;
+use crate::persistence::{
+    ModelEvent, ReadUnfinishedAgentToolExecutions, UnfinishedAgentToolExecution,
+};
 
 impl ToolExecutionAuthority {
-    pub(in crate::ai::agent::runtime) async fn recover_indeterminate(
+    pub(in crate::ai::agent::runtime) async fn has_unfinished(
+        &self,
+        conversation_id: &str,
+    ) -> Result<bool, ToolExecutionError> {
+        Ok(!self.read_unfinished(conversation_id).await?.is_empty())
+    }
+
+    pub(in crate::ai::agent::runtime) async fn recover_unfinished(
         &self,
         conversation_id: &str,
         state: &mut ToolRunState,
     ) -> Result<Vec<TranscriptItem>, ToolExecutionError> {
-        let (acknowledgement, acknowledged) = oneshot::channel();
-        self.persistence
-            .send(ModelEvent::ReadExecutingAgentToolExecutions(
-                ReadExecutingAgentToolExecutions {
-                    conversation_id: conversation_id.to_string(),
-                    acknowledgement,
-                },
-            ))
-            .map_err(|_| ToolExecutionError::PersistenceUnavailable)?;
-        let executing = acknowledged
-            .await
-            .map_err(|_| ToolExecutionError::PersistenceAcknowledgementDropped)??;
-        let mut transcript_items = Vec::with_capacity(executing.len() * 2);
-        for record in executing {
+        let unfinished = self.read_unfinished(conversation_id).await?;
+        let mut transcript_items = Vec::with_capacity(unfinished.len() * 2);
+        for record in unfinished {
             let stored: StoredToolRequest = serde_json::from_slice(record.request_payload.bytes())
                 .map_err(|_| ToolExecutionError::InvalidStoredRequest)?;
             if stored.version != 1 {
                 return Err(ToolExecutionError::InvalidStoredRequest);
             }
             let request = RuntimeToolRequest {
+                frame_fingerprint: record.request_fingerprint,
                 conversation_id: conversation_id.to_string(),
                 run_id: record.run_id,
                 tool_call_id: record.tool_call_id,
@@ -42,7 +42,23 @@ impl ToolExecutionAuthority {
                 tool_name: stored.tool_name,
                 arguments: stored.arguments,
             };
-            let projection = unknown_outcome_projection();
+            let (projection, completion_state) = match record.state {
+                AgentToolExecutionState::Pending => (
+                    error_projection(
+                        ToolErrorCode::ToolExecutionFailed,
+                        false,
+                        "The previous tool request stopped before execution and was not retried.",
+                    ),
+                    CompletionState::RecoveringPending,
+                ),
+                AgentToolExecutionState::Executing => (
+                    unknown_outcome_projection(),
+                    CompletionState::RecoveringExecuting,
+                ),
+                AgentToolExecutionState::Completed => {
+                    return Err(ToolExecutionError::InvalidPersistenceState);
+                }
+            };
             let original_task_id = std::mem::replace(&mut state.task_id, stored.task_id);
             let completion = self
                 .complete(
@@ -52,7 +68,7 @@ impl ToolExecutionAuthority {
                     None,
                     projection.clone(),
                     serde_json::to_vec(&projection)?,
-                    CompletionState::Executing,
+                    completion_state,
                 )
                 .await;
             state.task_id = original_task_id;
@@ -71,6 +87,25 @@ impl ToolExecutionAuthority {
             ]);
         }
         Ok(transcript_items)
+    }
+
+    async fn read_unfinished(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Vec<UnfinishedAgentToolExecution>, ToolExecutionError> {
+        let (acknowledgement, acknowledged) = oneshot::channel();
+        self.persistence
+            .send(ModelEvent::ReadUnfinishedAgentToolExecutions(
+                ReadUnfinishedAgentToolExecutions {
+                    conversation_id: conversation_id.to_string(),
+                    acknowledgement,
+                },
+            ))
+            .map_err(|_| ToolExecutionError::PersistenceUnavailable)?;
+        acknowledged
+            .await
+            .map_err(|_| ToolExecutionError::PersistenceAcknowledgementDropped)?
+            .map_err(Into::into)
     }
 }
 

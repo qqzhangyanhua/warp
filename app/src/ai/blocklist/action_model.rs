@@ -15,6 +15,7 @@
 mod execute;
 mod preprocess;
 pub(crate) mod recording_controller;
+mod runtime_tool;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
@@ -46,6 +47,8 @@ use self::execute::{
     BlocklistAIActionExecutor, BlocklistAIActionExecutorEvent, NotExecutedReason,
     RunningActionPhase, TryExecuteResult,
 };
+pub(crate) use self::runtime_tool::RuntimeToolExecutionError;
+use self::runtime_tool::RuntimeToolState;
 use super::BlocklistAIHistoryModel;
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::agent::{
@@ -214,6 +217,8 @@ fn can_start_action_with_current_phase(
 pub struct BlocklistAIActionModel {
     executor: ModelHandle<BlocklistAIActionExecutor>,
 
+    runtime_tools: RuntimeToolState,
+
     pending_preprocessed_actions: HashMap<AIConversationId, PendingPreprocessedActions>,
 
     /// Map from conversation ID to queue of pending [`AIAgentAction`]s.
@@ -273,7 +278,19 @@ impl BlocklistAIActionModel {
                 conversation_id,
                 cancellation_reason,
             } => {
-                me.handle_action_result(*conversation_id, result.clone(), *cancellation_reason, ctx)
+                if !me.finish_runtime_tool_action(
+                    *conversation_id,
+                    result.clone(),
+                    *cancellation_reason,
+                    ctx,
+                ) {
+                    me.handle_action_result(
+                        *conversation_id,
+                        result.clone(),
+                        *cancellation_reason,
+                        ctx,
+                    )
+                }
             }
             BlocklistAIActionExecutorEvent::InitProject(id) => {
                 ctx.emit(BlocklistAIActionEvent::InitProject(id.clone()))
@@ -297,6 +314,7 @@ impl BlocklistAIActionModel {
         });
 
         Self {
+            runtime_tools: RuntimeToolState::default(),
             pending_actions: Default::default(),
             finished_action_results: Default::default(),
             executor,
@@ -867,6 +885,20 @@ impl BlocklistAIActionModel {
             .remove(idx)?;
 
         let action_id = action.id.clone();
+        if self.is_runtime_tool_awaiting_permission(conversation_id, &action_id) {
+            if is_user_initiated {
+                self.approve_runtime_tool_permission(conversation_id, &action_id);
+            } else {
+                self.pending_actions
+                    .entry(conversation_id)
+                    .or_default()
+                    .insert(idx, action);
+                ctx.emit(BlocklistAIActionEvent::ActionBlockedOnUserConfirmation(
+                    action_id,
+                ));
+            }
+            return None;
+        }
         let phase = self.action_phase_for_action(&action, ctx);
         // WaitForEvents owns its own status transition; skip the default
         // in-progress update.
@@ -1148,6 +1180,10 @@ impl BlocklistAIActionModel {
         reason: Option<CancellationReason>,
         ctx: &mut ModelContext<Self>,
     ) {
+        if self.deny_runtime_tool_permission(conversation_id, &pending_action.id) {
+            return;
+        }
+
         if matches!(
             pending_action.action,
             AIAgentActionType::RequestComputerUse(_)

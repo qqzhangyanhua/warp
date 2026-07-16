@@ -235,6 +235,10 @@ pub struct BlocklistAIHistoryModel {
     /// have ever been loaded into memory.
     conversations_by_id: HashMap<AIConversationId, AIConversation>,
 
+    /// Runtime-owned actions are not added to the Conversation Record until their durable outcome
+    /// commits, but terminal command execution still needs a transient conversation association.
+    runtime_action_ids: HashMap<AIConversationId, HashSet<AIAgentActionId>>,
+
     /// The active conversation ID for a given terminal surface.
     ///
     /// The active conversation is the terminal surface's current or most recent progress
@@ -971,8 +975,40 @@ impl BlocklistAIHistoryModel {
                 self.conversations_by_id
                     .get(conversation_id)
                     .is_some_and(|conversation| conversation.contains_action(action_id))
+                    || self
+                        .runtime_action_ids
+                        .get(conversation_id)
+                        .is_some_and(|action_ids| action_ids.contains(action_id))
             })
             .copied()
+    }
+
+    pub(crate) fn register_runtime_action(
+        &mut self,
+        conversation_id: AIConversationId,
+        action_id: AIAgentActionId,
+    ) {
+        self.runtime_action_ids
+            .entry(conversation_id)
+            .or_default()
+            .insert(action_id);
+    }
+
+    pub(crate) fn unregister_runtime_action(
+        &mut self,
+        conversation_id: AIConversationId,
+        action_id: &AIAgentActionId,
+    ) {
+        let should_remove_entry = self
+            .runtime_action_ids
+            .get_mut(&conversation_id)
+            .is_some_and(|action_ids| {
+                action_ids.remove(action_id);
+                action_ids.is_empty()
+            });
+        if should_remove_entry {
+            self.runtime_action_ids.remove(&conversation_id);
+        }
     }
 
     pub fn existing_suggestions_for_conversation(
@@ -2141,6 +2177,7 @@ impl BlocklistAIHistoryModel {
 
         self.all_conversations_metadata.remove(&conversation_id);
         self.conversations_by_id.remove(&conversation_id);
+        self.runtime_action_ids.remove(&conversation_id);
 
         if let Some(terminal_surface_id) = terminal_surface_id {
             if self

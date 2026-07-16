@@ -8,15 +8,19 @@ use warp_multi_agent_api as api;
 
 mod cancel;
 mod commit;
+mod outcome;
 mod recovery;
 
 use commit::{assistant_text, commit_interrupted_output, commit_output, OutputCommitRequest};
+use outcome::{
+    persistence_state, terminal_outcome, terminal_outcome_for_tool_result, text_run_outcome,
+};
 
 use super::bridge_process::{BridgeProcessError, BridgeRunEvent};
 use super::configuration::RunConfiguration;
-use super::protocol::{RuntimeFailureCode, RuntimeRunOutcome, RuntimeRunStatus};
+use super::protocol::RuntimeFailureCode;
 use super::supervisor::{RuntimeEntry, RuntimeError, TextRunCommand};
-use super::tool_execution::{ToolExecutionAuthority, ToolRunState};
+use super::tool_execution::{ToolExecutionAuthority, ToolExecutionResult, ToolRunState};
 use super::transcript::RuntimeTranscript;
 use crate::persistence::model::{
     AgentConversationData, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
@@ -119,6 +123,10 @@ impl TextRunResult {
 
     pub(super) fn tasks(&self) -> &[api::Task] {
         &self.tasks
+    }
+
+    pub(super) fn requires_process_rebuild(&self) -> bool {
+        matches!(self.outcome, TextRunOutcome::Failed { .. })
     }
 }
 
@@ -365,6 +373,7 @@ where
                             execution,
                         )) => {
                             drop(execution);
+                            authority.cancel_run(request.run_id.clone()).await;
                             let cancellation = process
                                 .cancel_run(&entry.conversation_id, &request.run_id, grace_period)
                                 .await;
@@ -394,9 +403,28 @@ where
                         &entry.conversation_id,
                         &request.run_id,
                         &tool_call_id,
-                        &result.projection,
+                        &result.projection_bytes,
                     )
                     .await?;
+                if result.run_must_end {
+                    let outcome = terminal_outcome_for_tool_result(&result);
+                    persist_run(
+                        persistence,
+                        &entry.conversation_id,
+                        &request.run_id,
+                        AgentRuntimeRunMutation::Finish(terminal_outcome(&outcome)),
+                    )
+                    .await?;
+                    on_event(RuntimeEvent::RunFinished {
+                        run_id: request.run_id.clone(),
+                        outcome: outcome.clone(),
+                    });
+                    return Ok(TextRunResult {
+                        outcome,
+                        revision,
+                        tasks: request.tasks,
+                    });
+                }
             }
             BridgeRunEvent::Finished(finished) => {
                 let outcome = text_run_outcome(finished.outcome);
@@ -463,36 +491,6 @@ async fn persist_run(
     Ok(())
 }
 
-fn persistence_state(status: RuntimeRunStatus) -> AgentRuntimeRunState {
-    match status {
-        RuntimeRunStatus::Running => AgentRuntimeRunState::Running,
-        RuntimeRunStatus::WaitingForCommit => AgentRuntimeRunState::WaitingForCommit,
-        RuntimeRunStatus::WaitingForToolResult => AgentRuntimeRunState::WaitingForToolResult,
-    }
-}
-
-fn text_run_outcome(outcome: RuntimeRunOutcome) -> TextRunOutcome {
-    match outcome {
-        RuntimeRunOutcome::Completed => TextRunOutcome::Completed,
-        RuntimeRunOutcome::Cancelled => TextRunOutcome::Cancelled,
-        RuntimeRunOutcome::Failed {
-            error_code,
-            diagnostic_id,
-        } => TextRunOutcome::Failed {
-            error_code,
-            diagnostic_id,
-        },
-        RuntimeRunOutcome::LimitReached { tool_request_limit } => {
-            TextRunOutcome::LimitReached { tool_request_limit }
-        }
-    }
-}
-
-fn terminal_outcome(outcome: &TextRunOutcome) -> AgentRuntimeTerminalOutcome {
-    match outcome {
-        TextRunOutcome::Completed => AgentRuntimeTerminalOutcome::Completed,
-        TextRunOutcome::Cancelled => AgentRuntimeTerminalOutcome::Cancelled,
-        TextRunOutcome::Failed { .. } => AgentRuntimeTerminalOutcome::Failed,
-        TextRunOutcome::LimitReached { .. } => AgentRuntimeTerminalOutcome::LimitReached,
-    }
-}
+#[cfg(test)]
+#[path = "text_run_tests.rs"]
+mod tests;

@@ -22,10 +22,10 @@ pub(crate) use agent_runtime::read_interrupted_agent_message_ids;
 pub use agent_runtime_command::{
     AcceptAgentToolExecution, AcceptAgentToolExecutionError, AcceptAgentToolExecutionResult,
     AgentRuntimeRunMutation, AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation,
-    CommitAgentRuntimeMutationError, CompleteToolOutcomePayload, ExecutingAgentToolExecution,
-    MarkAgentToolExecutionExecuting, MarkAgentToolExecutionExecutingError, PersistAgentRuntimeRun,
-    PersistAgentRuntimeRunError, ReadExecutingAgentToolExecutions,
-    ReadExecutingAgentToolExecutionsError, ToolRequestPayload, ToolResultProjectionPayload,
+    CommitAgentRuntimeMutationError, CompleteToolOutcomePayload, MarkAgentToolExecutionExecuting,
+    MarkAgentToolExecutionExecutingError, PersistAgentRuntimeRun, PersistAgentRuntimeRunError,
+    ReadUnfinishedAgentToolExecutions, ReadUnfinishedAgentToolExecutionsError, ToolRequestPayload,
+    ToolResultProjectionPayload, UnfinishedAgentToolExecution,
 };
 pub use persistence::model;
 #[cfg_attr(not(feature = "local_fs"), expect(unused_imports))]
@@ -443,7 +443,7 @@ pub enum ModelEvent {
     PersistAgentRuntimeRun(PersistAgentRuntimeRun),
     AcceptAgentToolExecution(AcceptAgentToolExecution),
     MarkAgentToolExecutionExecuting(MarkAgentToolExecutionExecuting),
-    ReadExecutingAgentToolExecutions(ReadExecutingAgentToolExecutions),
+    ReadUnfinishedAgentToolExecutions(ReadUnfinishedAgentToolExecutions),
     /// Persists read-time-derived conversation summaries for rows written
     /// before the `summary` column existed.
     BackfillConversationSummaries {

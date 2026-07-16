@@ -5,8 +5,9 @@ use warp_multi_agent_api as api;
 
 use super::model::{
     AgentConversationData, AgentRuntimeBinding, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
-    VersionedCompleteToolOutcome, VersionedToolRequest, VersionedToolResultProjection,
-    COMPLETE_TOOL_OUTCOME_ENCODING_VERSION, TOOL_RESULT_PROJECTION_ENCODING_VERSION,
+    AgentToolExecutionState, VersionedCompleteToolOutcome, VersionedToolRequest,
+    VersionedToolResultProjection, COMPLETE_TOOL_OUTCOME_ENCODING_VERSION,
+    TOOL_RESULT_PROJECTION_ENCODING_VERSION,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,29 +130,31 @@ impl ToolRequestPayload {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExecutingAgentToolExecution {
+pub struct UnfinishedAgentToolExecution {
     pub run_id: String,
     pub tool_call_id: String,
+    pub request_fingerprint: [u8; 32],
     pub request_payload: ToolRequestPayload,
+    pub state: AgentToolExecutionState,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum ReadExecutingAgentToolExecutionsError {
-    #[error("Failed to read executing Tool Execution Records")]
+pub enum ReadUnfinishedAgentToolExecutionsError {
+    #[error("Failed to read unfinished Tool Execution Records")]
     Persistence,
 }
 
-impl From<diesel::result::Error> for ReadExecutingAgentToolExecutionsError {
+impl From<diesel::result::Error> for ReadUnfinishedAgentToolExecutionsError {
     fn from(_: diesel::result::Error) -> Self {
         Self::Persistence
     }
 }
 
 #[derive(Debug)]
-pub struct ReadExecutingAgentToolExecutions {
+pub struct ReadUnfinishedAgentToolExecutions {
     pub conversation_id: String,
     pub acknowledgement: oneshot::Sender<
-        Result<Vec<ExecutingAgentToolExecution>, ReadExecutingAgentToolExecutionsError>,
+        Result<Vec<UnfinishedAgentToolExecution>, ReadUnfinishedAgentToolExecutionsError>,
     >,
 }
 
@@ -250,13 +253,10 @@ impl ToolResultProjectionPayload {
 pub enum AgentRuntimeSidecarMutation {
     CompleteToolExecution {
         tool_call_id: String,
+        expected_state: AgentToolExecutionState,
         complete_outcome: CompleteToolOutcomePayload,
         tool_result_projection: ToolResultProjectionPayload,
-    },
-    CompletePendingToolExecution {
-        tool_call_id: String,
-        complete_outcome: CompleteToolOutcomePayload,
-        tool_result_projection: ToolResultProjectionPayload,
+        run_terminal_outcome: Option<AgentRuntimeTerminalOutcome>,
     },
 }
 
@@ -327,27 +327,23 @@ impl CommitAgentRuntimeMutation {
             None => hasher.update([0]),
             Some(AgentRuntimeSidecarMutation::CompleteToolExecution {
                 tool_call_id,
+                expected_state,
                 complete_outcome,
                 tool_result_projection,
+                run_terminal_outcome,
             }) => {
                 hasher.update([1]);
                 hash_bytes(&mut hasher, tool_call_id.as_bytes());
+                hash_bytes(&mut hasher, expected_state.as_database_value().as_bytes());
                 hasher.update(complete_outcome.encoding_version.to_le_bytes());
                 hash_bytes(&mut hasher, &complete_outcome.bytes);
                 hasher.update(tool_result_projection.encoding_version.to_le_bytes());
                 hash_bytes(&mut hasher, &tool_result_projection.bytes);
-            }
-            Some(AgentRuntimeSidecarMutation::CompletePendingToolExecution {
-                tool_call_id,
-                complete_outcome,
-                tool_result_projection,
-            }) => {
-                hasher.update([2]);
-                hash_bytes(&mut hasher, tool_call_id.as_bytes());
-                hasher.update(complete_outcome.encoding_version.to_le_bytes());
-                hash_bytes(&mut hasher, &complete_outcome.bytes);
-                hasher.update(tool_result_projection.encoding_version.to_le_bytes());
-                hash_bytes(&mut hasher, &tool_result_projection.bytes);
+                if let Some(outcome) = run_terminal_outcome {
+                    hash_bytes(&mut hasher, outcome.as_database_value().as_bytes());
+                } else {
+                    hasher.update([0]);
+                }
             }
         }
 

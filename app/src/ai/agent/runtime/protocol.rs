@@ -226,6 +226,7 @@ impl ProtocolSession {
             }
             ProtocolMessage::ToolRequest(request) => {
                 LifecycleMessage::ToolRequest(RuntimeToolRequest {
+                    frame_fingerprint: Sha256::digest(line.as_bytes()).into(),
                     conversation_id: request.conversation_id,
                     run_id: request.run_id,
                     tool_call_id: request.tool_call_id,

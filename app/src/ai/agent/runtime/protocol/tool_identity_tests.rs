@@ -1,5 +1,7 @@
+use sha2::{Digest as _, Sha256};
+
 use super::*;
-use crate::ai::agent::runtime::protocol::ProtocolError;
+use crate::ai::agent::runtime::protocol::{LifecycleMessage, ProtocolError};
 
 #[test]
 fn accepts_completed_tool_redelivery_but_rejects_live_duplicates_and_identity_reuse() {
@@ -55,5 +57,30 @@ fn rejects_empty_tool_call_identity() {
     assert_eq!(
         session.receive_inbound(&request),
         Err(SessionError::Protocol(ProtocolError::InvalidMessage))
+    );
+}
+
+#[test]
+fn runtime_tool_request_retains_the_exact_inbound_frame_fingerprint() {
+    let request = TOOL_LIFECYCLE
+        .lines()
+        .next()
+        .unwrap()
+        .replace(r#""arguments":{"command""#, r#""arguments": { "command""#);
+    let mut session = ProtocolSession::new(1_048_576, HandshakePolicy::current());
+    session.receive_inbound(VALID_BRIDGE_HELLO.trim()).unwrap();
+    session
+        .authorize_outbound_line(ACCEPTED_HANDSHAKE_RESULT.trim())
+        .unwrap();
+
+    let LifecycleMessage::ToolRequest(runtime_request) =
+        session.receive_lifecycle_inbound(&request).unwrap()
+    else {
+        panic!("expected a runtime Tool Request");
+    };
+
+    assert_eq!(
+        runtime_request.frame_fingerprint,
+        <[u8; 32]>::from(Sha256::digest(request.as_bytes()))
     );
 }

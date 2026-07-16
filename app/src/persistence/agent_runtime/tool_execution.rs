@@ -6,35 +6,46 @@ use super::super::schema::agent_runtime_runs::dsl as runs_dsl;
 use super::super::schema::agent_tool_execution_records::dsl as tools_dsl;
 use super::super::{
     AcceptAgentToolExecution, AcceptAgentToolExecutionError, AcceptAgentToolExecutionResult,
-    CompleteToolOutcomePayload, ExecutingAgentToolExecution, MarkAgentToolExecutionExecuting,
-    MarkAgentToolExecutionExecutingError, ReadExecutingAgentToolExecutions,
-    ReadExecutingAgentToolExecutionsError, ToolRequestPayload, ToolResultProjectionPayload,
+    CompleteToolOutcomePayload, MarkAgentToolExecutionExecuting,
+    MarkAgentToolExecutionExecutingError, ReadUnfinishedAgentToolExecutions,
+    ReadUnfinishedAgentToolExecutionsError, ToolRequestPayload, ToolResultProjectionPayload,
+    UnfinishedAgentToolExecution,
 };
 
-pub(in crate::persistence) fn read_executing_agent_tool_executions(
+pub(in crate::persistence) fn read_unfinished_agent_tool_executions(
     conn: &mut SqliteConnection,
-    command: &ReadExecutingAgentToolExecutions,
-) -> Result<Vec<ExecutingAgentToolExecution>, ReadExecutingAgentToolExecutionsError> {
+    command: &ReadUnfinishedAgentToolExecutions,
+) -> Result<Vec<UnfinishedAgentToolExecution>, ReadUnfinishedAgentToolExecutionsError> {
     tools_dsl::agent_tool_execution_records
         .filter(tools_dsl::conversation_id.eq(&command.conversation_id))
-        .filter(tools_dsl::state.eq(AgentToolExecutionState::Executing.as_database_value()))
+        .filter(tools_dsl::state.ne(AgentToolExecutionState::Completed.as_database_value()))
         .order(tools_dsl::id)
         .select((
             tools_dsl::run_id,
             tools_dsl::tool_call_id,
+            tools_dsl::request_fingerprint,
             tools_dsl::request_encoding_version,
             tools_dsl::request_payload,
+            tools_dsl::state,
         ))
-        .load::<(String, String, i32, Vec<u8>)>(conn)?
+        .load::<(String, String, Vec<u8>, i32, Vec<u8>, String)>(conn)?
         .into_iter()
-        .map(|(run_id, tool_call_id, version, payload)| {
-            Ok(ExecutingAgentToolExecution {
-                run_id,
-                tool_call_id,
-                request_payload: ToolRequestPayload::from_parts(version, payload)
-                    .ok_or(ReadExecutingAgentToolExecutionsError::Persistence)?,
-            })
-        })
+        .map(
+            |(run_id, tool_call_id, fingerprint, version, payload, state)| {
+                Ok(UnfinishedAgentToolExecution {
+                    run_id,
+                    tool_call_id,
+                    request_fingerprint: fingerprint
+                        .try_into()
+                        .map_err(|_| ReadUnfinishedAgentToolExecutionsError::Persistence)?,
+                    request_payload: ToolRequestPayload::from_parts(version, payload)
+                        .ok_or(ReadUnfinishedAgentToolExecutionsError::Persistence)?,
+                    state: AgentToolExecutionState::from_database_value(&state)
+                        .filter(|state| *state != AgentToolExecutionState::Completed)
+                        .ok_or(ReadUnfinishedAgentToolExecutionsError::Persistence)?,
+                })
+            },
+        )
         .collect()
 }
 

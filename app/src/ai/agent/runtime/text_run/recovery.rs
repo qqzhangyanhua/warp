@@ -8,6 +8,13 @@ pub(super) async fn materialize_before_start(
     let Some(authority) = request.tool_execution_authority.clone() else {
         return Ok(());
     };
+    let has_unfinished = authority.has_unfinished(&entry.conversation_id).await?;
+    if !has_unfinished {
+        return Ok(());
+    }
+    if request.retry_of_run_id.is_none() {
+        return Err(RuntimeError::RetryRequired);
+    }
     let mut state = ToolRunState {
         revision: request.transcript.revision(),
         tasks: request.tasks.clone(),
@@ -15,7 +22,7 @@ pub(super) async fn materialize_before_start(
         task_id: request.output_task_id.clone(),
     };
     let recovered = authority
-        .recover_indeterminate(&entry.conversation_id, &mut state)
+        .recover_unfinished(&entry.conversation_id, &mut state)
         .await?;
     request.tasks = state.tasks;
     request.conversation_data = state.conversation_data;

@@ -57,6 +57,8 @@ pub(crate) enum RuntimeError {
     PersistenceAcknowledgementDropped,
     #[error("Bridge assistant output is invalid for a text-only Agent Run")]
     InvalidAssistantOutput,
+    #[error("Unfinished tool activity requires an explicit Retry Run")]
+    RetryRequired,
     #[error(transparent)]
     ToolExecution(#[from] ToolExecutionError),
 }
@@ -258,7 +260,10 @@ impl AgentRuntimeHandle {
             on_event,
         )
         .await;
-        if result.is_err() {
+        if match &result {
+            Ok(result) => result.requires_process_rebuild(),
+            Err(_) => true,
+        } {
             if let Some(process) = entry.process.lock().await.take() {
                 process.shutdown().await;
             }

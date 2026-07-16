@@ -23,6 +23,7 @@ pub(crate) use bridge_process::BridgeLaunchConfig as AgentRuntimeLaunchConfig;
 #[cfg(not(target_family = "wasm"))]
 #[cfg_attr(not(test), allow(unused_imports))]
 pub(crate) use supervisor::{AgentRuntimeHandle, AgentRuntimeSupervisor, RuntimeError};
+pub(crate) use tool_execution::ToolPermissionDecision;
 
 #[cfg(all(test, not(target_family = "wasm")))]
 #[path = "supervisor_tests.rs"]

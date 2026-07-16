@@ -10,7 +10,12 @@ const supportsTextRuns =
   mode === "text-run-cancel" ||
   mode === "text-run-hang-cancel" ||
   mode === "text-run-hang-sync" ||
-  mode === "text-run-tool";
+  mode === "text-run-tool" ||
+  mode === "text-run-read-tool";
+
+if (mode === "text-run-read-tool") {
+  writeFileSync(join(observerDirectory, "runtime-tool.txt"), "runtime bridge file content");
+}
 
 if (mode === "hang-handshake") {
   process.stdin.once("data", () => {
@@ -135,7 +140,21 @@ if (mode === "hang-handshake") {
           status: "running",
         })}\n`,
       );
-      if (mode === "text-run-tool") {
+      if (mode === "text-run-tool" || mode === "text-run-read-tool") {
+        const toolRequest =
+          mode === "text-run-read-tool"
+            ? {
+                tool_id: "builtin.read_files",
+                tool_name: "read_files",
+                arguments: {
+                  files: [{ name: join(observerDirectory, "runtime-tool.txt"), line_ranges: [] }],
+                },
+              }
+            : {
+                tool_id: "builtin.run_shell_command",
+                tool_name: "run_shell_command",
+                arguments: { command: "pwd", wait_until_complete: true },
+              };
         process.stdout.write(
           `${JSON.stringify({
             type: "run_status",
@@ -150,9 +169,7 @@ if (mode === "hang-handshake") {
             conversation_id: message.conversation_id,
             run_id: message.run_id,
             tool_call_id: "call-1",
-            tool_id: "builtin.run_shell_command",
-            tool_name: "run_shell_command",
-            arguments: { command: "pwd", wait_until_complete: true },
+            ...toolRequest,
           })}\n`,
         );
         continue;
@@ -238,7 +255,10 @@ if (mode === "hang-handshake") {
       activeRun = undefined;
       continue;
     }
-    if (mode === "text-run-tool" && message.type === "tool_result") {
+    if (
+      (mode === "text-run-tool" || mode === "text-run-read-tool") &&
+      message.type === "tool_result"
+    ) {
       if (
         activeRun?.run_id !== message.run_id ||
         message.tool_call_id !== "call-1" ||

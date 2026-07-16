@@ -229,6 +229,12 @@ pub(super) enum TryExecuteResult {
     },
 }
 
+#[derive(Clone, Copy)]
+enum ExecutionAuthorization {
+    Evaluate { is_user_initiated: bool },
+    AlreadyApproved,
+}
+
 #[derive(Clone)]
 struct AsyncExecutingAction {
     action: AIAgentAction,
@@ -593,6 +599,35 @@ impl BlocklistAIActionExecutor {
         is_user_initiated: bool,
         ctx: &mut ModelContext<Self>,
     ) -> TryExecuteResult {
+        self.try_to_execute_action_with_authorization(
+            action,
+            conversation_id,
+            ExecutionAuthorization::Evaluate { is_user_initiated },
+            ctx,
+        )
+    }
+
+    pub(super) fn execute_approved_action(
+        &mut self,
+        action: AIAgentAction,
+        conversation_id: AIConversationId,
+        ctx: &mut ModelContext<Self>,
+    ) -> TryExecuteResult {
+        self.try_to_execute_action_with_authorization(
+            action,
+            conversation_id,
+            ExecutionAuthorization::AlreadyApproved,
+            ctx,
+        )
+    }
+
+    fn try_to_execute_action_with_authorization(
+        &mut self,
+        action: AIAgentAction,
+        conversation_id: AIConversationId,
+        authorization: ExecutionAuthorization,
+        ctx: &mut ModelContext<Self>,
+    ) -> TryExecuteResult {
         // We should never actually execute actions in view-only mode.
         if self.is_shared_session_viewer() {
             return TryExecuteResult::NotExecuted {
@@ -611,15 +646,30 @@ impl BlocklistAIActionExecutor {
         // The agent cannot auto execute and either:
         // - the agent is interactive, OR
         // - the agent is autonomous and the action was not requesting command output
-        let needs_confirmation = !(is_user_initiated
-            || can_auto_execute
-            || (is_agent_autonomous && action.action.is_request_command_output()));
+        let is_user_initiated = matches!(
+            authorization,
+            ExecutionAuthorization::Evaluate {
+                is_user_initiated: true
+            }
+        );
+        let needs_confirmation = match authorization {
+            ExecutionAuthorization::AlreadyApproved => false,
+            ExecutionAuthorization::Evaluate { .. } => {
+                !(is_user_initiated
+                    || can_auto_execute
+                    || (is_agent_autonomous && action.action.is_request_command_output()))
+            }
+        };
         if needs_confirmation {
             return TryExecuteResult::NotExecuted {
                 action: Box::new(action),
                 reason: NotExecutedReason::NeedsConfirmation,
             };
-        } else if !is_user_initiated && !can_auto_execute && is_agent_autonomous {
+        } else if matches!(authorization, ExecutionAuthorization::Evaluate { .. })
+            && !is_user_initiated
+            && !can_auto_execute
+            && is_agent_autonomous
+        {
             // It must be the case that the autonomous agent is requesting a denylisted command.
             if let AIAgentActionType::RequestCommandOutput { command, .. } = &action.action {
                 let action_id = action.id.clone();

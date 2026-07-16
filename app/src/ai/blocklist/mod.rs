@@ -42,6 +42,7 @@ pub use action_model::AIActionStatus;
 // Consumed by `tui_export` for the `warp_tui` frontend.
 #[cfg(feature = "tui")]
 pub use action_model::RequestFileEditsExecutor;
+pub(crate) use action_model::RuntimeToolExecutionError;
 #[cfg_attr(target_family = "wasm", allow(unused_imports))]
 pub(crate) use action_model::{
     apply_edits, read_local_file_context, FileReadResult, ReadFileContextResult,
