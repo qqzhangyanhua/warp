@@ -55,7 +55,7 @@ use super::agent::{
 use super::agent_runtime::{
     accept_agent_tool_execution, commit_agent_runtime_mutation,
     mark_agent_tool_execution_executing, persist_agent_runtime_run,
-    read_unfinished_agent_tool_executions,
+    read_latest_agent_runtime_run_id, read_unfinished_agent_tool_executions,
 };
 use super::block_list::{
     delete_ai_conversation, delete_blocks, save_block, update_block_agent_view_visibility,
@@ -764,6 +764,11 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         }
         ModelEvent::MarkAgentToolExecutionExecuting(command) => {
             let result = mark_agent_tool_execution_executing(connection, &command);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::ReadLatestAgentRuntimeRunId(command) => {
+            let result = read_latest_agent_runtime_run_id(connection, &command);
             let _ = command.acknowledgement.send(result);
             Ok(())
         }

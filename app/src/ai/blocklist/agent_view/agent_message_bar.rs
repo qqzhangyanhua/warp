@@ -64,6 +64,7 @@ const FIGMA_ICON_SIZE: f32 = 14.;
 pub struct AgentMessageBarMouseStates {
     pub resume_conversation: MouseStateHandle,
     pub fork_from_last_known_good_state: MouseStateHandle,
+    pub fork_into_rust_runtime: MouseStateHandle,
     pub toggle_shortcuts: MouseStateHandle,
     pub toggle_slash_commands: MouseStateHandle,
     pub toggle_plan: MouseStateHandle,
@@ -731,6 +732,21 @@ impl MessageProvider<AgentMessageArgs<'_>> for ZeroStateMessageProducer {
                 mouse_states.fork_from_last_known_good_state.clone(),
             ));
         }
+        #[cfg(not(target_family = "wasm"))]
+        if should_offer_agent_runtime_recovery_fork(active_conversation) {
+            let conversation_id = active_conversation.id();
+            items.push(MessageItem::clickable(
+                vec![MessageItem::text(
+                    "Fork completed history to continue with the Rust runtime",
+                )],
+                move |ctx| {
+                    ctx.dispatch_typed_action(WorkspaceAction::ContinueConversationLocally {
+                        conversation_id,
+                    });
+                },
+                mouse_states.fork_into_rust_runtime.clone(),
+            ));
+        }
 
         Some(Message::new(items))
     }
@@ -793,7 +809,25 @@ fn should_fork_from_last_known_good_state(
             will_attempt_resume,
             ..
         } => !will_attempt_resume,
+        RenderableAIError::AgentRuntimeUnavailable { .. } => false,
     }
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn should_offer_agent_runtime_recovery_fork(active_conversation: &AIConversation) -> bool {
+    active_conversation
+        .latest_exchange()
+        .is_some_and(|exchange| {
+            matches!(
+                &exchange.output_status,
+                AIAgentOutputStatus::Finished {
+                    finished_output: FinishedAIAgentOutput::Error {
+                        error: RenderableAIError::AgentRuntimeUnavailable { .. },
+                        ..
+                    },
+                }
+            )
+        })
 }
 
 struct ForkSlashCommandMessageProducer;

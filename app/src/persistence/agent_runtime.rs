@@ -14,7 +14,8 @@ use super::schema::agent_tool_execution_records::dsl as tools_dsl;
 use super::{
     AgentRuntimeRunMutation, AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation,
     CommitAgentRuntimeMutationError, CompleteToolOutcomePayload, PersistAgentRuntimeRun,
-    PersistAgentRuntimeRunError, ToolResultProjectionPayload,
+    PersistAgentRuntimeRunError, ReadLatestAgentRuntimeRunId, ReadLatestAgentRuntimeRunIdError,
+    ToolResultProjectionPayload,
 };
 
 mod tool_execution;
@@ -42,6 +43,19 @@ pub(crate) fn read_interrupted_agent_message_ids(
         .into_iter()
         .map(|run_id| format!("interrupted:{run_id}"))
         .collect())
+}
+
+pub(super) fn read_latest_agent_runtime_run_id(
+    conn: &mut SqliteConnection,
+    command: &ReadLatestAgentRuntimeRunId,
+) -> Result<Option<String>, ReadLatestAgentRuntimeRunIdError> {
+    runs_dsl::agent_runtime_runs
+        .filter(runs_dsl::conversation_id.eq(&command.conversation_id))
+        .order(runs_dsl::id.desc())
+        .select(runs_dsl::run_id)
+        .first::<String>(conn)
+        .optional()
+        .map_err(Into::into)
 }
 
 pub(super) fn persist_agent_runtime_run(

@@ -8,7 +8,7 @@ mod pending_response_streams;
 pub mod response_stream;
 pub(super) mod shared_session;
 mod slash_command;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 #[cfg(not(target_family = "wasm"))]
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -43,6 +43,7 @@ use super::queued_query::{QueuedQueryId, QueuedQueryModel};
 use super::{BlocklistAIInputModel, ResponseStreamId};
 use crate::ai::agent::api::{self, ServerConversationToken};
 use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
+use crate::ai::agent::runtime::{AgentRuntimeService, AgentRuntimeServiceEvent};
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{
     extract_user_query_mode, AIAgentActionResult, AIAgentActionResultType, AIAgentAttachment,
@@ -86,9 +87,6 @@ use crate::terminal::ShellLaunchData;
 use crate::workspace::OneTimeModalModel;
 use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::UserWorkspaces;
-
-const PI_RUNTIME_NOT_READY_ERROR: &str =
-    "Pi Agent Runtime is selected for this conversation, but the local Bridge runtime is not ready.";
 
 #[derive(Debug, Clone)]
 pub struct SessionContext {
@@ -317,6 +315,52 @@ impl RequestInput {
     }
 }
 
+fn pi_runtime_user_messages_by_task(
+    request_input: &RequestInput,
+) -> HashMap<TaskId, Vec<warp_multi_agent_api::Message>> {
+    let mut messages_by_task = HashMap::<TaskId, Vec<warp_multi_agent_api::Message>>::new();
+
+    for (task_id, inputs) in request_input.input_messages.iter() {
+        for input in inputs {
+            let AIAgentInput::UserQuery {
+                query,
+                context,
+                referenced_attachments,
+                user_query_mode,
+                intended_agent,
+                ..
+            } = input
+            else {
+                continue;
+            };
+
+            let message_id = format!("user:{}", uuid::Uuid::new_v4());
+            messages_by_task.entry(task_id.clone()).or_default().push(
+                warp_multi_agent_api::Message {
+                    id: message_id.clone(),
+                    task_id: task_id.to_string(),
+                    request_id: message_id,
+                    message: Some(message::Message::UserQuery(message::UserQuery {
+                        query: query.clone(),
+                        context: Some(api::convert_context(context.as_ref())),
+                        referenced_attachments: referenced_attachments
+                            .iter()
+                            .map(|(key, attachment)| (key.clone(), attachment.clone().into()))
+                            .collect(),
+                        mode: Some((*user_query_mode).into()),
+                        intended_agent: intended_agent
+                            .map(|agent| agent.into())
+                            .unwrap_or_default(),
+                    })),
+                    ..Default::default()
+                },
+            );
+        }
+    }
+
+    messages_by_task
+}
+
 /// Controller for Blocklist AI.
 ///
 /// This is responsible for managing and updating blocklist AI state for a single terminal surface.
@@ -363,6 +407,7 @@ pub struct BlocklistAIController {
             Option<PassiveSuggestionTrigger>,
         )>,
     >,
+    pending_pi_follow_ups: HashMap<AIConversationId, VecDeque<PendingPiFollowUp>>,
 }
 
 enum InputQueryType {
@@ -412,6 +457,12 @@ struct InputQuery {
     /// When `Some`, this submission is a fired queued-prompt row; the send path resolves the
     /// row's stored attachments by this id instead of the live input staging.
     queued_query_id: Option<QueuedQueryId>,
+}
+
+struct PendingPiFollowUp {
+    input_query: InputQuery,
+    entrypoint_type: EntrypointType,
+    shared_session_participant_id: Option<ParticipantId>,
 }
 
 impl InputQuery {
@@ -631,6 +682,30 @@ impl BlocklistAIController {
             OrchestrationEventStreamerEvent::ChildSpawned { .. }
             | OrchestrationEventStreamerEvent::ChildStatusChanged { .. } => {}
         });
+        let runtime_service = AgentRuntimeService::handle(ctx);
+        ctx.subscribe_to_model(&runtime_service, |me, _, event, ctx| {
+            let AgentRuntimeServiceEvent::RunFinished { conversation_id } = event;
+            let pending = me
+                .pending_pi_follow_ups
+                .get_mut(conversation_id)
+                .and_then(VecDeque::pop_front);
+            if me
+                .pending_pi_follow_ups
+                .get(conversation_id)
+                .is_some_and(VecDeque::is_empty)
+            {
+                me.pending_pi_follow_ups.remove(conversation_id);
+            }
+            if let Some(pending) = pending {
+                me.send_query(
+                    pending.input_query,
+                    pending.entrypoint_type,
+                    pending.shared_session_participant_id,
+                    false,
+                    ctx,
+                );
+            }
+        });
         Self {
             input_model,
             context_model,
@@ -647,6 +722,7 @@ impl BlocklistAIController {
             pending_local_claude_wakes: HashMap::new(),
             pending_passive_follow_ups: HashSet::new(),
             pending_passive_suggestion_results: HashMap::new(),
+            pending_pi_follow_ups: HashMap::new(),
         }
     }
 
@@ -669,12 +745,14 @@ impl BlocklistAIController {
     ) {
         // Store the participant who initiated this query before sending
         // so that send_query can use it when creating the exchange.
-        if let Some(participant_id) = shared_session_participant_id {
-            self.set_current_response_initiator(participant_id);
+        if let Some(participant_id) = shared_session_participant_id.as_ref() {
+            self.set_current_response_initiator(participant_id.clone());
         }
 
         let query = input_query.query().to_owned();
-        let (conversation_id, task_id) = match input_query.which_task {
+        let targets_existing_conversation =
+            matches!(input_query.which_task, WhichTask::Task { .. });
+        let (conversation_id, task_id) = match &input_query.which_task {
             WhichTask::NewConversation => {
                 let conversation = self.start_new_conversation_for_request(ctx);
                 (conversation.id(), conversation.get_root_task_id().clone())
@@ -682,8 +760,36 @@ impl BlocklistAIController {
             WhichTask::Task {
                 conversation_id,
                 task_id,
-            } => (conversation_id, task_id),
+            } => (*conversation_id, task_id.clone()),
         };
+
+        let should_defer_for_pi_cancellation = !is_queued_prompt
+            && targets_existing_conversation
+            && BlocklistAIHistoryModel::as_ref(ctx)
+                .conversation(&conversation_id)
+                .is_some_and(|conversation| {
+                    conversation.runtime_binding() == AgentRuntimeBinding::Pi
+                        && conversation.status().is_in_progress()
+                })
+            && AgentRuntimeService::as_ref(ctx).has_active_run(conversation_id);
+        if should_defer_for_pi_cancellation {
+            self.pending_pi_follow_ups
+                .entry(conversation_id)
+                .or_default()
+                .push_back(PendingPiFollowUp {
+                    input_query,
+                    entrypoint_type,
+                    shared_session_participant_id,
+                });
+            self.cancel_conversation_progress(
+                conversation_id,
+                CancellationReason::FollowUpSubmitted {
+                    is_for_same_conversation: true,
+                },
+                ctx,
+            );
+            return;
+        }
 
         // Drain any queued passive suggestion results for this conversation
         // *before* cancelling progress, since cancel_conversation_progress
@@ -2067,7 +2173,10 @@ impl BlocklistAIController {
             input_context.push(block_context);
         }
 
-        let new_conversation = self.start_new_conversation_for_request(ctx);
+        let new_conversation = self.start_new_conversation_for_request_with_runtime_binding(
+            Some(AgentRuntimeBinding::Rust),
+            ctx,
+        );
         self.send_request_input(
             RequestInput::for_task(
                 vec![AIAgentInput::AutoCodeDiffQuery {
@@ -2236,7 +2345,10 @@ impl BlocklistAIController {
             trigger,
         }];
 
-        let new_conversation = self.start_new_conversation_for_request(ctx);
+        let new_conversation = self.start_new_conversation_for_request_with_runtime_binding(
+            Some(AgentRuntimeBinding::Rust),
+            ctx,
+        );
         self.send_request_input(
             RequestInput::for_task(
                 inputs,
@@ -2286,6 +2398,14 @@ impl BlocklistAIController {
         &self,
         ctx: &'a mut ModelContext<Self>,
     ) -> &'a AIConversation {
+        self.start_new_conversation_for_request_with_runtime_binding(None, ctx)
+    }
+
+    fn start_new_conversation_for_request_with_runtime_binding<'a>(
+        &self,
+        runtime_binding: Option<AgentRuntimeBinding>,
+        ctx: &'a mut ModelContext<Self>,
+    ) -> &'a AIConversation {
         let is_autoexecute_override = self
             .context_model
             .as_ref(ctx)
@@ -2294,13 +2414,20 @@ impl BlocklistAIController {
         let history_model = BlocklistAIHistoryModel::handle(ctx);
         let id = history_model.update(ctx, |history_model, ctx| {
             // We don't mark passive conversations as "the active conversation" (at least when they first appear).
-            history_model.start_new_conversation(
+            let id = history_model.start_new_conversation(
                 self.terminal_surface_id,
                 is_autoexecute_override,
                 false,
                 false,
                 ctx,
-            )
+            );
+            if let Some(runtime_binding) = runtime_binding {
+                history_model
+                    .conversation_mut(&id)
+                    .expect("conversation was just created")
+                    .set_runtime_binding(runtime_binding);
+            }
+            id
         });
         history_model
             .as_ref(ctx)
@@ -2336,6 +2463,7 @@ impl BlocklistAIController {
             parent_agent_id,
             agent_name,
             runtime_binding,
+            root_task_id,
         ) = {
             let Some(conversation) = history_model
                 .as_ref(ctx)
@@ -2359,6 +2487,7 @@ impl BlocklistAIController {
                 conversation.parent_agent_id().map(str::to_string),
                 conversation.agent_name().map(str::to_string),
                 conversation.runtime_binding(),
+                conversation.get_root_task_id().clone(),
             )
         };
 
@@ -2472,11 +2601,24 @@ impl BlocklistAIController {
 
         if runtime_binding == AgentRuntimeBinding::Pi {
             let response_stream_id = ResponseStreamId::new();
+            let runtime_user_messages_by_task = pi_runtime_user_messages_by_task(&request_input);
+            let runtime_resource_message_ids = runtime_user_messages_by_task
+                .values()
+                .flatten()
+                .map(|message| message.id.clone())
+                .collect();
             let input_contains_user_query = request_input
                 .all_inputs()
                 .any(|input| input.is_user_query());
+            let output_task_id = request_input
+                .input_messages
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or(root_task_id)
+                .to_string();
 
-            history_model.update(ctx, |history_model, ctx| {
+            let updated_conversation = history_model.update(ctx, |history_model, ctx| {
                 match history_model.update_conversation_for_new_request_input(
                     request_input,
                     response_stream_id.clone(),
@@ -2490,22 +2632,131 @@ impl BlocklistAIController {
                             ConversationStatus::InProgress,
                             ctx,
                         );
+                        history_model.initialize_output_for_response_stream(
+                            &response_stream_id,
+                            conversation_data.id,
+                            self.terminal_surface_id,
+                            warp_multi_agent_api::response_event::StreamInit {
+                                request_id: "pi-runtime-output".to_string(),
+                                conversation_id: conversation_data.id.to_string(),
+                                run_id: String::new(),
+                            },
+                            ctx,
+                        );
+
+                        let needs_runtime_task_initialization = history_model
+                            .conversation(&conversation_data.id)
+                            .is_some_and(|conversation| {
+                                conversation.runtime_persistence_snapshot().0.is_empty()
+                            });
+                        let output_task_key = TaskId::new(output_task_id.clone());
+                        if needs_runtime_task_initialization {
+                            if let Err(e) = history_model.apply_client_actions(
+                                &response_stream_id,
+                                vec![warp_multi_agent_api::ClientAction {
+                                    action: Some(
+                                        warp_multi_agent_api::client_action::Action::CreateTask(
+                                            warp_multi_agent_api::client_action::CreateTask {
+                                                task: Some(Task {
+                                                    id: output_task_id.clone(),
+                                                    messages: runtime_user_messages_by_task
+                                                        .get(&output_task_key)
+                                                        .cloned()
+                                                        .unwrap_or_default(),
+                                                    ..Default::default()
+                                                }),
+                                            },
+                                        ),
+                                    ),
+                                }],
+                                conversation_data.id,
+                                self.terminal_surface_id,
+                                &SkillPathOrigin::Unavailable,
+                                ctx,
+                            ) {
+                                log::warn!(
+                                    "Failed to initialize Pi runtime output task in AI conversation: {e:?}"
+                                );
+                                return None;
+                            }
+                        }
+                        if !needs_runtime_task_initialization {
+                            let runtime_user_messages = runtime_user_messages_by_task
+                                .get(&output_task_key)
+                                .cloned()
+                                .unwrap_or_default();
+                            if !runtime_user_messages.is_empty() {
+                                if let Err(e) = history_model.apply_client_actions(
+                                    &response_stream_id,
+                                    vec![warp_multi_agent_api::ClientAction {
+                                        action: Some(
+                                            warp_multi_agent_api::client_action::Action::AddMessagesToTask(
+                                                warp_multi_agent_api::client_action::AddMessagesToTask {
+                                                    task_id: output_task_id.clone(),
+                                                    messages: runtime_user_messages,
+                                                },
+                                            ),
+                                        ),
+                                    }],
+                                    conversation_data.id,
+                                    self.terminal_surface_id,
+                                    &SkillPathOrigin::Unavailable,
+                                    ctx,
+                                ) {
+                                    log::warn!(
+                                        "Failed to persist Pi runtime user message in AI conversation: {e:?}"
+                                    );
+                                    return None;
+                                }
+                            }
+                        }
+                        history_model
+                            .conversation(&conversation_data.id)
+                            .cloned()
+                            .map(|conversation| {
+                                (conversation, needs_runtime_task_initialization)
+                            })
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Failed to push new Pi runtime exchange to AI conversation: {e:?}"
+                        );
+                        None
+                    }
+                }
+            });
+            if let Some((updated_conversation, needs_runtime_task_initialization)) =
+                updated_conversation
+            {
+                let runtime_start_result =
+                    AgentRuntimeService::handle(ctx).update(ctx, |service, ctx| {
+                        service.start_text_run(
+                            &updated_conversation,
+                            request_params,
+                            response_stream_id.clone(),
+                            output_task_id,
+                            runtime_resource_message_ids,
+                            needs_runtime_task_initialization,
+                            self.terminal_surface_id,
+                            self.action_model.clone(),
+                            ctx,
+                        )
+                    });
+                if let Err(runtime_start_error) = runtime_start_result {
+                    history_model.update(ctx, |history_model, ctx| {
                         history_model.mark_response_stream_completed_with_error(
-                            RenderableAIError::other(PI_RUNTIME_NOT_READY_ERROR, false),
+                            RenderableAIError::agent_runtime_unavailable(
+                                runtime_start_error.to_string(),
+                            ),
                             /* recovery_pending */ false,
                             &response_stream_id,
                             conversation_data.id,
                             self.terminal_surface_id,
                             ctx,
                         );
-                    }
-                    Err(e) => {
-                        log::warn!(
-                            "Failed to push new Pi runtime exchange to AI conversation: {e:?}"
-                        );
-                    }
+                    });
                 }
-            });
+            }
 
             if input_contains_user_query && !is_queued_prompt {
                 let pending_document_id = self.context_model.as_ref(ctx).pending_document_id();
@@ -2726,6 +2977,15 @@ impl BlocklistAIController {
         QueuedQueryModel::handle(ctx).update(ctx, |model, ctx| {
             model.remove_pending_lrc_rows(conversation_id, ctx);
         });
+
+        let is_pi_bound = BlocklistAIHistoryModel::as_ref(ctx)
+            .conversation(&conversation_id)
+            .is_some_and(|conversation| conversation.runtime_binding() == AgentRuntimeBinding::Pi);
+        if is_pi_bound {
+            AgentRuntimeService::handle(ctx).update(ctx, |runtime_service, ctx| {
+                runtime_service.cancel_run(conversation_id, ctx)
+            });
+        }
 
         if !self
             .in_flight_response_streams

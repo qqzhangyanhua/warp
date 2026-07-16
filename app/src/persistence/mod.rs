@@ -24,6 +24,7 @@ pub use agent_runtime_command::{
     AgentRuntimeRunMutation, AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation,
     CommitAgentRuntimeMutationError, CompleteToolOutcomePayload, MarkAgentToolExecutionExecuting,
     MarkAgentToolExecutionExecutingError, PersistAgentRuntimeRun, PersistAgentRuntimeRunError,
+    ReadLatestAgentRuntimeRunId, ReadLatestAgentRuntimeRunIdError,
     ReadUnfinishedAgentToolExecutions, ReadUnfinishedAgentToolExecutionsError, ToolRequestPayload,
     ToolResultProjectionPayload, UnfinishedAgentToolExecution,
 };
@@ -443,6 +444,7 @@ pub enum ModelEvent {
     PersistAgentRuntimeRun(PersistAgentRuntimeRun),
     AcceptAgentToolExecution(AcceptAgentToolExecution),
     MarkAgentToolExecutionExecuting(MarkAgentToolExecutionExecuting),
+    ReadLatestAgentRuntimeRunId(ReadLatestAgentRuntimeRunId),
     ReadUnfinishedAgentToolExecutions(ReadUnfinishedAgentToolExecutions),
     /// Persists read-time-derived conversation summaries for rows written
     /// before the `summary` column existed.

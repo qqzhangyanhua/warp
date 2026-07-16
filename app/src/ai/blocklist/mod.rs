@@ -77,8 +77,8 @@ pub(crate) use conversation_selection::{
 };
 pub(crate) use history_model::{
     AIQueryHistory, AIQueryHistoryOutputStatus, BeginConversationRenameError,
-    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, ConversationStatusUpdate, FORK_PREFIX,
-    PRE_REWIND_PREFIX,
+    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, ConversationStatusUpdate,
+    RuntimeTextRunFinish, FORK_PREFIX, PRE_REWIND_PREFIX,
 };
 // The policy types are re-exported for the TUI frontend via `tui_export`.
 #[cfg_attr(not(feature = "tui"), allow(unused_imports))]

@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -15,7 +16,7 @@ use warpui_core::r#async::FutureExt as _;
 use super::bridge_process::BridgeProcessError;
 use super::configuration::{ChatCompletionsProvider, ReasoningEffort, RunConfiguration};
 use super::supervisor::{RuntimeEvent, RuntimeSupervisorConfig, TextRunRequest};
-use super::text_run::TextRunOutcome;
+use super::text_run::{prepare_text_run, TextRunOutcome};
 use super::transcript::RuntimeTranscript;
 use super::{AgentRuntimeLaunchConfig, AgentRuntimeSupervisor, RuntimeError};
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
@@ -27,10 +28,124 @@ use crate::persistence::model::{
 use crate::persistence::schema::agent_runtime_runs::dsl as runs_dsl;
 use crate::persistence::{
     read_interrupted_agent_message_ids, setup_database, start_writer, upsert_agent_conversation,
-    ModelEvent,
+    AgentRuntimeRunMutation, ModelEvent, PersistAgentRuntimeRun,
 };
 
 pub(super) const CONVERSATION_ID: &str = "018f8a1e-7d2c-7c45-9c3a-6f78f04b3d20";
+
+#[tokio::test]
+async fn explicit_retry_resolves_latest_persisted_lineage_before_start() {
+    let tempdir = TempDir::new().unwrap();
+    let database_path = tempdir.path().join("warp.sqlite");
+    let initial_tasks = vec![task_with_user_message()];
+    let mut conn = setup_database(&database_path).unwrap();
+    upsert_agent_conversation(&mut conn, CONVERSATION_ID, &initial_tasks, runtime_data(0)).unwrap();
+    let writer = start_writer(conn, database_path.clone()).unwrap();
+
+    persist_run_for_test(
+        &writer.sender,
+        "failed-run",
+        AgentRuntimeRunMutation::Start {
+            retry_of_run_id: None,
+            starting_revision: 0,
+        },
+    )
+    .await;
+    persist_run_for_test(
+        &writer.sender,
+        "failed-run",
+        AgentRuntimeRunMutation::Finish(AgentRuntimeTerminalOutcome::Failed),
+    )
+    .await;
+
+    let mut retry = text_run_request(
+        "retry-run",
+        Some("stale-cached-run"),
+        initial_tasks,
+        0,
+        HashSet::new(),
+    )
+    .with_retry_lineage_lookup();
+    prepare_text_run(&writer.sender, CONVERSATION_ID, &mut retry)
+        .await
+        .unwrap();
+
+    writer.sender.send(ModelEvent::Terminate).unwrap();
+    writer.handle.join().unwrap();
+    let mut conn = setup_database(&database_path).unwrap();
+    let retry = runs_dsl::agent_runtime_runs
+        .filter(runs_dsl::run_id.eq("retry-run"))
+        .select(AgentRuntimeRunRecord::as_select())
+        .first::<AgentRuntimeRunRecord>(&mut conn)
+        .unwrap();
+    assert_eq!(retry.retry_of_run_id.as_deref(), Some("failed-run"));
+}
+
+#[tokio::test]
+async fn cancellation_before_run_registration_never_starts_bridge_text_run() {
+    let tempdir = TempDir::new().unwrap();
+    let database_path = tempdir.path().join("warp.sqlite");
+    let observer_dir = TempDir::new().unwrap();
+    let initial_tasks = vec![task_with_user_message()];
+    let mut conn = setup_database(&database_path).unwrap();
+    upsert_agent_conversation(&mut conn, CONVERSATION_ID, &initial_tasks, runtime_data(0)).unwrap();
+    let writer = start_writer(conn, database_path.clone()).unwrap();
+    let supervisor = AgentRuntimeSupervisor::new(
+        test_launch_config("text-runs", &observer_dir),
+        Arc::new(Background::default()),
+    );
+    let handle = supervisor.attach(CONVERSATION_ID).await.unwrap();
+    let mut request = text_run_request(
+        "cancel-before-start",
+        None,
+        initial_tasks,
+        0,
+        HashSet::new(),
+    );
+    prepare_text_run(&writer.sender, CONVERSATION_ID, &mut request)
+        .await
+        .unwrap();
+    let cancellation = Arc::new(AtomicBool::new(false));
+    cancellation.store(true, Ordering::Release);
+
+    let result = handle
+        .run_text_cancellable(&writer.sender, request, cancellation, |_| {})
+        .await
+        .unwrap();
+    assert_eq!(result.outcome(), &TextRunOutcome::Cancelled);
+    assert!(handle.process_is_running().await.unwrap());
+
+    supervisor.shutdown_all().await;
+    writer.sender.send(ModelEvent::Terminate).unwrap();
+    writer.handle.join().unwrap();
+    let mut conn = setup_database(&database_path).unwrap();
+    let run = runs_dsl::agent_runtime_runs
+        .filter(runs_dsl::run_id.eq("cancel-before-start"))
+        .select(AgentRuntimeRunRecord::as_select())
+        .first::<AgentRuntimeRunRecord>(&mut conn)
+        .unwrap();
+    assert_eq!(
+        run.terminal_outcome(),
+        Some(AgentRuntimeTerminalOutcome::Cancelled)
+    );
+}
+
+async fn persist_run_for_test(
+    persistence: &std::sync::mpsc::SyncSender<ModelEvent>,
+    run_id: &str,
+    mutation: AgentRuntimeRunMutation,
+) {
+    let (acknowledgement, acknowledged) = oneshot::channel();
+    persistence
+        .send(ModelEvent::PersistAgentRuntimeRun(PersistAgentRuntimeRun {
+            conversation_id: CONVERSATION_ID.to_string(),
+            run_id: run_id.to_string(),
+            mutation,
+            acknowledgement,
+        }))
+        .unwrap();
+    acknowledged.await.unwrap().unwrap();
+}
 
 #[tokio::test]
 async fn active_text_run_can_be_cancelled_without_waiting_for_the_process_lock() {

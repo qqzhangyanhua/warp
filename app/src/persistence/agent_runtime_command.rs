@@ -159,6 +159,24 @@ pub struct ReadUnfinishedAgentToolExecutions {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ReadLatestAgentRuntimeRunIdError {
+    #[error("Failed to read Agent Run Records")]
+    Persistence,
+}
+
+impl From<diesel::result::Error> for ReadLatestAgentRuntimeRunIdError {
+    fn from(_: diesel::result::Error) -> Self {
+        Self::Persistence
+    }
+}
+
+#[derive(Debug)]
+pub struct ReadLatestAgentRuntimeRunId {
+    pub conversation_id: String,
+    pub acknowledgement: oneshot::Sender<Result<Option<String>, ReadLatestAgentRuntimeRunIdError>>,
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum MarkAgentToolExecutionExecutingError {
     #[error("Tool Request identity was reused with different content")]
     IdentityConflict,

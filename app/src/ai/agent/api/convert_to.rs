@@ -722,7 +722,7 @@ impl TryFrom<AIAgentActionResult> for api::request::input::user_inputs::user_inp
     }
 }
 
-fn convert_context(context: &[AIAgentContext]) -> api::InputContext {
+pub(crate) fn convert_context(context: &[AIAgentContext]) -> api::InputContext {
     let mut api_context = api::InputContext::default();
     let mut git_context = None;
     for context in context.iter().cloned() {

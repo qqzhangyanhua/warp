@@ -17,7 +17,8 @@ use crate::persistence::schema::agent_tool_execution_records::dsl as tools_dsl;
 use crate::persistence::schema::{agent_runtime_runs, agent_tool_execution_records};
 use crate::persistence::{
     AgentRuntimeSidecarMutation, CommitAgentRuntimeMutation, CommitAgentRuntimeMutationError,
-    CompleteToolOutcomePayload, ModelEvent, ToolResultProjectionPayload, WriterHandles,
+    CompleteToolOutcomePayload, ModelEvent, ReadLatestAgentRuntimeRunId,
+    ToolResultProjectionPayload, WriterHandles,
 };
 
 const CONVERSATION_ID: &str = "conv-1";
@@ -409,6 +410,29 @@ fn sqlite_writer_rejects_runtime_commit_after_concurrent_history_edit() {
     );
 
     harness.finish(|conn| assert_runtime_conversation(conn, 1, &[edited_task]));
+}
+
+#[test]
+fn sqlite_writer_restores_latest_runtime_run_identity() {
+    let harness = RuntimeWriterHarness::new(0, &[]);
+    let (acknowledgement, acknowledged) = oneshot::channel();
+    harness
+        .writer
+        .sender
+        .send(ModelEvent::ReadLatestAgentRuntimeRunId(
+            ReadLatestAgentRuntimeRunId {
+                conversation_id: CONVERSATION_ID.to_string(),
+                acknowledgement,
+            },
+        ))
+        .expect("runtime run lookup should send");
+    assert_eq!(
+        futures::executor::block_on(acknowledged)
+            .expect("runtime run lookup should acknowledge")
+            .expect("runtime run lookup should succeed"),
+        Some(RUN_ID.to_string())
+    );
+    harness.finish(|_| {});
 }
 
 #[test]

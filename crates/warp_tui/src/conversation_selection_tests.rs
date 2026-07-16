@@ -1,9 +1,11 @@
+use ai::api_keys::ApiKeyManager;
 use warp::tui_export::{
-    AIConversationId, AgentViewEntryOrigin, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
-    ConversationSelection, ConversationSelectionHandle,
+    AIConversationId, AgentRuntimeBinding, AgentViewEntryOrigin, BlocklistAIHistoryEvent,
+    BlocklistAIHistoryModel, ConversationSelection, ConversationSelectionHandle,
 };
 use warp_core::execution_mode::{AppExecutionMode, ExecutionMode};
-use warpui::{App, EntityId, ModelHandle};
+use warp_core::features::FeatureFlag;
+use warpui::{App, EntityId, ModelHandle, SingletonEntity};
 
 use super::TuiConversationSelection;
 
@@ -77,6 +79,48 @@ fn tui_selection_creates_and_selects_terminal_surface_scoped_conversation() {
                     .map(|conversation| conversation.id())
                     .collect::<Vec<_>>(),
                 vec![conversation_id]
+            );
+        });
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn tui_selection_binds_eligible_local_conversation_to_pi_runtime() {
+    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
+    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        app.update(|ctx| warpui_extras::secure_storage::register_noop("test", ctx));
+        app.add_singleton_model(ApiKeyManager::new);
+        ApiKeyManager::handle(&app).update(&mut app, |manager, ctx| {
+            manager.add_custom_endpoint(
+                "Local Provider".to_string(),
+                "http://localhost:11434/v1".to_string(),
+                "test-key".to_string(),
+                vec![(
+                    "test-model".to_string(),
+                    None,
+                    Some("test-config-key".to_string()),
+                )],
+                ctx,
+            );
+        });
+        let (history, selection, _) = build_tui_selection(&mut app);
+
+        let conversation_id = selection
+            .update(&mut app, |selection, ctx| {
+                selection.try_start_new_conversation(AgentViewEntryOrigin::Cli, ctx)
+            })
+            .expect("TUI conversation creation should succeed");
+
+        history.read(&app, |history, _| {
+            assert_eq!(
+                history
+                    .conversation(&conversation_id)
+                    .expect("conversation should exist")
+                    .runtime_binding(),
+                AgentRuntimeBinding::Pi,
             );
         });
     });

@@ -726,6 +726,9 @@ pub enum RenderableAIError {
         /// blocked due to fraud, plan restriction). Maps the task to FAILED state instead of ERROR.
         is_user_error: bool,
     },
+    AgentRuntimeUnavailable {
+        reason: String,
+    },
     /// An agent-issued command caused the shell process to exit, so the run
     /// cannot continue. Surfaced as a terminal failure (FAILED) rather than a
     /// user cancellation.
@@ -799,6 +802,12 @@ impl RenderableAIError {
             will_attempt_resume: false,
             waiting_for_network: false,
             is_user_error,
+        }
+    }
+
+    pub fn agent_runtime_unavailable(reason: impl Into<String>) -> Self {
+        Self::AgentRuntimeUnavailable {
+            reason: reason.into(),
         }
     }
 }
@@ -915,6 +924,10 @@ impl Display for RenderableAIError {
                 )
             }
             Self::Other { error_message, .. } => write!(f, "{error_message}"),
+            Self::AgentRuntimeUnavailable { reason } => write!(
+                f,
+                "The local Pi Agent Runtime could not start: {reason}. Fork the completed history to continue with the Rust runtime."
+            ),
             Self::AgentExitedShell => write!(f, "{}", Self::AGENT_EXITED_SHELL_MESSAGE),
         }
     }

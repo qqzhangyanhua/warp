@@ -296,6 +296,7 @@ use crate::pane_group::{
     ExecutionProfileEditorPane, NetworkLogPane, NewTerminalOptions, PaneGroup, PaneId, PanesLayout,
     TabBarHoverIndex, TerminalPaneId,
 };
+use crate::persistence::model::AgentRuntimeBinding;
 use crate::persistence::ModelEvent;
 use crate::projects::ProjectManagementModel;
 use crate::prompt::editor_modal::{
@@ -13540,6 +13541,7 @@ impl Workspace {
         initial_prompt: Option<String>,
         initial_attachments: Vec<PendingAttachment>,
         destination: ForkedConversationDestination,
+        runtime_binding_override: Option<AgentRuntimeBinding>,
         ctx: &mut ViewContext<Self>,
     ) {
         let history_model = BlocklistAIHistoryModel::handle(ctx);
@@ -13632,6 +13634,7 @@ impl Workspace {
                             destination,
                             has_initial_query,
                             source_terminal_view_id,
+                            runtime_binding_override,
                             server_forked_id,
                             window_id,
                             ctx,
@@ -13650,6 +13653,7 @@ impl Workspace {
                     destination,
                     has_initial_query,
                     source_terminal_view_id,
+                    runtime_binding_override,
                     None,
                     window_id,
                     ctx,
@@ -13674,6 +13678,7 @@ impl Workspace {
         destination: ForkedConversationDestination,
         has_initial_query: bool,
         source_terminal_view_id: Option<EntityId>,
+        runtime_binding_override: Option<AgentRuntimeBinding>,
         server_forked_conversation_id: Option<String>,
         window_id: WindowId,
         ctx: &mut ViewContext<Self>,
@@ -13687,6 +13692,15 @@ impl Workspace {
                     fork_from.fork_from_exact_exchange,
                     FORK_PREFIX,
                     None,
+                    ctx,
+                )
+            } else if let Some(runtime_binding) = runtime_binding_override {
+                history_model.fork_conversation_with_runtime_binding(
+                    &source_conversation,
+                    FORK_PREFIX,
+                    false, /* preserve_task_ids */
+                    None,
+                    runtime_binding,
                     ctx,
                 )
             } else {
@@ -25645,6 +25659,7 @@ impl TypedActionView for Workspace {
                     initial_prompt.clone(),
                     initial_attachments.clone(),
                     *destination,
+                    None,
                     ctx,
                 );
             }
@@ -25658,6 +25673,7 @@ impl TypedActionView for Workspace {
                     None,
                     vec![],
                     ForkedConversationDestination::SplitPane,
+                    Some(AgentRuntimeBinding::Rust),
                     ctx,
                 );
             }

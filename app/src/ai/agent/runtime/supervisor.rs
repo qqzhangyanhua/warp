@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 #[cfg(test)]
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 
@@ -16,10 +17,11 @@ pub(super) use super::text_run::{RuntimeEvent, TextRunRequest, TextRunResult};
 use super::tool_execution::ToolExecutionError;
 use crate::persistence::{
     CommitAgentRuntimeMutationError, ModelEvent, PersistAgentRuntimeRunError,
+    ReadLatestAgentRuntimeRunIdError,
 };
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct RuntimeSupervisorConfig {
+pub(crate) struct RuntimeSupervisorConfig {
     pub handshake_timeout: Duration,
     pub cancellation_grace_period: Duration,
     pub idle_timeout: Duration,
@@ -37,6 +39,8 @@ impl Default for RuntimeSupervisorConfig {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub(crate) enum RuntimeError {
+    #[error("local Bridge runtime could not be started")]
+    BridgeUnavailable,
     #[error(transparent)]
     Bridge(#[from] BridgeProcessError),
     #[error("Agent Runtime handle is no longer active")]
@@ -51,6 +55,8 @@ pub(crate) enum RuntimeError {
     RunPersistence(#[from] PersistAgentRuntimeRunError),
     #[error(transparent)]
     CommitPersistence(#[from] CommitAgentRuntimeMutationError),
+    #[error(transparent)]
+    RunLineagePersistence(#[from] ReadLatestAgentRuntimeRunIdError),
     #[error("Agent Runtime persistence writer is unavailable")]
     PersistenceUnavailable,
     #[error("Agent Runtime persistence acknowledgement was dropped")]
@@ -79,7 +85,7 @@ pub(super) struct RuntimeEntryState {
 pub(super) enum TextRunCommand {
     Cancel {
         grace_period: Duration,
-        acknowledgement: oneshot::Sender<Result<(), BridgeProcessError>>,
+        acknowledgement: oneshot::Sender<Result<u64, BridgeProcessError>>,
     },
 }
 
@@ -121,7 +127,7 @@ impl AgentRuntimeSupervisor {
         Self::new_with_config(launch_config, RuntimeSupervisorConfig::default(), executor)
     }
 
-    pub(super) fn new_with_config(
+    pub(crate) fn new_with_config(
         launch_config: BridgeLaunchConfig,
         config: RuntimeSupervisorConfig,
         executor: Arc<Background>,
@@ -157,10 +163,11 @@ impl AgentRuntimeSupervisor {
             None => true,
         };
         if should_launch {
-            let mut state = entry.state.lock();
-            state.active_run_id = None;
-            state.text_run_commands = None;
-            drop(state);
+            {
+                let mut state = entry.state.lock();
+                state.active_run_id = None;
+                state.text_run_commands = None;
+            }
             let launched = BridgeProcess::launch(
                 &self.inner.launch_config,
                 self.inner.config.handshake_timeout,
@@ -247,10 +254,37 @@ impl AgentRuntimeHandle {
     where
         F: FnMut(RuntimeEvent),
     {
+        self.run_text_cancellable(
+            persistence,
+            request,
+            Arc::new(AtomicBool::new(false)),
+            on_event,
+        )
+        .await
+    }
+
+    pub(super) async fn run_text_cancellable<F>(
+        &self,
+        persistence: &std::sync::mpsc::SyncSender<ModelEvent>,
+        request: TextRunRequest,
+        cancellation: Arc<AtomicBool>,
+        on_event: F,
+    ) -> Result<TextRunResult, RuntimeError>
+    where
+        F: FnMut(RuntimeEvent),
+    {
         let run_id = request.run_id().to_string();
+        if cancellation.load(Ordering::Acquire) {
+            return text_run::cancel_prepared_text_run(persistence, request).await;
+        }
         let (commands, command_receiver) = mpsc::unbounded();
         self.start_run_with_commands(run_id.clone(), Some(commands))
             .await?;
+        if cancellation.load(Ordering::Acquire) {
+            let result = text_run::cancel_prepared_text_run(persistence, request).await;
+            self.finish_run(&run_id).await?;
+            return result;
+        }
         let entry = self.entry.upgrade().ok_or(RuntimeError::StaleHandle)?;
         let result = text_run::execute(
             entry.clone(),
@@ -326,7 +360,7 @@ impl AgentRuntimeHandle {
         }
     }
 
-    pub(crate) async fn cancel_run(&self) -> Result<(), RuntimeError> {
+    pub(crate) async fn cancel_run(&self) -> Result<Option<u64>, RuntimeError> {
         let entry = self.entry.upgrade().ok_or(RuntimeError::StaleHandle)?;
         let (run_id, text_run_commands) = {
             let state = entry.state.lock();
@@ -349,10 +383,12 @@ impl AgentRuntimeHandle {
                     acknowledgement,
                 })
                 .map_err(|_| BridgeProcessError::UnexpectedExit)?;
-            return acknowledged
+            let revision = acknowledged
                 .await
                 .map_err(|_| BridgeProcessError::UnexpectedExit)?
-                .map_err(RuntimeError::from);
+                .map_err(RuntimeError::from)?;
+            self.finish_run(&run_id).await?;
+            return Ok(Some(revision));
         }
         let mut process = entry.process.lock().await;
         let cancellation = process
@@ -371,7 +407,7 @@ impl AgentRuntimeHandle {
         }
         drop(process);
         self.finish_run(&run_id).await?;
-        cancellation.map_err(RuntimeError::from)
+        cancellation.map(|_| None).map_err(RuntimeError::from)
     }
 
     #[cfg(test)]

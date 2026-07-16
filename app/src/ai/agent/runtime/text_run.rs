@@ -11,7 +11,10 @@ mod commit;
 mod outcome;
 mod recovery;
 
-use commit::{assistant_text, commit_interrupted_output, commit_output, OutputCommitRequest};
+use commit::{
+    assistant_text, commit_initial_input, commit_interrupted_output, commit_output,
+    OutputCommitRequest,
+};
 use outcome::{
     persistence_state, terminal_outcome, terminal_outcome_for_tool_result, text_run_outcome,
 };
@@ -25,7 +28,9 @@ use super::transcript::RuntimeTranscript;
 use crate::persistence::model::{
     AgentConversationData, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
 };
-use crate::persistence::{AgentRuntimeRunMutation, ModelEvent, PersistAgentRuntimeRun};
+use crate::persistence::{
+    AgentRuntimeRunMutation, ModelEvent, PersistAgentRuntimeRun, ReadLatestAgentRuntimeRunId,
+};
 pub(super) struct TextRunRequest {
     run_id: String,
     retry_of_run_id: Option<String>,
@@ -34,6 +39,9 @@ pub(super) struct TextRunRequest {
     tasks: Vec<api::Task>,
     conversation_data: AgentConversationData,
     output_task_id: String,
+    initial_input_commit_id: Option<String>,
+    resolve_retry_lineage: bool,
+    prepared: bool,
     tool_execution_authority: Option<Arc<ToolExecutionAuthority>>,
 }
 
@@ -56,8 +64,21 @@ impl TextRunRequest {
             tasks,
             conversation_data,
             output_task_id: output_task_id.into(),
+            initial_input_commit_id: None,
+            resolve_retry_lineage: false,
+            prepared: false,
             tool_execution_authority: None,
         }
+    }
+
+    pub(super) fn with_initial_input_commit(mut self, commit_id: impl Into<String>) -> Self {
+        self.initial_input_commit_id = Some(commit_id.into());
+        self
+    }
+
+    pub(super) fn with_retry_lineage_lookup(mut self) -> Self {
+        self.resolve_retry_lineage = true;
+        self
     }
 
     pub(super) fn with_tool_execution_authority(
@@ -66,6 +87,10 @@ impl TextRunRequest {
     ) -> Self {
         self.tool_execution_authority = Some(authority);
         self
+    }
+
+    pub(super) fn revision(&self) -> u64 {
+        self.transcript.revision()
     }
 
     pub(super) fn run_id(&self) -> &str {
@@ -100,6 +125,12 @@ pub(super) enum RuntimeEvent {
         event_id: String,
         delta: String,
     },
+    ConversationCommit {
+        run_id: String,
+        revision: u64,
+        tasks: Vec<api::Task>,
+        conversation_data: AgentConversationData,
+    },
     RunFinished {
         run_id: String,
         outcome: TextRunOutcome,
@@ -110,6 +141,7 @@ pub(super) struct TextRunResult {
     outcome: TextRunOutcome,
     revision: u64,
     tasks: Vec<api::Task>,
+    conversation_data: AgentConversationData,
 }
 
 impl TextRunResult {
@@ -123,6 +155,10 @@ impl TextRunResult {
 
     pub(super) fn tasks(&self) -> &[api::Task] {
         &self.tasks
+    }
+
+    pub(super) fn conversation_data(&self) -> &AgentConversationData {
+        &self.conversation_data
     }
 
     pub(super) fn requires_process_rebuild(&self) -> bool {
@@ -140,17 +176,9 @@ pub(super) async fn execute<F>(
 where
     F: FnMut(RuntimeEvent),
 {
-    recovery::materialize_before_start(&entry, &mut request).await?;
-    persist_run(
-        persistence,
-        &entry.conversation_id,
-        &request.run_id,
-        AgentRuntimeRunMutation::Start {
-            retry_of_run_id: request.retry_of_run_id.clone(),
-            starting_revision: request.transcript.revision(),
-        },
-    )
-    .await?;
+    if !request.prepared {
+        prepare_text_run(persistence, &entry.conversation_id, &mut request).await?;
+    }
 
     let run_id = request.run_id.clone();
     let conversation_id = entry.conversation_id.clone();
@@ -165,6 +193,96 @@ where
         .await;
     }
     result
+}
+
+pub(super) async fn prepare_text_run(
+    persistence: &SyncSender<ModelEvent>,
+    conversation_id: &str,
+    request: &mut TextRunRequest,
+) -> Result<(), RuntimeError> {
+    if request.resolve_retry_lineage {
+        request.retry_of_run_id = read_latest_run_id(persistence, conversation_id).await?;
+    }
+    recovery::materialize_before_start(conversation_id, request).await?;
+    persist_run(
+        persistence,
+        conversation_id,
+        &request.run_id,
+        AgentRuntimeRunMutation::Start {
+            retry_of_run_id: request.retry_of_run_id.clone(),
+            starting_revision: request.transcript.revision(),
+        },
+    )
+    .await?;
+    if let Some(commit_id) = request.initial_input_commit_id.take() {
+        let revision = commit_initial_input(
+            persistence,
+            conversation_id,
+            &request.run_id,
+            &commit_id,
+            request.transcript.revision(),
+            &request.tasks,
+            &request.conversation_data,
+        )
+        .await?;
+        request.transcript.set_revision(revision);
+        request.conversation_data.runtime_transcript_revision = Some(revision);
+    }
+    request.prepared = true;
+    Ok(())
+}
+
+async fn read_latest_run_id(
+    persistence: &SyncSender<ModelEvent>,
+    conversation_id: &str,
+) -> Result<Option<String>, RuntimeError> {
+    let (acknowledgement, acknowledged) = oneshot::channel();
+    persistence
+        .send(ModelEvent::ReadLatestAgentRuntimeRunId(
+            ReadLatestAgentRuntimeRunId {
+                conversation_id: conversation_id.to_string(),
+                acknowledgement,
+            },
+        ))
+        .map_err(|_| RuntimeError::PersistenceUnavailable)?;
+    acknowledged
+        .await
+        .map_err(|_| RuntimeError::PersistenceAcknowledgementDropped)?
+        .map_err(RuntimeError::from)
+}
+
+pub(super) async fn finish_prepared_text_run(
+    persistence: &SyncSender<ModelEvent>,
+    conversation_id: &str,
+    run_id: &str,
+    outcome: AgentRuntimeTerminalOutcome,
+) -> Result<(), RuntimeError> {
+    persist_run(
+        persistence,
+        conversation_id,
+        run_id,
+        AgentRuntimeRunMutation::Finish(outcome),
+    )
+    .await
+}
+
+pub(super) async fn cancel_prepared_text_run(
+    persistence: &SyncSender<ModelEvent>,
+    request: TextRunRequest,
+) -> Result<TextRunResult, RuntimeError> {
+    finish_prepared_text_run(
+        persistence,
+        request.transcript.conversation_id(),
+        &request.run_id,
+        AgentRuntimeTerminalOutcome::Cancelled,
+    )
+    .await?;
+    Ok(TextRunResult {
+        outcome: TextRunOutcome::Cancelled,
+        revision: request.transcript.revision(),
+        tasks: request.tasks,
+        conversation_data: request.conversation_data,
+    })
 }
 
 async fn execute_started<F>(
@@ -333,6 +451,12 @@ where
                 request.tasks = committed.tasks;
                 request.conversation_data = committed.conversation_data;
                 revision = committed.revision;
+                on_event(RuntimeEvent::ConversationCommit {
+                    run_id: request.run_id.clone(),
+                    revision,
+                    tasks: request.tasks.clone(),
+                    conversation_data: request.conversation_data.clone(),
+                });
                 partial_text.clear();
                 partial_event_id = None;
                 process
@@ -398,6 +522,12 @@ where
                 revision = state.revision;
                 request.tasks = state.tasks;
                 request.conversation_data = state.conversation_data;
+                on_event(RuntimeEvent::ConversationCommit {
+                    run_id: request.run_id.clone(),
+                    revision,
+                    tasks: request.tasks.clone(),
+                    conversation_data: request.conversation_data.clone(),
+                });
                 process
                     .acknowledge_tool_result(
                         &entry.conversation_id,
@@ -423,6 +553,7 @@ where
                         outcome,
                         revision,
                         tasks: request.tasks,
+                        conversation_data: request.conversation_data,
                     });
                 }
             }
@@ -454,6 +585,7 @@ where
                     outcome,
                     revision,
                     tasks: request.tasks,
+                    conversation_data: request.conversation_data,
                 });
             }
         }

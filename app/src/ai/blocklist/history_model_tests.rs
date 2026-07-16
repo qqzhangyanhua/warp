@@ -20,6 +20,7 @@ use crate::ai::agent::conversation::{
     AIAgentHarness, AIConversation, AIConversationId, ConversationStatus,
     ServerAIConversationMetadata,
 };
+use crate::ai::agent::runtime::AgentRuntimeService;
 use crate::ai::agent::task::helper::MessageExt;
 use crate::ai::agent::{
     AIAgentExchange, AIAgentExchangeId, AIAgentInput, AIAgentOutputStatus, FinishedAIAgentOutput,
@@ -217,7 +218,6 @@ fn start_new_conversation_uses_rust_runtime_when_pi_flag_disabled() {
 
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
-        app.add_singleton_model(ApiKeyManager::new);
         add_valid_custom_endpoint(&mut app);
 
         let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
@@ -247,7 +247,6 @@ fn start_new_conversation_uses_pi_runtime_for_eligible_local_only_provider() {
 
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
-        app.add_singleton_model(ApiKeyManager::new);
         add_valid_custom_endpoint(&mut app);
 
         let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
@@ -275,7 +274,6 @@ fn start_new_conversation_requires_valid_provider_for_pi_runtime() {
 
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
-        app.add_singleton_model(ApiKeyManager::new);
 
         let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
         let terminal_view_id = EntityId::new();
@@ -304,7 +302,6 @@ fn start_new_conversation_keeps_non_interactive_records_rust_bound() {
 
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
-        app.add_singleton_model(ApiKeyManager::new);
         add_valid_custom_endpoint(&mut app);
 
         let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
@@ -344,7 +341,6 @@ fn start_new_conversation_requires_local_only_mode_for_pi_runtime() {
 
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
-        app.add_singleton_model(ApiKeyManager::new);
         add_valid_custom_endpoint(&mut app);
 
         let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
@@ -2777,6 +2773,102 @@ fn test_truncate_from_exchange_to_empty_persist_event_has_empty_updated_tasks() 
     });
 }
 
+#[test]
+fn truncating_pi_bound_conversation_invalidates_runtime_checkpoint() {
+    use crate::test_util::ai_agent_tasks::create_api_task;
+
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+
+        let (sender, receiver) = std::sync::mpsc::sync_channel(4);
+        let mut global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        global_resource_handles.model_event_sender = Some(sender);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+        app.add_singleton_model(|_| AgentRuntimeService::new());
+
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_view_id = EntityId::new();
+        let server_root_id = "truncate-runtime-root".to_string();
+
+        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
+            let conversation_id =
+                history_model.start_new_conversation(terminal_view_id, false, false, false, ctx);
+            let conversation = history_model
+                .conversation_mut(&conversation_id)
+                .expect("conversation should exist");
+            conversation.set_runtime_binding(AgentRuntimeBinding::Pi);
+            conversation.upgrade_optimistic_root_to_server_task_for_test(create_api_task(
+                &server_root_id,
+                vec![],
+            ));
+            conversation_id
+        });
+        AgentRuntimeService::handle(&app).update(&mut app, |service, _| {
+            service.set_active_run_for_test(conversation_id, "run-before-history-edit");
+        });
+
+        history_model.update(&mut app, |history_model, ctx| {
+            let exchange = create_exchange_with_query("truncate me", Local::now(), None);
+            let request_input = RequestInput {
+                conversation_id,
+                input_messages: std::collections::HashMap::from([(
+                    crate::ai::agent::task::TaskId::new(server_root_id.clone()),
+                    exchange.input,
+                )]),
+                working_directory: exchange.working_directory,
+                model_id: exchange.model_id,
+                coding_model_id: exchange.coding_model_id,
+                cli_agent_model_id: exchange.cli_agent_model_id,
+                computer_use_model_id: exchange.computer_use_model_id,
+                shared_session_response_initiator: exchange.response_initiator,
+                request_start_ts: exchange.start_time,
+                supported_tools_override: None,
+            };
+            history_model
+                .update_conversation_for_new_request_input(
+                    request_input,
+                    ResponseStreamId::new_for_test(),
+                    terminal_view_id,
+                    ctx,
+                )
+                .expect("update_for_new_request_input must succeed on server-backed root");
+        });
+        let exchange_id = history_model.read(&app, |model, _| {
+            model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .get_root_task()
+                .expect("root task should exist")
+                .exchanges()
+                .last()
+                .map(|exchange| exchange.id)
+                .expect("a freshly-appended exchange must exist on the root task")
+        });
+
+        history_model.update(&mut app, |history_model, ctx| {
+            history_model
+                .truncate_conversation_from_exchange(conversation_id, exchange_id, ctx)
+                .expect("truncating from an existing exchange must succeed");
+        });
+
+        AgentRuntimeService::handle(&app).read(&app, |service, _| {
+            assert_eq!(
+                service.invalidate_attempts_for_test(conversation_id),
+                1,
+                "truncating a Pi-bound conversation must invalidate its Runtime checkpoint"
+            );
+            assert!(
+                service.starting_run_cancelled_for_test("run-before-history-edit"),
+                "history edit during prepare must prevent the old Run from reaching run_text"
+            );
+        });
+        assert!(
+            receiver.try_recv().is_err(),
+            "history edit must wait for startup cancellation's revision barrier"
+        );
+    });
+}
+
 /// End-to-end happy path: start → early persist → upgrade → persist → restart
 /// → post-restore persist → restart. After two restart cycles, the final
 /// restored conversation must contain exactly one server-backed root task
@@ -3191,6 +3283,63 @@ fn test_find_by_token_after_restore_conversations() {
 }
 
 #[test]
+fn restoring_pi_bound_conversation_routes_to_runtime_supervisor() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let (sender, _receiver) = std::sync::mpsc::sync_channel(2);
+        let mut global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        global_resource_handles.model_event_sender = Some(sender);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+        let history_model =
+            app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
+        app.add_singleton_model(|_| AgentRuntimeService::new());
+        let terminal_view_id = EntityId::new();
+
+        let conversation = AIConversation::new_restored(
+            AIConversationId::new(),
+            vec![create_api_task(
+                "root-task",
+                vec![warp_multi_agent_api::Message {
+                    id: "assistant-1".to_string(),
+                    task_id: "root-task".to_string(),
+                    request_id: "restored-run".to_string(),
+                    message: Some(warp_multi_agent_api::message::Message::AgentOutput(
+                        warp_multi_agent_api::message::AgentOutput {
+                            text: "completed output".to_string(),
+                        },
+                    )),
+                    ..Default::default()
+                }],
+            )],
+            Some(AgentConversationData {
+                runtime_binding: Some(AgentRuntimeBinding::Pi),
+                ..serde_json::from_str(r#"{"server_conversation_token":null}"#)
+                    .expect("minimal conversation data should deserialize")
+            }),
+        )
+        .expect("Pi-bound conversation should restore");
+        let conversation_id = conversation.id();
+
+        history_model.update(&mut app, |model, ctx| {
+            model.restore_conversations(terminal_view_id, vec![conversation], ctx);
+        });
+
+        AgentRuntimeService::handle(&app).read(&app, |service, _| {
+            assert_eq!(
+                service.restore_attempts_for_test(conversation_id),
+                1,
+                "restoring a Pi-bound conversation must route through the app-wide Runtime Supervisor"
+            );
+            assert_eq!(
+                service.last_run_id_for_test(conversation_id),
+                Some("restored-run"),
+                "restoring must rebuild explicit Retry lineage from the Conversation Record"
+            );
+        });
+    });
+}
+
+#[test]
 fn test_find_by_token_returns_none_after_remove_conversation() {
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
@@ -3230,6 +3379,49 @@ fn test_find_by_token_returns_none_after_remove_conversation() {
                 model.find_conversation_id_by_server_token(&token),
                 None,
                 "reverse index must be cleared when the conversation is removed",
+            );
+        });
+    });
+}
+
+#[test]
+fn deleting_pi_bound_conversation_invalidates_runtime_checkpoint() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+
+        let (sender, _receiver) = std::sync::mpsc::sync_channel(2);
+        let mut global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        global_resource_handles.model_event_sender = Some(sender);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+        app.add_singleton_model(|_| AgentRuntimeService::new());
+
+        let history_model =
+            app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
+        let terminal_view_id = EntityId::new();
+
+        let mut conversation = AIConversation::new(false, false);
+        conversation.set_runtime_binding(AgentRuntimeBinding::Pi);
+        let conversation_id = conversation.id();
+        history_model.update(&mut app, |model, ctx| {
+            model.restore_conversations(terminal_view_id, vec![conversation], ctx);
+        });
+        AgentRuntimeService::handle(&app).update(&mut app, |service, _| {
+            service.set_active_run_for_test(conversation_id, "run-being-prepared");
+        });
+
+        history_model.update(&mut app, |model, ctx| {
+            model.delete_conversation(conversation_id, Some(terminal_view_id), ctx);
+        });
+
+        AgentRuntimeService::handle(&app).read(&app, |service, _| {
+            assert_eq!(
+                service.invalidate_attempts_for_test(conversation_id),
+                1,
+                "deleting a Pi-bound conversation must invalidate its Runtime checkpoint"
+            );
+            assert!(
+                service.starting_run_cancelled_for_test("run-being-prepared"),
+                "deleting during prepare must prevent the old Run from reaching run_text"
             );
         });
     });
@@ -5261,6 +5453,7 @@ fn fork_conversation_inherits_runtime_binding() {
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
         let receiver = install_mock_model_event_sender(&mut app);
+        app.add_singleton_model(|_| AgentRuntimeService::new());
         let history_model =
             app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
 
@@ -5324,10 +5517,334 @@ fn fork_conversation_inherits_runtime_binding() {
 }
 
 #[test]
+fn runtime_progress_commit_preserves_live_response_stream_for_later_delta() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_surface_id = EntityId::new();
+        let response_stream_id = ResponseStreamId::new_for_test();
+        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
+            let conversation_id =
+                history_model.start_new_conversation(terminal_surface_id, false, false, false, ctx);
+            let exchange = create_exchange_with_query("source query", Local::now(), None);
+            let task_id = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .get_root_task_id()
+                .clone();
+            history_model
+                .update_conversation_for_new_request_input(
+                    RequestInput {
+                        conversation_id,
+                        input_messages: HashMap::from([(task_id.clone(), exchange.input)]),
+                        working_directory: exchange.working_directory,
+                        model_id: exchange.model_id,
+                        coding_model_id: exchange.coding_model_id,
+                        cli_agent_model_id: exchange.cli_agent_model_id,
+                        computer_use_model_id: exchange.computer_use_model_id,
+                        shared_session_response_initiator: exchange.response_initiator,
+                        request_start_ts: exchange.start_time,
+                        supported_tools_override: None,
+                    },
+                    response_stream_id.clone(),
+                    terminal_surface_id,
+                    ctx,
+                )
+                .expect("request input should initialize");
+            history_model.initialize_output_for_response_stream(
+                &response_stream_id,
+                conversation_id,
+                terminal_surface_id,
+                warp_multi_agent_api::response_event::StreamInit {
+                    request_id: "run-active".to_string(),
+                    conversation_id: conversation_id.to_string(),
+                    run_id: String::new(),
+                },
+                ctx,
+            );
+            let task_id_string = task_id.to_string();
+            history_model
+                .apply_client_actions(
+                    &response_stream_id,
+                    vec![warp_multi_agent_api::ClientAction {
+                        action: Some(warp_multi_agent_api::client_action::Action::CreateTask(
+                            warp_multi_agent_api::client_action::CreateTask {
+                                task: Some(create_api_task(
+                                    &task_id_string,
+                                    vec![create_user_query_message(
+                                        "user-message",
+                                        &task_id_string,
+                                        "run-active",
+                                        "source query",
+                                    )],
+                                )),
+                            },
+                        )),
+                    }],
+                    conversation_id,
+                    terminal_surface_id,
+                    &ai::skills::SkillPathOrigin::Unavailable,
+                    ctx,
+                )
+                .expect("runtime task should initialize");
+            history_model
+                .conversation_mut(&conversation_id)
+                .expect("conversation should exist")
+                .set_runtime_binding(AgentRuntimeBinding::Pi);
+            conversation_id
+        });
+
+        history_model.update(&mut app, |history_model, ctx| {
+            let task_id = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .get_root_task_id()
+                .to_string();
+            history_model
+                .apply_client_actions(
+                    &response_stream_id,
+                    vec![warp_multi_agent_api::ClientAction {
+                        action: Some(
+                            warp_multi_agent_api::client_action::Action::AddMessagesToTask(
+                                warp_multi_agent_api::client_action::AddMessagesToTask {
+                                    task_id: task_id.clone(),
+                                    messages: vec![agent_output_message(
+                                        "runtime-delta:run-active:event-1",
+                                        &task_id,
+                                        "run-active",
+                                        "first delta",
+                                    )],
+                                },
+                            ),
+                        ),
+                    }],
+                    conversation_id,
+                    terminal_surface_id,
+                    &ai::skills::SkillPathOrigin::Unavailable,
+                    ctx,
+                )
+                .expect("first runtime delta should apply");
+
+            let (mut tasks, conversation_data) = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .runtime_persistence_snapshot();
+            tasks[0]
+                .messages
+                .retain(|message| !message.id.starts_with("runtime-delta:"));
+            tasks[0].messages.push(agent_output_message(
+                "durable-message",
+                &task_id,
+                "run-active",
+                "durable output",
+            ));
+            history_model.commit_runtime_text_run_progress(
+                conversation_id,
+                &response_stream_id,
+                terminal_surface_id,
+                conversation_data,
+                tasks,
+                1,
+                ctx,
+            );
+
+            history_model
+                .apply_client_actions(
+                    &response_stream_id,
+                    vec![warp_multi_agent_api::ClientAction {
+                        action: Some(
+                            warp_multi_agent_api::client_action::Action::AddMessagesToTask(
+                                warp_multi_agent_api::client_action::AddMessagesToTask {
+                                    task_id: task_id.clone(),
+                                    messages: vec![agent_output_message(
+                                        "runtime-delta:run-active:event-2",
+                                        &task_id,
+                                        "run-active",
+                                        "second delta",
+                                    )],
+                                },
+                            ),
+                        ),
+                    }],
+                    conversation_id,
+                    terminal_surface_id,
+                    &ai::skills::SkillPathOrigin::Unavailable,
+                    ctx,
+                )
+                .expect("later runtime delta should keep the live response stream");
+            assert!(history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .all_linearized_messages()
+                .iter()
+                .any(|message| message.id == "runtime-delta:run-active:event-2"));
+        });
+    });
+}
+
+#[test]
+fn pi_fork_snapshot_excludes_uncommitted_runtime_delta() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let history_model =
+            app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
+        let terminal_surface_id = EntityId::new();
+        let root_task = create_api_task(
+            "root-task",
+            vec![
+                create_user_query_message(
+                    "user-message",
+                    "root-task",
+                    "user-message",
+                    "source query",
+                ),
+                agent_output_message(
+                    "committed-message",
+                    "root-task",
+                    "run-active",
+                    "durable output",
+                ),
+                agent_output_message(
+                    "runtime-delta:run-active:event-1",
+                    "root-task",
+                    "run-active",
+                    "not durable yet",
+                ),
+            ],
+        );
+        let mut source = AIConversation::new_restored(
+            AIConversationId::new(),
+            vec![root_task],
+            Some(AgentConversationData {
+                runtime_binding: Some(AgentRuntimeBinding::Pi),
+                runtime_transcript_revision: Some(1),
+                ..serde_json::from_str(r#"{"server_conversation_token":null}"#)
+                    .expect("minimal conversation data should deserialize")
+            }),
+        )
+        .expect("source conversation should build");
+        history_model.update(&mut app, |_, ctx| {
+            source.update_status(ConversationStatus::InProgress, terminal_surface_id, ctx);
+        });
+        let mut tasks = source
+            .all_tasks()
+            .filter_map(|task| task.source().cloned())
+            .collect::<Vec<_>>();
+
+        super::remove_uncommitted_runtime_output(&mut tasks);
+
+        assert!(tasks[0]
+            .messages
+            .iter()
+            .any(|message| message.id == "committed-message"));
+        assert!(!tasks[0]
+            .messages
+            .iter()
+            .any(|message| message.id == "runtime-delta:run-active:event-1"));
+    });
+}
+
+#[test]
+fn explicit_runtime_recovery_fork_uses_rust_binding() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let receiver = install_mock_model_event_sender(&mut app);
+        app.add_singleton_model(|_| AgentRuntimeService::new());
+        let history_model =
+            app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
+
+        let root_task = create_api_task(
+            "root-task",
+            vec![
+                create_user_query_message("message-1", "root-task", "request-1", "source query"),
+                warp_multi_agent_api::Message {
+                    id: "interrupted:run-1".to_string(),
+                    task_id: "root-task".to_string(),
+                    request_id: "run-1".to_string(),
+                    message: Some(warp_multi_agent_api::message::Message::AgentOutput(
+                        warp_multi_agent_api::message::AgentOutput {
+                            text: "partial output".to_string(),
+                        },
+                    )),
+                    ..Default::default()
+                },
+            ],
+        );
+        let source = AIConversation::new_restored(
+            AIConversationId::new(),
+            vec![root_task],
+            Some(AgentConversationData {
+                server_conversation_token: None,
+                conversation_usage_metadata: None,
+                reverted_action_ids: None,
+                forked_from_server_conversation_token: None,
+                artifacts_json: None,
+                parent_agent_id: None,
+                agent_name: None,
+                orchestration_harness_type: None,
+                parent_conversation_id: None,
+                is_remote_child: false,
+                root_task_is_optimistic: None,
+                run_id: None,
+                autoexecute_override: None,
+                last_event_sequence: None,
+                runtime_binding: Some(AgentRuntimeBinding::Pi),
+                runtime_transcript_revision: Some(7),
+                pinned: false,
+            }),
+        )
+        .expect("source conversation should build");
+
+        let forked = history_model.update(&mut app, |model, ctx| {
+            model
+                .fork_conversation_with_runtime_binding(
+                    &source,
+                    "[Fork] ",
+                    false,
+                    None,
+                    AgentRuntimeBinding::Rust,
+                    ctx,
+                )
+                .expect("explicit runtime recovery fork should succeed")
+        });
+
+        assert_eq!(forked.runtime_binding(), AgentRuntimeBinding::Rust);
+        assert_eq!(forked.runtime_transcript_revision(), 0);
+        assert!(forked
+            .all_tasks()
+            .flat_map(|task| task.messages())
+            .all(|message| !message.id.starts_with("interrupted:")));
+
+        let ModelEvent::UpdateMultiAgentConversation {
+            updated_tasks,
+            conversation_data,
+            ..
+        } = receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("runtime recovery fork should persist conversation data")
+        else {
+            panic!("expected fork persistence event");
+        };
+        assert_eq!(
+            conversation_data.runtime_binding,
+            Some(AgentRuntimeBinding::Rust)
+        );
+        assert_eq!(conversation_data.runtime_transcript_revision, Some(0));
+        assert!(updated_tasks
+            .iter()
+            .flat_map(|task| &task.messages)
+            .all(|message| !message.id.starts_with("interrupted:")));
+    });
+}
+
+#[test]
 fn fork_conversation_at_exchange_inherits_runtime_binding() {
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
         let receiver = install_mock_model_event_sender(&mut app);
+        app.add_singleton_model(|_| AgentRuntimeService::new());
         let history_model =
             app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], vec![], &[]));
 

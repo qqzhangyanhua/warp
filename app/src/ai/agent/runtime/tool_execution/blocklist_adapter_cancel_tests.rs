@@ -12,8 +12,8 @@ use crate::ai::agent::{
     AIAgentAction, AIAgentActionId, AIAgentActionType, FileLocations, ReadFilesRequest,
 };
 use crate::ai::blocklist::BlocklistAIHistoryModel;
-use crate::ai::execution_profiles::ActionPermission;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
+use crate::ai::execution_profiles::ActionPermission;
 use crate::test_util::terminal::{add_window_with_terminal, initialize_app_for_terminal_view};
 
 #[test]

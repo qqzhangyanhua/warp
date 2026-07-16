@@ -30,6 +30,7 @@ use crate::ai::agent::conversation::{
     AIConversation, AIConversationId, ConversationStatus, ServerAIConversationMetadata,
     UpdateConversationError,
 };
+use crate::ai::agent::runtime::{AgentRuntimeService, RUNTIME_DELTA_MESSAGE_PREFIX};
 use crate::ai::agent::task::helper::{MessageExt, ToolCallExt};
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{
@@ -51,6 +52,7 @@ use crate::ui_components::icons::Icon;
 use crate::{local_mode, GlobalResourceHandlesProvider};
 
 mod conversation_loader;
+mod runtime_recovery;
 pub use conversation_loader::{
     convert_persisted_conversation_to_ai_conversation_with_metadata, load_conversation_from_server,
     CLIAgentConversation, CloudConversationData,
@@ -62,6 +64,12 @@ use warp_errors::report_error;
 /// persisted set within this window; kept as defense-in-depth if rows ever
 /// arrive from another source (cross-machine import, prune bypass).
 pub(super) const MAX_HISTORICAL_CONVERSATIONS: usize = 200;
+
+pub(crate) enum RuntimeTextRunFinish {
+    Success,
+    Cancelled,
+    Error(RenderableAIError),
+}
 
 /// Metadata for conversations
 /// When created from local DB, has_local_data=true and server_metadata=None.
@@ -1129,6 +1137,11 @@ impl BlocklistAIHistoryModel {
         let mut conversation_ids = Vec::new();
         for conversation in conversations.into_iter() {
             let conversation_id = conversation.id();
+            if conversation.runtime_binding() == AgentRuntimeBinding::Pi {
+                AgentRuntimeService::handle(ctx).update(ctx, |runtime_service, ctx| {
+                    runtime_service.restore_conversation(&conversation, ctx);
+                });
+            }
             conversation_ids.push(conversation_id);
             let live_conversation_ids = self
                 .live_conversation_ids_for_terminal_surface
@@ -1595,10 +1608,36 @@ impl BlocklistAIHistoryModel {
         title_override: Option<&str>,
         app: &AppContext,
     ) -> Result<AIConversation, anyhow::Error> {
-        let tasks: Vec<warp_multi_agent_api::Task> = source_conversation
+        self.fork_conversation_with_runtime_binding(
+            source_conversation,
+            prefix,
+            preserve_task_ids,
+            title_override,
+            source_conversation.runtime_binding(),
+            app,
+        )
+    }
+
+    pub(crate) fn fork_conversation_with_runtime_binding(
+        &mut self,
+        source_conversation: &AIConversation,
+        prefix: &str,
+        preserve_task_ids: bool,
+        title_override: Option<&str>,
+        runtime_binding: AgentRuntimeBinding,
+        app: &AppContext,
+    ) -> Result<AIConversation, anyhow::Error> {
+        let mut tasks: Vec<warp_multi_agent_api::Task> = source_conversation
             .all_tasks()
             .filter_map(|t| t.source().cloned())
             .collect();
+        remove_uncommitted_runtime_output(&mut tasks);
+        if runtime_binding != source_conversation.runtime_binding() {
+            for task in &mut tasks {
+                task.messages
+                    .retain(|message| !message.id.starts_with("interrupted:"));
+            }
+        }
 
         let updated_tasks_with_new_ids =
             update_forked_task_properties(tasks, prefix, preserve_task_ids, title_override);
@@ -1656,7 +1695,7 @@ impl BlocklistAIHistoryModel {
             run_id: None,
             autoexecute_override: Some(source_conversation.autoexecute_override().into()),
             last_event_sequence: None,
-            runtime_binding: Some(source_conversation.runtime_binding()),
+            runtime_binding: Some(runtime_binding),
             runtime_transcript_revision: Some(0),
             pinned: false,
         };
@@ -1697,7 +1736,6 @@ impl BlocklistAIHistoryModel {
         app: &AppContext,
     ) -> Result<AIConversation, anyhow::Error> {
         let conversation = source_conversation;
-
         let exchanges_by_task: Vec<(TaskId, Vec<&AIAgentExchange>)> =
             conversation.all_exchanges_by_task();
 
@@ -1753,6 +1791,7 @@ impl BlocklistAIHistoryModel {
                     truncated_task
                         .messages
                         .retain(|m| message_ids_to_retain.contains(&MessageId::new(m.id.clone())));
+                    remove_uncommitted_runtime_output(std::slice::from_mut(&mut truncated_task));
                     if truncated_task.messages.is_empty() {
                         return None;
                     }
@@ -2006,6 +2045,72 @@ impl BlocklistAIHistoryModel {
         }
     }
 
+    pub(crate) fn finish_runtime_text_run(
+        &mut self,
+        conversation_id: AIConversationId,
+        terminal_surface_id: EntityId,
+        mut conversation_data: AgentConversationData,
+        tasks: Vec<warp_multi_agent_api::Task>,
+        revision: u64,
+        finish: RuntimeTextRunFinish,
+        ctx: &mut ModelContext<Self>,
+    ) {
+        conversation_data.runtime_binding = Some(AgentRuntimeBinding::Pi);
+        conversation_data.runtime_transcript_revision = Some(revision);
+        let replacement = match AIConversation::new_restored_synthesizing_on_empty(
+            conversation_id,
+            tasks,
+            Some(conversation_data),
+        ) {
+            Ok(conversation) => conversation,
+            Err(error) => {
+                log::warn!(
+                    "Failed to rebuild Pi runtime conversation {conversation_id:?}: {error:#}"
+                );
+                return;
+            }
+        };
+
+        self.conversations_by_id
+            .insert(conversation_id, replacement);
+
+        if let Some(conversation) = self.conversations_by_id.get_mut(&conversation_id) {
+            match finish {
+                RuntimeTextRunFinish::Success => {
+                    conversation.update_status(
+                        ConversationStatus::Success,
+                        terminal_surface_id,
+                        ctx,
+                    );
+                }
+                RuntimeTextRunFinish::Cancelled => {
+                    conversation.update_status(
+                        ConversationStatus::Cancelled,
+                        terminal_surface_id,
+                        ctx,
+                    );
+                }
+                RuntimeTextRunFinish::Error(error) => {
+                    conversation.update_status_with_error(
+                        ConversationStatus::Error,
+                        Some(error),
+                        terminal_surface_id,
+                        ctx,
+                    );
+                }
+            }
+
+            for exchange in conversation.all_exchanges().into_iter() {
+                ctx.emit(BlocklistAIHistoryEvent::UpdatedStreamingExchange {
+                    exchange_id: exchange.id,
+                    terminal_surface_id,
+                    conversation_id,
+                    is_hidden: conversation.is_exchange_hidden(exchange.id),
+                });
+            }
+        }
+    }
+
     pub fn set_exchange_time_to_first_token(
         &mut self,
         conversation_id: AIConversationId,
@@ -2126,6 +2231,16 @@ impl BlocklistAIHistoryModel {
             .conversations_by_id
             .get(&conversation_id)
             .and_then(|c| c.run_id());
+        let is_pi_bound = self
+            .conversations_by_id
+            .get(&conversation_id)
+            .is_some_and(|conversation| conversation.runtime_binding() == AgentRuntimeBinding::Pi);
+
+        if is_pi_bound {
+            AgentRuntimeService::handle(ctx).update(ctx, |runtime_service, ctx| {
+                runtime_service.invalidate_checkpoint(conversation_id, ctx);
+            });
+        }
 
         self.remove_conversation_from_memory(conversation_id, terminal_surface_id, ctx);
 
@@ -2488,12 +2603,26 @@ impl BlocklistAIHistoryModel {
         from_exchange_id: AIAgentExchangeId,
         ctx: &mut ModelContext<Self>,
     ) -> Result<HashSet<AIAgentExchangeId>, UpdateHistoryError> {
+        let is_pi_bound = self
+            .conversations_by_id
+            .get(&conversation_id)
+            .is_some_and(|conversation| conversation.runtime_binding() == AgentRuntimeBinding::Pi);
         let conversation = self
             .conversations_by_id
             .get_mut(&conversation_id)
             .ok_or(UpdateHistoryError::ConversationNotFound(conversation_id))?;
 
-        let removed_exchange_ids = conversation.truncate_from_exchange(from_exchange_id, ctx)?;
+        let removed_exchange_ids = if is_pi_bound {
+            let removed_exchange_ids =
+                conversation.truncate_from_exchange_for_runtime(from_exchange_id)?;
+            let edited_conversation = conversation.clone();
+            AgentRuntimeService::handle(ctx).update(ctx, |runtime_service, ctx| {
+                runtime_service.commit_history_edit(&edited_conversation, ctx);
+            });
+            removed_exchange_ids
+        } else {
+            conversation.truncate_from_exchange(from_exchange_id, ctx)?
+        };
 
         Ok(removed_exchange_ids)
     }
@@ -2804,6 +2933,13 @@ impl BlocklistAIHistoryModel {
         self.agent_id_to_conversation_id.clear();
         self.server_token_to_conversation_id.clear();
         self.children_by_parent.clear();
+    }
+}
+
+fn remove_uncommitted_runtime_output(tasks: &mut [warp_multi_agent_api::Task]) {
+    for task in tasks {
+        task.messages
+            .retain(|message| !message.id.starts_with(RUNTIME_DELTA_MESSAGE_PREFIX));
     }
 }
 

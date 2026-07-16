@@ -190,6 +190,10 @@ impl RuntimeTranscript {
         self.revision
     }
 
+    pub(super) fn set_revision(&mut self, revision: u64) {
+        self.revision = revision;
+    }
+
     pub(super) fn items(&self) -> &[TranscriptItem] {
         &self.items
     }

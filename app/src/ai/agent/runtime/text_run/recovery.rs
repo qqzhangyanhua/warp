@@ -1,14 +1,14 @@
 use super::{TextRunRequest, ToolRunState};
-use crate::ai::agent::runtime::supervisor::{RuntimeEntry, RuntimeError};
+use crate::ai::agent::runtime::supervisor::RuntimeError;
 
 pub(super) async fn materialize_before_start(
-    entry: &RuntimeEntry,
+    conversation_id: &str,
     request: &mut TextRunRequest,
 ) -> Result<(), RuntimeError> {
     let Some(authority) = request.tool_execution_authority.clone() else {
         return Ok(());
     };
-    let has_unfinished = authority.has_unfinished(&entry.conversation_id).await?;
+    let has_unfinished = authority.has_unfinished(conversation_id).await?;
     if !has_unfinished {
         return Ok(());
     }
@@ -22,7 +22,7 @@ pub(super) async fn materialize_before_start(
         task_id: request.output_task_id.clone(),
     };
     let recovered = authority
-        .recover_unfinished(&entry.conversation_id, &mut state)
+        .recover_unfinished(conversation_id, &mut state)
         .await?;
     request.tasks = state.tasks;
     request.conversation_data = state.conversation_data;

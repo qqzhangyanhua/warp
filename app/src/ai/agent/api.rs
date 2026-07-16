@@ -14,6 +14,7 @@ pub use convert_from::{
     user_inputs_from_messages, ConversionParams, ConvertAPIMessageToClientOutputMessage,
     MaybeAIAgentOutputMessage, MessageToAIAgentOutputMessageError,
 };
+pub(crate) use convert_to::convert_context;
 use futures_lite::Stream;
 pub(crate) use local_provider::test_provider_connection;
 use mcp::TemplatableMCPServerInfo;

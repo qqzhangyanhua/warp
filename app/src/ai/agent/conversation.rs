@@ -3530,6 +3530,24 @@ impl AIConversation {
             return;
         };
 
+        let (updated_tasks, conversation_data) = self.runtime_persistence_snapshot();
+
+        let event = ModelEvent::UpdateMultiAgentConversation {
+            conversation_id: self.id.to_string(),
+            updated_tasks,
+            conversation_data,
+        };
+        ctx.spawn(
+            async move {
+                if let Err(e) = sqlite_sender.send(event) {
+                    log::warn!("Failed to send updated AI tasks to sqlite writer thread: {e:?}");
+                }
+            },
+            |_, _, _| {},
+        );
+    }
+
+    pub(crate) fn runtime_persistence_snapshot(&self) -> (Vec<api::Task>, AgentConversationData) {
         let reverted_action_ids = if self.reverted_action_ids.is_empty() {
             None
         } else {
@@ -3556,13 +3574,11 @@ impl AIConversation {
             }
         };
 
-        let event = ModelEvent::UpdateMultiAgentConversation {
-            conversation_id: self.id.to_string(),
-            updated_tasks: self
-                .all_tasks()
+        (
+            self.all_tasks()
                 .filter_map(|task| task.source_for_persistence())
                 .collect(),
-            conversation_data: AgentConversationData {
+            AgentConversationData {
                 server_conversation_token: self
                     .server_conversation_token
                     .clone()
@@ -3591,15 +3607,56 @@ impl AIConversation {
                 runtime_transcript_revision: Some(self.runtime_transcript_revision),
                 pinned: self.pinned,
             },
-        };
-        ctx.spawn(
-            async move {
-                if let Err(e) = sqlite_sender.send(event) {
-                    log::warn!("Failed to send updated AI tasks to sqlite writer thread: {e:?}");
-                }
-            },
-            |_, _, _| {},
-        );
+        )
+    }
+
+    pub(crate) fn apply_runtime_progress_snapshot(
+        &mut self,
+        response_stream_id: &ResponseStreamId,
+        tasks: Vec<api::Task>,
+        conversation_data: AgentConversationData,
+    ) -> anyhow::Result<()> {
+        let mut replacement =
+            Self::new_restored_synthesizing_on_empty(self.id, tasks, Some(conversation_data))
+                .map_err(anyhow::Error::new)?;
+
+        if let Some(added_exchanges) = self.added_exchanges_by_response.get(response_stream_id) {
+            for added_exchange in added_exchanges {
+                let durable_exchange_id = replacement
+                    .task_store
+                    .get(&added_exchange.task_id)
+                    .and_then(Task::last_exchange)
+                    .map(|exchange| exchange.id)
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "Pi runtime progress snapshot is missing active task {}",
+                            added_exchange.task_id
+                        )
+                    })?;
+                let durable_exchange = replacement
+                    .task_store
+                    .exchange_mut(durable_exchange_id)
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "Pi runtime progress snapshot is missing active exchange {durable_exchange_id}"
+                        )
+                    })?;
+                let output = durable_exchange
+                    .output_status
+                    .output()
+                    .map(Shared::get_owned);
+                durable_exchange.id = added_exchange.exchange_id;
+                durable_exchange.output_status = AIAgentOutputStatus::Streaming { output };
+                durable_exchange.finish_time = None;
+            }
+        }
+        replacement.task_store.rebuild_exchange_index();
+
+        self.task_store = replacement.task_store;
+        self.todo_lists = replacement.todo_lists;
+        self.runtime_binding = replacement.runtime_binding;
+        self.runtime_transcript_revision = replacement.runtime_transcript_revision;
+        Ok(())
     }
 
     pub fn rollback_transaction(&mut self, response_stream_id: &ResponseStreamId) {
@@ -4136,6 +4193,22 @@ impl AIConversation {
         from_exchange_id: AIAgentExchangeId,
         ctx: &mut ModelContext<BlocklistAIHistoryModel>,
     ) -> Result<HashSet<AIAgentExchangeId>, UpdateConversationError> {
+        let exchanges_to_remove = self.truncate_from_exchange_in_memory(from_exchange_id)?;
+        self.write_updated_conversation_state(ctx);
+        Ok(exchanges_to_remove)
+    }
+
+    pub(crate) fn truncate_from_exchange_for_runtime(
+        &mut self,
+        from_exchange_id: AIAgentExchangeId,
+    ) -> Result<HashSet<AIAgentExchangeId>, UpdateConversationError> {
+        self.truncate_from_exchange_in_memory(from_exchange_id)
+    }
+
+    fn truncate_from_exchange_in_memory(
+        &mut self,
+        from_exchange_id: AIAgentExchangeId,
+    ) -> Result<HashSet<AIAgentExchangeId>, UpdateConversationError> {
         let all_exchanges: Vec<AIAgentExchangeId> =
             self.root_task_exchanges().map(|e| e.id).collect();
 
@@ -4232,8 +4305,6 @@ impl AIConversation {
             self.task_store.set_root_task(new_root_task);
             self.server_conversation_token = None;
         }
-
-        self.write_updated_conversation_state(ctx);
 
         Ok(exchanges_to_remove)
     }

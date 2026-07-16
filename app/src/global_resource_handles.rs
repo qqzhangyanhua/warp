@@ -85,6 +85,14 @@ impl GlobalResourceHandlesProvider {
         &self.global_resources
     }
 
+    #[cfg(test)]
+    pub(crate) fn set_model_event_sender_for_test(
+        &mut self,
+        model_event_sender: Option<SyncSender<ModelEvent>>,
+    ) {
+        self.global_resources.model_event_sender = model_event_sender;
+    }
+
     pub(super) fn new(global_resources: GlobalResourceHandles) -> Self {
         Self { global_resources }
     }

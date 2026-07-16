@@ -3100,6 +3100,7 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
             // reach here recovery has failed, so surface the error directly.
             format!("{ERROR_APOLOGY_TEXT}\n\n{error_message}")
         }
+        RenderableAIError::AgentRuntimeUnavailable { .. } => props.error.to_string(),
         RenderableAIError::AgentExitedShell => {
             format!("{ERROR_APOLOGY_TEXT}\n\n{}", props.error)
         }

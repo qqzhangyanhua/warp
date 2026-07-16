@@ -15921,6 +15921,7 @@ dependencies = [
  "pathfinder_color",
  "pathfinder_geometry",
  "serde_json",
+ "serial_test",
  "similar",
  "string-offset",
  "strum 0.27.1",
@@ -15939,6 +15940,7 @@ dependencies = [
  "warp_util",
  "warpui",
  "warpui_core",
+ "warpui_extras",
 ]
 
 [[package]]

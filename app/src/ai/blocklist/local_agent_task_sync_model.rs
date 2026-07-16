@@ -531,6 +531,13 @@ pub(crate) fn classify_renderable_error(
                 )
             }
         }
+        RenderableAIError::AgentRuntimeUnavailable { .. } => (
+            AgentTaskState::Error,
+            Some(TaskStatusUpdate::with_error_code(
+                error.to_string(),
+                PlatformErrorCode::ResourceUnavailable,
+            )),
+        ),
         RenderableAIError::AgentExitedShell => (
             AgentTaskState::Failed,
             Some(TaskStatusUpdate::with_error_code(

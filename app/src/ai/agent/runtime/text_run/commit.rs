@@ -44,6 +44,36 @@ pub(super) struct OutputCommitRequest<'a> {
     pub(super) conversation_data: &'a AgentConversationData,
 }
 
+pub(super) async fn commit_initial_input(
+    persistence: &SyncSender<ModelEvent>,
+    conversation_id: &str,
+    run_id: &str,
+    commit_id: &str,
+    expected_revision: u64,
+    tasks: &[api::Task],
+    conversation_data: &AgentConversationData,
+) -> Result<u64, RuntimeError> {
+    let (acknowledgement, acknowledged) = oneshot::channel();
+    persistence
+        .send(ModelEvent::CommitAgentRuntimeMutation(
+            CommitAgentRuntimeMutation {
+                conversation_id: conversation_id.to_string(),
+                run_id: run_id.to_string(),
+                commit_id: commit_id.to_string(),
+                expected_revision,
+                updated_tasks: tasks.to_vec(),
+                conversation_data: conversation_data.clone(),
+                sidecar_mutation: None,
+                acknowledgement,
+            },
+        ))
+        .map_err(|_| RuntimeError::PersistenceUnavailable)?;
+    acknowledged
+        .await
+        .map_err(|_| RuntimeError::PersistenceAcknowledgementDropped)?
+        .map_err(RuntimeError::from)
+}
+
 pub(super) async fn commit_output(
     persistence: &SyncSender<ModelEvent>,
     request: OutputCommitRequest<'_>,

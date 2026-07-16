@@ -8,6 +8,7 @@ mod bridge_process;
 mod configuration;
 mod protocol;
 mod resources;
+mod service;
 #[cfg(not(target_family = "wasm"))]
 mod supervisor;
 #[cfg(not(target_family = "wasm"))]
@@ -17,9 +18,15 @@ mod tool_execution;
 mod transcript;
 mod transcript_sync;
 
+pub(crate) const RUNTIME_DELTA_MESSAGE_PREFIX: &str = "runtime-delta:";
+
 #[cfg(not(target_family = "wasm"))]
 #[cfg_attr(not(test), allow(unused_imports))]
 pub(crate) use bridge_process::BridgeLaunchConfig as AgentRuntimeLaunchConfig;
+#[cfg_attr(not(test), allow(unused_imports))]
+pub(crate) use service::{AgentRuntimeService, AgentRuntimeServiceEvent, RuntimeStartError};
+#[cfg(test)]
+pub(crate) use supervisor::RuntimeSupervisorConfig;
 #[cfg(not(target_family = "wasm"))]
 #[cfg_attr(not(test), allow(unused_imports))]
 pub(crate) use supervisor::{AgentRuntimeHandle, AgentRuntimeSupervisor, RuntimeError};

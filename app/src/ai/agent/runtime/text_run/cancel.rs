@@ -10,7 +10,7 @@ use crate::persistence::{AgentRuntimeRunMutation, ModelEvent};
 
 pub(super) async fn finish<F>(
     cancellation: Result<(), BridgeProcessError>,
-    acknowledgement: oneshot::Sender<Result<(), BridgeProcessError>>,
+    acknowledgement: oneshot::Sender<Result<u64, BridgeProcessError>>,
     persistence: &SyncSender<ModelEvent>,
     conversation_id: &str,
     request: TextRunRequest,
@@ -20,9 +20,10 @@ pub(super) async fn finish<F>(
 where
     F: FnMut(RuntimeEvent),
 {
-    let cancellation_for_caller = cancellation.as_ref().map(|_| ()).map_err(|error| *error);
-    let _ = acknowledgement.send(cancellation_for_caller);
-    cancellation?;
+    if let Err(error) = cancellation {
+        let _ = acknowledgement.send(Err(error));
+        return Err(error.into());
+    }
     let outcome = TextRunOutcome::Cancelled;
     super::persist_run(
         persistence,
@@ -35,9 +36,11 @@ where
         run_id: request.run_id.clone(),
         outcome: outcome.clone(),
     });
+    let _ = acknowledgement.send(Ok(revision));
     Ok(TextRunResult {
         outcome,
         revision,
         tasks: request.tasks,
+        conversation_data: request.conversation_data,
     })
 }
