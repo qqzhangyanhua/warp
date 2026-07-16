@@ -1,0 +1,23 @@
+script/macos/bundle
+  a65ff89e20e4f076 784-791
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "4546fcbda05b431219ed1b68c74d933b831d9b20",
+  "prompts": {
+    "a65ff89e20e4f076": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6620-5ffa-7513-bea8-69e16f2c75b8",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 0,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    }
+  }
+}
