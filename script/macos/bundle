@@ -373,6 +373,18 @@ elif [[ "$ARTIFACT" == app ]]; then
   FEATURES="$FEATURES,gui,nld_classifier_v3,nld_heuristic_v2"
 fi
 
+unset WARP_AGENT_RUNTIME_BRIDGE_TARGET WARP_AGENT_RUNTIME_RELEASE_MODE
+if [[ "$ARTIFACT" == app || "$ARTIFACT" == tui ]]; then
+  if [[ "$ARTIFACT" == app && $UNIVERSAL_BINARY = true ]]; then
+    export WARP_AGENT_RUNTIME_BRIDGE_TARGET="universal-apple-darwin"
+  else
+    export WARP_AGENT_RUNTIME_BRIDGE_TARGET="$DEFAULT_TARGET"
+  fi
+  if [[ "$RELEASE_CHANNEL" == preview || "$RELEASE_CHANNEL" == stable || "$RELEASE_CHANNEL" == oss ]]; then
+    export WARP_AGENT_RUNTIME_RELEASE_MODE="release"
+  fi
+fi
+
 # If we're building a universal bundle for the app artifact, make sure the additional target is available.
 if [[ $UNIVERSAL_BINARY = true ]]; then
     rustup target add "$ADDITIONAL_TARGET"
@@ -767,6 +779,14 @@ elif [[ $CODESIGN = true ]]; then
     # https://developer.apple.com/documentation/security/customizing-the-notarization-workflow?language=objc#Staple-the-ticket-to-your-distribution
     STAPLE_TICKET=false
   fi
+fi
+
+if [[ "$ARTIFACT" == app || "$ARTIFACT" == tui ]]; then
+  echo "Running packaged Agent Runtime Bridge smoke test..."
+  node \
+    "$WORKSPACE_ROOT_DIR/tools/warp-bridge/scripts/verify-release-artifact.mjs" \
+    --smoke-only \
+    "$BUNDLED_RESOURCES_DIR/bundled/agent-runtime/warp-bridge"
 fi
 
 ########################

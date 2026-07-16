@@ -232,6 +232,14 @@ elif [[ "$ARTIFACT" == "app" ]]; then
   # All channels ship the v3 classifier and v2 heuristic.
   FEATURES="$FEATURES,gui,nld_classifier_v3,nld_heuristic_v2"
 fi
+
+unset WARP_AGENT_RUNTIME_BRIDGE_TARGET WARP_AGENT_RUNTIME_RELEASE_MODE
+if [[ "$ARTIFACT" == "app" ]]; then
+  export WARP_AGENT_RUNTIME_BRIDGE_TARGET="${BUILD_ARCH}-unknown-linux-gnu"
+  if [[ "$RELEASE_CHANNEL" == "preview" || "$RELEASE_CHANNEL" == "stable" || "$RELEASE_CHANNEL" == "oss" ]]; then
+    export WARP_AGENT_RUNTIME_RELEASE_MODE="release"
+  fi
+fi
 if [[ -n "$EXTRA_FEATURES" ]]; then
   FEATURES="$FEATURES,$EXTRA_FEATURES"
 fi
@@ -325,7 +333,9 @@ export \
   APPIMAGE_NAME \
   BUILD_ARCH \
   ARTIFACT \
-  CARGO_PROFILE
+  CARGO_PROFILE \
+  WARP_AGENT_RUNTIME_BRIDGE_TARGET \
+  WARP_AGENT_RUNTIME_RELEASE_MODE
 
 # Build the AppImage bundle.
 if [[ ${PACKAGES[@]} =~ "appimage" ]]; then

@@ -118,6 +118,13 @@ if ("$CHANNEL" -eq 'local') {
 # All channels ship the v3 classifier and v2 heuristic.
 $FEATURES = "$FEATURES,nld_classifier_v3,nld_heuristic_v2"
 
+$env:WARP_AGENT_RUNTIME_BRIDGE_TARGET = $PLATFORM_TARGET
+if ($CHANNEL -in @('preview', 'stable', 'oss')) {
+    $env:WARP_AGENT_RUNTIME_RELEASE_MODE = 'release'
+} else {
+    Remove-Item Env:WARP_AGENT_RUNTIME_RELEASE_MODE -ErrorAction SilentlyContinue
+}
+
 $BINARY_PATH = "$CARGO_TARGET_OUTPUT_DIR\$BINARY_NAME"
 $BUNDLE_ID = "dev.warp.$APP_NAME"
 $INSTALLER_OUTPUT_DIR = "$WINDOWS_INSTALLER_DIR\Output"
@@ -163,6 +170,20 @@ if (-Not $SKIP_BUILD_BINARY) {
     }
 }
 
+$BUNDLED_RESOURCES_DIR = "$CARGO_TARGET_OUTPUT_DIR\resources"
+$BUNDLED_BRIDGE_PATH = Join-Path (Join-Path (Join-Path $BUNDLED_RESOURCES_DIR 'bundled') 'agent-runtime') 'warp-bridge.exe'
+if (-Not $SKIP_BUILD_BINARY) {
+    Write-Output 'Preparing bundled resources...'
+    & "$WINDOWS_INSTALLER_DIR\prepare_bundled_resources.ps1" -DestinationDir "$BUNDLED_RESOURCES_DIR" -Channel "$CHANNEL" -CargoProfile "$CARGO_PROFILE"
+    if (-Not $?) {
+        Write-Error 'Failed to prepare bundled resources'
+        exit 1
+    }
+} elseif (-Not (Test-Path $BUNDLED_BRIDGE_PATH -PathType Leaf)) {
+    Write-Error "Prebuilt bundled Bridge is missing: $BUNDLED_BRIDGE_PATH"
+    exit 1
+}
+
 if ($SKIP_BUILD_INSTALLER) {
     # If this is being run within a GitHub action, set an output variable with the
     # location of the binary so it can be referenced by subsequent actions.
@@ -170,6 +191,7 @@ if ($SKIP_BUILD_INSTALLER) {
         Write-Output '::echo::on'
         "target_profile_dir=$CARGO_TARGET_OUTPUT_DIR" >> "$env:GITHUB_OUTPUT"
         "binary_path=$BINARY_PATH" >> "$env:GITHUB_OUTPUT"
+        "bundled_bridge_path=$BUNDLED_BRIDGE_PATH" >> "$env:GITHUB_OUTPUT"
         Write-Output '::echo::off'
     }
     exit 0
@@ -177,12 +199,10 @@ if ($SKIP_BUILD_INSTALLER) {
 
 Write-Output "Built for $ARCH with executable at $BINARY_PATH"
 
-# Prepare bundled resources
-$BUNDLED_RESOURCES_DIR = "$CARGO_TARGET_OUTPUT_DIR\resources"
-Write-Output 'Preparing bundled resources...'
-& "$WINDOWS_INSTALLER_DIR\prepare_bundled_resources.ps1" -DestinationDir "$BUNDLED_RESOURCES_DIR" -Channel "$CHANNEL" -CargoProfile "$CARGO_PROFILE"
+Write-Output 'Running packaged Agent Runtime Bridge smoke test...'
+node "$WORKSPACE_ROOT_DIR\tools\warp-bridge\scripts\verify-release-artifact.mjs" --smoke-only "$BUNDLED_BRIDGE_PATH"
 if (-Not $?) {
-    Write-Error 'Failed to prepare bundled resources'
+    Write-Error 'Packaged Agent Runtime Bridge smoke test failed'
     exit 1
 }
 

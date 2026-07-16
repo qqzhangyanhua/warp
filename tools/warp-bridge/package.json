@@ -6,6 +6,8 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "build:fake:matrix": "node scripts/build-fake-matrix.mjs",
+    "build:release:matrix": "pnpm test && node scripts/build-release-matrix.mjs",
+    "build:release:matrix:update": "pnpm test && node scripts/build-release-matrix.mjs --update-manifest",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

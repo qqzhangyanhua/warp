@@ -62,6 +62,21 @@ else
   echo "Warning: No bundled directory found at $RESOURCES_SRC/bundled" >&2
 fi
 
+if [ -n "${WARP_AGENT_RUNTIME_BRIDGE_TARGET:-}" ]; then
+  if [ -n "${WARP_AGENT_RUNTIME_RELEASE_MODE:-}" ] && [ "$WARP_AGENT_RUNTIME_RELEASE_MODE" != "release" ]; then
+    echo "Error: WARP_AGENT_RUNTIME_RELEASE_MODE must be 'release' when set" >&2
+    exit 1
+  fi
+  BRIDGE_MODE=()
+  if [ "${WARP_AGENT_RUNTIME_RELEASE_MODE:-}" = "release" ]; then
+    BRIDGE_MODE+=(release)
+  fi
+  "$SCRIPT_DIR/prepare_agent_runtime_bridge" \
+    "$DEST_DIR" \
+    "$WARP_AGENT_RUNTIME_BRIDGE_TARGET" \
+    "${BRIDGE_MODE[@]}"
+fi
+
 if [ -n "$GIT_RELEASE_TAG" ]; then
   VERSION_METADATA_DIR="$DEST_DIR/bundled/metadata"
   VERSION_METADATA_PATH="$VERSION_METADATA_DIR/version.json"
@@ -98,6 +113,7 @@ ADDITIONAL_LICENSES=(
     "rudder-sdk-rust|MIT|app/src/server/telemetry/LICENSE-RUDDER-SDK-RUST.txt"
     "Windows Terminal|MIT|app/assets/windows/LICENSE-WINDOWS-TERMINAL"
     "GitHub Desktop|MIT|app/src/code_review/GITHUB-DESKTOP-LICENSE"
+    "Pi Agent Runtime|MIT|third_party/pi/LICENSE"
 )
 
 # Build the third-party licenses file unless the NO_LICENSES envvar is set.

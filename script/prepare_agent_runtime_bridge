@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+  echo "Usage: $0 <destination_resources_dir> <rust_target|universal-apple-darwin> [release]" >&2
+  exit 1
+fi
+
+DESTINATION_RESOURCES_DIR="$1"
+TARGET="$2"
+RELEASE_MODE="${3:-}"
+if [[ -n "$RELEASE_MODE" && "$RELEASE_MODE" != "release" ]]; then
+  echo "Packaging mode must be 'release' when provided" >&2
+  exit 1
+fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+VERIFY_SCRIPT="$REPO_ROOT/tools/warp-bridge/scripts/verify-release-artifact.mjs"
+BRIDGE_DESTINATION="$DESTINATION_RESOURCES_DIR/bundled/agent-runtime"
+VERIFY_ARGS=(--copy-to "$BRIDGE_DESTINATION")
+
+case "${WARP_AGENT_RUNTIME_BRIDGE_PRE_SMOKED:-}" in
+  "") VERIFY_ARGS+=(--smoke) ;;
+  1) ;;
+  *)
+    echo "WARP_AGENT_RUNTIME_BRIDGE_PRE_SMOKED must be '1' when set" >&2
+    exit 1
+    ;;
+esac
+
+if [[ "$RELEASE_MODE" == "release" ]]; then
+  VERIFY_ARGS+=(--release)
+fi
+
+if [[ "$TARGET" == "universal-apple-darwin" ]]; then
+  if [[ "$(uname -s)" != "Darwin" ]]; then
+    echo "Universal macOS Bridge packaging requires macOS" >&2
+    exit 1
+  fi
+  ARTIFACT_ROOT="${WARP_PI_BRIDGE_ARTIFACT_ROOT:-$REPO_ROOT/tools/warp-bridge/dist/release}"
+  if [[ "$RELEASE_MODE" == "release" && -n "${WARP_PI_BRIDGE_ARTIFACT_ROOT:-}" ]]; then
+    echo "A local Bridge artifact root override is forbidden for release packaging" >&2
+    exit 1
+  fi
+  ARM_ARTIFACT="$ARTIFACT_ROOT/aarch64-apple-darwin/warp-bridge"
+  INTEL_ARTIFACT="$ARTIFACT_ROOT/x86_64-apple-darwin/warp-bridge"
+  RELEASE_ARGS=()
+  if [[ "$RELEASE_MODE" == "release" ]]; then
+    RELEASE_ARGS+=(--release)
+  fi
+  node "$VERIFY_SCRIPT" --target aarch64-apple-darwin "${RELEASE_ARGS[@]}"
+  node "$VERIFY_SCRIPT" --target x86_64-apple-darwin "${RELEASE_ARGS[@]}"
+  mkdir -p "$BRIDGE_DESTINATION"
+  rm -f "$BRIDGE_DESTINATION/warp-bridge" "$BRIDGE_DESTINATION/warp-bridge.exe"
+  node \
+    "$REPO_ROOT/tools/warp-bridge/scripts/create-universal-macos.mjs" \
+    "$BRIDGE_DESTINATION/warp-bridge" \
+    "$ARM_ARTIFACT" \
+    "$INTEL_ARTIFACT"
+  chmod 755 "$BRIDGE_DESTINATION/warp-bridge"
+  cp "$REPO_ROOT/resources/bundled/agent-runtime/bridge-manifest.json" "$BRIDGE_DESTINATION/bridge-manifest.json"
+  if [[ "${WARP_AGENT_RUNTIME_BRIDGE_PRE_SMOKED:-}" != "1" ]]; then
+    node "$VERIFY_SCRIPT" --smoke-only "$BRIDGE_DESTINATION/warp-bridge"
+  fi
+else
+  node "$VERIFY_SCRIPT" --target "$TARGET" "${VERIFY_ARGS[@]}"
+fi
+
+find "$BRIDGE_DESTINATION" -maxdepth 1 -type f \( -name 'warp-bridge' -o -name 'warp-bridge.exe' \) | awk 'END { if (NR != 1) exit 1 }'

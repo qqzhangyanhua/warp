@@ -53,6 +53,43 @@ if (Test-Path $BundledSource -PathType Container) {
     Write-Warning "No bundled directory found at $BundledSource"
 }
 
+if ($env:WARP_AGENT_RUNTIME_BRIDGE_TARGET) {
+    if ($env:WARP_AGENT_RUNTIME_RELEASE_MODE -and $env:WARP_AGENT_RUNTIME_RELEASE_MODE -ne 'release') {
+        Write-Error "WARP_AGENT_RUNTIME_RELEASE_MODE must be 'release' when set"
+        exit 1
+    }
+    $BridgeDestination = Join-Path (Join-Path $DestinationDir 'bundled') 'agent-runtime'
+    $VerifyScript = Join-Path $RepoRoot 'tools\warp-bridge\scripts\verify-release-artifact.mjs'
+    $VerifyArgs = @(
+        $VerifyScript,
+        '--target', $env:WARP_AGENT_RUNTIME_BRIDGE_TARGET,
+        '--copy-to', $BridgeDestination
+    )
+    if ($env:WARP_AGENT_RUNTIME_BRIDGE_PRE_SMOKED -eq '1') {
+        Write-Output 'Using the target-native Bridge smoke result from this release workflow'
+    } elseif ($env:WARP_AGENT_RUNTIME_BRIDGE_PRE_SMOKED) {
+        Write-Error "WARP_AGENT_RUNTIME_BRIDGE_PRE_SMOKED must be '1' when set"
+        exit 1
+    } else {
+        $VerifyArgs += '--smoke'
+    }
+    if ($env:WARP_AGENT_RUNTIME_RELEASE_MODE -eq 'release') {
+        $VerifyArgs += '--release'
+    }
+    & node @VerifyArgs
+    if (-Not $?) {
+        Write-Error 'Failed to verify the bundled Agent Runtime Bridge'
+        exit 1
+    }
+    $BridgeArtifacts = @(Get-ChildItem -Path $BridgeDestination -File | Where-Object {
+        $_.Name -eq 'warp-bridge' -or $_.Name -eq 'warp-bridge.exe'
+    })
+    if ($BridgeArtifacts.Count -ne 1) {
+        Write-Error 'Bundled resources must contain exactly one Agent Runtime Bridge executable'
+        exit 1
+    }
+}
+
 if ($env:GIT_RELEASE_TAG) {
     $VersionMetadataDir = Join-Path (Join-Path $DestinationDir 'bundled') 'metadata'
     $VersionMetadataPath = Join-Path $VersionMetadataDir 'version.json'
@@ -129,7 +166,8 @@ $AdditionalLicenses = @(
     @{ Name = 'Claude API Skill'; License = 'Apache-2.0'; Path = 'resources\bundled\skills\claude-api\LICENSE.txt' },
     @{ Name = 'rudder-sdk-rust'; License = 'MIT'; Path = 'app\src\server\telemetry\LICENSE-RUDDER-SDK-RUST.txt' },
     @{ Name = 'Windows Terminal'; License = 'MIT'; Path = 'app\assets\windows\LICENSE-WINDOWS-TERMINAL' },
-    @{ Name = 'GitHub Desktop'; License = 'MIT'; Path = 'app\src\code_review\GITHUB-DESKTOP-LICENSE' }
+    @{ Name = 'GitHub Desktop'; License = 'MIT'; Path = 'app\src\code_review\GITHUB-DESKTOP-LICENSE' },
+    @{ Name = 'Pi Agent Runtime'; License = 'MIT'; Path = 'third_party\pi\LICENSE' }
 )
 # Windows-only components:
 $AdditionalLicenses += @(

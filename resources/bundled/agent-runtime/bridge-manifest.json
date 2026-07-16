@@ -1,0 +1,40 @@
+{
+  "manifest_version": 1,
+  "bridge_version": "0.1.0",
+  "pi_version": "0.80.6",
+  "pi_source_revision": "2b3fda9921b5590f285165287bd442a25817f17b",
+  "core_protocol_version": 2,
+  "core_schema_hash": "sha256:7a44caef7fc85b2719d1c3ae7f98bab98f221287a4de6541d6386d1f590c578c",
+  "artifacts": {
+    "aarch64-apple-darwin": {
+      "relative_path": "aarch64-apple-darwin/warp-bridge",
+      "size": 69307874,
+      "sha256": "ef53813a121fac875a832bc2863d185a46ab729bbfa1d4425721a2f6ff1ce8ce"
+    },
+    "x86_64-apple-darwin": {
+      "relative_path": "x86_64-apple-darwin/warp-bridge",
+      "size": 74989648,
+      "sha256": "a8a13c00170f4c2de51dea5cb5222b914dfa917f4bcf4f3581ba261a3b571ec1"
+    },
+    "aarch64-unknown-linux-gnu": {
+      "relative_path": "aarch64-unknown-linux-gnu/warp-bridge",
+      "size": 99461264,
+      "sha256": "b5caa3bcf64d9c8abfd6fe75997023cb60cb8ceb86e72fc810b0b24bf05f2c33"
+    },
+    "x86_64-unknown-linux-gnu": {
+      "relative_path": "x86_64-unknown-linux-gnu/warp-bridge",
+      "size": 100403328,
+      "sha256": "cf9dc26a56f3754e8c1c37f8b93c79610189bec5e142ce692d8484b2659922e3"
+    },
+    "aarch64-pc-windows-msvc": {
+      "relative_path": "aarch64-pc-windows-msvc/warp-bridge.exe",
+      "size": 100394496,
+      "sha256": "65e8153df9970030accc9f30e5b786d51d8a2d4bd56da86932383fd47b79f720"
+    },
+    "x86_64-pc-windows-msvc": {
+      "relative_path": "x86_64-pc-windows-msvc/warp-bridge.exe",
+      "size": 104290816,
+      "sha256": "d19eae66a294abddbbd385b40d4a68c1b96f2688f9d5a1f4c21a3424c3dc256e"
+    }
+  }
+}
