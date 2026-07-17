@@ -7,8 +7,9 @@ use instant::Instant;
 use parking_lot::Mutex;
 use persistence::model::{AgentConversationData, ConversationUsageMetadata};
 use warp_cli::agent::Harness;
+use warp_core::execution_mode::{AppExecutionMode, ExecutionMode};
 use warp_core::features::FeatureFlag;
-use warpui::{App, EntityId, ModelHandle, SingletonEntity};
+use warpui::{App, EntityId, ModelHandle, ReadModel, SingletonEntity};
 
 use super::entry::{
     AgentConversationEntryId, AgentConversationNavigationSubject, AgentConversationProvenance,
@@ -42,6 +43,24 @@ use crate::server::server_api::presigned_upload::HttpStatusError;
 use crate::test_util::ai_agent_tasks::{create_api_task, create_message};
 use crate::test_util::settings::initialize_history_persistence_for_tests;
 use crate::workspace::WorkspaceAction;
+
+#[test]
+#[serial_test::serial]
+fn local_only_model_initializes_without_cloud_managers() {
+    let _local_only_guard = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _management_guard = FeatureFlag::AgentManagementView.override_enabled(true);
+    let _interactive_guard =
+        FeatureFlag::InteractiveConversationManagementView.override_enabled(false);
+
+    App::test((), |app| async move {
+        app.add_singleton_model(|ctx| AppExecutionMode::new(ExecutionMode::App, false, ctx));
+        app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        app.add_singleton_model(|_| ActiveAgentViewsModel::new());
+
+        let model = app.add_singleton_model(AgentConversationsModel::new);
+        app.read_model(&model, |model, _| assert!(!model.is_loading()));
+    });
+}
 
 /// Creates a test task with specified creator UID and updated_at time
 fn create_test_task(

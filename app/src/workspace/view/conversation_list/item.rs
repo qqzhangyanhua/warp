@@ -98,7 +98,7 @@ pub struct ItemProps<'a> {
     pub is_renaming: bool,
     pub can_rename: bool,
     pub rename_editor: Option<&'a ViewHandle<EditorView>>,
-    pub sharing_dialog: &'a ViewHandle<SharingDialog>,
+    pub sharing_dialog: Option<&'a ViewHandle<SharingDialog>>,
     pub is_share_dialog_open: bool,
     pub list_position_id: &'a str,
     pub tooltip_opens_right: bool,
@@ -445,7 +445,7 @@ pub fn render_item(props: ItemProps<'_>, app: &AppContext) -> Box<dyn Element> {
     let mut item_stack = Stack::new().with_child(event_handler);
 
     // Add the sharing dialog as a positioned overlay when open for this item
-    if is_share_dialog_open {
+    if let (true, Some(sharing_dialog)) = (is_share_dialog_open, sharing_dialog) {
         // Position the dialog to the right of the item row
         item_stack.add_positioned_overlay_child(
             ChildView::new(sharing_dialog).finish(),

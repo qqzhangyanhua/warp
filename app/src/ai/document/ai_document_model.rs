@@ -31,6 +31,7 @@ use crate::cloud_object::{CloudObject, CloudObjectEventEntrypoint, Owner};
 use crate::drive::folders::CloudFolder;
 use crate::drive::CloudObjectTypeAndId;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
+use crate::local_mode;
 use crate::notebooks::editor::model::{
     FileLinkResolutionContext, NotebooksEditorModel, RichTextEditorModelEvent,
 };
@@ -191,12 +192,14 @@ pub struct AIDocumentModel {
 
 impl AIDocumentModel {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        ctx.subscribe_to_model(&UpdateManager::handle(ctx), |me, _, event, ctx| {
-            me.handle_update_manager_event(event, ctx);
-        });
-        ctx.subscribe_to_model(&CloudModel::handle(ctx), |me, _, event, ctx| {
-            me.handle_cloud_model_event(event, ctx);
-        });
+        if !local_mode::is_local_only_custom_provider_mode() {
+            ctx.subscribe_to_model(&UpdateManager::handle(ctx), |me, _, event, ctx| {
+                me.handle_update_manager_event(event, ctx);
+            });
+            ctx.subscribe_to_model(&CloudModel::handle(ctx), |me, _, event, ctx| {
+                me.handle_cloud_model_event(event, ctx);
+            });
+        }
 
         // Subscribe to history events so we can hydrate the orchestration
         // config from OrchestrationConfigSnapshot messages that arrive
@@ -247,6 +250,10 @@ impl AIDocumentModel {
     /// Returns true if the create document request was sent successfully (or if there was already a notebook entry).
     /// Actually creating the notebook is done asynchronously in the background.
     pub fn sync_to_warp_drive(&mut self, id: AIDocumentId, ctx: &mut ModelContext<Self>) -> bool {
+        if local_mode::is_local_only_custom_provider_mode() {
+            return false;
+        }
+
         if self.reconcile_document_server_backing(&id, ctx) {
             return true;
         }
@@ -303,6 +310,10 @@ impl AIDocumentModel {
         conversation_id: AIConversationId,
         ctx: &mut ModelContext<Self>,
     ) -> Vec<AIDocumentId> {
+        if local_mode::is_local_only_custom_provider_mode() {
+            return Vec::new();
+        }
+
         self.reconcile_all_document_server_backing(ctx);
         let document_ids = self
             .documents
@@ -344,6 +355,10 @@ impl AIDocumentModel {
         document_id: &AIDocumentId,
         ctx: &mut ModelContext<Self>,
     ) -> bool {
+        if local_mode::is_local_only_custom_provider_mode() {
+            return false;
+        }
+
         let server_sync_id = CloudModel::as_ref(ctx)
             .get_all_active_notebooks()
             .find(|notebook| {
@@ -1234,6 +1249,10 @@ impl AIDocumentModel {
         id: &AIDocumentId,
         ctx: &mut ModelContext<Self>,
     ) {
+        if local_mode::is_local_only_custom_provider_mode() {
+            return;
+        }
+
         let Some(doc) = self.documents.get(id) else {
             return;
         };

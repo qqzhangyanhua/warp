@@ -4431,3 +4431,27 @@ fn test_tools_panel_warp_drive_toggle_updates_available_views() {
         });
     });
 }
+
+#[test]
+#[serial_test::serial]
+fn local_only_tools_panel_does_not_initialize_warp_drive() {
+    let _flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+        app.add_singleton_model(|_| crate::ai::agent::runtime::AgentRuntimeService::new());
+        let workspace = mock_workspace(&mut app);
+
+        workspace.read(&app, |workspace, ctx| {
+            assert!(workspace.import_modal.is_none());
+            assert!(!workspace
+                .left_panel_views
+                .contains(&ToolPanelView::WarpDrive));
+            assert!(workspace
+                .left_panel_view
+                .as_ref(ctx)
+                .warp_drive_view()
+                .is_none());
+        });
+    });
+}

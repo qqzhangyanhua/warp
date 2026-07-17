@@ -1675,9 +1675,11 @@ impl RootView {
             me.handle_auth_manager_event(event, ctx);
         });
 
-        ctx.subscribe_to_model(&CloudPreferencesSyncer::handle(ctx), |me, _, event, ctx| {
-            me.handle_cloud_preferences_syncer_event(event, ctx);
-        });
+        if !local_mode::is_local_only_custom_provider_mode() {
+            ctx.subscribe_to_model(&CloudPreferencesSyncer::handle(ctx), |me, _, event, ctx| {
+                me.handle_cloud_preferences_syncer_event(event, ctx);
+            });
+        }
 
         let auth_view =
             ctx.add_typed_action_view(|ctx| AuthView::new(AuthViewVariant::Initial, ctx));

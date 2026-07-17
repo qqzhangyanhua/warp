@@ -15,7 +15,7 @@ use crate::server::cloud_objects::update_manager::{
 use crate::server::ids::{ClientId, SyncId};
 use crate::workflows::workflow_view::WorkflowView;
 use crate::workflows::WorkflowViewMode;
-use crate::{safe_warn, PaneViewLocator, WindowId};
+use crate::{local_mode, safe_warn, PaneViewLocator, WindowId};
 
 pub struct WorkflowManager {
     panes_by_hashed_id: HashMap<String, WorkflowPaneData>,
@@ -45,10 +45,12 @@ pub enum WorkflowOpenSource {
 
 impl WorkflowManager {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        ctx.subscribe_to_model(
-            &UpdateManager::handle(ctx),
-            Self::handle_update_manager_event,
-        );
+        if !local_mode::is_local_only_custom_provider_mode() {
+            ctx.subscribe_to_model(
+                &UpdateManager::handle(ctx),
+                Self::handle_update_manager_event,
+            );
+        }
 
         WorkflowManager {
             panes_by_hashed_id: HashMap::new(),
@@ -226,3 +228,7 @@ impl Entity for WorkflowManager {
 }
 
 impl SingletonEntity for WorkflowManager {}
+
+#[cfg(test)]
+#[path = "manager_tests.rs"]
+mod tests;

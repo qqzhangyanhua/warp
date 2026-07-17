@@ -11,7 +11,7 @@ use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::SyncId;
-use crate::{safe_warn, PaneViewLocator, WindowId};
+use crate::{local_mode, safe_warn, PaneViewLocator, WindowId};
 
 pub struct EnvVarCollectionManager {
     panes_by_hashed_id: HashMap<String, EnvVarCollectionPaneData>,
@@ -30,10 +30,12 @@ pub enum EnvVarCollectionSource {
 /// Manages EnvVarCollection panes
 impl EnvVarCollectionManager {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        ctx.subscribe_to_model(
-            &UpdateManager::handle(ctx),
-            Self::handle_update_manager_event,
-        );
+        if !local_mode::is_local_only_custom_provider_mode() {
+            ctx.subscribe_to_model(
+                &UpdateManager::handle(ctx),
+                Self::handle_update_manager_event,
+            );
+        }
 
         EnvVarCollectionManager {
             panes_by_hashed_id: HashMap::new(),
@@ -222,3 +224,7 @@ impl Entity for EnvVarCollectionManager {
 }
 
 impl SingletonEntity for EnvVarCollectionManager {}
+
+#[cfg(test)]
+#[path = "manager_tests.rs"]
+mod tests;

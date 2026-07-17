@@ -64,7 +64,7 @@ use crate::workspace::view::{
     TOGGLE_PROJECT_EXPLORER_BINDING_NAME, TOGGLE_WARP_DRIVE_BINDING_NAME,
 };
 use crate::workspace::WorkspaceAction;
-use crate::TelemetryEvent;
+use crate::{local_mode, TelemetryEvent};
 
 #[derive(Default)]
 struct MouseStateHandles {
@@ -172,7 +172,7 @@ pub struct LeftPanelView {
     resizable_state_handle: ResizableStateHandle,
     mouse_state_handles: MouseStateHandles,
     close_button_mouse_state: MouseStateHandle,
-    warp_drive_view: ViewHandle<DrivePanel>,
+    warp_drive_view: Option<ViewHandle<DrivePanel>>,
     conversation_list_view: ViewHandle<ConversationListView>,
     active_view: active_view_state::ActiveViewState,
     toolbelt_buttons: Vec<ToolbeltButtonConfig>,
@@ -216,12 +216,18 @@ impl LeftPanelView {
                 resizable_state_handle(600.0)
             }
         };
-        let warp_drive_view = ctx.add_typed_action_view(DrivePanel::new);
+        let warp_drive_view = if local_mode::is_local_only_custom_provider_mode() {
+            None
+        } else {
+            Some(ctx.add_typed_action_view(DrivePanel::new))
+        };
         let conversation_list_view = ctx.add_typed_action_view(ConversationListView::new);
 
-        ctx.subscribe_to_view(&warp_drive_view, |_me, _, event, ctx| {
-            ctx.emit(LeftPanelEvent::WarpDrive(event.clone()));
-        });
+        if let Some(warp_drive_view) = &warp_drive_view {
+            ctx.subscribe_to_view(warp_drive_view, |_me, _, event, ctx| {
+                ctx.emit(LeftPanelEvent::WarpDrive(event.clone()));
+            });
+        }
 
         ctx.subscribe_to_view(&conversation_list_view, |_me, _, event, ctx| match event {
             ConversationListViewEvent::NewConversationInNewTab => {
@@ -240,7 +246,13 @@ impl LeftPanelView {
             }
         });
 
-        let active_view = views.first().copied().unwrap_or(ToolPanelView::WarpDrive);
+        let active_view = views.first().copied().unwrap_or_else(|| {
+            if local_mode::is_local_only_custom_provider_mode() {
+                ToolPanelView::ProjectExplorer
+            } else {
+                ToolPanelView::WarpDrive
+            }
+        });
         let toolbelt_buttons = views
             .iter()
             .map(|view| Self::create_toolbelt_button_config(view, ctx))
@@ -558,8 +570,8 @@ impl LeftPanelView {
         self.active_view.get() == ToolPanelView::ProjectExplorer
     }
 
-    pub fn warp_drive_view(&self) -> &ViewHandle<DrivePanel> {
-        &self.warp_drive_view
+    pub fn warp_drive_view(&self) -> Option<ViewHandle<DrivePanel>> {
+        self.warp_drive_view.clone()
     }
 
     pub(crate) fn auto_expand_active_file_tree_to_most_recent_directory(
@@ -578,6 +590,9 @@ impl LeftPanelView {
         view: ToolPanelView,
         ctx: &mut ViewContext<Self>,
     ) {
+        if view == ToolPanelView::WarpDrive && self.warp_drive_view.is_none() {
+            return;
+        }
         active_view_state::set(self, view, ctx);
     }
 
@@ -715,10 +730,12 @@ impl LeftPanelView {
                 );
             }
             ToolPanelView::WarpDrive => {
-                ctx.focus(&self.warp_drive_view);
-                self.warp_drive_view.update(ctx, |view, ctx| {
-                    view.reset_focused_index_in_warp_drive(true, ctx);
-                });
+                if let Some(warp_drive_view) = &self.warp_drive_view {
+                    ctx.focus(warp_drive_view);
+                    warp_drive_view.update(ctx, |view, ctx| {
+                        view.reset_focused_index_in_warp_drive(true, ctx);
+                    });
+                }
             }
             ToolPanelView::ConversationListView => {
                 self.conversation_list_view.update(ctx, |view, ctx| {
@@ -1009,6 +1026,9 @@ impl LeftPanelView {
                 }
             }
             LeftPanelAction::WarpDrive => {
+                if self.warp_drive_view.is_none() {
+                    return;
+                }
                 active_view_state::set(self, ToolPanelView::WarpDrive, ctx);
                 if force_open {
                     send_telemetry_from_ctx!(
@@ -1129,7 +1149,11 @@ impl View for LeftPanelView {
                         ctx.focus(&view);
                     }
                 }
-                ToolPanelView::WarpDrive => ctx.focus(&self.warp_drive_view),
+                ToolPanelView::WarpDrive => {
+                    if let Some(warp_drive_view) = &self.warp_drive_view {
+                        ctx.focus(warp_drive_view);
+                    }
+                }
                 ToolPanelView::ConversationListView => ctx.focus(&self.conversation_list_view),
             }
         }
@@ -1192,14 +1216,19 @@ impl View for LeftPanelView {
                     Shrinkable::new(1.0, Container::new(Empty::new().finish()).finish()).finish()
                 }
             }
-            ToolPanelView::WarpDrive => Shrinkable::new(
-                1.0,
-                Container::new(ChildView::new(&self.warp_drive_view).finish())
-                    .with_padding_left(2.)
-                    .with_padding_right(2.)
-                    .finish(),
-            )
-            .finish(),
+            ToolPanelView::WarpDrive => self.warp_drive_view.as_ref().map_or_else(
+                || Shrinkable::new(1.0, Container::new(Empty::new().finish()).finish()).finish(),
+                |warp_drive_view| {
+                    Shrinkable::new(
+                        1.0,
+                        Container::new(ChildView::new(warp_drive_view).finish())
+                            .with_padding_left(2.)
+                            .with_padding_right(2.)
+                            .finish(),
+                    )
+                    .finish()
+                },
+            ),
             ToolPanelView::ConversationListView => {
                 Shrinkable::new(1.0, ChildView::new(&self.conversation_list_view).finish()).finish()
             }

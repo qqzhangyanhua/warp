@@ -63,7 +63,6 @@ use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::network::NetworkStatus;
 use crate::pricing::PricingInfoModel;
-use crate::send_telemetry_from_ctx;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::ServerId;
 use crate::server::telemetry::TelemetryEvent;
@@ -81,6 +80,7 @@ use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 use crate::workspaces::workspace::{
     BillingMetadata, CustomerType, DelinquencyStatus, WorkspaceSizePolicy,
 };
+use crate::{local_mode, send_telemetry_from_ctx};
 
 const TEAM_MEMBERS_HEADER_POSITION_ID: &str = "team_settings:team_members_header";
 // Styling for team create page
@@ -682,11 +682,13 @@ impl TeamsPageView {
             ctx.notify();
         });
 
-        let team_update_manager = TeamUpdateManager::handle(ctx);
-        ctx.subscribe_to_model(&team_update_manager, |me, _handle, event, ctx| {
-            me.handle_team_update_event(event, ctx);
-            ctx.notify();
-        });
+        if !local_mode::is_local_only_custom_provider_mode() {
+            let team_update_manager = TeamUpdateManager::handle(ctx);
+            ctx.subscribe_to_model(&team_update_manager, |me, _handle, event, ctx| {
+                me.handle_team_update_event(event, ctx);
+                ctx.notify();
+            });
+        }
 
         let cloud_model = CloudModel::handle(ctx);
         ctx.observe(&cloud_model, |me, _, ctx| {

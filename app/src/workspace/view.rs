@@ -51,6 +51,7 @@ use anyhow::Result;
 use autoupdate::AutoupdateStage;
 #[cfg(target_os = "macos")]
 use command::blocking::Command;
+use futures::future::{ready, Either};
 use futures::Future;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -533,7 +534,7 @@ use crate::workspace::{ForkFromExchange, ForkedConversationDestination};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::AdminEnablementSetting;
 use crate::{
-    autoupdate, send_telemetry_from_ctx, settings, AgentNotificationsModel,
+    autoupdate, local_mode, send_telemetry_from_ctx, settings, AgentNotificationsModel,
     BlocklistAIHistoryModel, GlobalResourceHandles, TelemetryEvent,
 };
 
@@ -1130,7 +1131,7 @@ pub struct Workspace {
     ctrl_tab_palette: ViewHandle<CommandPalette>,
     mouse_states: WorkspaceMouseStates,
     settings_pane: ViewHandle<SettingsView>,
-    import_modal: ViewHandle<ImportModal>,
+    import_modal: Option<ViewHandle<ImportModal>>,
     theme_chooser_view: ViewHandle<ThemeChooser>,
     previous_theme: Option<ThemeKind>,
     reward_modal: ViewHandle<Modal<RewardView>>,
@@ -2978,11 +2979,13 @@ impl Workspace {
             me.handle_referral_theme_status_event(event, ctx);
         });
 
-        let referrals_client = ServerApiProvider::as_ref(ctx).get_referrals_client();
-        // On startup, check if the user has earned a referral theme by referring other users
-        referral_theme_status.update(ctx, |model, ctx| {
-            model.query_referral_status(referrals_client, ctx);
-        });
+        if !local_mode::is_local_only_custom_provider_mode() {
+            let referrals_client = ServerApiProvider::as_ref(ctx).get_referrals_client();
+            // On startup, check if the user has earned a referral theme by referring other users.
+            referral_theme_status.update(ctx, |model, ctx| {
+                model.query_referral_status(referrals_client, ctx);
+            });
+        }
 
         let bindings_notifier = KeybindingChangedNotifier::handle(ctx);
         ctx.subscribe_to_model(&bindings_notifier, |me, _, event, ctx| {
@@ -3317,10 +3320,12 @@ impl Workspace {
             },
         );
 
-        let update_manager = UpdateManager::handle(ctx);
-        ctx.subscribe_to_model(&update_manager, |me, _handle, event, ctx| {
-            me.handle_update_manager_event(event, ctx);
-        });
+        if !local_mode::is_local_only_custom_provider_mode() {
+            let update_manager = UpdateManager::handle(ctx);
+            ctx.subscribe_to_model(&update_manager, |me, _handle, event, ctx| {
+                me.handle_update_manager_event(event, ctx);
+            });
+        }
 
         let cached_keybindings = KEYBINDINGS_TO_CACHE
             .iter()
@@ -3335,7 +3340,11 @@ impl Workspace {
         let prompt_editor_modal = Self::build_prompt_editor_modal(ctx);
         let agent_toolbar_editor_modal = Self::build_agent_toolbar_editor_modal(ctx);
 
-        let import_modal = Self::build_import_modal(ctx);
+        let import_modal = if local_mode::is_local_only_custom_provider_mode() {
+            None
+        } else {
+            Some(Self::build_import_modal(ctx))
+        };
 
         Self::observe_server_api(ctx);
 
@@ -4888,11 +4897,15 @@ impl Workspace {
         &self,
         app: &AppContext,
     ) -> impl Future<Output = ()> {
-        self.left_panel_view
-            .as_ref(app)
-            .warp_drive_view()
-            .as_ref(app)
-            .has_warp_drive_initialized_sections(app)
+        let warp_drive_view = self.left_panel_view.as_ref(app).warp_drive_view();
+        match warp_drive_view {
+            Some(warp_drive_view) => Either::Left(
+                warp_drive_view
+                    .as_ref(app)
+                    .has_warp_drive_initialized_sections(app),
+            ),
+            None => Either::Right(ready(())),
+        }
     }
 
     /// Check if Warp Drive view is focused within.
@@ -9124,9 +9137,12 @@ impl Workspace {
         initial_folder_id: &Option<SyncId>,
         ctx: &mut ViewContext<Self>,
     ) {
+        let Some(import_modal) = &self.import_modal else {
+            return;
+        };
         // TODO: This should take either an owner OR a folder.
         self.current_workspace_state.is_import_modal_open = true;
-        self.import_modal.update(ctx, |import_modal, ctx| {
+        import_modal.update(ctx, |import_modal, ctx| {
             import_modal.open_with_target(owner, *initial_folder_id, ctx);
         });
         ctx.notify();
@@ -14807,9 +14823,11 @@ impl Workspace {
         F: FnOnce(&mut DrivePanel, &mut ViewContext<DrivePanel>),
     {
         self.left_panel_view.update(ctx, |left_panel, ctx| {
-            left_panel.warp_drive_view().update(ctx, |warp_drive, ctx| {
-                update_fn(warp_drive, ctx);
-            });
+            if let Some(warp_drive_view) = left_panel.warp_drive_view() {
+                warp_drive_view.update(ctx, |warp_drive, ctx| {
+                    update_fn(warp_drive, ctx);
+                });
+            }
         });
     }
 
@@ -23810,7 +23828,9 @@ impl Workspace {
                 entry_focus: GlobalSearchEntryFocus::Results,
             });
         }
-        if WarpDriveSettings::is_warp_drive_enabled(ctx) {
+        if !local_mode::is_local_only_custom_provider_mode()
+            && WarpDriveSettings::is_warp_drive_enabled(ctx)
+        {
             views.push(ToolPanelView::WarpDrive);
         }
         views
@@ -27214,7 +27234,9 @@ impl View for Workspace {
         }
 
         if self.current_workspace_state.is_import_modal_open {
-            stack.add_child(ChildView::new(&self.import_modal).finish());
+            if let Some(import_modal) = &self.import_modal {
+                stack.add_child(ChildView::new(import_modal).finish());
+            }
         }
 
         if self.current_workspace_state.is_theme_deletion_modal_open {

@@ -41,6 +41,7 @@ use crate::editor::{
     PropagateHorizontalNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
 use crate::i18n::{tr_cached, Message};
+use crate::local_mode;
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::server::telemetry::SharingDialogSource;
 use crate::view_components::action_button::{ActionButton, ButtonSize, SecondaryTheme};
@@ -172,7 +173,7 @@ pub struct ConversationListView {
     /// Tracks the overflow menu state (which item it's open for and where to position it).
     overflow_menu_state: Option<OverflowMenuState>,
     /// Sharing dialog for conversations.
-    sharing_dialog: ViewHandle<SharingDialog>,
+    sharing_dialog: Option<ViewHandle<SharingDialog>>,
     rename_editor: ViewHandle<EditorView>,
     renaming_conversation_id: Option<AIConversationId>,
     /// Track which conversation the share dialog is open for.
@@ -297,12 +298,17 @@ impl ConversationListView {
             MenuEvent::ItemSelected | MenuEvent::ItemHovered => {}
         });
 
-        let sharing_dialog = ctx.add_typed_action_view(|ctx| SharingDialog::new(None, ctx));
-        ctx.subscribe_to_view(&sharing_dialog, move |me, _, _event, ctx| {
-            // SharingDialogEvent::Close is the only event currently
-            me.share_dialog_open_for = None;
-            ctx.notify();
-        });
+        let sharing_dialog = if local_mode::is_local_only_custom_provider_mode() {
+            None
+        } else {
+            let sharing_dialog = ctx.add_typed_action_view(|ctx| SharingDialog::new(None, ctx));
+            ctx.subscribe_to_view(&sharing_dialog, move |me, _, _event, ctx| {
+                // SharingDialogEvent::Close is the only event currently
+                me.share_dialog_open_for = None;
+                ctx.notify();
+            });
+            Some(sharing_dialog)
+        };
 
         let mut view = Self {
             window_id: ctx.window_id(),
@@ -1054,7 +1060,9 @@ impl TypedActionView for ConversationListView {
                     }
 
                     // Only show share item if the conversation is shareable
-                    let share_item = if entry.capabilities.can_share {
+                    let share_item = if self.sharing_dialog.is_some()
+                        && entry.capabilities.can_share
+                    {
                         Some(
                             MenuItemFields::new("Share conversation")
                                 .with_on_select_action(
@@ -1110,6 +1118,9 @@ impl TypedActionView for ConversationListView {
                 ctx.notify();
             }
             ConversationListViewAction::OpenShareDialog { conversation_id } => {
+                let Some(sharing_dialog) = &self.sharing_dialog else {
+                    return;
+                };
                 // Clear selection state when opening share dialog
                 self.selected_index = None;
                 let Some(ai_conversation_id) = self
@@ -1124,14 +1135,14 @@ impl TypedActionView for ConversationListView {
 
                 // Set the share dialog target and open it
                 self.share_dialog_open_for = Some(*conversation_id);
-                self.sharing_dialog.update(ctx, |dialog, ctx| {
+                sharing_dialog.update(ctx, |dialog, ctx| {
                     dialog.set_target(
                         Some(ShareableObject::AIConversation(ai_conversation_id)),
                         ctx,
                     );
                     dialog.report_open(SharingDialogSource::ConversationList, ctx);
                 });
-                ctx.focus(&self.sharing_dialog);
+                ctx.focus(sharing_dialog);
                 ctx.notify();
             }
             ConversationListViewAction::DeleteFromOverflowMenu { conversation_id } => {
@@ -1432,7 +1443,7 @@ impl View for ConversationListView {
                                             is_renaming,
                                             can_rename,
                                             rename_editor: is_renaming.then_some(&rename_editor),
-                                            sharing_dialog: &sharing_dialog,
+                                            sharing_dialog: sharing_dialog.as_ref(),
                                             is_share_dialog_open,
                                             list_position_id: &list_position_id,
                                             tooltip_opens_right,

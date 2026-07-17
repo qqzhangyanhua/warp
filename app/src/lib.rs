@@ -1354,6 +1354,11 @@ pub(crate) fn initialize_app(
     }
 
     let auth_state = Arc::new(AuthState::initialize(ctx, api_key, anonymous_only));
+    if local_only {
+        // Keep persisted account credentials on disk for normal launches, but make them
+        // unavailable to this process so background components cannot refresh Warp tokens.
+        auth_state.set_credentials(None);
+    }
     timer.mark_interval_end("AUTH_MANAGER_SET_USER");
 
     let agent_source = determine_agent_source(launch_mode);
@@ -1688,7 +1693,9 @@ pub(crate) fn initialize_app(
     #[cfg(not(target_family = "wasm"))]
     ctx.add_singleton_model(remote_server::codebase_index_model::RemoteCodebaseIndexModel::new);
     #[cfg(not(target_family = "wasm"))]
-    remote_server::wire_auth_token_rotation(ctx);
+    if !local_only {
+        remote_server::wire_auth_token_rotation(ctx);
+    }
 
     log::info!(
         "Starting warp with channel state {} and version {:?}",
@@ -2175,13 +2182,15 @@ pub(crate) fn initialize_app(
         // CloudViewModel subscribes to UpdateManager so that it can be notified when objects are
         // created on the server.
         ctx.add_singleton_model(CloudViewModel::new);
-
-        // AIDocumentModel subscribes to UpdateManager so that it can be notified when notebooks are created on the server.
-        ctx.add_singleton_model(AIDocumentModel::new);
-
-        // AgentConversationsModel subscribes to UpdateManager for RTC task updates.
-        ctx.add_singleton_model(AgentConversationsModel::new);
     }
+
+    // AI documents are also local Agent artifacts. Local-only mode keeps the model while the
+    // model itself skips Warp Drive subscriptions and synchronization.
+    ctx.add_singleton_model(AIDocumentModel::new);
+
+    // Local-only mode still uses this model for locally persisted Agent conversations. Its
+    // cloud task subscriptions and polling are disabled by the model in that mode.
+    ctx.add_singleton_model(AgentConversationsModel::new);
 
     // ByoLlmAuthBannerSessionState tracks dismissal of the BYO LLM auth banner (e.g., AWS Bedrock login).
     ctx.add_singleton_model(ByoLlmAuthBannerSessionState::new);

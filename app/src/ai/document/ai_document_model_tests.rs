@@ -2,6 +2,7 @@ use std::ops::Range;
 
 use ai::diff_validation::DiffDelta;
 use chrono::Local;
+use warp_core::features::FeatureFlag;
 use warpui::{App, SingletonEntity};
 
 use super::*;
@@ -15,12 +16,51 @@ use crate::notebooks::{CloudNotebook, CloudNotebookModel};
 use crate::server::ids::SyncId;
 use crate::test_util::settings::initialize_settings_for_tests;
 
+#[test]
+#[serial_test::serial]
+fn local_only_model_initializes_without_cloud_managers() {
+    let _local_only_guard = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let model = app.add_model(AIDocumentModel::new);
+
+        model.update(&mut app, |model, _| {
+            assert!(model.documents.is_empty());
+        });
+    });
+}
+
 fn initialize_app_for_ai_document_tests(app: &mut App) {
     initialize_settings_for_tests(app);
     app.add_singleton_model(|_| Appearance::mock());
     app.add_singleton_model(|_| CloudModel::new(None, Vec::new(), None));
     app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
 }
+
+#[test]
+#[serial_test::serial]
+fn local_only_plan_publication_skips_warp_drive_sync() {
+    let _local_only_guard = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_app_for_ai_document_tests(&mut app);
+        let model = app.add_model(AIDocumentModel::new);
+        let conversation_id = AIConversationId::new();
+
+        model.update(&mut app, |model, ctx| {
+            let document_id = model.create_document("Plan", "# Local", conversation_id, None, ctx);
+            assert!(model
+                .publish_documents_for_conversation(conversation_id, ctx)
+                .is_empty());
+            assert!(matches!(
+                model.get_document_save_status(&document_id),
+                AIDocumentSaveStatus::NotSaved
+            ));
+        });
+    });
+}
+
 fn add_server_backed_plan_notebook(app: &mut App, document_id: AIDocumentId) -> SyncId {
     let sync_id = SyncId::ServerId(123.into());
     let notebook = CloudNotebook::new(

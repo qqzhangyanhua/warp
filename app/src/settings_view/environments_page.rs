@@ -51,6 +51,7 @@ use crate::editor::{
     EditorView, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
 use crate::i18n::{tr, Message};
+use crate::local_mode;
 use crate::root_view::CreateEnvironmentArg;
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
@@ -365,10 +366,12 @@ impl EnvironmentsPageView {
             ctx.notify();
         });
 
-        // Subscribe to UpdateManager to show success toast when environment update completes
-        ctx.subscribe_to_model(&UpdateManager::handle(ctx), |view, _, event, ctx| {
-            view.handle_update_manager_event(event, ctx);
-        });
+        // Subscribe to UpdateManager to show success toast when environment update completes.
+        if !local_mode::is_local_only_custom_provider_mode() {
+            ctx.subscribe_to_model(&UpdateManager::handle(ctx), |view, _, event, ctx| {
+                view.handle_update_manager_event(event, ctx);
+            });
+        }
 
         // Create search editor for list page
         let search_editor = Self::create_single_line_editor("Search environments...", ctx);

@@ -70,3 +70,7 @@ impl ImprovedPaletteSearch {
         matches!(Self::get_group(ctx), Some(Self::Experiment))
     }
 }
+
+#[cfg(test)]
+#[path = "improved_palette_search_layer_tests.rs"]
+mod tests;

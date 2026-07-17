@@ -27,7 +27,7 @@ use warpui::{AppContext, SingletonEntity};
 
 use crate::auth::auth_state::AuthStateProvider;
 use crate::channel::{Channel, ChannelState};
-use crate::send_telemetry_sync_from_app_ctx;
+use crate::{local_mode, send_telemetry_sync_from_app_ctx};
 
 /// Number of buckets we are using to partition user traffic. The largest valid
 /// bucket index is NUM_BUCKETS - 1.
@@ -291,6 +291,10 @@ pub trait Experiment<T: Experiment<T>>: FromStr {
     where
         <T as FromStr>::Err: fmt::Debug,
     {
+        if local_mode::is_local_only_custom_provider_mode() {
+            return None;
+        }
+
         // Check if we have cached the group assignment in memory.
         if let Some(variant) = GROUP_ASSIGNMENTS.get(Self::name()) {
             match T::from_str(*variant) {

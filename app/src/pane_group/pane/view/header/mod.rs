@@ -563,9 +563,12 @@ impl<P: BackingView> PaneHeader<P> {
                 }
             }
             OpenOverlay::SharingDialog => {
-                if self.is_sharing_dialog_enabled(app) {
+                if let Some(sharing_dialog) = self
+                    .sharing_dialog()
+                    .filter(|_| self.is_sharing_dialog_enabled(app))
+                {
                     stack.add_positioned_overlay_child(
-                        ChildView::new(self.sharing_dialog()).finish(),
+                        ChildView::new(sharing_dialog).finish(),
                         OffsetPositioning::offset_from_parent(
                             vec2f(-8., 0.),
                             ParentOffsetBounds::WindowByPosition,

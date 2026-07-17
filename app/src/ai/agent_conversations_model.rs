@@ -44,6 +44,7 @@ use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::CloudObjectLookup as _;
+use crate::local_mode;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::server::cloud_objects::update_manager::{UpdateManager, UpdateManagerEvent};
 use crate::server::ids::{ServerId, SyncId};
@@ -620,15 +621,18 @@ impl AgentConversationsModel {
             };
         }
 
-        // Subscribe to network status and window manager to inform whether we should poll for new task data
-        let network_status = NetworkStatus::handle(ctx);
-        ctx.subscribe_to_model(&network_status, Self::handle_network_status_changed);
-        let window_manager = WindowManager::handle(ctx);
-        ctx.subscribe_to_model(&window_manager, Self::handle_window_state_changed);
+        let local_only = local_mode::is_local_only_custom_provider_mode();
+        if !local_only {
+            // Subscribe to network status and window manager to inform whether we should poll for new task data
+            let network_status = NetworkStatus::handle(ctx);
+            ctx.subscribe_to_model(&network_status, Self::handle_network_status_changed);
+            let window_manager = WindowManager::handle(ctx);
+            ctx.subscribe_to_model(&window_manager, Self::handle_window_state_changed);
 
-        // Subscribe to auth events to retry initial sync when user becomes available
-        let auth_manager = AuthManager::handle(ctx);
-        ctx.subscribe_to_model(&auth_manager, Self::handle_auth_manager_event);
+            // Subscribe to auth events to retry initial sync when user becomes available
+            let auth_manager = AuthManager::handle(ctx);
+            ctx.subscribe_to_model(&auth_manager, Self::handle_auth_manager_event);
+        }
 
         let history_model = BlocklistAIHistoryModel::handle(ctx);
         ctx.subscribe_to_model(&history_model, move |me, _, event, ctx| {
@@ -641,7 +645,7 @@ impl AgentConversationsModel {
         });
 
         // Subscribe to UpdateManager for RTC task updates
-        if FeatureFlag::AmbientAgentsRTC.is_enabled() {
+        if !local_only && FeatureFlag::AmbientAgentsRTC.is_enabled() {
             let update_manager = UpdateManager::handle(ctx);
             ctx.subscribe_to_model(&update_manager, Self::handle_update_manager_event);
         }
@@ -663,6 +667,9 @@ impl AgentConversationsModel {
         // here to avoid duplicate requests at startup.
         if AppExecutionMode::as_ref(ctx).can_fetch_agent_runs_for_management() {
             model.sync_conversations(ctx);
+            if local_only {
+                model.has_finished_initial_load = true;
+            }
         } else {
             model.has_finished_initial_load = true;
         }
@@ -1063,6 +1070,10 @@ impl AgentConversationsModel {
 
     /// Returns true if we should be polling: online, not loading, and active window has the view open.
     fn should_be_polling(&self, ctx: &ModelContext<Self>) -> bool {
+        if local_mode::is_local_only_custom_provider_mode() {
+            return false;
+        }
+
         if !self.has_finished_initial_load {
             return false;
         }
