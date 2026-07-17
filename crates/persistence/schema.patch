@@ -15,3 +15,20 @@
          author_id -> Nullable<Integer>,
          retry_count -> Integer,
          metadata_last_updated_ts -> Nullable<BigInt>,
+@@ -543,6 +543,7 @@
+ diesel::joinable!(ambient_agent_panes -> pane_nodes (id));
+ diesel::joinable!(app -> windows (active_window_id));
++diesel::joinable!(code_pane_tabs -> code_panes (code_pane_id));
+ diesel::joinable!(object_permissions -> object_metadata (object_metadata_id));
+ diesel::joinable!(pane_branches -> pane_nodes (pane_node_id));
+ diesel::joinable!(pane_leaves -> pane_nodes (pane_node_id));
+ diesel::joinable!(pane_nodes -> tabs (tab_id));
+@@ -564,7 +565,8 @@
+     tab_groups,
+     tabs,
+     windows,
+ );
++diesel::allow_tables_to_appear_in_same_query!(code_pane_tabs, code_panes,);
+ diesel::allow_tables_to_appear_in_same_query!(object_metadata, object_permissions,);
+ diesel::allow_tables_to_appear_in_same_query!(team_members, team_settings, teams,);
+ diesel::allow_tables_to_appear_in_same_query!(workspace_language_server, workspace_metadata,);
