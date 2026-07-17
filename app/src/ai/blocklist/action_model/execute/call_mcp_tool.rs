@@ -3,6 +3,8 @@ use futures::FutureExt;
 #[cfg(not(target_family = "wasm"))]
 use itertools::Itertools;
 #[cfg(not(target_family = "wasm"))]
+use warp_core::safe_warn;
+#[cfg(not(target_family = "wasm"))]
 use warpui::SingletonEntity;
 use warpui::{Entity, EntityId, ModelContext, ModelHandle};
 
@@ -297,11 +299,13 @@ fn handle_call_tool_result(
     tool_name: String,
     ctx: &warpui::AppContext,
 ) -> AIAgentActionResultType {
+    const MCP_TOOL_ERROR: &str =
+        "MCP tool failed. Check the local MCP server logs and tool configuration.";
     let action_result = match res {
         Ok(result) => {
             // Even if the call was successful, the response could still be an error so we need to check.
             if matches!(result.is_error, Some(true)) {
-                let error_message = result
+                let error_detail = result
                     .structured_content
                     .map(|content| content.to_string())
                     .unwrap_or_else(|| {
@@ -320,24 +324,28 @@ fn handle_call_tool_result(
                             .collect_vec()
                             .join("\n");
                         if content_str.is_empty() {
-                            "MCP tool call returned an error.".to_string()
+                            MCP_TOOL_ERROR.to_string()
                         } else {
                             content_str
                         }
                     });
+                safe_warn!(
+                    safe: ("MCP tool returned an error response"),
+                    full: ("MCP tool returned an error response: {error_detail}")
+                );
                 send_telemetry_from_app_ctx!(
                     TelemetryEvent::MCPToolCallAccepted {
                         server_output_id,
                         tool_call: tool_name,
                         error: Some(
                             crate::server::telemetry::MCPServerTelemetryError::ResponseError(
-                                error_message.clone()
+                                MCP_TOOL_ERROR.to_string()
                             )
                         ),
                     },
                     ctx
                 );
-                CallMCPToolResult::Error(error_message)
+                CallMCPToolResult::Error(MCP_TOOL_ERROR.to_string())
             } else {
                 send_telemetry_from_app_ctx!(
                     TelemetryEvent::MCPToolCallAccepted {
@@ -351,17 +359,23 @@ fn handle_call_tool_result(
             }
         }
         Err(e) => {
-            let error_message = e.to_string();
-            log::warn!("Executing MCP tool resulted in error: {e:?}");
+            safe_warn!(
+                safe: ("Executing MCP tool failed"),
+                full: ("Executing MCP tool failed: {e:?}")
+            );
             send_telemetry_from_app_ctx!(
                 TelemetryEvent::MCPToolCallAccepted {
                     server_output_id,
                     tool_call: tool_name,
-                    error: Some(rmcp::RmcpError::Service(e).into()),
+                    error: Some(
+                        crate::server::telemetry::MCPServerTelemetryError::ResponseError(
+                            MCP_TOOL_ERROR.to_string()
+                        )
+                    ),
                 },
                 ctx
             );
-            CallMCPToolResult::Error(error_message)
+            CallMCPToolResult::Error(MCP_TOOL_ERROR.to_string())
         }
     };
     AIAgentActionResultType::CallMCPTool(action_result)
