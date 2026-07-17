@@ -8,9 +8,9 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **1378** |
-| English table (`en_text`) | **1378** complete |
-| Chinese table (`zh_cn_text`) | **1378** complete |
+| `Message` variants | **1409** |
+| English table (`en_text`) | **1409** complete |
+| Chinese table (`zh_cn_text`) | **1409** complete |
 | Call sites | ~1000+ across 75+ files |
 
 ### What the 157 messages cover
@@ -279,7 +279,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 | Bucket | Status | Rough user-visible strings |
 |--------|--------|----------------------------|
-| Already i18n (1378 `Message`s) | Done | ~1370+ |
+| Already i18n (1409 `Message`s) | Done | ~1400+ |
 | P0 first-run / login / anonymous | Done | ~80–120 |
 | P1 Settings residuals | Done | ~80–120 |
 | P2 full Settings pages | Done (Teams confirm dialogs + Environments residual) | ~250–400 |
@@ -351,4 +351,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-17. Batch 7: Features dropdown values (session mode/tab/Ctrl+Tab/OSC52/global hotkey/line numbers), environment toasts/delete dialog/empty-state buttons, settings split/close pane, Oz Cloud API key modal. Message catalog 1378 variants._
+_Last updated: 2026-07-17. Batch 8: Appearance dropdown values, conversation list overflow menu, MCP action buttons/toasts, default-model modal, privacy Cancel, agent-assisted Add repo, execution profile Edit, AWS Refresh. Message catalog 1409 variants._

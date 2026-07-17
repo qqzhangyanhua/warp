@@ -31,6 +31,7 @@ use warpui::{
 use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
 use crate::ai::mcp::parsing::{prettify_json, resolve_json, ParsedTemplatableMCPServerResult};
 use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
+use crate::i18n::{tr, Message};
 use crate::ai::mcp::{
     MCPServer, TemplatableMCPServer, TemplatableMCPServerInstallation, TemplatableMCPServerManager,
     TransportType,
@@ -130,30 +131,30 @@ pub struct MCPServersEditPageView {
 
 impl MCPServersEditPageView {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
-        let save_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Save", PrimaryTheme)
+        let save_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::McpSave), PrimaryTheme)
                 .with_icon(Icon::Check)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(MCPServersEditPageViewAction::Save);
                 })
         });
 
-        let reinstall_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Edit Variables", PrimaryTheme).on_click(|ctx| {
+        let reinstall_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::McpEditVariables), PrimaryTheme).on_click(|ctx| {
                 ctx.dispatch_typed_action(MCPServersEditPageViewAction::Reinstall);
             })
         });
 
-        let delete_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Delete MCP", DangerSecondaryTheme)
+        let delete_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::McpDelete), DangerSecondaryTheme)
                 .with_icon(Icon::Trash)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(MCPServersEditPageViewAction::Delete);
                 })
         });
 
-        let unshare_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Remove from team", DangerNakedTheme)
+        let unshare_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::McpRemoveFromTeam), DangerNakedTheme)
                 .with_icon(Icon::MinusCircle)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(MCPServersEditPageViewAction::Unshare);

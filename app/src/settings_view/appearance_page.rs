@@ -1715,9 +1715,9 @@ impl AppearanceSettingsPageView {
 
     fn input_mode_dropdown_item_label(val: InputMode) -> &'static str {
         match val {
-            InputMode::PinnedToBottom => "Pin to the bottom (Warp mode)",
-            InputMode::PinnedToTop => "Pin to the top (Reverse mode)",
-            InputMode::Waterfall => "Start at the top (Classic mode)",
+            InputMode::PinnedToBottom => tr_cached(Message::AppearanceInputModePinnedBottom),
+            InputMode::PinnedToTop => tr_cached(Message::AppearanceInputModePinnedTop),
+            InputMode::Waterfall => tr_cached(Message::AppearanceInputModeWaterfall),
         }
     }
 
@@ -1767,18 +1767,20 @@ impl AppearanceSettingsPageView {
 
     fn thin_strokes_dropdown_item_label(val: ThinStrokes) -> &'static str {
         match val {
-            ThinStrokes::Never => "Never",
-            ThinStrokes::OnLowDpiDisplays => "On low-DPI displays",
-            ThinStrokes::OnHighDpiDisplays => "On high-DPI displays",
-            ThinStrokes::Always => "Always",
+            ThinStrokes::Never => tr_cached(Message::AppearanceThinStrokesNever),
+            ThinStrokes::OnLowDpiDisplays => tr_cached(Message::AppearanceThinStrokesLowDpi),
+            ThinStrokes::OnHighDpiDisplays => tr_cached(Message::AppearanceThinStrokesHighDpi),
+            ThinStrokes::Always => tr_cached(Message::AppearanceThinStrokesAlways),
         }
     }
 
     fn enforce_minimum_contrast_dropdown_item_label(val: EnforceMinimumContrast) -> &'static str {
         match val {
-            EnforceMinimumContrast::Always => "Always",
-            EnforceMinimumContrast::OnlyNamedColors => "Only for named colors",
-            EnforceMinimumContrast::Never => "Never",
+            EnforceMinimumContrast::Always => tr_cached(Message::AppearanceContrastAlways),
+            EnforceMinimumContrast::OnlyNamedColors => {
+                tr_cached(Message::AppearanceContrastNamedColors)
+            }
+            EnforceMinimumContrast::Never => tr_cached(Message::AppearanceContrastNever),
         }
     }
 
@@ -1786,9 +1788,15 @@ impl AppearanceSettingsPageView {
         value: WorkspaceDecorationVisibility,
     ) -> &'static str {
         match value {
-            WorkspaceDecorationVisibility::AlwaysShow => "Always",
-            WorkspaceDecorationVisibility::HideFullscreen => "When windowed",
-            WorkspaceDecorationVisibility::OnHover => "Only on hover",
+            WorkspaceDecorationVisibility::AlwaysShow => {
+                tr_cached(Message::AppearanceDecorationAlways)
+            }
+            WorkspaceDecorationVisibility::HideFullscreen => {
+                tr_cached(Message::AppearanceDecorationWhenWindowed)
+            }
+            WorkspaceDecorationVisibility::OnHover => {
+                tr_cached(Message::AppearanceDecorationOnHover)
+            }
         }
     }
 
@@ -1796,8 +1804,8 @@ impl AppearanceSettingsPageView {
         value: TabCloseButtonPosition,
     ) -> &'static str {
         match value {
-            TabCloseButtonPosition::Right => "Right",
-            TabCloseButtonPosition::Left => "Left",
+            TabCloseButtonPosition::Right => tr_cached(Message::AppearanceTabCloseRight),
+            TabCloseButtonPosition::Left => tr_cached(Message::AppearanceTabCloseLeft),
         }
     }
 

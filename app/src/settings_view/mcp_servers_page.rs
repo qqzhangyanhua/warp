@@ -16,6 +16,7 @@ use crate::ai::mcp::{
 };
 use crate::appearance::Appearance;
 use crate::cloud_object::Space;
+use crate::i18n::{tr, Message};
 use crate::modal::{Modal, ModalViewState};
 use crate::server::cloud_objects::update_manager::InitiatedBy;
 use crate::settings_view::mcp_servers::edit_page::{
@@ -149,8 +150,8 @@ impl MCPServersSettingsPageView {
         ctx: &mut ViewContext<Self>,
     ) {
         let message = match server_name {
-            Some(name) => format!("Successfully logged out of {name} MCP server"),
-            None => "Successfully logged out of MCP server".to_string(),
+            Some(name) => tr(ctx, Message::McpSuccessfullyLoggedOutNamed).replace("{}", &name),
+            None => tr(ctx, Message::McpSuccessfullyLoggedOut).to_string(),
         };
         match item_id {
             ServerCardItemId::TemplatableMCP(_) => {

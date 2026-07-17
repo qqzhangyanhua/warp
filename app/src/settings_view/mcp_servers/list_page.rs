@@ -205,8 +205,8 @@ impl MCPServersListPageView {
         });
         let search_bar = ctx.add_typed_action_view(|_| SearchBar::new(search_editor.clone()));
 
-        let add_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Add", NakedTheme)
+        let add_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::McpAdd), NakedTheme)
                 .with_icon(Icon::Plus)
                 .on_click(|ctx| ctx.dispatch_typed_action(MCPServersListPageViewAction::Add))
         });

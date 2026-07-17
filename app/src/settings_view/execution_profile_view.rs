@@ -21,6 +21,7 @@ use crate::ai::execution_profiles::{
 use crate::ai::llms::LLMPreferences;
 use crate::appearance::Appearance;
 use crate::cloud_object::model::generic_string_model::StringModel;
+use crate::i18n::{tr, Message};
 use crate::settings::AISettings;
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, ButtonSize, SecondaryTheme};
@@ -52,8 +53,8 @@ impl ExecutionProfileView {
             ctx.notify();
         });
 
-        let edit_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Edit", SecondaryTheme)
+        let edit_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AiEdit), SecondaryTheme)
                 .with_icon(Icon::Pencil)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {

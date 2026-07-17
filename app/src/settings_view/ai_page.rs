@@ -9405,8 +9405,8 @@ impl AwsBedrockWidget {
             }
         });
 
-        let refresh_credentials_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Refresh", SecondaryTheme)
+        let refresh_credentials_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AccountRefresh), SecondaryTheme)
                 .with_icon(Icon::RefreshCw04)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
