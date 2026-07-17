@@ -1,0 +1,24 @@
+app/src/ai/blocklist/action_model/execute/call_mcp_tool.rs
+  79a00e9820d49613 6-7,302-303,308,327,332-335,342,348,362-365,370-374,378
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "b51fd923f6f5cd1d9a401b77ba37e8cedec41038",
+  "prompts": {
+    "79a00e9820d49613": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6e56-9089-75c2-ae6b-c18c9a12b4a8",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 22,
+      "total_deletions": 8,
+      "accepted_lines": 22,
+      "overriden_lines": 0,
+      "messages_url": "https://gitai.tongbaninfo.com/cas/5198a247fb6a3be6ae272e6b8ea97db65aba1630a0b61a581db54b7e66497f5f"
+    }
+  }
+}
