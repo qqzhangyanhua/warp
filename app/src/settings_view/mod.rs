@@ -1875,28 +1875,28 @@ impl SettingsView {
 
         if ContextFlag::CreateNewSession.is_enabled() {
             items.extend(vec![
-                MenuItemFields::new("Split pane right")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneRight))
                     .with_on_select_action(SettingsAction::Split(Direction::Right))
                     .with_key_shortcut_label(keybinding_name_to_display_string(
                         "pane_group:add_right",
                         ctx,
                     ))
                     .into_item(),
-                MenuItemFields::new("Split pane left")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneLeft))
                     .with_on_select_action(SettingsAction::Split(Direction::Left))
                     .with_key_shortcut_label(keybinding_name_to_display_string(
                         "pane_group:add_left",
                         ctx,
                     ))
                     .into_item(),
-                MenuItemFields::new("Split pane down")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneDown))
                     .with_on_select_action(SettingsAction::Split(Direction::Down))
                     .with_key_shortcut_label(keybinding_name_to_display_string(
                         "pane_group:add_down",
                         ctx,
                     ))
                     .into_item(),
-                MenuItemFields::new("Split pane up")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneUp))
                     .with_on_select_action(SettingsAction::Split(Direction::Up))
                     .with_key_shortcut_label(keybinding_name_to_display_string(
                         "pane_group:add_up",
@@ -1925,7 +1925,7 @@ impl SettingsView {
             );
 
             items.push(
-                MenuItemFields::new("Close pane")
+                MenuItemFields::new(tr(ctx, Message::SettingsClosePane))
                     .with_on_select_action(SettingsAction::Close)
                     .with_key_shortcut_label(
                         custom_tag_to_keystroke(CustomAction::CloseCurrentSession.into())

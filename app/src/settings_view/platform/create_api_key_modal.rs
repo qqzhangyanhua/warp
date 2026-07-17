@@ -20,6 +20,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
@@ -297,8 +298,7 @@ impl CreateApiKeyModal {
                     Err(err) => {
                         report_error!(err.context("Failed to load agent identities"));
                         ctx.emit(CreateApiKeyModalEvent::Error {
-                            message: "Failed to load agents. Please close and try again."
-                                .to_string(),
+                            message: tr_cached(Message::PlatformFailedLoadAgents).to_string(),
                         });
                     }
                 }
@@ -415,7 +415,9 @@ impl CreateApiKeyModal {
                     }
                     Ok(warp_graphql::mutations::generate_api_key::GenerateApiKeyResult::Unknown) | Err(_) => {
                         me.request_state = RequestState::Idle;
-                        ctx.emit(CreateApiKeyModalEvent::Error { message: "Failed to create API key. Please try again.".to_string() });
+                        ctx.emit(CreateApiKeyModalEvent::Error {
+                            message: tr_cached(Message::PlatformFailedCreateApiKey).to_string(),
+                        });
                         ctx.notify();
                     }
                 }
@@ -513,9 +515,9 @@ impl CreateApiKeyModal {
         .finish();
 
         let copy_label = if self.raw_key_copied {
-            "Copied"
+            tr_cached(Message::CommonCopied)
         } else {
-            "Copy"
+            tr_cached(Message::CommonCopy)
         };
         let copy_icon = if self.raw_key_copied {
             warp_core::ui::icons::Icon::Check.to_warpui_icon(appearance.theme().background())
@@ -564,7 +566,7 @@ impl CreateApiKeyModal {
                 ButtonVariant::Accent,
                 self.cancel_button_mouse_state.clone(),
             )
-            .with_text_label("Done".to_string())
+            .with_text_label(tr(app, Message::AuthDone).to_string())
             .with_style(button_style)
             .build()
             .on_click(|ctx, _, _| ctx.dispatch_typed_action(CreateApiKeyModalAction::Cancel))
@@ -624,7 +626,10 @@ impl View for CreateApiKeyModal {
                         FormattedText::new([FormattedTextLine::Line(vec![
                             FormattedTextFragment::plain_text(selected_key_type.description()),
                             FormattedTextFragment::plain_text(" "),
-                            FormattedTextFragment::hyperlink("Learn more", API_KEY_DOCS_URL),
+                            FormattedTextFragment::hyperlink(
+                                tr(app, Message::AuthLearnMore),
+                                API_KEY_DOCS_URL,
+                            ),
                         ])]),
                         LABEL_FONT_SIZE,
                         appearance.ui_font_family(),
@@ -647,7 +652,11 @@ impl View for CreateApiKeyModal {
                     .finish()
                 };
 
-                let name_label = Text::new("Name", appearance.ui_font_family(), LABEL_FONT_SIZE)
+                let name_label = Text::new(
+                    tr(app, Message::PlatformApiKeyNameLabel),
+                    appearance.ui_font_family(),
+                    LABEL_FONT_SIZE,
+                )
                     .with_color(theme.active_ui_text_color().into())
                     .finish();
 
@@ -663,7 +672,7 @@ impl View for CreateApiKeyModal {
                         ButtonVariant::Secondary,
                         self.cancel_button_mouse_state.clone(),
                     )
-                    .with_text_label("Cancel".to_string())
+                    .with_text_label(tr(app, Message::SettingsCancel).to_string())
                     .with_style(button_style)
                     .build()
                     .on_click(move |ctx, _, _| {
@@ -681,9 +690,9 @@ impl View for CreateApiKeyModal {
                         self.create_button_mouse_state.clone(),
                     )
                     .with_text_label(if is_pending {
-                        "Creating…".to_string()
+                        tr(app, Message::PlatformCreatingKey).to_string()
                     } else {
-                        "Create key".to_string()
+                        tr(app, Message::PlatformCreateKey).to_string()
                     })
                     .with_style(button_style)
                     .build()
@@ -712,7 +721,11 @@ impl View for CreateApiKeyModal {
 
                 if self.has_team || self.has_named_agents {
                     let type_label =
-                        Text::new("Type", appearance.ui_font_family(), LABEL_FONT_SIZE)
+                        Text::new(
+                            tr(app, Message::PlatformApiKeyTypeLabel),
+                            appearance.ui_font_family(),
+                            LABEL_FONT_SIZE,
+                        )
                             .with_color(theme.active_ui_text_color().into())
                             .finish();
                     col.add_child(Container::new(type_label).with_margin_bottom(4.).finish());
@@ -731,7 +744,11 @@ impl View for CreateApiKeyModal {
 
                 if selected_key_type == ApiKeyType::Agent {
                     let agent_label =
-                        Text::new("Agent", appearance.ui_font_family(), LABEL_FONT_SIZE)
+                        Text::new(
+                            tr(app, Message::FeaturesDefaultSessionAgent),
+                            appearance.ui_font_family(),
+                            LABEL_FONT_SIZE,
+                        )
                             .with_color(theme.active_ui_text_color().into())
                             .finish();
                     col.add_child(Container::new(agent_label).with_margin_bottom(4.).finish());
@@ -741,7 +758,7 @@ impl View for CreateApiKeyModal {
 
                     if !self.is_loading_agents && available_agents.is_empty() {
                         let empty_text = Text::new(
-                            "No agents available. Create one first.",
+                            tr(app, Message::PlatformNoAgentsAvailable),
                             appearance.ui_font_family(),
                             LABEL_FONT_SIZE,
                         )
@@ -754,7 +771,7 @@ impl View for CreateApiKeyModal {
                                 ButtonVariant::Secondary,
                                 self.create_agent_button_mouse_state.clone(),
                             )
-                            .with_text_label("Create agent".to_string())
+                            .with_text_label(tr(app, Message::PlatformCreateAgent).to_string())
                             .with_style(button_style)
                             .build()
                             .on_click(|ctx, _, _| {

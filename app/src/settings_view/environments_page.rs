@@ -50,7 +50,7 @@ use crate::drive::CloudObjectTypeAndId;
 use crate::editor::{
     EditorView, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::local_mode;
 use crate::root_view::CreateEnvironmentArg;
 use crate::server::cloud_objects::update_manager::{
@@ -637,7 +637,10 @@ impl EnvironmentsPageView {
 
             if should_handle {
                 self.pending_save_env_id = None;
-                self.show_success_toast("Successfully updated environment".to_string(), ctx);
+                self.show_success_toast(
+                    tr(ctx, Message::EnvironmentSuccessfullyUpdated).to_string(),
+                    ctx,
+                );
 
                 // No need to force a global cloud-object refresh here: on update success the
                 // sync pipeline updates this environment's `revision_ts` (used for "Last edited")
@@ -655,7 +658,7 @@ impl EnvironmentsPageView {
                 if let Some(result_client_id) = &result.client_id {
                     if *result_client_id == pending_client_id {
                         self.show_success_toast(
-                            "Successfully created environment".to_string(),
+                            tr(ctx, Message::EnvironmentSuccessfullyCreated).to_string(),
                             ctx,
                         );
                     }
@@ -672,7 +675,7 @@ impl EnvironmentsPageView {
                 if let Some(server_id) = &result.server_id {
                     if server_id.uid() == pending_env_id.uid() {
                         self.show_success_toast(
-                            "Environment deleted successfully".to_string(),
+                            tr(ctx, Message::EnvironmentDeletedSuccessfully).to_string(),
                             ctx,
                         );
                     }
@@ -695,9 +698,15 @@ impl EnvironmentsPageView {
             self.pending_share_server_id = None;
 
             if matches!(result.success_type, OperationSuccessType::Success) {
-                self.show_success_toast("Successfully shared environment".to_string(), ctx);
+                self.show_success_toast(
+                    tr(ctx, Message::EnvironmentSuccessfullyShared).to_string(),
+                    ctx,
+                );
             } else {
-                self.show_error_toast("Failed to share environment with team".to_string(), ctx);
+                self.show_error_toast(
+                    tr(ctx, Message::EnvironmentFailedShareWithTeam).to_string(),
+                    ctx,
+                );
             }
 
             ctx.notify();
@@ -767,7 +776,10 @@ impl EnvironmentsPageView {
 
                 let Some(owner) = owner else {
                     self.show_error_toast(
-                        "Unable to create environment: not logged in.".to_string(),
+                        format!(
+                            "{}.",
+                            tr(ctx, Message::CloudUnableCreateEnvNotLoggedIn)
+                        ),
                         ctx,
                     );
                     return;
@@ -794,7 +806,7 @@ impl EnvironmentsPageView {
                 let Some(existing_env) = CloudAmbientAgentEnvironment::get_by_id(env_id, ctx)
                 else {
                     self.show_error_toast(
-                        "Unable to save: environment no longer exists.".to_string(),
+                        tr(ctx, Message::EnvironmentUnableSaveNoLongerExists).to_string(),
                         ctx,
                     );
                     return;
@@ -963,7 +975,7 @@ impl TypedActionView for EnvironmentsPageView {
             EnvironmentsPageAction::ShareToTeam(env_id) => {
                 let Some(team_uid) = UserWorkspaces::as_ref(ctx).current_team_uid() else {
                     self.show_error_toast(
-                        "Unable to share environment: you are not currently on a team.".to_string(),
+                        tr(ctx, Message::EnvironmentUnableShareNotOnTeam).to_string(),
                         ctx,
                     );
                     return;
@@ -971,7 +983,7 @@ impl TypedActionView for EnvironmentsPageView {
 
                 let SyncId::ServerId(server_id) = *env_id else {
                     self.show_error_toast(
-                        "Unable to share environment: environment is not yet synced.".to_string(),
+                        tr(ctx, Message::EnvironmentUnableShareNotSynced).to_string(),
                         ctx,
                     );
                     return;
@@ -1403,13 +1415,13 @@ impl EnvironmentsPageWidget {
         };
 
         let (github_button_label, github_button_enabled) = if dropdown_state.is_loading {
-            ("Loading...", false)
+            (tr_cached(Message::EnvironmentFormLoading), false)
         } else if dropdown_state.load_error_message.is_some() {
-            ("Retry", true)
+            (tr_cached(Message::EnvironmentFormRetry), true)
         } else if dropdown_state.auth_url.is_some() {
-            ("Authorize", true)
+            (tr_cached(Message::EnvironmentAuthorize), true)
         } else {
-            ("Get started", true)
+            (tr_cached(Message::EnvironmentGetStarted), true)
         };
 
         let github_button = Self::render_empty_state_button(

@@ -271,7 +271,7 @@ impl PlatformPageView {
             }
             CreateApiKeyModalEvent::Created { api_key } => {
                 self.create_api_key_modal_state
-                    .set_title(Some("Save your key".to_string()), ctx);
+                    .set_title(Some(tr(ctx, Message::PlatformSaveYourKey).to_string()), ctx);
                 let ui_key = APIKeyProperties::from(api_key);
                 self.ensure_expire_button_for_key(ctx, ui_key.uid.clone());
                 self.api_keys.push(ui_key);

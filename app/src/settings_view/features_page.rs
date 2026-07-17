@@ -3039,7 +3039,7 @@ impl FeaturesPageView {
                     .into_iter()
                     .map(|val| {
                         DropdownItem::new(
-                            val.dropdown_item_label(),
+                            Self::code_editor_line_number_mode_label(val),
                             FeaturesPageAction::SetCodeEditorLineNumberMode(val),
                         )
                     })
@@ -3078,7 +3078,7 @@ impl FeaturesPageView {
                     .into_iter()
                     .map(|val| {
                         DropdownItem::new(
-                            val.as_dropdown_label(),
+                            Self::ctrl_tab_behavior_label(val),
                             FeaturesPageAction::SetCtrlTabBehavior(val),
                         )
                     })
@@ -3147,7 +3147,10 @@ impl FeaturesPageView {
         }
         // the selected item needs to update if the settings gets changed via the command palette
         self.global_hotkey_dropdown.update(ctx, |dropdown, ctx| {
-            dropdown.set_selected_by_name(global_hotkey_mode.as_dropdown_label(), ctx);
+            dropdown.set_selected_by_name(
+                Self::global_hotkey_mode_label(global_hotkey_mode),
+                ctx,
+            );
             ctx.notify();
         });
         ctx.notify();
@@ -3493,11 +3496,11 @@ impl FeaturesPageView {
         self.tab_behavior_dropdown.update(ctx, |dropdown, ctx| {
             let mut items = vec![
                 DropdownItem::new(
-                    TabBehavior::Completions.dropdown_item_label(),
+                    Self::tab_behavior_label(TabBehavior::Completions),
                     FeaturesPageAction::SetTabBehavior(TabBehavior::Completions),
                 ),
                 DropdownItem::new(
-                    TabBehavior::Autosuggestions.dropdown_item_label(),
+                    Self::tab_behavior_label(TabBehavior::Autosuggestions),
                     FeaturesPageAction::SetTabBehavior(TabBehavior::Autosuggestions),
                 ),
             ];
@@ -3506,12 +3509,12 @@ impl FeaturesPageView {
             // selectable option from the dropdown.
             if matches!(*self.tab_behavior, TabBehavior::UserDefined) {
                 items.push(DropdownItem::new(
-                    TabBehavior::UserDefined.dropdown_item_label(),
+                    Self::tab_behavior_label(TabBehavior::UserDefined),
                     FeaturesPageAction::SetTabBehavior(TabBehavior::UserDefined),
                 ));
             }
             dropdown.set_items(items, ctx);
-            dropdown.set_selected_by_name(self.tab_behavior.dropdown_item_label(), ctx);
+            dropdown.set_selected_by_name(Self::tab_behavior_label(*self.tab_behavior), ctx);
         });
     }
 
@@ -3583,6 +3586,65 @@ impl FeaturesPageView {
         }
     }
 
+    fn default_session_mode_label(mode: DefaultSessionMode) -> &'static str {
+        match mode {
+            DefaultSessionMode::Terminal => tr_cached(Message::FeaturesDefaultSessionTerminal),
+            DefaultSessionMode::Agent => tr_cached(Message::FeaturesDefaultSessionAgent),
+            DefaultSessionMode::CloudAgent => tr_cached(Message::FeaturesDefaultSessionCloudOz),
+            DefaultSessionMode::TabConfig => tr_cached(Message::FeaturesDefaultSessionTabConfig),
+            DefaultSessionMode::DockerSandbox => {
+                tr_cached(Message::FeaturesDefaultSessionDockerSandbox)
+            }
+        }
+    }
+
+    fn tab_behavior_label(behavior: TabBehavior) -> &'static str {
+        match behavior {
+            TabBehavior::Completions => tr_cached(Message::FeaturesOpenCompletionsMenu),
+            TabBehavior::Autosuggestions => tr_cached(Message::FeaturesAcceptAutosuggestion),
+            TabBehavior::UserDefined => tr_cached(Message::FeaturesTabUserDefined),
+        }
+    }
+
+    fn code_editor_line_number_mode_label(mode: CodeEditorLineNumberMode) -> &'static str {
+        match mode {
+            CodeEditorLineNumberMode::Absolute => tr_cached(Message::FeaturesLineNumberAbsolute),
+            CodeEditorLineNumberMode::Relative => tr_cached(Message::FeaturesLineNumberRelative),
+        }
+    }
+
+    fn ctrl_tab_behavior_label(behavior: CtrlTabBehavior) -> &'static str {
+        match behavior {
+            CtrlTabBehavior::ActivatePrevNextTab => {
+                tr_cached(Message::FeaturesCtrlTabActivatePrevNext)
+            }
+            CtrlTabBehavior::CycleMostRecentSession => {
+                tr_cached(Message::FeaturesCtrlTabCycleMostRecentSession)
+            }
+            CtrlTabBehavior::CycleMostRecentTab => {
+                tr_cached(Message::FeaturesCtrlTabCycleMostRecentTab)
+            }
+        }
+    }
+
+    fn osc52_clipboard_access_label(access: Osc52ClipboardAccess) -> &'static str {
+        match access {
+            Osc52ClipboardAccess::Deny => tr_cached(Message::FeaturesOsc52Deny),
+            Osc52ClipboardAccess::WriteOnly => tr_cached(Message::FeaturesOsc52WriteOnly),
+            Osc52ClipboardAccess::ReadWrite => tr_cached(Message::FeaturesOsc52ReadWrite),
+        }
+    }
+
+    fn global_hotkey_mode_label(mode: GlobalHotkeyMode) -> &'static str {
+        match mode {
+            GlobalHotkeyMode::Disabled => tr_cached(Message::FeaturesGlobalHotkeyDisabled),
+            GlobalHotkeyMode::QuakeMode => tr_cached(Message::FeaturesGlobalHotkeyDedicatedWindow),
+            GlobalHotkeyMode::ActivationHotkey => {
+                tr_cached(Message::FeaturesGlobalHotkeyShowHideWindows)
+            }
+        }
+    }
+
     fn set_new_tab_placement(&mut self, value: &NewTabPlacement, ctx: &mut ViewContext<Self>) {
         let _ = TabSettings::handle(ctx).update(ctx, |tab_settings, ctx| {
             tab_settings.new_tab_placement.set_value(*value, ctx)
@@ -3611,7 +3673,7 @@ impl FeaturesPageView {
                     .into_iter()
                     .map(|val| {
                         DropdownItem::new(
-                            val.as_dropdown_label(),
+                            Self::osc52_clipboard_access_label(val),
                             FeaturesPageAction::SetOsc52ClipboardAccess(val),
                         )
                     })
@@ -3651,7 +3713,7 @@ impl FeaturesPageView {
                     })
                     .map(|val| {
                         DropdownItem::new(
-                            val.display_name(),
+                            Self::default_session_mode_label(val),
                             FeaturesPageAction::SetDefaultSessionMode(val),
                         )
                     })
@@ -3682,8 +3744,11 @@ impl FeaturesPageView {
                                 .is_some_and(|p| p.to_string_lossy() == current_tab_config_path)
                         })
                         .map(|c| c.name.clone())
-                        .unwrap_or_else(|| DefaultSessionMode::Terminal.display_name().to_string()),
-                    other => other.display_name().to_string(),
+                        .unwrap_or_else(|| {
+                            Self::default_session_mode_label(DefaultSessionMode::Terminal)
+                                .to_string()
+                        }),
+                    other => Self::default_session_mode_label(other).to_string(),
                 };
                 dropdown.set_selected_by_name(&selected_name, ctx);
             },
@@ -4439,21 +4504,24 @@ fn init_global_hotkey_dropdown(
 ) {
     let items = vec![
         DropdownItem::new(
-            GlobalHotkeyMode::Disabled.as_dropdown_label(),
+            FeaturesPageView::global_hotkey_mode_label(GlobalHotkeyMode::Disabled),
             FeaturesPageAction::SetGlobalHotkeyMode(GlobalHotkeyMode::Disabled),
         ),
         DropdownItem::new(
-            GlobalHotkeyMode::QuakeMode.as_dropdown_label(),
+            FeaturesPageView::global_hotkey_mode_label(GlobalHotkeyMode::QuakeMode),
             FeaturesPageAction::SetGlobalHotkeyMode(GlobalHotkeyMode::QuakeMode),
         ),
         DropdownItem::new(
-            GlobalHotkeyMode::ActivationHotkey.as_dropdown_label(),
+            FeaturesPageView::global_hotkey_mode_label(GlobalHotkeyMode::ActivationHotkey),
             FeaturesPageAction::SetGlobalHotkeyMode(GlobalHotkeyMode::ActivationHotkey),
         ),
     ];
 
     dropdown.set_items(items, ctx);
-    dropdown.set_selected_by_name(hotkey_mode.as_dropdown_label(), ctx);
+    dropdown.set_selected_by_name(
+        FeaturesPageView::global_hotkey_mode_label(hotkey_mode),
+        ctx,
+    );
 }
 
 fn init_display_count_dropdown(
