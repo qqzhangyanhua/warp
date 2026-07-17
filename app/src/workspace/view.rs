@@ -10060,7 +10060,7 @@ impl Workspace {
             return;
         };
 
-        if label == MOVE_TO_GROUP_LABEL {
+        if label == MOVE_TO_GROUP_LABEL || label == tr(ctx, Message::TabMoveToGroup) {
             // Single-tab pane menu carries a `tab_index`; the multi-tab
             // selection menu has no single source tab so we pass `None` and
             // the sidecar builder infers the multi-tab selection.

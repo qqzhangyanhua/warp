@@ -21,6 +21,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
@@ -147,13 +148,13 @@ pub enum TabConfigParamsModalAction {
 
 impl TabConfigParamsModal {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
-        let cancel_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Cancel", NakedTheme).on_click(|ctx| {
+        let cancel_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::SettingsCancel), NakedTheme).on_click(|ctx| {
                 ctx.dispatch_typed_action(TabConfigParamsModalAction::Cancel);
             })
         });
         let submit_button = ctx.add_typed_action_view(|ctx| {
-            ActionButton::new("Open Tab", PrimaryTheme)
+            ActionButton::new(tr(ctx, Message::TabConfigOpenTab), PrimaryTheme)
                 .with_keybinding(
                     KeystrokeSource::Fixed(Keystroke::parse("enter").unwrap_or_default()),
                     ctx,
@@ -162,8 +163,9 @@ impl TabConfigParamsModal {
                     ctx.dispatch_typed_action(TabConfigParamsModalAction::Submit);
                 })
         });
-        let submit_button_disabled =
-            ctx.add_typed_action_view(|_| ActionButton::new("Open Tab", DisabledTheme));
+        let submit_button_disabled = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::TabConfigOpenTab), DisabledTheme)
+        });
         Self {
             param_fields: Vec::new(),
             pending_config: None,

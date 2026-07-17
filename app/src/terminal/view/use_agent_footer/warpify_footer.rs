@@ -8,6 +8,7 @@ use warpui::prelude::Empty;
 use warpui::{AppContext, Element, Entity, TypedActionView, View, ViewContext, ViewHandle};
 
 use super::{AgentFooterButtonTheme, USE_AGENT_KEYSTROKE};
+use crate::i18n::{tr, Message};
 use crate::terminal::view::{TerminalModel, PADDING_LEFT};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{
@@ -29,11 +30,11 @@ impl WarpifyFooterView {
     pub fn new(terminal_model: Arc<FairMutex<TerminalModel>>, ctx: &mut ViewContext<Self>) -> Self {
         let button_size = ButtonSize::XSmall;
 
-        let warpify_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Warpify subshell", AgentFooterButtonTheme::new(None))
+        let warpify_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::TerminalWarpifySubshell), AgentFooterButtonTheme::new(None))
                 .with_icon(Icon::Warp)
                 .with_size(button_size)
-                .with_tooltip("Enable Warp shell integration in this session")
+                .with_tooltip(tr(ctx, Message::TerminalWarpifySubshellTooltip))
                 .with_tooltip_alignment(TooltipAlignment::Left)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpifyFooterViewAction::Warpify);
@@ -41,19 +42,19 @@ impl WarpifyFooterView {
         });
 
         let use_agent_button = ctx.add_typed_action_view(|ctx| {
-            ActionButton::new("Use agent", AgentFooterButtonTheme::new(None))
+            ActionButton::new(tr(ctx, Message::TerminalUseAgent), AgentFooterButtonTheme::new(None))
                 .with_icon(Icon::Oz)
                 .with_keybinding(KeystrokeSource::Fixed(USE_AGENT_KEYSTROKE.clone()), ctx)
                 .with_size(button_size)
-                .with_tooltip("Ask the Warp agent to assist")
+                .with_tooltip(tr(ctx, Message::TerminalUseAgentTooltip))
                 .with_tooltip_alignment(TooltipAlignment::Left)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpifyFooterViewAction::UseAgent);
                 })
         });
 
-        let dismiss_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Dismiss", AgentFooterButtonTheme::new(None))
+        let dismiss_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AuthDismiss), AgentFooterButtonTheme::new(None))
                 .with_size(button_size)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(WarpifyFooterViewAction::Dismiss);

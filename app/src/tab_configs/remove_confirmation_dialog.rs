@@ -14,6 +14,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::ui_components::dialog::{dialog_styles, Dialog};
 use crate::view_components::action_button::{
     ActionButton, DangerPrimaryTheme, KeystrokeSource, NakedTheme,
@@ -59,15 +60,15 @@ pub(crate) struct RemoveTabConfigConfirmationDialog {
 
 impl RemoveTabConfigConfirmationDialog {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
-        let cancel_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Cancel", NakedTheme).on_click(|ctx| {
+        let cancel_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::SettingsCancel), NakedTheme).on_click(|ctx| {
                 ctx.dispatch_typed_action(RemoveTabConfigConfirmationAction::Cancel);
             })
         });
 
         let enter_keystroke = Keystroke::parse("enter").expect("Valid keystroke");
         let confirm_button = ctx.add_typed_action_view(|ctx| {
-            ActionButton::new("Remove", DangerPrimaryTheme)
+            ActionButton::new(tr(ctx, Message::CommonRemove), DangerPrimaryTheme)
                 .with_keybinding(KeystrokeSource::Fixed(enter_keystroke), ctx)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(RemoveTabConfigConfirmationAction::Confirm);
@@ -108,13 +109,11 @@ impl View for RemoveTabConfigConfirmationDialog {
             .with_margin_right(12.)
             .finish();
 
-        let title = format!("Remove '{}'?", self.config_name);
+        let title = tr(app, Message::TabConfigRemoveQuestion).replace("{}", &self.config_name);
 
         let dialog = Dialog::new(
             title,
-            Some(
-                "This tab config will be permanently deleted. This action cannot be undone.".into(),
-            ),
+            Some(tr(app, Message::TabConfigRemoveDescription).into()),
             UiComponentStyles {
                 width: Some(DIALOG_WIDTH),
                 ..dialog_styles(appearance)
