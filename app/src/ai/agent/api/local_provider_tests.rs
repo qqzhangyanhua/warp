@@ -40,7 +40,7 @@ fn custom_model_providers(config_key: &str) -> api::request::settings::CustomMod
     }
 }
 
-fn user_query(query: &str) -> AIAgentInput {
+pub(super) fn user_query(query: &str) -> AIAgentInput {
     AIAgentInput::UserQuery {
         query: query.to_string(),
         context: Arc::from([]),
@@ -52,7 +52,7 @@ fn user_query(query: &str) -> AIAgentInput {
     }
 }
 
-fn text_message(role: ChatRole, content: &str, id: &str, task_id: &str) -> api::Message {
+pub(super) fn text_message(role: ChatRole, content: &str, id: &str, task_id: &str) -> api::Message {
     let message = match role {
         ChatRole::User => api::message::Message::UserQuery(api::message::UserQuery {
             query: content.to_string(),
@@ -61,6 +61,7 @@ fn text_message(role: ChatRole, content: &str, id: &str, task_id: &str) -> api::
         ChatRole::Assistant => api::message::Message::AgentOutput(api::message::AgentOutput {
             text: content.to_string(),
         }),
+        ChatRole::Tool => panic!("text_message does not build tool result messages"),
     };
 
     api::Message {
@@ -71,7 +72,7 @@ fn text_message(role: ChatRole, content: &str, id: &str, task_id: &str) -> api::
     }
 }
 
-fn params_with_custom_model() -> RequestParams {
+pub(super) fn params_with_custom_model() -> RequestParams {
     let mut params = RequestParams::new_for_test();
     let model = LLMId::from("custom-model");
     params.model = model.clone();
@@ -140,7 +141,7 @@ fn connection_test_sends_one_minimal_non_streaming_request() {
     assert!(!captured.1.stream);
     assert_eq!(captured.1.messages.len(), 1);
     assert_eq!(captured.1.messages[0].role, ChatRole::User);
-    assert_eq!(captured.1.messages[0].content, "ping");
+    assert_eq!(captured.1.messages[0].content.as_deref(), Some("ping"));
 }
 
 impl LocalProviderTransport for FakeProviderTransport {
@@ -203,7 +204,7 @@ fn agent_event_stream_sends_typed_request_and_streams_provider_text() {
     assert_eq!(captured.0.model, "provider-model");
     assert_eq!(captured.1.model, "provider-model");
     assert_eq!(captured.1.messages.len(), 1);
-    assert_eq!(captured.1.messages[0].content, "hello");
+    assert_eq!(captured.1.messages[0].content.as_deref(), Some("hello"));
 
     assert_eq!(events.len(), 4);
     assert!(matches!(
@@ -253,6 +254,69 @@ fn agent_event_stream_sends_typed_request_and_streams_provider_text() {
         panic!("expected appended agent output");
     };
     assert_eq!(second_output.text, "lo");
+    assert_eq!(
+        second_text
+            .mask
+            .as_ref()
+            .expect("append mask should exist")
+            .paths,
+        vec!["agent_output.text".to_string()]
+    );
+}
+
+#[test]
+fn first_agent_request_without_existing_task_creates_task_before_streaming_text() {
+    let captured_request = Arc::new(Mutex::new(None));
+    let transport = Arc::new(FakeProviderTransport {
+        captured_request: captured_request.clone(),
+    });
+    let mut params = params_with_custom_model();
+    params.tasks.clear();
+    let (_tx, rx) = oneshot::channel();
+
+    let mut output = futures::executor::block_on(generate_local_provider_output_with_transport(
+        params, rx, transport,
+    ))
+    .expect("stream should be created");
+    let events = futures::executor::block_on(async {
+        let mut events = Vec::new();
+        while let Some(event) = output.next().await {
+            events.push(event.expect("first local request should not require an existing task"));
+        }
+        events
+    });
+
+    assert!(captured_request.lock().unwrap().is_some());
+    let Some(api::response_event::Type::ClientActions(task_actions)) = &events[1].r#type else {
+        panic!("expected task creation before provider output");
+    };
+    let Some(api::client_action::Action::CreateTask(create_task)) = &task_actions.actions[0].action
+    else {
+        panic!("expected create-task action");
+    };
+    let task = create_task
+        .task
+        .as_ref()
+        .expect("created task should exist");
+    assert!(!task.id.is_empty());
+    let Some(api::message::Message::UserQuery(user_query)) = task
+        .messages
+        .first()
+        .and_then(|message| message.message.as_ref())
+    else {
+        panic!("created task should persist the initial user query");
+    };
+    assert_eq!(user_query.query, "hello");
+
+    let Some(api::response_event::Type::ClientActions(text_actions)) = &events[2].r#type else {
+        panic!("expected provider text after task creation");
+    };
+    let Some(api::client_action::Action::AddMessagesToTask(add_message)) =
+        &text_actions.actions[0].action
+    else {
+        panic!("expected add-message action");
+    };
+    assert_eq!(add_message.task_id, task.id);
 }
 
 #[test]
@@ -294,11 +358,20 @@ fn builds_chat_request_from_local_history_and_latest_user_input() {
     assert!(request.stream);
     assert_eq!(request.messages.len(), 3);
     assert_eq!(request.messages[0].role, ChatRole::User);
-    assert_eq!(request.messages[0].content, "previous question");
+    assert_eq!(
+        request.messages[0].content.as_deref(),
+        Some("previous question")
+    );
     assert_eq!(request.messages[1].role, ChatRole::Assistant);
-    assert_eq!(request.messages[1].content, "previous answer");
+    assert_eq!(
+        request.messages[1].content.as_deref(),
+        Some("previous answer")
+    );
     assert_eq!(request.messages[2].role, ChatRole::User);
-    assert_eq!(request.messages[2].content, "next question");
+    assert_eq!(
+        request.messages[2].content.as_deref(),
+        Some("next question")
+    );
 }
 
 #[test]

@@ -124,7 +124,7 @@ pub(super) fn append_message_action(
                 task_id: task_id.to_string(),
                 message: Some(agent_output_message(task_id, message_id, request_id, text)),
                 mask: Some(prost_types::FieldMask {
-                    paths: vec!["message.agent_output.text".to_string()],
+                    paths: vec!["agent_output.text".to_string()],
                 }),
             },
         )),
@@ -147,3 +147,7 @@ fn agent_output_message(
         ..Default::default()
     }
 }
+
+#[cfg(test)]
+#[path = "ui_events_tests.rs"]
+mod tests;

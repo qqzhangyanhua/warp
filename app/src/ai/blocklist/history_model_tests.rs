@@ -5685,6 +5685,140 @@ fn runtime_progress_commit_preserves_live_response_stream_for_later_delta() {
 }
 
 #[test]
+fn append_streaming_text_deltas_preserves_complete_agent_output() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_surface_id = EntityId::new();
+        let response_stream_id = ResponseStreamId::new_for_test();
+
+        history_model.update(&mut app, |history_model, ctx| {
+            let conversation_id =
+                history_model.start_new_conversation(terminal_surface_id, false, false, false, ctx);
+            let exchange = create_exchange_with_query("hi", Local::now(), None);
+            let optimistic_task_id = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .get_root_task_id()
+                .clone();
+            history_model
+                .update_conversation_for_new_request_input(
+                    RequestInput {
+                        conversation_id,
+                        input_messages: HashMap::from([(
+                            optimistic_task_id.clone(),
+                            exchange.input,
+                        )]),
+                        working_directory: exchange.working_directory,
+                        model_id: exchange.model_id,
+                        coding_model_id: exchange.coding_model_id,
+                        cli_agent_model_id: exchange.cli_agent_model_id,
+                        computer_use_model_id: exchange.computer_use_model_id,
+                        shared_session_response_initiator: exchange.response_initiator,
+                        request_start_ts: exchange.start_time,
+                        supported_tools_override: None,
+                    },
+                    response_stream_id.clone(),
+                    terminal_surface_id,
+                    ctx,
+                )
+                .expect("request input should initialize");
+            history_model.initialize_output_for_response_stream(
+                &response_stream_id,
+                conversation_id,
+                terminal_surface_id,
+                warp_multi_agent_api::response_event::StreamInit {
+                    request_id: "local-request".to_string(),
+                    conversation_id: conversation_id.to_string(),
+                    run_id: String::new(),
+                },
+                ctx,
+            );
+
+            let task_id = "local-task";
+            let message_id = "local-output";
+            let actions = vec![
+                warp_multi_agent_api::ClientAction {
+                    action: Some(warp_multi_agent_api::client_action::Action::CreateTask(
+                        warp_multi_agent_api::client_action::CreateTask {
+                            task: Some(create_api_task(
+                                task_id,
+                                vec![create_user_query_message(
+                                    "local-user",
+                                    task_id,
+                                    "local-request",
+                                    "hi",
+                                )],
+                            )),
+                        },
+                    )),
+                },
+                warp_multi_agent_api::ClientAction {
+                    action: Some(
+                        warp_multi_agent_api::client_action::Action::AddMessagesToTask(
+                            warp_multi_agent_api::client_action::AddMessagesToTask {
+                                task_id: task_id.to_string(),
+                                messages: vec![agent_output_message(
+                                    message_id,
+                                    task_id,
+                                    "local-request",
+                                    "h",
+                                )],
+                            },
+                        ),
+                    ),
+                },
+                warp_multi_agent_api::ClientAction {
+                    action: Some(
+                        warp_multi_agent_api::client_action::Action::AppendToMessageContent(
+                            warp_multi_agent_api::client_action::AppendToMessageContent {
+                                task_id: task_id.to_string(),
+                                message: Some(agent_output_message(
+                                    message_id,
+                                    task_id,
+                                    "local-request",
+                                    "i",
+                                )),
+                                mask: Some(prost_types::FieldMask {
+                                    paths: vec!["agent_output.text".to_string()],
+                                }),
+                            },
+                        ),
+                    ),
+                },
+            ];
+            history_model
+                .apply_client_actions(
+                    &response_stream_id,
+                    actions,
+                    conversation_id,
+                    terminal_surface_id,
+                    &ai::skills::SkillPathOrigin::Unavailable,
+                    ctx,
+                )
+                .expect("streaming actions should apply");
+
+            let messages = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .all_linearized_messages();
+            let output = messages
+                .iter()
+                .find_map(|message| match message.message.as_ref() {
+                    Some(warp_multi_agent_api::message::Message::AgentOutput(output)) => {
+                        Some(output.text.as_str())
+                    }
+                    _ => None,
+                })
+                .expect("agent output should exist");
+            assert_eq!(output, "hi");
+        });
+    });
+}
+
+#[test]
 fn pi_fork_snapshot_excludes_uncommitted_runtime_delta() {
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);

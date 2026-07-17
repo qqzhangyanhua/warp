@@ -7,20 +7,33 @@ use futures::channel::oneshot;
 use futures::StreamExt as _;
 use http::StatusCode;
 use reqwest::header::{HeaderMap, RETRY_AFTER};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use url::Url;
 use uuid::Uuid;
 use warp_multi_agent_api as api;
 
 mod connection_test;
+mod messages;
+mod streaming;
+mod tools;
 mod transport;
 
 pub(crate) use connection_test::test_provider_connection;
+use messages::{chat_messages_from_inputs, chat_messages_from_tasks, ChatMessage, ChatRole};
+#[cfg(test)]
+pub(super) use streaming::content_deltas_from_sse_data;
+use streaming::{completion_deltas_from_sse_data, SseDataParser};
+use tools::{ChatToolDefinition, ToolCallAssembler, ToolCatalog};
 use transport::{LocalProviderTransport, ReqwestLocalProviderTransport};
 
+use super::convert_to::convert_context;
 use super::{ConvertToAPITypeError, RequestParams, ResponseStream, ServerConversationToken};
 use crate::ai::agent::AIAgentInput;
 use crate::server::server_api::AIApiError;
+
+const DEFAULT_LOCAL_TOOL_CALL_LIMIT: usize = 32;
+const MIN_LOCAL_TOOL_CALL_LIMIT: usize = 1;
+const MAX_LOCAL_TOOL_CALL_LIMIT: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct LocalProviderModel {
@@ -34,42 +47,8 @@ struct ChatCompletionRequest {
     model: String,
     messages: Vec<ChatMessage>,
     stream: bool,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-struct ChatMessage {
-    role: ChatRole,
-    content: String,
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-enum ChatRole {
-    User,
-    Assistant,
-}
-
-#[derive(Debug, Deserialize)]
-struct ChatCompletionChunk {
-    #[serde(default)]
-    choices: Vec<ChatChoice>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ChatChoice {
-    #[serde(default)]
-    delta: ChatDelta,
-}
-
-#[derive(Debug, Default, Deserialize)]
-struct ChatDelta {
-    content: Option<String>,
-}
-
-#[derive(Debug, Default)]
-struct SseDataParser {
-    pending_line: Vec<u8>,
-    pending_data: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tools: Vec<ChatToolDefinition>,
 }
 
 pub(super) async fn generate_local_provider_output(
@@ -110,12 +89,40 @@ async fn generate_local_provider_output_with_transport(
             return;
         };
 
-        let Some(task_id) = params.tasks.first().map(|task| task.id.clone()) else {
-            yield Err(Arc::new(AIApiError::Other(anyhow!(
-                "Local provider request requires an existing task"
-            ))));
-            return;
+        let task_id = params
+            .tasks
+            .first()
+            .map(|task| task.id.clone())
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
+        let initial_task = params.tasks.is_empty().then(|| {
+            local_task_from_inputs(&task_id, &request_id, &params.input)
+        });
+
+        let tool_call_limit = match local_tool_call_limit() {
+            Ok(limit) => limit,
+            Err(error) => {
+                yield Err(Arc::new(AIApiError::Other(anyhow!(error))));
+                return;
+            }
         };
+        if should_pause_for_tool_call_limit(&params, tool_call_limit) {
+            let message_id = Uuid::new_v4().to_string();
+            let message = format!(
+                "The local tool-call limit ({tool_call_limit}) was reached. Confirm that you want to continue."
+            );
+            yield Ok(client_actions_event(vec![add_message_action(
+                &task_id,
+                &message_id,
+                &request_id,
+                message,
+            )]));
+            yield Ok(stream_finished_event(
+                api::response_event::stream_finished::Reason::Done(
+                    api::response_event::stream_finished::Done {},
+                ),
+            ));
+            return;
+        }
 
         let request = match build_chat_completion_request(&params, provider_model.model.clone()) {
             Ok(request) => request,
@@ -124,6 +131,7 @@ async fn generate_local_provider_output_with_transport(
                 return;
             }
         };
+        let tool_catalog = ToolCatalog::new(params.mcp_context.as_ref());
 
         let response = match transport.send(provider_model, request).await {
             Ok(response) => response,
@@ -138,10 +146,15 @@ async fn generate_local_provider_output_with_transport(
             return;
         }
 
+        if let Some(task) = initial_task {
+            yield Ok(client_actions_event(vec![create_task_action(task)]));
+        }
+
         let mut byte_stream = response.body;
         let mut parser = SseDataParser::default();
         let message_id = Uuid::new_v4().to_string();
         let mut created_message = false;
+        let mut tool_calls = ToolCallAssembler::default();
 
         while let Some(chunk) = byte_stream.next().await {
             let chunk = match chunk {
@@ -162,6 +175,19 @@ async fn generate_local_provider_output_with_transport(
 
             for data in data_events {
                 if data.trim() == "[DONE]" {
+                    let messages = match tool_calls.finish(&task_id, &request_id, &tool_catalog) {
+                        Ok(messages) => messages,
+                        Err(error) => {
+                            yield Err(Arc::new(AIApiError::Other(anyhow!(error))));
+                            return;
+                        }
+                    };
+                    if !messages.is_empty() {
+                        yield Ok(client_actions_event(vec![add_messages_action(
+                            &task_id,
+                            messages,
+                        )]));
+                    }
                     yield Ok(stream_finished_event(
                         api::response_event::stream_finished::Reason::Done(
                             api::response_event::stream_finished::Done {},
@@ -170,15 +196,22 @@ async fn generate_local_provider_output_with_transport(
                     return;
                 }
 
-                let content_deltas = match content_deltas_from_sse_data(&data) {
-                    Ok(content_deltas) => content_deltas,
+                let completion_deltas = match completion_deltas_from_sse_data(&data) {
+                    Ok(completion_deltas) => completion_deltas,
                     Err(error) => {
                         yield Err(Arc::new(error));
                         return;
                     }
                 };
 
-                for content in content_deltas {
+                for delta in completion_deltas {
+                    if let Err(error) = tool_calls.push(delta.tool_calls) {
+                        yield Err(Arc::new(AIApiError::Other(anyhow!(error))));
+                        return;
+                    }
+                    let Some(content) = delta.content else {
+                        continue;
+                    };
                     if content.is_empty() {
                         continue;
                     }
@@ -197,6 +230,58 @@ async fn generate_local_provider_output_with_transport(
     };
 
     Ok(Box::pin(stream.take_until(cancellation_rx)))
+}
+
+fn local_tool_call_limit() -> Result<usize, &'static str> {
+    match std::env::var("WARP_LOCAL_AGENT_TOOL_CALL_LIMIT") {
+        Ok(value) => parse_local_tool_call_limit(Some(&value)),
+        Err(std::env::VarError::NotPresent) => Ok(DEFAULT_LOCAL_TOOL_CALL_LIMIT),
+        Err(std::env::VarError::NotUnicode(_)) => {
+            Err("WARP_LOCAL_AGENT_TOOL_CALL_LIMIT must be a UTF-8 integer between 1 and 128.")
+        }
+    }
+}
+
+fn parse_local_tool_call_limit(value: Option<&str>) -> Result<usize, &'static str> {
+    let Some(value) = value else {
+        return Ok(DEFAULT_LOCAL_TOOL_CALL_LIMIT);
+    };
+    let limit = value
+        .parse::<usize>()
+        .map_err(|_| "WARP_LOCAL_AGENT_TOOL_CALL_LIMIT must be an integer between 1 and 128.")?;
+    if !(MIN_LOCAL_TOOL_CALL_LIMIT..=MAX_LOCAL_TOOL_CALL_LIMIT).contains(&limit) {
+        return Err("WARP_LOCAL_AGENT_TOOL_CALL_LIMIT must be between 1 and 128.");
+    }
+    Ok(limit)
+}
+
+fn should_pause_for_tool_call_limit(params: &RequestParams, limit: usize) -> bool {
+    let is_tool_follow_up = params
+        .input
+        .iter()
+        .any(|input| matches!(input, crate::ai::agent::AIAgentInput::ActionResult { .. }));
+    is_tool_follow_up && consecutive_tool_call_count(params) >= limit
+}
+
+fn consecutive_tool_call_count(params: &RequestParams) -> usize {
+    params
+        .tasks
+        .first()
+        .into_iter()
+        .flat_map(|task| task.messages.iter().rev())
+        .take_while(|message| {
+            !matches!(
+                message.message.as_ref(),
+                Some(api::message::Message::UserQuery(_))
+            )
+        })
+        .filter(|message| {
+            matches!(
+                message.message.as_ref(),
+                Some(api::message::Message::ToolCall(_))
+            )
+        })
+        .count()
 }
 
 fn resolve_local_provider_model(params: &RequestParams) -> Option<LocalProviderModel> {
@@ -238,48 +323,8 @@ fn build_chat_completion_request(
         model,
         messages,
         stream: true,
+        tools: ToolCatalog::new(params.mcp_context.as_ref()).definitions(),
     })
-}
-
-fn chat_messages_from_tasks(tasks: &[api::Task]) -> Vec<ChatMessage> {
-    tasks
-        .iter()
-        .flat_map(|task| task.messages.iter())
-        .filter_map(chat_message_from_api_message)
-        .collect()
-}
-
-fn chat_message_from_api_message(message: &api::Message) -> Option<ChatMessage> {
-    match message.message.as_ref()? {
-        api::message::Message::UserQuery(user_query) if !user_query.query.trim().is_empty() => {
-            Some(ChatMessage {
-                role: ChatRole::User,
-                content: user_query.query.clone(),
-            })
-        }
-        api::message::Message::AgentOutput(output) if !output.text.trim().is_empty() => {
-            Some(ChatMessage {
-                role: ChatRole::Assistant,
-                content: output.text.clone(),
-            })
-        }
-        _ => None,
-    }
-}
-
-fn chat_messages_from_inputs(inputs: &[AIAgentInput]) -> Vec<ChatMessage> {
-    inputs
-        .iter()
-        .filter_map(|input| match input {
-            AIAgentInput::UserQuery { query, .. } if !query.trim().is_empty() => {
-                Some(ChatMessage {
-                    role: ChatRole::User,
-                    content: query.clone(),
-                })
-            }
-            _ => None,
-        })
-        .collect()
 }
 
 pub(super) fn chat_completions_url(base_url: &str) -> Result<Url, AIApiError> {
@@ -334,56 +379,6 @@ fn retry_after_duration(headers: &HeaderMap, now: SystemTime) -> Option<Duration
     Some(retry_at.duration_since(now).unwrap_or(Duration::ZERO))
 }
 
-impl SseDataParser {
-    fn push_bytes(&mut self, bytes: &[u8]) -> Result<Vec<String>, AIApiError> {
-        let mut data_events = Vec::new();
-        for byte in bytes {
-            if *byte == b'\n' {
-                if let Some(data) = self.finish_line()? {
-                    data_events.push(data);
-                }
-            } else {
-                self.pending_line.push(*byte);
-            }
-        }
-        Ok(data_events)
-    }
-
-    fn finish_line(&mut self) -> Result<Option<String>, AIApiError> {
-        if self.pending_line.last() == Some(&b'\r') {
-            self.pending_line.pop();
-        }
-        let line_bytes = std::mem::take(&mut self.pending_line);
-        let line =
-            String::from_utf8(line_bytes).map_err(|error| AIApiError::Other(anyhow!(error)))?;
-
-        if line.is_empty() {
-            if self.pending_data.is_empty() {
-                return Ok(None);
-            }
-            return Ok(Some(std::mem::take(&mut self.pending_data).join("\n")));
-        }
-
-        if let Some(data) = line.strip_prefix("data:") {
-            self.pending_data.push(data.trim_start().to_string());
-        }
-        Ok(None)
-    }
-}
-
-fn content_deltas_from_sse_data(data: &str) -> Result<Vec<String>, AIApiError> {
-    let chunk: ChatCompletionChunk = serde_json::from_str(data).map_err(|_| {
-        AIApiError::Other(anyhow!(
-            "Provider returned a malformed Chat Completions stream. Check OpenAI compatibility."
-        ))
-    })?;
-    Ok(chunk
-        .choices
-        .into_iter()
-        .filter_map(|choice| choice.delta.content)
-        .collect())
-}
-
 fn stream_init_event(conversation_id: String, request_id: String) -> api::ResponseEvent {
     api::ResponseEvent {
         r#type: Some(api::response_event::Type::Init(
@@ -417,6 +412,56 @@ fn client_actions_event(actions: Vec<api::ClientAction>) -> api::ResponseEvent {
     }
 }
 
+fn local_task_from_inputs(task_id: &str, request_id: &str, inputs: &[AIAgentInput]) -> api::Task {
+    let messages = inputs
+        .iter()
+        .filter_map(|input| {
+            let AIAgentInput::UserQuery {
+                query,
+                context,
+                referenced_attachments,
+                user_query_mode,
+                intended_agent,
+                ..
+            } = input
+            else {
+                return None;
+            };
+
+            Some(api::Message {
+                id: Uuid::new_v4().to_string(),
+                task_id: task_id.to_string(),
+                request_id: request_id.to_string(),
+                message: Some(api::message::Message::UserQuery(api::message::UserQuery {
+                    query: query.clone(),
+                    context: Some(convert_context(context.as_ref())),
+                    referenced_attachments: referenced_attachments
+                        .iter()
+                        .map(|(name, attachment)| (name.clone(), attachment.clone().into()))
+                        .collect(),
+                    mode: Some(user_query_mode.clone().into()),
+                    intended_agent: intended_agent.clone().map(Into::into).unwrap_or_default(),
+                })),
+                ..Default::default()
+            })
+        })
+        .collect();
+
+    api::Task {
+        id: task_id.to_string(),
+        messages,
+        ..Default::default()
+    }
+}
+
+fn create_task_action(task: api::Task) -> api::ClientAction {
+    api::ClientAction {
+        action: Some(api::client_action::Action::CreateTask(
+            api::client_action::CreateTask { task: Some(task) },
+        )),
+    }
+}
+
 fn add_message_action(
     task_id: &str,
     message_id: &str,
@@ -430,6 +475,17 @@ fn add_message_action(
                 messages: vec![agent_output_message(
                     task_id, message_id, request_id, content,
                 )],
+            },
+        )),
+    }
+}
+
+fn add_messages_action(task_id: &str, messages: Vec<api::Message>) -> api::ClientAction {
+    api::ClientAction {
+        action: Some(api::client_action::Action::AddMessagesToTask(
+            api::client_action::AddMessagesToTask {
+                task_id: task_id.to_string(),
+                messages,
             },
         )),
     }
@@ -449,7 +505,7 @@ fn append_to_message_action(
                     task_id, message_id, request_id, content,
                 )),
                 mask: Some(prost_types::FieldMask {
-                    paths: vec!["message.agent_output.text".to_string()],
+                    paths: vec!["agent_output.text".to_string()],
                 }),
             },
         )),
@@ -476,3 +532,7 @@ fn agent_output_message(
 #[cfg(test)]
 #[path = "local_provider_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "local_provider/limit_tests.rs"]
+mod limit_tests;

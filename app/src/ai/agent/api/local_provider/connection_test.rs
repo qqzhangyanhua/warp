@@ -65,9 +65,12 @@ pub(super) async fn test_provider_connection_with_transport(
                     model,
                     messages: vec![ChatMessage {
                         role: ChatRole::User,
-                        content: "ping".to_string(),
+                        content: Some("ping".to_string()),
+                        tool_calls: vec![],
+                        tool_call_id: None,
                     }],
                     stream: false,
+                    tools: vec![],
                 },
             )
             .await
