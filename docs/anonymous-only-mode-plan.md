@@ -4,6 +4,10 @@
 
 Add a build-gated `AnonymousOnlyMode` across the GUI, headless TUI, and CLI. In this mode Warp never offers Account Sign-in, automatically maintains a stable Anonymous Session, keeps local terminal and Warp Agent workflows, and routes AI through user-configured OpenAI-compatible Providers.
 
+## Status Note
+
+Local-only Mode is tracked separately in [ADR-0004](adr/0004-local-only-custom-provider-mode.md) and [specs/local-only-custom-provider](../specs/local-only-custom-provider/). Anonymous-only Mode keeps an Anonymous Session and may route supported service requests through Warp; Local-only Mode does not create or refresh Warp identity and routes Agent requests directly to the configured OpenAI-compatible Provider.
+
 ## Product Boundary
 
 - Keep non-account onboarding, privacy controls, local terminal sessions, local settings, local conversation history, local workflows, third-party authentication, and interactive Warp Agent behavior.
