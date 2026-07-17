@@ -17,6 +17,7 @@ use crate::ai::agent::icons::yellow_stop_icon;
 use crate::ai::blocklist::block::toggleable_items::{ToggleableItemBuilder, ToggleableItemsView};
 use crate::ai::blocklist::inline_action::inline_action_header::INLINE_ACTION_HORIZONTAL_PADDING;
 use crate::ai::blocklist::inline_action::inline_action_icons::icon_size;
+use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::ui_components::blended_colors;
 
@@ -159,7 +160,7 @@ pub fn render_lsp_selector_block(
     let skip_button = appearance
         .ui_builder()
         .button(ButtonVariant::Text, skip_mouse_state.clone())
-        .with_text_label("Skip for now".to_string())
+        .with_text_label(tr_cached(Message::AuthSkipForNow).to_string())
         .build()
         .on_click(|ctx, _, _| {
             ctx.dispatch_typed_action(InitProjectBlockAction::SkipLanguageServers);

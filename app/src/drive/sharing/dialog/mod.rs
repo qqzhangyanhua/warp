@@ -1,3 +1,4 @@
+use crate::i18n::{tr_cached, Message};
 use std::borrow::Cow;
 
 use email_address::EmailAddress;
@@ -1015,7 +1016,7 @@ impl SharingDialog {
                 if !is_team_guest || !is_session {
                     items.push(MenuItem::Separator);
                     items.push(
-                        MenuItemFields::new("Remove")
+                        MenuItemFields::new(tr_cached(Message::CommonRemove))
                             .with_on_select_action(SharingDialogAction::RemoveGuest)
                             .with_disabled(inherited_access)
                             .into_item(),
@@ -2028,13 +2029,13 @@ impl SharingDialog {
         let is_ai_conversation = matches!(self.target, Some(ShareableObject::AIConversation(_)));
 
         let mut items = vec![
-            MenuItemFields::new("Only people invited")
+            MenuItemFields::new(tr_cached(Message::DriveOnlyPeopleInvited))
                 .with_on_select_action(SharingDialogAction::SetLinkPermissions(None))
                 .with_icon(Icon::Lock)
                 .with_disabled(inherited_access)
                 .into_item(),
             MenuItem::Separator,
-            MenuItemFields::new("Anyone with the link")
+            MenuItemFields::new(tr_cached(Message::DriveAnyoneWithLink))
                 .with_no_interaction_on_hover()
                 .with_icon(Icon::Globe)
                 .into_item(),
@@ -2209,13 +2210,13 @@ impl SharingDialog {
         let inherited_access = self.team_sharing_state.inheritance.is_some();
         let current_access_level = self.team_sharing_state.access_level;
         let items = [
-            MenuItemFields::new("Only invited teammates")
+            MenuItemFields::new(tr_cached(Message::DriveOnlyInvitedTeammates))
                 .with_on_select_action(SharingDialogAction::SetTeamPermissions(None))
                 .with_icon(Icon::Lock)
                 .with_disabled(inherited_access)
                 .into_item(),
             MenuItem::Separator,
-            MenuItemFields::new("Teammates with the link")
+            MenuItemFields::new(tr_cached(Message::DriveTeammatesWithLink))
                 .with_no_interaction_on_hover()
                 .with_icon(Icon::Users)
                 .into_item(),

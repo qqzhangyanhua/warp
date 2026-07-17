@@ -1,3 +1,4 @@
+use crate::i18n::{tr_cached, Message};
 use pathfinder_color::ColorU;
 use warpui::elements::{
     Align, Container, CrossAxisAlignment, Flex, MouseStateHandle, ParentElement, Shrinkable,
@@ -84,7 +85,7 @@ pub fn render_warpification_banner(
                 ButtonVariant::Text,
                 state.dont_ask_button_mouse_state.clone(),
             )
-            .with_text_label("Do not show again".to_owned())
+            .with_text_label(tr_cached(Message::TerminalDontShowAgain).to_owned())
             .build()
             .on_click(move |ctx, _, _| {
                 ctx.dispatch_typed_action(TerminalAction::DismissWarpifyBanner(

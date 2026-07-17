@@ -12,6 +12,7 @@ use super::editor::keys::custom_action_to_display;
 use super::editor::view::RichTextEditorView;
 use super::telemetry::ActionEntrypoint;
 use crate::editor::EditorView;
+use crate::i18n::{tr, Message};
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::{PaneEvent, SplitPaneState};
@@ -128,19 +129,19 @@ where
         };
 
         if has_selection && can_edit {
-            let item = MenuItemFields::new("Cut")
+            let item = MenuItemFields::new(tr(ctx, Message::CommonCut))
                 .with_on_select_action(V::Action::from(ContextMenuAction::CutSelectedText))
                 .with_key_shortcut_label(custom_action_to_display(CustomAction::Cut));
             items.push(item.into_item());
         }
         if has_selection {
-            let item = MenuItemFields::new("Copy")
+            let item = MenuItemFields::new(tr(ctx, Message::CommonCopy))
                 .with_on_select_action(V::Action::from(ContextMenuAction::CopySelectedText))
                 .with_key_shortcut_label(custom_action_to_display(CustomAction::Copy));
             items.push(item.into_item());
         }
         if can_edit {
-            let item = MenuItemFields::new("Paste")
+            let item = MenuItemFields::new(tr(ctx, Message::CommonPaste))
                 .with_on_select_action(V::Action::from(ContextMenuAction::Paste))
                 .with_key_shortcut_label(custom_action_to_display(CustomAction::Paste));
             items.push(item.into_item());
@@ -152,7 +153,7 @@ where
                 items.push(MenuItem::Separator);
             }
             items.push(
-                MenuItemFields::new("Copy file path")
+                MenuItemFields::new(tr(ctx, Message::CodeCopyFilePath))
                     .with_on_select_action(V::Action::from(ContextMenuAction::CopyFilePath))
                     .into_item(),
             );
@@ -179,7 +180,7 @@ where
         let mut items = vec![];
         if ContextFlag::CreateNewSession.is_enabled() {
             items.extend([
-                MenuItemFields::new("Split pane right")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneRight))
                     .with_on_select_action(V::Action::from(ContextMenuAction::EmitPaneEvent(
                         PaneEvent::SplitRight(None),
                     )))
@@ -188,7 +189,7 @@ where
                         ctx,
                     ))
                     .into_item(),
-                MenuItemFields::new("Split pane left")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneLeft))
                     .with_on_select_action(V::Action::from(ContextMenuAction::EmitPaneEvent(
                         PaneEvent::SplitLeft(None),
                     )))
@@ -197,7 +198,7 @@ where
                         ctx,
                     ))
                     .into_item(),
-                MenuItemFields::new("Split pane down")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneDown))
                     .with_on_select_action(V::Action::from(ContextMenuAction::EmitPaneEvent(
                         PaneEvent::SplitDown(None),
                     )))
@@ -206,7 +207,7 @@ where
                         ctx,
                     ))
                     .into_item(),
-                MenuItemFields::new("Split pane up")
+                MenuItemFields::new(tr(ctx, Message::SettingsSplitPaneUp))
                     .with_on_select_action(V::Action::from(ContextMenuAction::EmitPaneEvent(
                         PaneEvent::SplitUp(None),
                     )))
@@ -237,7 +238,7 @@ where
             );
 
             items.push(
-                MenuItemFields::new("Close pane")
+                MenuItemFields::new(tr(ctx, Message::SettingsClosePane))
                     .with_on_select_action(V::Action::from(ContextMenuAction::EmitPaneEvent(
                         PaneEvent::Close,
                     )))

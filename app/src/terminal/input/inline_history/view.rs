@@ -11,6 +11,7 @@ use warpui::{AppContext, Element, Entity, EntityId, ModelHandle, View, ViewConte
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::agent_view::{AgentViewController, AgentViewControllerEvent};
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::search::data_source::{Query, QueryFilter};
 use crate::search::mixer::{SearchMixer, SearchMixerEvent};
 use crate::settings_view::SettingsSection;
@@ -262,7 +263,7 @@ impl InlineHistoryMenuView {
 
         let menu_view = if FeatureFlag::InlineMenuHeaders.is_enabled() {
             let configure_button = ctx.add_view(|_| {
-                ActionButton::new("Configure", ConfigureButtonTheme)
+                ActionButton::new(tr_cached(Message::TerminalConfigure), ConfigureButtonTheme)
                     .with_icon(Icon::Settings)
                     .with_size(ButtonSize::Small)
                     .on_click(|ctx| {

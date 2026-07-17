@@ -28,6 +28,7 @@ use super::notebook_command::{
 use super::view::EditorViewAction;
 use super::{rich_text_styles, NotebookWorkflow};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::CloudObject;
 use crate::completer::SessionAgnosticContext;
@@ -318,7 +319,7 @@ impl EmbeddedItemModel for NotebookEmbed {
                             .remove_embedding_button_state
                             .clone(),
                     )
-                    .with_text_label("Remove".to_string())
+                    .with_text_label(tr_cached(Message::CommonRemove).to_string())
                     .build()
                     .with_cursor(Cursor::Arrow)
                     .on_click(move |ctx, _, _| {

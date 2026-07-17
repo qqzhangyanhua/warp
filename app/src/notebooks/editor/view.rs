@@ -55,6 +55,7 @@ use super::model::{NotebooksEditorModel, RichTextEditorModelEvent};
 use super::omnibar::{Omnibar, OmnibarEvent};
 use super::{rich_text_styles, BlockType, NotebookWorkflow};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::cmd_or_ctrl_shift;
 use crate::editor::InteractionState;
 use crate::features::FeatureFlag;
@@ -2448,7 +2449,7 @@ impl RichTextEditorView {
                             ButtonVariant::Text,
                             self.mouse_states.edit_link_mouse_handle.clone(),
                         )
-                        .with_text_label("Edit".to_string())
+                        .with_text_label(tr_cached(Message::AiEdit).to_string())
                         .build()
                         .on_click(|ctx, _, _| ctx.dispatch_typed_action(EditorViewAction::EditLink))
                         .finish(),

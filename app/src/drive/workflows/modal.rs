@@ -31,6 +31,7 @@ use super::workflow_arg_selector::{
     WorkflowArgSelector, WorkflowArgSelectorEvent, WorkflowArgSelectorStyles,
 };
 use super::workflow_arg_type_helpers::{self, ArgumentEditorRowIndex};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::auth::UserUid;
 use crate::cloud_object::breadcrumbs::{ContainingObject, ContainingObjectKind};
@@ -676,7 +677,7 @@ impl WorkflowModal {
 
         // Add "Copy workflow text" to menu
         menu_items.push(
-            MenuItemFields::new("Copy workflow text")
+            MenuItemFields::new(tr_cached(Message::DriveCopyWorkflowText))
                 .with_on_select_action(WorkflowModalAction::CopyObjectToClipboard)
                 .with_icon(Icon::CopyMenuItem)
                 .into_item(),
@@ -685,7 +686,7 @@ impl WorkflowModal {
         // Add "Trash" to menu
         if self.is_online(app) {
             menu_items.push(
-                MenuItemFields::new("Trash")
+                MenuItemFields::new(tr(app, Message::EnvVarsTrash))
                     .with_on_select_action(WorkflowModalAction::TrashObject)
                     .with_icon(Icon::Trash)
                     .into_item(),

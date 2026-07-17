@@ -16,6 +16,7 @@ use super::embedded_item::EmbeddedWorkflow;
 use super::view::{EditorViewAction, EditorViewEvent, RichTextEditorView};
 use super::BlockType;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{ObjectIdType, Space};
 use crate::drive::CloudObjectTypeAndId;
@@ -97,7 +98,7 @@ impl BlockInsertionMenuState {
 
         if embedded_objects_enabled {
             menu.add_item(
-                MenuItemFields::new("Embed")
+                MenuItemFields::new(tr_cached(Message::NotebookEmbed))
                     .with_icon(Icon::EmbedBlock)
                     .with_on_select_action(EditorViewAction::OpenEmbeddedObjectSearch)
                     .into_item(),
@@ -117,7 +118,7 @@ impl BlockInsertionMenuState {
         }
 
         menu.add_item(
-            MenuItemFields::new("Divider")
+            MenuItemFields::new(tr_cached(Message::NotebookDivider))
                 .with_icon(Icon::HorizontalRuleBlock)
                 .with_on_select_action(EditorViewAction::InsertBlock(
                     warp_editor::content::text::BlockType::Item(BufferBlockItem::HorizontalRule),

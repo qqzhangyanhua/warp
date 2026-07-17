@@ -31,6 +31,7 @@ use crate::ai::blocklist::block::view_impl::WithContentItemSpacing;
 use crate::ai::blocklist::inline_action::inline_action_header::HeaderConfig;
 use crate::ai::blocklist::inline_action::requested_action::RenderableAction;
 use crate::ai::persisted_workspace::PersistedWorkspace;
+use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::code::lsp_telemetry::{LspEnablementSource, LspTelemetryEvent};
 use crate::server::telemetry::{
@@ -521,7 +522,7 @@ impl InitStepBlock {
         let mut button = appearance
             .ui_builder()
             .button(ButtonVariant::Outlined, mouse_state.clone())
-            .with_text_label("Re-generate AGENTS.md file".to_string());
+            .with_text_label(tr_cached(Message::TerminalRegenerateAgentsMd).to_string());
         if disabled {
             button = button.disabled();
         }
@@ -681,7 +682,7 @@ impl InitStepBlock {
                                 ButtonVariant::Outlined,
                                 mouse_states.view_status_button.clone(),
                             )
-                            .with_text_label("View index status".to_string())
+                            .with_text_label(tr_cached(Message::TerminalViewIndexStatus).to_string())
                             .build()
                             .on_click(|ctx, _, _| {
                                 ctx.dispatch_typed_action(

@@ -38,6 +38,7 @@ use super::link::{NotebookLinks, SessionSource};
 use super::telemetry::NotebookTelemetryAction;
 use super::{styles, NotebookLocation};
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::editor::InteractionState;
@@ -1148,7 +1149,7 @@ impl BackingView for FileNotebookView {
         if let Some(SourceFile::FileBased { .. }) = self.file_state.source() {
             actions.push(MenuItem::Separator);
             actions.push(
-                MenuItemFields::new("Refresh file")
+                MenuItemFields::new(tr(ctx, Message::NotebookRefreshFile))
                     .with_on_select_action(FileNotebookAction::ReloadFile)
                     .into_item(),
             );
@@ -1158,13 +1159,13 @@ impl BackingView for FileNotebookView {
                 // The markdown rendered/raw toggle is always visible in the pane header, so we don't
                 // duplicate it in the overflow menu. Keep "Open in editor" available for local files.
                 actions.push(
-                    MenuItemFields::new("Open in editor")
+                    MenuItemFields::new(tr(ctx, Message::NotebookOpenInEditor))
                         .with_on_select_action(FileNotebookAction::OpenInEditor)
                         .into_item(),
                 );
                 actions.extend([
                     MenuItem::Separator,
-                    MenuItemFields::new("Copy file path")
+                    MenuItemFields::new(tr(ctx, Message::CodeCopyFilePath))
                         .with_on_select_action(FileNotebookAction::CopyFilePath)
                         .into_item(),
                 ]);

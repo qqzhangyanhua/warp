@@ -38,6 +38,7 @@ use super::command_parser::WorkflowCommandDisplayData;
 use super::{CloudWorkflowModel, WorkflowSource, WorkflowType, WorkflowViewMode};
 use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
 use crate::ai::AIRequestUsageModel;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthState;
 use crate::auth::{AuthStateProvider, UserUid};
@@ -2877,7 +2878,7 @@ impl WorkflowView {
                                 .build()
                                 .finish()
                         })
-                        .with_text_label("Restore".to_string())
+                        .with_text_label(tr_cached(Message::EnvVarsRestore).to_string())
                         .build()
                         .on_click(|ctx, _, _| ctx.dispatch_typed_action(WorkflowAction::Untrash))
                         .finish(),
@@ -3187,7 +3188,7 @@ impl BackingView for WorkflowView {
         // Add "Copy Link" to menu
         if let Some(link) = self.workflow_link(ctx) {
             menu_items.push(
-                MenuItemFields::new("Copy link")
+                MenuItemFields::new(tr(ctx, Message::ReferralsCopyLink))
                     .with_on_select_action(WorkflowAction::CopyLink(link))
                     .with_icon(Icon::Link)
                     .into_item(),
@@ -3198,7 +3199,7 @@ impl BackingView for WorkflowView {
             if let Some(link) = self.workflow_link(ctx) {
                 if let Ok(url) = Url::parse(&link) {
                     menu_items.push(
-                        MenuItemFields::new("Open on Desktop")
+                        MenuItemFields::new(tr(ctx, Message::DriveOpenOnDesktop))
                             .with_on_select_action(WorkflowAction::OpenLinkOnDesktop(url))
                             .with_icon(Icon::Laptop)
                             .into_item(),
@@ -3212,7 +3213,7 @@ impl BackingView for WorkflowView {
         // Add "Duplicate" to menu
         if space != Some(Space::Shared) {
             menu_items.push(
-                MenuItemFields::new("Duplicate")
+                MenuItemFields::new(tr(ctx, Message::EnvVarsDuplicate))
                     .with_on_select_action(WorkflowAction::Duplicate)
                     .with_icon(Icon::Duplicate)
                     .into_item(),
@@ -3225,7 +3226,7 @@ impl BackingView for WorkflowView {
             && (!FeatureFlag::SharedWithMe.is_enabled() || access_level.can_trash())
         {
             menu_items.push(
-                MenuItemFields::new("Trash")
+                MenuItemFields::new(tr(ctx, Message::EnvVarsTrash))
                     .with_on_select_action(WorkflowAction::Trash)
                     .with_icon(Icon::Trash)
                     .into_item(),

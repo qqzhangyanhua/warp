@@ -1,3 +1,4 @@
+use crate::i18n::{tr_cached, Message};
 use std::sync::Arc;
 
 use enclose::enclose;
@@ -274,7 +275,7 @@ impl EnableAutoReloadModalBody {
                 }),
                 ..Default::default()
             })
-            .with_text_label("Cancel".to_string())
+            .with_text_label(tr_cached(Message::SettingsCancel).to_string())
             .build()
             .on_click(|ctx, _, _| {
                 ctx.dispatch_typed_action(Action::Cancel);
