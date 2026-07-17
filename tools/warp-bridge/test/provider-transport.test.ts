@@ -7,6 +7,31 @@ import {
 } from "../src/provider-transport.js";
 
 describe("Provider transport", () => {
+  test("network deny permits only the configured Provider origin", async () => {
+    const requestedUrls: string[] = [];
+    const providerFetch = createProviderFetch(
+      "https://provider.example",
+      3,
+      async (input) => {
+        requestedUrls.push(new Request(input).url);
+        return new Response("ok", { status: 200 });
+      },
+    );
+
+    await expect(
+      providerFetch("https://app.warp.dev/api/telemetry", {
+        headers: { authorization: "Bearer provider-secret" },
+      }),
+    ).rejects.toBeInstanceOf(ProviderTransportError);
+    await expect(
+      providerFetch("https://provider.example/v1/chat/completions"),
+    ).resolves.toHaveProperty("status", 200);
+
+    expect(requestedUrls).toEqual([
+      "https://provider.example/v1/chat/completions",
+    ]);
+  });
+
   test("follows at most three same-origin redirects", async () => {
     const requestedUrls: string[] = [];
     const fetchImpl: typeof fetch = async (input) => {

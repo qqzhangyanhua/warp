@@ -209,6 +209,17 @@ impl Harness {
         .unwrap();
     }
 
+    fn clear_request_payload(&self, tool_call_id: &str) {
+        let mut conn = SqliteConnection::establish(self.database_path.to_str().unwrap()).unwrap();
+        diesel::update(
+            agent_tool_execution_records::table
+                .filter(agent_tool_execution_records::tool_call_id.eq(tool_call_id)),
+        )
+        .set(agent_tool_execution_records::request_payload.eq(Vec::<u8>::new()))
+        .execute(&mut conn)
+        .unwrap();
+    }
+
     fn finish(self) {
         self.writer.sender.send(ModelEvent::Terminate).unwrap();
         self.writer.handle.join().unwrap();

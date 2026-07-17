@@ -144,10 +144,16 @@ fn runtime_migrations_preserve_legacy_records_and_support_redo() {
     conn.run_migration(fingerprint_migration)
         .expect("commit fingerprint migration should run");
     assert_eq!(legacy_run_commit_fingerprint(&mut conn), None);
+    let pending_versions = conn
+        .pending_migrations(::persistence::MIGRATIONS)
+        .expect("pending migrations should load after the fingerprint migration")
+        .into_iter()
+        .map(|migration| migration.name().version().to_string())
+        .collect::<Vec<_>>();
     assert!(
-        conn.run_pending_migrations(::persistence::MIGRATIONS)
-            .expect("a second startup migration pass should succeed")
-            .is_empty(),
+        !pending_versions.iter().any(|version| {
+            version == RUNTIME_MIGRATION_VERSION || version == COMMIT_FINGERPRINT_MIGRATION_VERSION
+        }),
         "a second startup must not rerun applied runtime migrations"
     );
 

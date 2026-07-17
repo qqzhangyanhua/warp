@@ -10,6 +10,37 @@ import {
 } from "./text-runtime-test-helpers.js";
 
 describe("Pi text runtime transport failures", () => {
+  test("runtime permits Provider traffic while denying Warp endpoints", async () => {
+    const requestedUrls: string[] = [];
+    const runtime = new PiTextRuntime({
+      stream: () =>
+        scriptedStream([
+          { type: "request", url: "https://app.warp.dev/api/telemetry" },
+          {
+            type: "request",
+            url: "https://provider.example/v1/chat/completions",
+          },
+          { type: "text", text: "Network policy held." },
+        ]),
+      createId: idSequence(),
+    });
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => {
+      requestedUrls.push(new Request(input).url);
+      return new Response("ok", { status: 200 });
+    };
+
+    try {
+      await runtime.run(transcript(), runStart(), successfulCallbacks());
+    } finally {
+      globalThis.fetch = previousFetch;
+    }
+
+    expect(requestedUrls).toEqual([
+      "https://provider.example/v1/chat/completions",
+    ]);
+  });
+
   test("retries a response-body transport failure before model output", async () => {
     let attempts = 0;
     const runtime = new PiTextRuntime({

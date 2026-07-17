@@ -82,10 +82,12 @@ impl AgentRuntimeService {
     }
 
     pub(crate) fn new_for_app(executor: Arc<Background>) -> Self {
-        Self::new_with_supervisor(
-            runtime_launch_config()
-                .map(|launch_config| AgentRuntimeSupervisor::new(launch_config, executor)),
-        )
+        let supervisor = runtime_launch_config().map(|launch_config| {
+            let supervisor = AgentRuntimeSupervisor::new(launch_config, executor);
+            supervisor.start_idle_eviction();
+            supervisor
+        });
+        Self::new_with_supervisor(supervisor)
     }
 
     pub(crate) fn new_with_supervisor(supervisor: Option<AgentRuntimeSupervisor>) -> Self {

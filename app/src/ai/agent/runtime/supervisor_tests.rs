@@ -147,6 +147,20 @@ async fn idle_processes_are_evicted_and_rebuilt_without_touching_active_runs() {
 }
 
 #[tokio::test]
+async fn scheduled_idle_eviction_releases_inactive_processes() {
+    let observer_dir = TempDir::new().unwrap();
+    let supervisor =
+        test_supervisor_with_idle_timeout("ready", &observer_dir, Duration::from_millis(20));
+    supervisor.start_idle_eviction();
+    let idle = supervisor.attach("idle-conversation").await.unwrap();
+
+    Timer::after(Duration::from_millis(50)).await;
+
+    assert_eq!(idle.process_id().await, Err(RuntimeError::StaleHandle));
+    supervisor.shutdown_all().await;
+}
+
+#[tokio::test]
 async fn reattachment_cannot_be_evicted_while_a_restarted_process_handshakes() {
     let observer_dir = TempDir::new().unwrap();
     let supervisor = test_supervisor_with_idle_timeout(

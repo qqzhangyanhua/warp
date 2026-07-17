@@ -1,4 +1,5 @@
-use super::{RuntimeFailureCode, TextRunOutcome, TextRunResult};
+use super::{TextRunOutcome, TextRunResult};
+use crate::ai::agent::runtime::protocol::RuntimeFailureCode;
 use crate::persistence::model::AgentConversationData;
 
 #[test]

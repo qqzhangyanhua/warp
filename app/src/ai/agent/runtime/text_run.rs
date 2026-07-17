@@ -4,12 +4,12 @@ use std::sync::Arc;
 use futures::channel::{mpsc, oneshot};
 use futures::future::{select, Either};
 use futures::{pin_mut, StreamExt as _};
-use warp_multi_agent_api as api;
 
 mod cancel;
 mod commit;
 mod outcome;
 mod recovery;
+mod types;
 
 use commit::{
     assistant_text, commit_initial_input, commit_interrupted_output, commit_output,
@@ -18,153 +18,15 @@ use commit::{
 use outcome::{
     persistence_state, terminal_outcome, terminal_outcome_for_tool_result, text_run_outcome,
 };
+pub(super) use types::{RuntimeEvent, TextRunOutcome, TextRunRequest, TextRunResult};
 
 use super::bridge_process::{BridgeProcessError, BridgeRunEvent};
-use super::configuration::RunConfiguration;
-use super::protocol::RuntimeFailureCode;
 use super::supervisor::{RuntimeEntry, RuntimeError, TextRunCommand};
-use super::tool_execution::{ToolExecutionAuthority, ToolExecutionResult, ToolRunState};
-use super::transcript::RuntimeTranscript;
-use crate::persistence::model::{
-    AgentConversationData, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
-};
+use super::tool_execution::{ToolExecutionResult, ToolRunState};
+use crate::persistence::model::AgentRuntimeTerminalOutcome;
 use crate::persistence::{
     AgentRuntimeRunMutation, ModelEvent, PersistAgentRuntimeRun, ReadLatestAgentRuntimeRunId,
 };
-pub(super) struct TextRunRequest {
-    run_id: String,
-    retry_of_run_id: Option<String>,
-    transcript: RuntimeTranscript,
-    configuration: RunConfiguration,
-    tasks: Vec<api::Task>,
-    conversation_data: AgentConversationData,
-    output_task_id: String,
-    initial_input_commit_id: Option<String>,
-    resolve_retry_lineage: bool,
-    prepared: bool,
-    tool_execution_authority: Option<Arc<ToolExecutionAuthority>>,
-}
-
-impl TextRunRequest {
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn new(
-        run_id: impl Into<String>,
-        retry_of_run_id: Option<impl Into<String>>,
-        transcript: RuntimeTranscript,
-        configuration: RunConfiguration,
-        tasks: Vec<api::Task>,
-        conversation_data: AgentConversationData,
-        output_task_id: impl Into<String>,
-    ) -> Self {
-        Self {
-            run_id: run_id.into(),
-            retry_of_run_id: retry_of_run_id.map(Into::into),
-            transcript,
-            configuration,
-            tasks,
-            conversation_data,
-            output_task_id: output_task_id.into(),
-            initial_input_commit_id: None,
-            resolve_retry_lineage: false,
-            prepared: false,
-            tool_execution_authority: None,
-        }
-    }
-
-    pub(super) fn with_initial_input_commit(mut self, commit_id: impl Into<String>) -> Self {
-        self.initial_input_commit_id = Some(commit_id.into());
-        self
-    }
-
-    pub(super) fn with_retry_lineage_lookup(mut self) -> Self {
-        self.resolve_retry_lineage = true;
-        self
-    }
-
-    pub(super) fn with_tool_execution_authority(
-        mut self,
-        authority: Arc<ToolExecutionAuthority>,
-    ) -> Self {
-        self.tool_execution_authority = Some(authority);
-        self
-    }
-
-    pub(super) fn revision(&self) -> u64 {
-        self.transcript.revision()
-    }
-
-    pub(super) fn run_id(&self) -> &str {
-        &self.run_id
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum TextRunOutcome {
-    Completed,
-    Cancelled,
-    Failed {
-        error_code: RuntimeFailureCode,
-        diagnostic_id: String,
-    },
-    LimitReached {
-        tool_request_limit: u32,
-    },
-}
-
-#[expect(
-    dead_code,
-    reason = "GUI and TUI consume the typed Runtime events when Runtime Selection is enabled"
-)]
-pub(super) enum RuntimeEvent {
-    RunStatus {
-        run_id: String,
-        state: AgentRuntimeRunState,
-    },
-    TextDelta {
-        run_id: String,
-        event_id: String,
-        delta: String,
-    },
-    ConversationCommit {
-        run_id: String,
-        revision: u64,
-        tasks: Vec<api::Task>,
-        conversation_data: AgentConversationData,
-    },
-    RunFinished {
-        run_id: String,
-        outcome: TextRunOutcome,
-    },
-}
-
-pub(super) struct TextRunResult {
-    outcome: TextRunOutcome,
-    revision: u64,
-    tasks: Vec<api::Task>,
-    conversation_data: AgentConversationData,
-}
-
-impl TextRunResult {
-    pub(super) fn outcome(&self) -> &TextRunOutcome {
-        &self.outcome
-    }
-
-    pub(super) fn revision(&self) -> u64 {
-        self.revision
-    }
-
-    pub(super) fn tasks(&self) -> &[api::Task] {
-        &self.tasks
-    }
-
-    pub(super) fn conversation_data(&self) -> &AgentConversationData {
-        &self.conversation_data
-    }
-
-    pub(super) fn requires_process_rebuild(&self) -> bool {
-        matches!(self.outcome, TextRunOutcome::Failed { .. })
-    }
-}
 
 pub(super) async fn execute<F>(
     entry: Arc<RuntimeEntry>,

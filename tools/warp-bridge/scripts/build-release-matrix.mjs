@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -18,6 +19,7 @@ if (args.some((argument) => argument !== "--update-manifest")) {
 const updateManifest = args.includes("--update-manifest");
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const bunExecutable = createRequire(import.meta.url).resolve("bun/bin/bun.exe");
 const repositoryRoot = resolve(root, "../..");
 const outputRoot = resolve(root, "dist/release");
 const manifestPath = resolve(
@@ -36,7 +38,7 @@ for (const target of RELEASE_TARGETS) {
   const artifactPath = resolve(targetDirectory, target.executable);
   mkdirSync(targetDirectory, { recursive: true });
   const result = spawnSync(
-    "bun",
+    bunExecutable,
     [
       "build",
       "src/main.ts",
@@ -44,7 +46,11 @@ for (const target of RELEASE_TARGETS) {
       `--target=${target.bunTarget}`,
       `--outfile=${artifactPath}`,
     ],
-    { cwd: root, stdio: "inherit" },
+    {
+      cwd: root,
+      env: { ...process.env, NODE_PATH: "" },
+      stdio: "inherit",
+    },
   );
   if (result.status !== 0) {
     throw new Error(`Standalone Bridge build failed for ${target.rustTarget}`);

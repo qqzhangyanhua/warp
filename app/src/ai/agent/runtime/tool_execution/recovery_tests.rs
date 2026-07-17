@@ -103,3 +103,86 @@ async fn pending_recovery_does_not_prompt_or_execute() {
     );
     harness.finish();
 }
+
+#[tokio::test]
+async fn migrated_legacy_request_recovers_without_prompt_or_execution() {
+    let harness = Harness::new(ToolPermissionDecision::Approved);
+    let request = valid_request("legacy-call");
+    harness.accept_only(&request).await;
+    harness.clear_request_payload("legacy-call");
+    let mut state = harness.state(0);
+
+    let recovered = harness
+        .authority
+        .recover_unfinished(CONVERSATION_ID, &mut state)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        recovered.as_slice(),
+        [
+            TranscriptItem::ToolRequest { tool_call_id, .. },
+            TranscriptItem::ToolResult { result, .. },
+        ] if tool_call_id == "legacy-call" && matches!(
+            result,
+            ToolResultProjection::Error {
+                error_code: ToolErrorCode::ToolExecutionFailed,
+                may_have_executed: false,
+                ..
+            }
+        )
+    ));
+    assert_eq!(harness.adapter.permission_count.load(Ordering::SeqCst), 0);
+    assert_eq!(harness.adapter.execution_count.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        tool_state(&harness.database_path, "legacy-call"),
+        Some(AgentToolExecutionState::Completed)
+    );
+    assert_eq!(
+        run_terminal_outcome(&harness.database_path, RUN_ID),
+        Some(AgentRuntimeTerminalOutcome::Failed)
+    );
+    harness.finish();
+}
+
+#[tokio::test]
+async fn migrated_legacy_executing_request_recovers_as_unknown_without_reexecution() {
+    let harness = Harness::new(ToolPermissionDecision::Approved);
+    let request = valid_request("legacy-call");
+    harness.accept_only(&request).await;
+    harness.set_tool_state("legacy-call", AgentToolExecutionState::Executing);
+    harness.clear_request_payload("legacy-call");
+    let mut state = harness.state(0);
+
+    let recovered = harness
+        .authority
+        .recover_unfinished(CONVERSATION_ID, &mut state)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        recovered.as_slice(),
+        [
+            TranscriptItem::ToolRequest { tool_call_id, .. },
+            TranscriptItem::ToolResult { result, .. },
+        ] if tool_call_id == "legacy-call" && matches!(
+            result,
+            ToolResultProjection::Error {
+                error_code: ToolErrorCode::ToolOutcomeUnknown,
+                may_have_executed: true,
+                ..
+            }
+        )
+    ));
+    assert_eq!(harness.adapter.permission_count.load(Ordering::SeqCst), 0);
+    assert_eq!(harness.adapter.execution_count.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        tool_state(&harness.database_path, "legacy-call"),
+        Some(AgentToolExecutionState::Completed)
+    );
+    assert_eq!(
+        run_terminal_outcome(&harness.database_path, RUN_ID),
+        Some(AgentRuntimeTerminalOutcome::Failed)
+    );
+    harness.finish();
+}

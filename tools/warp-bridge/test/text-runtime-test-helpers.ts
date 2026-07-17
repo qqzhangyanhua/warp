@@ -24,6 +24,7 @@ export function successfulCallbacks() {
 type ScriptEvent =
   | { type: "text"; text: string }
   | { type: "thinking"; text: string }
+  | { type: "request"; url: string }
   | {
       type: "error";
       errorMessage?: string;
@@ -52,6 +53,12 @@ export function scriptedStream(events: ScriptEvent[]) {
           delta: event.text,
           partial: assistantMessage(text),
         });
+      } else if (event.type === "request") {
+        try {
+          await globalThis.fetch(event.url);
+        } catch {
+          // Network-policy rejection is an expected scripted event outcome.
+        }
       } else {
         if (event.requestProvider === true) {
           try {

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "Checking Pi Agent Runtime high-level and crash-recovery seams..."
+CARGO_INCREMENTAL=0 cargo test --package warp --lib ai::agent::runtime -- --test-threads=1
+
+echo "Checking Pi Agent Runtime persistence and migration seams..."
+CARGO_INCREMENTAL=0 cargo test --package warp --lib persistence::agent:: -- --test-threads=1
+CARGO_INCREMENTAL=0 cargo test --package warp --lib persistence::sqlite::agent_ -- --test-threads=1
+
+echo "Checking permission, GUI routing, and TUI regressions..."
+CARGO_INCREMENTAL=0 cargo test --package warp --lib ai::blocklist::permissions::tests -- --test-threads=1
+CARGO_INCREMENTAL=0 cargo test --package warp --lib pi_ --features local_only_custom_provider_mode -- --test-threads=1
+CARGO_INCREMENTAL=0 cargo test --package warp --lib tui::tests --features local_only_custom_provider_mode,tui -- --test-threads=1
+CARGO_INCREMENTAL=0 cargo test --package warp_tui --lib tui_selection_binds_eligible_local_conversation_to_pi_runtime --features local_only_custom_provider_mode -- --test-threads=1
+
+echo "Checking Bridge types, protocol, network policy, and release artifacts..."
+(
+    cd tools/warp-bridge
+    pnpm typecheck
+    pnpm run build:release:matrix
+)
+
+echo "Checking the Local-only release binary..."
+CARGO_INCREMENTAL=0 cargo check --package warp --bin warp-oss --features local_only_custom_provider_mode
+
+echo "Running the repository standard check..."
+./scripts/check.sh

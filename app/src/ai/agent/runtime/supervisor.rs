@@ -10,6 +10,7 @@ use futures::lock::Mutex as AsyncMutex;
 use parking_lot::Mutex;
 use thiserror::Error;
 use warpui_core::r#async::executor::Background;
+use warpui_core::r#async::Timer;
 
 use super::bridge_process::{BridgeLaunchConfig, BridgeProcess, BridgeProcessError};
 use super::text_run;
@@ -140,6 +141,23 @@ impl AgentRuntimeSupervisor {
                 entries: AsyncMutex::new(HashMap::new()),
             }),
         }
+    }
+
+    pub(crate) fn start_idle_eviction(&self) {
+        let interval = self.inner.config.idle_timeout;
+        let supervisor = Arc::downgrade(&self.inner);
+        self.inner
+            .executor
+            .spawn(async move {
+                loop {
+                    Timer::after(interval).await;
+                    let Some(inner) = supervisor.upgrade() else {
+                        return;
+                    };
+                    AgentRuntimeSupervisor { inner }.evict_idle().await;
+                }
+            })
+            .detach();
     }
 
     pub(crate) async fn attach(
@@ -387,7 +405,6 @@ impl AgentRuntimeHandle {
                 .await
                 .map_err(|_| BridgeProcessError::UnexpectedExit)?
                 .map_err(RuntimeError::from)?;
-            self.finish_run(&run_id).await?;
             return Ok(Some(revision));
         }
         let mut process = entry.process.lock().await;

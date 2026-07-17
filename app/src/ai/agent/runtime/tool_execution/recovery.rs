@@ -28,8 +28,8 @@ impl ToolExecutionAuthority {
         let unfinished = self.read_unfinished(conversation_id).await?;
         let mut transcript_items = Vec::with_capacity(unfinished.len() * 2);
         for record in unfinished {
-            let stored: StoredToolRequest = serde_json::from_slice(record.request_payload.bytes())
-                .map_err(|_| ToolExecutionError::InvalidStoredRequest)?;
+            let stored =
+                StoredToolRequest::decode(record.request_payload.bytes(), state.task_id.clone())?;
             if stored.version != 1 {
                 return Err(ToolExecutionError::InvalidStoredRequest);
             }
@@ -116,4 +116,19 @@ struct StoredToolRequest {
     tool_id: String,
     tool_name: String,
     arguments: serde_json::Map<String, serde_json::Value>,
+}
+
+impl StoredToolRequest {
+    fn decode(bytes: &[u8], fallback_task_id: String) -> Result<Self, ToolExecutionError> {
+        if bytes.is_empty() {
+            return Ok(Self {
+                version: 1,
+                task_id: fallback_task_id,
+                tool_id: "legacy.unavailable".to_string(),
+                tool_name: "legacy_unavailable".to_string(),
+                arguments: serde_json::Map::new(),
+            });
+        }
+        serde_json::from_slice(bytes).map_err(|_| ToolExecutionError::InvalidStoredRequest)
+    }
 }
