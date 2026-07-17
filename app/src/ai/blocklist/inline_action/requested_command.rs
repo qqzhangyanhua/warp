@@ -30,6 +30,7 @@ use warpui::{
 
 use super::inline_action_icons::{self, icon_size};
 use crate::ai::agent::conversation::ConversationStatus;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::{
     icons, AIAgentActionId, AIAgentActionResult, AIAgentActionResultType, AIAgentActionType,
     AIAgentCitation, AIAgentOutputMessageType, CallMCPToolResult, RequestCommandOutputResult,
@@ -2037,14 +2038,14 @@ impl TypedActionView for RequestedCommandView {
                     .as_deref()
                     .is_some_and(|t| !t.is_empty());
 
-                let copy_item: MenuItem<RequestedCommandViewAction> = MenuItemFields::new("Copy")
+                let copy_item: MenuItem<RequestedCommandViewAction> = MenuItemFields::new(tr_cached(Message::CommonCopy))
                     .with_on_select_action(RequestedCommandViewAction::CopyMcpSelection)
                     .with_disabled(!has_selection)
                     .into_item();
 
                 let json_for_menu = json_text.clone();
                 let copy_json_item: MenuItem<RequestedCommandViewAction> =
-                    MenuItemFields::new("Copy JSON")
+                    MenuItemFields::new(tr_cached(Message::BlockCopyJson))
                         .with_on_select_action(RequestedCommandViewAction::CopyJsonToClipboard {
                             text: json_for_menu,
                         })

@@ -13,6 +13,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::{custom_model_routers_widget_id, SettingsSection};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{
@@ -164,7 +165,7 @@ impl FeatureIntroModal {
         });
 
         let cta_button = ctx.add_view(|_ctx| {
-            ActionButton::new("Get started", PrimaryTheme)
+            ActionButton::new(tr_cached(Message::EnvironmentGetStarted), PrimaryTheme)
                 .on_click(|ctx| ctx.dispatch_typed_action(FeatureIntroModalAction::GetStarted))
         });
 

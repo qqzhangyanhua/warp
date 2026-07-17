@@ -49,6 +49,7 @@ use warpui::{Action, AppContext, Element, EventContext, SingletonEntity, View, V
 use super::output::LinkActionConstructors;
 use super::{add_highlights_to_rich_text, add_highlights_to_text};
 use crate::ai::agent::conversation::AIConversation;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::icons::red_stop_icon;
 use crate::ai::agent::{
     icons, AIAgentAction, AIAgentActionType, AIAgentInput, AIAgentOutputMessageType,
@@ -3359,7 +3360,7 @@ fn render_invalid_api_key_error(
             background: Some(internal_colors::fg_overlay_3(theme).into()),
             ..Default::default()
         })
-        .with_text_label("Edit API Keys".to_string())
+        .with_text_label(tr_cached(Message::BlockEditApiKeys).to_string())
         .with_cursor(Some(Cursor::PointingHand))
         .build()
         .on_click(move |ctx, _, _| {

@@ -14,6 +14,7 @@ use warpui::{
 };
 
 use crate::ai::blocklist::block::view_impl::common::render_user_avatar;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::block::view_impl::{
     CONTENT_HORIZONTAL_PADDING, CONTENT_ITEM_VERTICAL_MARGIN,
 };
@@ -52,7 +53,7 @@ impl PendingUserQueryBlock {
     ) -> Self {
         let close_button = show_close_button.then(|| {
             ctx.add_typed_action_view(|_| {
-                ActionButton::new("Remove queued prompt", NakedTheme)
+                ActionButton::new(tr_cached(Message::BlockRemoveQueuedPrompt), NakedTheme)
                     .with_icon(Icon::X)
                     .with_size(ButtonSize::XSmall)
                     .on_click(|ctx| {
@@ -62,7 +63,7 @@ impl PendingUserQueryBlock {
         });
         let send_now_button = show_send_now_button.then(|| {
             ctx.add_typed_action_view(|_| {
-                ActionButton::new("Send now", NakedTheme)
+                ActionButton::new(tr_cached(Message::BlockSendNow), NakedTheme)
                     .with_icon(Icon::Play)
                     .with_size(ButtonSize::XSmall)
                     .on_click(|ctx| {

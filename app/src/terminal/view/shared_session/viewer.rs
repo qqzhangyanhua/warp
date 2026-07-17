@@ -4,6 +4,7 @@ use warpui::{ViewContext, ViewHandle};
 
 use super::adapter::Participant;
 use crate::menu::{Menu, MenuItem, MenuItemFields};
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::{PaneHeaderAction, PaneHeaderCustomAction};
 use crate::terminal::view::{TerminalAction, TerminalView};
 use crate::ui_components::icons::Icon;
@@ -61,11 +62,11 @@ impl Viewer {
         match current_role {
             Role::Reader => items.extend([
                 // TODO: this should still dispatch an action that eventually no-ops
-                MenuItemFields::new("View")
+                MenuItemFields::new(tr_cached(Message::SharedViewRole))
                     .with_icon(Icon::Check)
                     .with_disabled(is_reconnecting)
                     .into_item(),
-                MenuItemFields::new("Edit")
+                MenuItemFields::new(tr_cached(Message::SharedEditRole))
                     .with_indent()
                     .with_disabled(is_reconnecting)
                     .with_on_select_action(
@@ -76,12 +77,12 @@ impl Viewer {
                     .into_item(),
             ]),
             Role::Executor | Role::Full => items.extend([
-                MenuItemFields::new("View")
+                MenuItemFields::new(tr_cached(Message::SharedViewRole))
                     .with_indent()
                     .with_disabled(true)
                     .into_item(),
                 // TODO: this should still dispatch an action that eventually no-ops
-                MenuItemFields::new("Edit")
+                MenuItemFields::new(tr_cached(Message::SharedEditRole))
                     .with_icon(Icon::Check)
                     .with_disabled(is_reconnecting)
                     .into_item(),

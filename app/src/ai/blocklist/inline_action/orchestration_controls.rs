@@ -31,6 +31,7 @@ use warpui::{
 };
 
 use crate::ai::auth_secret_types::auth_secret_types_for_harness;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::inline_action::host_picker::HostPicker;
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
@@ -1233,12 +1234,12 @@ pub fn populate_auth_secret_picker_for_harness<A: OrchestrationControlAction, V:
             }
             AuthSecretFetchState::NotFetched | AuthSecretFetchState::Loading => {
                 items.push(MenuItem::Item(
-                    MenuItemFields::new("Loading…").with_disabled(true),
+                    MenuItemFields::new(tr_cached(Message::CommonLoadingEllipsis)).with_disabled(true),
                 ));
             }
             AuthSecretFetchState::Failed(_) => {
                 items.push(MenuItem::Item(
-                    MenuItemFields::new("Unable to load secrets").with_disabled(true),
+                    MenuItemFields::new(tr_cached(Message::CommonUnableToLoadSecrets)).with_disabled(true),
                 ));
             }
         }

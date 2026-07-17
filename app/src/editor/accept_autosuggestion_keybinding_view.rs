@@ -16,6 +16,7 @@ use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewCon
 
 use super::EditorElement;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::editor::ACCEPT_AUTOSUGGESTION_KEYBINDING_NAME;
 use crate::menu::{Menu, MenuItemFields};
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
@@ -93,7 +94,7 @@ impl AcceptAutosuggestionKeybinding {
                     },
                 )
                 .into_item(),
-            MenuItemFields::new("Custom...")
+            MenuItemFields::new(tr_cached(Message::CommonCustomEllipsis))
                 .with_on_select_action(
                     AcceptAutosuggestionKeybindingAction::OpenSettingsForCustomKeybinding,
                 )

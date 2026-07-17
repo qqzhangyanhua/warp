@@ -26,6 +26,7 @@ use crate::ai::custom_model_routers::{
     PromptRule,
 };
 use crate::ai::execution_profiles::model_menu_items::available_model_menu_items;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::llms::{LLMPreferences, LLMPreferencesEvent};
 use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
@@ -321,12 +322,12 @@ impl CustomRouterEditorView {
         }
 
         let save_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Save", PrimaryTheme)
+            ActionButton::new(tr_cached(Message::SettingsSave), PrimaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| ctx.dispatch_typed_action(CustomRouterEditorAction::Save))
         });
         let cancel_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Cancel", SecondaryTheme)
+            ActionButton::new(tr_cached(Message::SettingsCancel), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| ctx.dispatch_typed_action(CustomRouterEditorAction::Close))
         });
