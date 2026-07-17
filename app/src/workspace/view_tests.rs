@@ -3461,7 +3461,9 @@ fn test_worktree_sidecar_hides_linked_worktrees_from_repo_list() {
             let main_repo_label = main_repo.to_string_lossy().to_string();
             let linked_worktree_label = linked_worktree.to_string_lossy().to_string();
 
-            assert!(labels.iter().any(|label| label == "Search repos"));
+            assert!(labels
+                .iter()
+                .any(|label| label == crate::i18n::tr_cached(crate::i18n::Message::WorkspaceSearchRepos)));
             assert!(labels.iter().any(|label| label == &main_repo_label));
             assert!(!labels.iter().any(|label| label == &linked_worktree_label));
         });

@@ -8,6 +8,7 @@ use super::{
 use crate::ai::blocklist::inline_action::code_diff_view::{CodeDiffView, CodeDiffViewEvent};
 use crate::app_state::{CodePaneSnapShot, CodePaneTabSnapshot, LeafContents};
 use crate::code::editor_management::{CodeManager, CodeSource};
+use crate::i18n::{tr, Message};
 use crate::pane_group::PaneGroup;
 
 pub struct CodeDiffPane {
@@ -22,7 +23,7 @@ impl CodeDiffPane {
         let pane_configuration = ctx.add_model(|_ctx| {
             let mut config = PaneConfiguration::new("");
             // This title must be set with .set_title and not just ::new() to ensure that the tab renders immediately.
-            config.set_title("Requested Edit", _ctx);
+            config.set_title(tr(_ctx, Message::PaneRequestedEdit), _ctx);
             config
         });
 

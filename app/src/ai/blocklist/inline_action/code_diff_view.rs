@@ -78,6 +78,7 @@ use crate::ai::skills::{
     SkillOpenOrigin, SkillReference, SkillTelemetryEvent,
 };
 use crate::code::diff_viewer::{DiffViewer, DisplayMode};
+use crate::i18n::{tr, Message};
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorRenderOptions, CodeEditorView};
 use crate::code::editor::{add_color, remove_color};
 use crate::code::inline_diff::{InlineDiffView, InlineDiffViewEvent};
@@ -3030,7 +3031,7 @@ impl BackingView for CodeDiffView {
         // Code diffs should show "Requested Edit" as the title and hide the close button
         // since they are closed via accept/reject actions.
         view::HeaderContent::Standard(view::StandardHeader {
-            title: "Requested Edit".to_string(),
+            title: tr(_app, Message::PaneRequestedEdit).to_string(),
             title_secondary: None,
             title_style: None,
             title_clip_config: warpui::text_layout::ClipConfig::start(),

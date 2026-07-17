@@ -7184,7 +7184,7 @@ impl OtherAIWidget {
         let items: Vec<DropdownItem<AISettingsPageAction>> = ThinkingDisplayMode::iter()
             .map(|mode| {
                 DropdownItem::new(
-                    mode.display_name(),
+                    thinking_display_mode_label(mode),
                     AISettingsPageAction::SetThinkingDisplayMode(mode),
                 )
             })
@@ -7206,7 +7206,7 @@ impl OtherAIWidget {
         let items: Vec<DropdownItem<AISettingsPageAction>> = PromptSubmissionMode::iter()
             .map(|mode| {
                 DropdownItem::new(
-                    mode.display_name(),
+                    prompt_submission_mode_label(mode),
                     AISettingsPageAction::SetPromptSubmissionMode(mode),
                 )
             })
@@ -7229,7 +7229,7 @@ impl OtherAIWidget {
             LongRunningCommandSubmissionMode::iter()
                 .map(|mode| {
                     DropdownItem::new(
-                        mode.display_name(),
+                        lrc_submission_mode_label(mode),
                         AISettingsPageAction::SetLongRunningCommandSubmissionMode(mode),
                     )
                 })
@@ -7252,7 +7252,7 @@ impl OtherAIWidget {
             OrchestrationMessageDisplayMode::iter()
                 .map(|mode| {
                     DropdownItem::new(
-                        mode.display_name(),
+                        orchestration_message_display_mode_label(mode),
                         AISettingsPageAction::SetOrchestrationMessageDisplayMode(mode),
                     )
                 })
@@ -7266,6 +7266,44 @@ impl OtherAIWidget {
             dropdown.add_items(items, ctx);
             dropdown
         })
+    }
+}
+
+fn thinking_display_mode_label(mode: ThinkingDisplayMode) -> &'static str {
+    match mode {
+        ThinkingDisplayMode::ShowAndCollapse => tr_cached(Message::AiDisplayShowAndCollapse),
+        ThinkingDisplayMode::AlwaysShow => tr_cached(Message::AiDisplayAlwaysShow),
+        ThinkingDisplayMode::NeverShow => tr_cached(Message::AiDisplayNeverShow),
+    }
+}
+
+fn orchestration_message_display_mode_label(mode: OrchestrationMessageDisplayMode) -> &'static str {
+    match mode {
+        OrchestrationMessageDisplayMode::ShowAndCollapse => {
+            tr_cached(Message::AiDisplayShowAndCollapse)
+        }
+        OrchestrationMessageDisplayMode::AlwaysShow => tr_cached(Message::AiDisplayAlwaysShow),
+        OrchestrationMessageDisplayMode::AlwaysCollapse => {
+            tr_cached(Message::AiDisplayAlwaysCollapse)
+        }
+    }
+}
+
+fn prompt_submission_mode_label(mode: PromptSubmissionMode) -> &'static str {
+    match mode {
+        PromptSubmissionMode::Interrupt => tr_cached(Message::AiPromptSubmissionInterrupt),
+        PromptSubmissionMode::Queue => tr_cached(Message::AiPromptSubmissionQueue),
+    }
+}
+
+fn lrc_submission_mode_label(mode: LongRunningCommandSubmissionMode) -> &'static str {
+    match mode {
+        LongRunningCommandSubmissionMode::SendImmediately => {
+            tr_cached(Message::AiLrcSendImmediately)
+        }
+        LongRunningCommandSubmissionMode::QueueUntilCommandCompletes => {
+            tr_cached(Message::AiLrcQueueUntilCommandFinishes)
+        }
     }
 }
 

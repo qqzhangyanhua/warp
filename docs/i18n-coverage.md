@@ -8,9 +8,9 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **1309** |
-| English table (`en_text`) | **1309** complete |
-| Chinese table (`zh_cn_text`) | **1309** complete |
+| `Message` variants | **1332** |
+| English table (`en_text`) | **1332** complete |
+| Chinese table (`zh_cn_text`) | **1332** complete |
 | Call sites | ~1000+ across 75+ files |
 
 ### What the 157 messages cover
@@ -198,9 +198,9 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 ### Workspace
 
 - [x] Tools panel: Project explorer / Global search / Warp Drive / Agent conversations
-- [ ] Vertical tabs: No tabs open / No tabs match… / View as / Tab item / Additional metadata
-- [ ] Conversation list: No conversations yet / New conversation / No matching conversations
-- [ ] Search: Search tabs… / Search sessions, agents, files… / Search repos
+- [x] Vertical tabs: No tabs open / No tabs match… / View as / Tab item / Additional metadata
+- [x] Conversation list: No conversations yet / New conversation / No matching conversations
+- [x] Search: Search tabs… / Search sessions, agents, files… / Search repos
 - [x] Toasts: Please sign in again… / Your app is out of date… (wired; “Failed to load conversation” mostly log/internal)
 - [x] Rename pane / Reset pane name (ActivePane branch aligned with Message)
 - [ ] Launch / feature-intro modals (deferrable; mostly marketing)
@@ -230,8 +230,8 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 ### Other terminal
 
 - [ ] Available shell display names (Windows PowerShell / WSL…) — proper nouns may stay English
-- [ ] Secret display: Always show secrets, etc.
-- [ ] Working directory: Home directory / Previous session’s directory / Custom directory
+- [x] Secret display: Always show secrets / Asterisks / Strikethrough
+- [x] Working directory: Home directory / Previous session’s directory / Custom directory
 - [x] Warpify SSH install policy: Always ask / Always install / Never install
 
 ### Conversation list / Tools panel / Search (P3c)
@@ -279,13 +279,13 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 | Bucket | Status | Rough user-visible strings |
 |--------|--------|----------------------------|
-| Already i18n (1309 `Message`s) | Done | ~1300+ |
+| Already i18n (1332 `Message`s) | Done | ~1330+ |
 | P0 first-run / login / anonymous | Done | ~80–120 |
 | P1 Settings residuals | Done | ~80–120 |
 | P2 full Settings pages | Done (Teams confirm dialogs + Environments residual) | ~250–400 |
-| P3 Workspace / Terminal | High-frequency done; Other terminal residuals open | ~300–500 |
+| P3 Workspace / Terminal | High-frequency done; shell display names + launch modals open | ~300–500 |
 | Engineering debt (dual-track / Test connection) | Done | — |
-| **Remaining** | | **~50–150** (Other terminal secrets/cwd/shell names; residual workspace metadata; SettingsSection Display deferred)
+| **Remaining** | | **~30–80** (shell proper nouns; launch/marketing modals; SettingsSection Display deferred; long-tail Settings) |
 
 ---
 
@@ -325,8 +325,9 @@ Often **hidden or lower priority** in anonymous-only mode:
 2. ~~**P0** — Onboarding + Auth + anonymous toast / provider setup~~ **Done** (incl. Test connection)
 3. ~~P1 settings high-frequency~~ done (incl. dual-track Category cleanup)
 4. ~~**P2** Privacy / Account / Environments residual / Teams~~ done
-5. ~~**P3** high-frequency Terminal input / banners / share~~ done (residual: Other terminal secrets/working-directory, some workspace metadata)
-6. Process: new user-visible strings must go through `Message` + En/Zh tables
+5. ~~**P3** high-frequency Terminal input / banners / share~~ done
+6. ~~**P3 residual** secrets / AI dropdown values / appearance fonts / Additional metadata / Shared blocks / pane titles / Search repos~~ done
+7. Process: new user-visible strings must go through `Message` + En/Zh tables
 
 ---
 
@@ -350,4 +351,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-17. Batch 5: `Category::localized` dual-track cleanup; Test connection confirmed wired. Message catalog 1309 variants._
+_Last updated: 2026-07-17. Batch 6: secret display modes, AI display/submission dropdowns, appearance font labels, vertical-tabs Additional metadata, Shared blocks page, Create Environment / Requested Edit pane titles, Search repos. Message catalog 1332 variants._

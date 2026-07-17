@@ -10280,7 +10280,7 @@ impl Workspace {
                 .with_height(NEW_SESSION_SIDECAR_SEARCH_BOX_HEIGHT)
                 .finish()
             }),
-            Some("Search repos".to_string()),
+            Some(tr(ctx, Message::WorkspaceSearchRepos).to_string()),
         )
         .with_no_interaction_on_hover()
         .no_highlight_on_hover()

@@ -192,7 +192,7 @@ impl PrivacyPageView {
                     .iter()
                     .map(|mode| {
                         DropdownItem::new(
-                            mode.display_name(),
+                            secret_display_mode_label(*mode),
                             PrivacyPageAction::SetSecretDisplayMode(*mode),
                         )
                     })
@@ -2026,6 +2026,14 @@ mod styles {
 
     /// The space between two description lines which are describing the same toggle.
     pub const DESCRIPTION_LINE_MARGIN_BOTTOM: f32 = 6.;
+}
+
+fn secret_display_mode_label(mode: SecretDisplayMode) -> &'static str {
+    match mode {
+        SecretDisplayMode::Asterisks => tr_cached(Message::PrivacySecretDisplayAsterisks),
+        SecretDisplayMode::Strikethrough => tr_cached(Message::PrivacySecretDisplayStrikethrough),
+        SecretDisplayMode::AlwaysShow => tr_cached(Message::PrivacySecretDisplayAlwaysShow),
+    }
 }
 
 fn description_text_color(theme: &WarpTheme) -> warp_core::ui::theme::Fill {
