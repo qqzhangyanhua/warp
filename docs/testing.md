@@ -23,6 +23,8 @@ Detected but not run during harness generation:
 - `./script/run-clang-format.py -r --extensions 'c,h,cpp,m' ./crates/warpui/src/ ./app/src/` - C/C++/Obj-C formatting.
 - `find . -name "*.wgsl" -exec wgslfmt --check {} +` - WGSL shader formatting.
 - `cargo test --package warp --lib -- <module_and_test> --exact --nocapture` - unit-test workflow template in `.warp/workflows/run_unit_test.yaml`.
+- `cargo test --package warp --lib local_mode -- --nocapture` - focused Local-only Mode policy and identity tests.
+- `cargo test --package warp --lib tui::tests -- --nocapture` - focused TUI startup mode tests, including Local-only/Anonymous-only branching when present.
 - `WARPUI_USE_REAL_DISPLAY_IN_INTEGRATION_TESTS=1 cargo test --package integration --test integration -- <test>` - integration-test workflow template in `.warp/workflows/run_integration_test.yaml`.
 - `crates/warp_graphql_schema/package.json`: `yarn generate` or equivalent package-manager invocation for the detected `generate` script. Needs human confirmation before using as a standard command.
 - `crates/command-signatures-v2/js/package.json`: package scripts `build`, `clean`, and `watch`. Needs human confirmation before using as standard checks.
@@ -49,4 +51,5 @@ Run:
 - Presubmit can be expensive. For narrow work, run focused tests first, then `./scripts/check.sh` before PR-ready handoff.
 - GUI integration tests are GUI-only and may require a real display.
 - TUI changes should prefer TUI render-to-lines tests and, when needed, terminal verification.
+- Local-only Mode changes should include focused tests for both flag-enabled and flag-disabled behavior, plus a manual run that confirms startup does not contact Warp identity/cloud/telemetry endpoints.
 - Do not add `pnpm`, `npm`, `pytest`, or `make` checks unless a repo wrapper or task-specific verification establishes them.

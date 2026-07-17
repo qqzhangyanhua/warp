@@ -3,6 +3,7 @@
 ## High-Risk Areas
 - Auth and authentication:
   - `app/src/auth/`
+  - `app/src/local_mode.rs`
   - `app/src/server/server_api/auth.rs`
   - `app/src/remote_server/auth_context.rs`
   - `app/src/remote_server/auth_provider.rs`
@@ -18,6 +19,8 @@
 - Billing:
   - `app/src/billing/`
   - `app/src/settings_view/billing_and_usage*`
+  - `app/src/ai/request_usage_model.rs`
+  - Agent quota/credit handling under `app/src/ai/blocklist/`
   - `crates/graphql/src/api/billing.rs`
   - `crates/graphql/src/api/mutations/stripe_billing_portal.rs`
   - billing-related migrations.
@@ -39,6 +42,8 @@
   - `crates/graphql/`
   - `crates/warp_graphql_schema/`
   - `crates/warp_server_client/`
+  - `crates/warp_multi_agent_client/`
+  - MultiAgent request/response wiring under `app/src/ai/agent/api/`
   - `crates/ipc/src/protocol.rs`
   - `crates/local_control/src/protocol.rs`
   - `app/src/terminal/local_tty/server/protocol.rs`
@@ -52,7 +57,7 @@
 
 ## Rules
 - Do not edit generated files directly.
-- Do not change auth, billing, permissions, migrations, infra, secrets, or public APIs without explicit risk notes and focused verification.
+- Do not change auth, billing, permissions, migrations, infra, secrets, Local-only/Anonymous-only network boundaries, or public APIs without explicit risk notes and focused verification.
 - Do not drop, rename, or rewrite persisted data without a compatibility plan.
 - Do not change release or deployment scripts casually.
 - Keep terminal model lock scopes short and verify callers are not already holding the same lock.
