@@ -8,9 +8,9 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **1546** |
-| English table (`en_text`) | **1546** complete |
-| Chinese table (`zh_cn_text`) | **1546** complete |
+| `Message` variants | **1650** |
+| English table (`en_text`) | **1650** complete |
+| Chinese table (`zh_cn_text`) | **1650** complete |
 | Call sites | ~1000+ across 75+ files |
 
 ### What the 157 messages cover
@@ -279,7 +279,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 | Bucket | Status | Rough user-visible strings |
 |--------|--------|----------------------------|
-| Already i18n (1546 `Message`s) | Done | ~1540+ |
+| Already i18n (1650 `Message`s) | Done | ~1650+ |
 | P0 first-run / login / anonymous | Done | ~80–120 |
 | P1 Settings residuals | Done | ~80–120 |
 | P2 full Settings pages | Done (Teams confirm dialogs + Environments residual) | ~250–400 |
@@ -351,4 +351,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-17. Batch 12: Agent blocklist chrome, AI document menus, agent management filters, shared-session pane menus, secrets loading states. Message catalog 1546 variants._
+_Last updated: 2026-07-17. Batch 13: migrate terminal/workspace menu bridges to Message; agent filter prefixes/sources; MCP delete dialog; HOA buttons; Add router. Message catalog 1650 variants._

@@ -488,7 +488,7 @@ impl AgentManagementView {
         };
 
         let mut dropdown = Dropdown::new(ctx);
-        Self::setup_filter_menu(&mut dropdown, "Status", ctx);
+        Self::setup_filter_menu(&mut dropdown, tr_cached(Message::AgentFilterStatus), ctx);
 
         // Use this helper to make dropdown items with status icons
         let make_status_option =
@@ -533,7 +533,7 @@ impl AgentManagementView {
         ctx: &mut ViewContext<Dropdown<AgentManagementViewAction>>,
     ) -> Dropdown<AgentManagementViewAction> {
         let mut dropdown = Dropdown::new(ctx);
-        Self::setup_filter_menu(&mut dropdown, "Source", ctx);
+        Self::setup_filter_menu(&mut dropdown, tr_cached(Message::AgentFilterSource), ctx);
         // Set a max height so we can fit all of the source options without scrolling
         dropdown.set_menu_max_height(200., ctx);
 
@@ -570,7 +570,7 @@ impl AgentManagementView {
         )];
         for source in sources {
             items.push(MenuItem::Item(
-                MenuItemFields::new(source.display_name()).with_on_select_action(
+                MenuItemFields::new(localized_agent_source_name(&source)).with_on_select_action(
                     DropdownAction::select_action_and_close(
                         AgentManagementViewAction::SetSourceFilter(SourceFilter::Specific(source)),
                     ),
@@ -597,7 +597,7 @@ impl AgentManagementView {
         ctx: &mut ViewContext<Dropdown<AgentManagementViewAction>>,
     ) -> Dropdown<AgentManagementViewAction> {
         let mut dropdown = Dropdown::new(ctx);
-        Self::setup_filter_menu(&mut dropdown, "Created on", ctx);
+        Self::setup_filter_menu(&mut dropdown, tr_cached(Message::AgentFilterCreatedOn), ctx);
 
         let items = vec![
             MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentMgmtAll)).with_on_select_action(
@@ -631,7 +631,7 @@ impl AgentManagementView {
         ctx: &mut ViewContext<Dropdown<AgentManagementViewAction>>,
     ) -> Dropdown<AgentManagementViewAction> {
         let mut dropdown = Dropdown::new(ctx);
-        Self::setup_filter_menu(&mut dropdown, "Has artifact", ctx);
+        Self::setup_filter_menu(&mut dropdown, tr_cached(Message::AgentFilterHasArtifact), ctx);
 
         let items = vec![
             MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentMgmtAll)).with_on_select_action(
@@ -670,7 +670,7 @@ impl AgentManagementView {
         ctx: &mut ViewContext<Dropdown<AgentManagementViewAction>>,
     ) -> Dropdown<AgentManagementViewAction> {
         let mut dropdown = Dropdown::new(ctx);
-        Self::setup_filter_menu(&mut dropdown, "Harness", ctx);
+        Self::setup_filter_menu(&mut dropdown, tr_cached(Message::AgentFilterHarness), ctx);
 
         let items = Self::build_harness_dropdown_items(ctx);
         dropdown.set_rich_items(items, ctx);
@@ -708,22 +708,27 @@ impl AgentManagementView {
         ctx: &mut ViewContext<FilterableDropdown<AgentManagementViewAction>>,
     ) -> FilterableDropdown<AgentManagementViewAction> {
         let mut dropdown = FilterableDropdown::new(ctx);
-        Self::setup_searchable_filter_menu(&mut dropdown, "Environment", ctx);
+        Self::setup_searchable_filter_menu(
+            &mut dropdown,
+            tr_cached(Message::AgentFilterEnvironment),
+            ctx,
+        );
 
         // Keep the button compact when a specific environment ID is selected by abbreviating the
         // displayed ID. (The dropdown menu still shows the full ID.)
         dropdown.set_menu_header_text_override(|text| {
+            let prefix = tr_cached(Message::AgentFilterEnvironment);
             let all = tr_cached(Message::AgentMgmtAll);
             let none = tr_cached(Message::AgentFilterNone);
             if text == all || text == none {
-                return format!("Environment: {text}");
+                return format!("{prefix}: {text}");
             }
 
             let abbreviated = text.chars().take(6).collect::<String>();
             if abbreviated == text {
-                format!("Environment: {text}")
+                format!("{prefix}: {text}")
             } else {
-                format!("Environment: {abbreviated}…")
+                format!("{prefix}: {abbreviated}…")
             }
         });
 
@@ -737,7 +742,11 @@ impl AgentManagementView {
         ctx: &mut ViewContext<FilterableDropdown<AgentManagementViewAction>>,
     ) -> FilterableDropdown<AgentManagementViewAction> {
         let mut dropdown = FilterableDropdown::new(ctx);
-        Self::setup_searchable_filter_menu(&mut dropdown, "Created by", ctx);
+        Self::setup_searchable_filter_menu(
+            &mut dropdown,
+            tr_cached(Message::AgentFilterCreatedBy),
+            ctx,
+        );
         dropdown
     }
 
@@ -2398,5 +2407,18 @@ impl TypedActionView for AgentManagementView {
                 ctx.focus(&self.search_editor);
             }
         }
+    }
+}
+
+fn localized_agent_source_name(source: &AgentSource) -> &'static str {
+    match source {
+        AgentSource::Linear => tr_cached(Message::AgentSourceLinear),
+        AgentSource::AgentWebhook => tr_cached(Message::AgentSourceApi),
+        AgentSource::Slack => tr_cached(Message::AgentSourceSlack),
+        AgentSource::Cli => tr_cached(Message::AgentSourceCli),
+        AgentSource::ScheduledAgent => tr_cached(Message::AgentSourceScheduled),
+        AgentSource::Interactive | AgentSource::CloudMode => tr_cached(Message::AgentSourceWarpApp),
+        AgentSource::WebApp => tr_cached(Message::AgentSourceOzWeb),
+        AgentSource::GitHubAction => tr_cached(Message::AgentSourceGitHubAction),
     }
 }

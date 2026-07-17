@@ -24,6 +24,7 @@ use warpui::{
 };
 
 use super::{tab_config_step, welcome_banner};
+use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::settings::AISettings;
 use crate::tab_configs::session_config::{is_git_repo, SessionConfigSelection, SessionType};
@@ -207,7 +208,7 @@ impl HoaOnboardingFlow {
         });
 
         let cta_button = ctx.add_view(|_ctx| {
-            ActionButton::new("See what's new", HoaWelcomeModalButtonTheme)
+            ActionButton::new(tr_cached(Message::HoaSeeWhatsNew), HoaWelcomeModalButtonTheme)
                 .with_full_width(true)
                 .on_click(|ctx| ctx.dispatch_typed_action(HoaOnboardingAction::AdvanceFromWelcome))
         });
@@ -215,7 +216,7 @@ impl HoaOnboardingFlow {
         let enter = Keystroke::parse("enter").unwrap_or_default();
 
         let next_vtabs_button = ctx.add_view(|ctx| {
-            ActionButton::new("Next", HoaPrimaryButtonTheme)
+            ActionButton::new(tr_cached(Message::CommonNext), HoaPrimaryButtonTheme)
                 .with_keybinding(KeystrokeSource::Fixed(enter.clone()), ctx)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(HoaOnboardingAction::AdvanceFromVerticalTabs)
@@ -223,19 +224,19 @@ impl HoaOnboardingFlow {
         });
 
         let dismiss_vtabs_button = ctx.add_view(|ctx| {
-            ActionButton::new("Dismiss", HoaPrimaryButtonTheme)
+            ActionButton::new(tr_cached(Message::AuthDismiss), HoaPrimaryButtonTheme)
                 .with_keybinding(KeystrokeSource::Fixed(enter.clone()), ctx)
                 .on_click(|ctx| ctx.dispatch_typed_action(HoaOnboardingAction::Dismiss))
         });
 
         let next_inbox_button = ctx.add_view(|ctx| {
-            ActionButton::new("Next", HoaPrimaryButtonTheme)
+            ActionButton::new(tr_cached(Message::CommonNext), HoaPrimaryButtonTheme)
                 .with_keybinding(KeystrokeSource::Fixed(enter.clone()), ctx)
                 .on_click(|ctx| ctx.dispatch_typed_action(HoaOnboardingAction::AdvanceFromInbox))
         });
 
         let finish_button = ctx.add_view(|ctx| {
-            ActionButton::new("Finish", HoaPrimaryButtonTheme)
+            ActionButton::new(tr_cached(Message::CommonFinish), HoaPrimaryButtonTheme)
                 .with_keybinding(KeystrokeSource::Fixed(enter), ctx)
                 .on_click(|ctx| ctx.dispatch_typed_action(HoaOnboardingAction::Finish))
         });

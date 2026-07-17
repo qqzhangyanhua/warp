@@ -1703,7 +1703,7 @@ impl AISettingsPageView {
         let router_views = Self::create_router_views(ctx);
         #[cfg(feature = "local_fs")]
         let add_router_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("+ Add router", SecondaryTheme)
+            ActionButton::new(tr_cached(Message::AiAddRouter), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(AISettingsPageAction::OpenAddCustomRouter);

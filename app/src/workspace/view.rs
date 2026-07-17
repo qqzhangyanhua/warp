@@ -573,63 +573,71 @@ const PILL_FONT_SIZE: f32 = 12.;
 
 const TAB_BAR_OVERFLOW_MENU_WIDTH: f32 = 300.;
 
-fn workspace_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-        return Cow::Borrowed(text);
-    }
-
-    Cow::Borrowed(match text {
-        "Update ZYH manually" => "手动更新 ZYH",
-        "Update and relaunch Warp" => "更新并重新启动 Warp",
-        "What's new" => "最新变化",
-        "Settings" => "设置",
-        "Keyboard shortcuts" => "键盘快捷键",
-        "Documentation" => "文档",
-        "Feedback" => "反馈",
-        "View Warp logs" => "查看 Warp 日志",
-        "Join our Slack community" => "加入我们的 Slack 社区",
-        "Sign up" => "注册",
-        "Billing and usage" => "账单和用量",
-        "Upgrade" => "升级",
-        "Invite a friend" => "邀请朋友",
-        "Log out" => "退出登录",
-        "Close all tabs in group" => "关闭组内所有标签页",
-        "Close other tabs" => "关闭其他标签页",
-        "Close tabs above" => "关闭上方标签页",
-        "Close tabs to the left" => "关闭左侧标签页",
-        "Close tabs below" => "关闭下方标签页",
-        "Close tabs to the right" => "关闭右侧标签页",
-        "Unpin group" => "取消固定分组",
-        "Pin group" => "固定分组",
-        "Ungroup tabs" => "取消标签页分组",
-        "New tab in group" => "在组中新建标签页",
-        "Rename" => "重命名",
-        "Rename active pane" => "重命名活动面板",
-        "Reset active pane name" => "重置活动面板名称",
-        "Show in file explorer" => "在文件浏览器中显示",
-        "Failed to load conversation." => "加载对话失败。",
-        "Failed to load conversation for forking." => "加载用于分叉的对话失败。",
-        "Conversation forking failed." => "对话分叉失败。",
-        "Conversation" => "对话",
-        "Looks like you're out of AI credits." => "看起来你的 AI 点数已用完。",
-        "Upgrade for more credits." => "升级以获取更多点数。",
-        "Learn more" => "了解更多",
-        "Troubleshoot notifications" => "排查通知问题",
-        "View changelog" => "查看变更日志",
-        "Warp updated!" => "Warp 已更新！",
-        "This plan is already in context." => "此计划已在上下文中。",
-        "Cannot open a new terminal session" => "无法打开新的终端会话",
-        "View" => "查看",
-        "Undo" => "撤销",
-        "Disabled all synchronized inputs." => "已禁用所有同步输入。",
-        "Sampling process for 3 seconds..." => "正在采样进程 3 秒...",
-        "Conversation deleted" => "对话已删除",
-        "New Tab" => "新建标签页",
-        "Tab configs" => "标签页配置",
-        "Some features may be unavailable offline" => "离线时部分功能可能不可用",
-        " + Add new repo" => " + 添加新仓库",
-        _ => text,
+fn workspace_menu_message(text: &str) -> Option<Message> {
+    Some(match text {
+        "Update ZYH manually" => Message::AccountUpdateWarpManually,
+        "Update and relaunch Warp" => Message::WorkspaceUpdateAndRelaunch,
+        "What's new" => Message::WorkspaceWhatsNew,
+        "Settings" => Message::WorkspaceSettings,
+        "Keyboard shortcuts" => Message::SettingsSectionKeybindings,
+        "Documentation" => Message::WorkspaceDocumentation,
+        "Feedback" => Message::WorkspaceFeedback,
+        "View Warp logs" => Message::WorkspaceViewWarpLogs,
+        "Join our Slack community" => Message::WorkspaceJoinSlackCommunity,
+        "Sign up" => Message::AiSignUp,
+        "Billing and usage" => Message::SettingsSectionBillingAndUsage,
+        "Upgrade" => Message::AiUpgrade,
+        "Invite a friend" => Message::WorkspaceInviteAFriend,
+        "Log out" => Message::AccountLogOut,
+        "Close all tabs in group" => Message::WorkspaceCloseAllTabsInGroup,
+        "Close other tabs" => Message::TabCloseOtherTabs,
+        "Close tabs above" => Message::WorkspaceCloseTabsAbove,
+        "Close tabs to the left" => Message::WorkspaceCloseTabsToTheLeft,
+        "Close tabs below" => Message::WorkspaceCloseTabsBelow,
+        "Close tabs to the right" => Message::WorkspaceCloseTabsToTheRight,
+        "Unpin group" => Message::WorkspaceUnpinGroup,
+        "Pin group" => Message::WorkspacePinGroup,
+        "Ungroup tabs" => Message::WorkspaceUngroupTabs,
+        "New tab in group" => Message::WorkspaceNewTabInGroup,
+        "Rename" => Message::CodeRename,
+        "Rename active pane" => Message::WorkspaceRenameActivePane,
+        "Reset active pane name" => Message::WorkspaceResetActivePaneName,
+        "Show in file explorer" => Message::WorkspaceShowInFileExplorer,
+        "Failed to load conversation." => Message::WorkspaceFailedLoadConversation,
+        "Failed to load conversation for forking." => Message::WorkspaceFailedLoadConversationFork,
+        "Conversation forking failed." => Message::WorkspaceConversationForkingFailed,
+        "Conversation" => Message::WorkspaceConversation,
+        "Looks like you're out of AI credits." => Message::WorkspaceOutOfAiCredits,
+        "Upgrade for more credits." => Message::WorkspaceUpgradeForMoreCredits,
+        "Learn more" => Message::AiLearnMore,
+        "Troubleshoot notifications" => Message::WorkspaceTroubleshootNotifications,
+        "View changelog" => Message::WorkspaceViewChangelog,
+        "Warp updated!" => Message::WorkspaceWarpUpdated,
+        "This plan is already in context." => Message::WorkspacePlanAlreadyInContext,
+        "Cannot open a new terminal session" => Message::WorkspaceCannotOpenNewTerminal,
+        "View" => Message::SharedViewRole,
+        "Undo" => Message::CodeReviewUndo,
+        "Disabled all synchronized inputs." => Message::WorkspaceDisabledAllSyncedInputs,
+        "Sampling process for 3 seconds..." => Message::WorkspaceSamplingProcess,
+        "Conversation deleted" => Message::WorkspaceConversationDeleted,
+        "New Tab" => Message::AiNewTab,
+        "Tab configs" => Message::WorkspaceTabConfigs,
+        "Some features may be unavailable offline" => Message::WorkspaceFeaturesUnavailableOffline,
+        " + Add new repo" => Message::WorkspaceAddNewRepo,
+        "Move group up" => Message::WorkspaceMoveGroupUp,
+        "Move group down" => Message::WorkspaceMoveGroupDown,
+        "Move group left" => Message::WorkspaceMoveGroupLeft,
+        "Move group right" => Message::WorkspaceMoveGroupRight,
+        _ => return None,
     })
+}
+
+fn workspace_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+    if let Some(message) = workspace_menu_message(text) {
+        Cow::Borrowed(tr(ctx, message))
+    } else {
+        Cow::Borrowed(text)
+    }
 }
 
 fn workspace_menu_fields(ctx: &AppContext, label: &'static str) -> MenuItemFields<WorkspaceAction> {
@@ -637,28 +645,10 @@ fn workspace_menu_fields(ctx: &AppContext, label: &'static str) -> MenuItemField
 }
 
 fn workspace_group_menu_fields(
-    is_zh_cn: bool,
+    ctx: &AppContext,
     label: &'static str,
 ) -> MenuItemFields<WorkspaceAction> {
-    let label = if is_zh_cn {
-        match label {
-            "Close all tabs in group" => "关闭组内所有标签页",
-            "Close other tabs" => "关闭其他标签页",
-            "Close tabs above" => "关闭上方标签页",
-            "Close tabs to the left" => "关闭左侧标签页",
-            "Close tabs below" => "关闭下方标签页",
-            "Close tabs to the right" => "关闭右侧标签页",
-            "Unpin group" => "取消固定分组",
-            "Pin group" => "固定分组",
-            "Ungroup tabs" => "取消标签页分组",
-            "New tab in group" => "在组中新建标签页",
-            "Rename" => "重命名",
-            _ => label,
-        }
-    } else {
-        label
-    };
-    MenuItemFields::new(label)
+    MenuItemFields::new(workspace_menu_text(ctx, label).into_owned())
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -7805,7 +7795,7 @@ impl Workspace {
             group_id,
             uses_vertical_tabs(ctx),
             terminal_colors,
-            crate::i18n::active_locale(ctx) == crate::i18n::Locale::ZhCn,
+            ctx,
         );
         ctx.update_view(&self.tab_right_click_menu, |context_menu, view_ctx| {
             context_menu.set_items(menu_items, view_ctx);
@@ -9890,7 +9880,7 @@ impl Workspace {
         group_id: TabGroupId,
         is_vertical: bool,
         terminal_colors: AnsiColors,
-        is_zh_cn: bool,
+        ctx: &AppContext,
     ) -> Vec<MenuItem<WorkspaceAction>> {
         let Some((first, last)) = group_member_index_range(&self.tabs, group_id) else {
             return vec![];
@@ -9913,7 +9903,7 @@ impl Workspace {
                     "Move group left"
                 };
                 items.push(
-                    workspace_group_menu_fields(is_zh_cn, label)
+                    workspace_group_menu_fields(ctx, label)
                         .with_on_select_action(WorkspaceAction::MoveTabGroupUp(group_id))
                         .into_item(),
                 );
@@ -9925,7 +9915,7 @@ impl Workspace {
                     "Move group right"
                 };
                 items.push(
-                    workspace_group_menu_fields(is_zh_cn, label)
+                    workspace_group_menu_fields(ctx, label)
                         .with_on_select_action(WorkspaceAction::MoveTabGroupDown(group_id))
                         .into_item(),
                 );
@@ -9935,13 +9925,13 @@ impl Workspace {
 
         let close_section = {
             let mut items = vec![
-                workspace_group_menu_fields(is_zh_cn, "Close all tabs in group")
+                workspace_group_menu_fields(ctx, "Close all tabs in group")
                     .with_on_select_action(WorkspaceAction::CloseTabGroup(group_id))
                     .into_item(),
             ];
             if has_tabs_outside {
                 items.push(
-                    workspace_group_menu_fields(is_zh_cn, "Close other tabs")
+                    workspace_group_menu_fields(ctx, "Close other tabs")
                         .with_on_select_action(WorkspaceAction::CloseTabsOutsideGroup(group_id))
                         .into_item(),
                 );
@@ -9953,7 +9943,7 @@ impl Workspace {
                     "Close tabs to the left"
                 };
                 items.push(
-                    workspace_group_menu_fields(is_zh_cn, label)
+                    workspace_group_menu_fields(ctx, label)
                         .with_on_select_action(WorkspaceAction::CloseTabsAboveGroup(group_id))
                         .into_item(),
                 );
@@ -9965,7 +9955,7 @@ impl Workspace {
                     "Close tabs to the right"
                 };
                 items.push(
-                    workspace_group_menu_fields(is_zh_cn, label)
+                    workspace_group_menu_fields(ctx, label)
                         .with_on_select_action(WorkspaceAction::CloseTabsBelowGroup(group_id))
                         .into_item(),
                 );
@@ -9979,7 +9969,7 @@ impl Workspace {
             } else {
                 ("Pin group", WorkspaceAction::PinTabGroup(group_id))
             };
-            vec![workspace_group_menu_fields(is_zh_cn, label)
+            vec![workspace_group_menu_fields(ctx, label)
                 .with_on_select_action(action)
                 .into_item()]
         } else {
@@ -10004,15 +9994,15 @@ impl Workspace {
         for section_items in [
             pin_section,
             vec![
-                workspace_group_menu_fields(is_zh_cn, "Ungroup tabs")
+                workspace_group_menu_fields(ctx, "Ungroup tabs")
                     .with_on_select_action(WorkspaceAction::UngroupTabs(group_id))
                     .into_item(),
-                workspace_group_menu_fields(is_zh_cn, "New tab in group")
+                workspace_group_menu_fields(ctx, "New tab in group")
                     .with_on_select_action(WorkspaceAction::NewTabInGroup(group_id))
                     .into_item(),
             ],
             move_section,
-            vec![workspace_group_menu_fields(is_zh_cn, "Rename")
+            vec![workspace_group_menu_fields(ctx, "Rename")
                 .with_on_select_action(WorkspaceAction::RenameTabGroup(group_id))
                 .into_item()],
             close_section,

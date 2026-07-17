@@ -327,7 +327,7 @@ use crate::env_vars::env_var_collection_block::{
 };
 use crate::env_vars::{CloudEnvVarCollection, EnvVar, EnvVarExt};
 use crate::features::FeatureFlag;
-use crate::i18n::{tr_cached, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::{
@@ -653,70 +653,74 @@ const P10K_UPDATE_INSTRUCTIONS_URL: &str =
 
 const CONTEXT_MENU_WIDTH: f32 = 280.;
 
-pub(super) fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-        return Cow::Borrowed(text);
-    }
-
-    Cow::Borrowed(match text {
-        "Copy URL" => "复制 URL",
-        "Copy path" => "复制路径",
-        "Show in Finder" => "在 Finder 中显示",
-        "Show containing folder" => "显示所在文件夹",
-        "Open in Warp" => "在 Warp 中打开",
-        "Open in editor" => "在编辑器中打开",
-        "Copy" => "复制",
-        "Insert into input" => "插入到输入框",
-        "Copy command" => "复制命令",
-        "Copy commands" => "复制命令",
-        "Share block..." => "共享块...",
-        "Share..." => "共享...",
-        "Save as workflow" => "保存为工作流",
-        "Save as prompt" => "保存为提示词",
-        "Copy share link" => "复制分享链接",
-        "Share conversation" => "分享对话",
-        "Copy conversation text" => "复制对话文本",
-        "Ask Warp AI" => "询问 Warp AI",
-        "Copy output" => "复制输出",
-        "Copy output as Markdown" => "以 Markdown 格式复制输出",
-        "Copy filtered output" => "复制筛选后的输出",
-        "Find within block" => "在块内查找",
-        "Find within blocks" => "在块内查找",
-        "Toggle block filter" => "切换块筛选器",
-        "Toggle bookmark" => "切换书签",
-        "Scroll to top of block" => "滚动到块顶部",
-        "Scroll to top of blocks" => "滚动到块顶部",
-        "Scroll to bottom of block" => "滚动到块底部",
-        "Scroll to bottom of blocks" => "滚动到块底部",
-        "Fork from here (dev only)" => "从这里分叉（仅开发）",
-        "Fork from here" => "从这里分叉",
-        "Fork" => "分叉",
-        "Rewind to before here" => "回退到此处之前",
-        "Clear Blocks" => "清除块",
-        "Copy prompt" => "复制提示符",
-        "Copy right prompt" => "复制右侧提示符",
-        "Copy working directory" => "复制工作目录",
-        "Copy git branch" => "复制 Git 分支",
-        "Split pane right" => "向右拆分面板",
-        "Split pane left" => "向左拆分面板",
-        "Split pane down" => "向下拆分面板",
-        "Split pane up" => "向上拆分面板",
-        "Close pane" => "关闭面板",
-        "Edit CLI agent toolbelt" => "编辑 CLI Agent 工具栏",
-        "Edit agent toolbelt" => "编辑 Agent 工具栏",
-        "Edit prompt" => "编辑提示符",
-        "Cut" => "剪切",
-        "Select all" => "全选",
-        "Paste" => "粘贴",
-        "Command search" => "命令搜索",
-        "AI command search" => "AI 命令搜索",
-        "Show input hint text" => "显示输入提示文本",
-        "Hide input hint text" => "隐藏输入提示文本",
-        "PowerShell subshells not supported" => "不支持 PowerShell 子 shell",
-        "Notification" => "通知",
-        "An unknown error occurred" => "发生未知错误",
-        _ => text,
+fn terminal_menu_message(text: &str) -> Option<Message> {
+    Some(match text {
+        "Copy URL" => Message::AiCopyUrl,
+        "Copy path" => Message::CodeCopyPath,
+        "Show in Finder" => Message::TerminalShowInFinder,
+        "Show containing folder" => Message::TerminalShowContainingFolder,
+        "Open in Warp" => Message::SharedOpenInWarp,
+        "Open in editor" => Message::NotebookOpenInEditor,
+        "Copy" => Message::CommonCopy,
+        "Insert into input" => Message::TerminalInsertIntoInput,
+        "Copy command" => Message::TerminalCopyCommand,
+        "Copy commands" => Message::TerminalCopyCommands,
+        "Share block..." => Message::TerminalShareBlockEllipsis,
+        "Share..." => Message::TerminalShareEllipsis,
+        "Save as workflow" => Message::TerminalSaveAsWorkflow,
+        "Save as prompt" => Message::TerminalSaveAsPrompt,
+        "Copy share link" => Message::TerminalCopyShareLink,
+        "Share conversation" => Message::ConversationShareConversation,
+        "Copy conversation text" => Message::TerminalCopyConversationText,
+        "Ask Warp AI" => Message::TerminalAskWarpAi,
+        "Copy output" => Message::TerminalCopyOutput,
+        "Copy output as Markdown" => Message::TerminalCopyOutputAsMarkdown,
+        "Copy filtered output" => Message::TerminalCopyFilteredOutput,
+        "Find within block" => Message::TerminalFindWithinBlock,
+        "Find within blocks" => Message::TerminalFindWithinBlocks,
+        "Toggle block filter" => Message::TerminalToggleBlockFilter,
+        "Toggle bookmark" => Message::TerminalToggleBookmark,
+        "Scroll to top of block" => Message::TerminalScrollTopBlock,
+        "Scroll to top of blocks" => Message::TerminalScrollTopBlocks,
+        "Scroll to bottom of block" => Message::TerminalScrollBottomBlock,
+        "Scroll to bottom of blocks" => Message::TerminalScrollBottomBlocks,
+        "Fork from here (dev only)" => Message::TerminalForkFromHereDev,
+        "Fork from here" => Message::TerminalForkFromHere,
+        "Fork" => Message::TerminalFork,
+        "Rewind to before here" => Message::TerminalRewindToBeforeHere,
+        "Clear Blocks" => Message::TerminalClearBlocks,
+        "Copy prompt" => Message::TerminalCopyPrompt,
+        "Copy right prompt" => Message::TerminalCopyRightPrompt,
+        "Copy working directory" => Message::TerminalCopyWorkingDirectory,
+        "Copy git branch" => Message::TerminalCopyGitBranch,
+        "Split pane right" => Message::SettingsSplitPaneRight,
+        "Split pane left" => Message::SettingsSplitPaneLeft,
+        "Split pane down" => Message::SettingsSplitPaneDown,
+        "Split pane up" => Message::SettingsSplitPaneUp,
+        "Close pane" => Message::SettingsClosePane,
+        "Edit CLI agent toolbelt" => Message::TerminalEditCliAgentToolbelt,
+        "Edit agent toolbelt" => Message::TerminalEditAgentToolbelt,
+        "Edit prompt" => Message::TerminalEditPrompt,
+        "Cut" => Message::CommonCut,
+        "Select all" => Message::CodeSelectAll,
+        "Paste" => Message::AuthPaste,
+        "Command search" => Message::TerminalCommandSearch,
+        "AI command search" => Message::TerminalAiCommandSearch,
+        "Show input hint text" => Message::AiShowInputHintText,
+        "Hide input hint text" => Message::TerminalHideInputHintText,
+        "PowerShell subshells not supported" => Message::TerminalPowershellSubshellsNotSupported,
+        "Notification" => Message::TerminalNotification,
+        "An unknown error occurred" => Message::TerminalUnknownErrorOccurred,
+        _ => return None,
     })
+}
+
+pub(super) fn terminal_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+    if let Some(message) = terminal_menu_message(text) {
+        Cow::Borrowed(tr(ctx, message))
+    } else {
+        Cow::Borrowed(text)
+    }
 }
 
 pub(super) fn terminal_menu_fields(
