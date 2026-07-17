@@ -4058,12 +4058,10 @@ impl TerminalView {
 
         let osc52_clipboard_blocked_banner = ctx.add_typed_action_view(|_| {
             Banner::<TerminalAction>::new_with_buttons(
-                BannerTextContent::plain_text(
-                    "A terminal program tried to access your clipboard. This is disabled by default for security reasons.",
-                ),
+                BannerTextContent::plain_text(tr_cached(Message::TerminalOsc52ClipboardBlocked)),
                 vec![
                     BannerTextButton::new(
-                        "Allow".to_string(),
+                        tr_cached(Message::TerminalAllow).to_string(),
                         Rc::new(|event_ctx, _ctx, _position| {
                             event_ctx.dispatch_typed_action(BannerAction::<TerminalAction>::Action(
                                 TerminalAction::Osc52AllowBlockedClipboardOperation,
@@ -4071,7 +4069,7 @@ impl TerminalView {
                         }),
                     ),
                     BannerTextButton::new(
-                        "Don't show again".to_string(),
+                        tr_cached(Message::TerminalDontShowAgain).to_string(),
                         Rc::new(|event_ctx, _ctx, _position| {
                             event_ctx.dispatch_typed_action(
                                 BannerAction::<TerminalAction>::Dismiss(DismissalType::Permanent),
@@ -13096,15 +13094,22 @@ impl TerminalView {
                     .as_ref(app)
                     .remote_server_setup_state(sid)
                     .map(|state| match state {
-                        RemoteServerSetupState::Checking => "Checking...".to_string(),
+                        RemoteServerSetupState::Checking => {
+                            tr_cached(Message::TerminalChecking).to_string()
+                        }
                         RemoteServerSetupState::Installing {
                             progress_percent: Some(p),
-                        } => format!("Installing... ({p}%)"),
+                        } => tr_cached(Message::TerminalInstallingPct)
+                            .replace("{p}", &p.to_string()),
                         RemoteServerSetupState::Installing {
                             progress_percent: None,
-                        } => "Installing...".to_string(),
-                        RemoteServerSetupState::Updating => "Updating...".to_string(),
-                        RemoteServerSetupState::Initializing => "Initializing...".to_string(),
+                        } => tr_cached(Message::TerminalInstalling).to_string(),
+                        RemoteServerSetupState::Updating => {
+                            tr_cached(Message::TerminalUpdating).to_string()
+                        }
+                        RemoteServerSetupState::Initializing => {
+                            tr_cached(Message::TerminalInitializing).to_string()
+                        }
                         _ => tr_cached(Message::TerminalStartingShell).to_string(),
                     })
             })
@@ -23513,7 +23518,7 @@ impl TerminalView {
         render_hoverable_block_button(
             icon,
             Some(ToolbeltButtonTooltip {
-                label: "Bookmark this block to quickly scroll to it".to_string(),
+                label: tr_cached(Message::TerminalBookmarkBlock).to_string(),
                 tool_tip_below_button,
             }),
             false,

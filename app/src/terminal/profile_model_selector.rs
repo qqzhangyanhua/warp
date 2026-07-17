@@ -1965,7 +1965,12 @@ impl ProfileModelSelector {
             Flex::row()
                 .with_main_axis_size(MainAxisSize::Max)
                 .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                .with_child(self.render_model_spec_value_label("Cost".to_string(), app))
+                .with_child(
+                    self.render_model_spec_value_label(
+                        tr_cached(Message::TerminalCost).to_string(),
+                        app,
+                    ),
+                )
                 .with_child(
                     Expanded::new(
                         1.,
@@ -2028,7 +2033,7 @@ impl ProfileModelSelector {
             spec_values.push(self.render_model_spec_api_key(byo_key_source, app));
         } else {
             spec_values.push(self.render_model_spec_value(
-                "Cost".to_string(),
+                tr_cached(Message::TerminalCost).to_string(),
                 spec.cost,
                 bg_bar_color,
                 app,
@@ -2048,7 +2053,7 @@ impl ProfileModelSelector {
         let theme = appearance.theme();
         let header = self.render_model_spec_header(
             tr_cached(Message::TerminalModelSpecs).to_string(),
-            "Warp’s benchmarks for how well a model performs in our harness, the rate at which it consumes credits, and task speed.".to_string(),
+            tr_cached(Message::TerminalModelSpecsDescription).to_string(),
             app,
         );
         let spec = self.render_all_model_spec_values(
@@ -2088,11 +2093,11 @@ impl ProfileModelSelector {
         let (title, description) = match kind {
             ModelSpecSidecarKind::Auto => (
                 tr_cached(Message::TerminalAutoMode),
-                "Auto will select the best model for the task. Cost-efficiency optimizes for cost, Responsiveness optimizes for response speed.",
+                tr_cached(Message::TerminalAutoModeDescription),
             ),
             ModelSpecSidecarKind::Reasoning => (
                 tr_cached(Message::TerminalReasoningLevel),
-                "Increased reasoning levels consume more credits and have higher latency, but higher performance for complicated tasks.",
+                tr_cached(Message::TerminalReasoningLevelDescription),
             ),
         };
 

@@ -28,6 +28,7 @@ use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::appearance::Appearance;
 use crate::drive::sharing::ShareableObject;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::{PaneFocusHandle, PaneGroupFocusEvent, PaneGroupFocusState};
 use crate::pane_group::pane::view::header::components::{
@@ -675,7 +676,7 @@ impl BackingView for TerminalView {
             && ContextFlag::CreateSharedSession.is_enabled()
         {
             items.push(
-                MenuItemFields::new("Share session")
+                MenuItemFields::new(tr_cached(Message::SharedShareSession))
                     .with_on_select_action(TerminalAction::OpenShareSessionModal { source })
                     .into_item(),
             );

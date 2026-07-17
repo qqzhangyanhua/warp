@@ -676,9 +676,9 @@ impl UniversalDeveloperInputButtonBar {
         };
 
         let tooltip = if is_reader {
-            Some("Request edit access to change input mode".to_string())
+            Some(tr(ctx, Message::TerminalRequestEditAccessToChangeInputMode).to_string())
         } else if is_agent_in_control {
-            Some("Input mode locked while agent is monitoring a command".to_string())
+            Some(tr(ctx, Message::TerminalInputModeLockedAgentMonitoring).to_string())
         } else {
             None
         };

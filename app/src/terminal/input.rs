@@ -433,31 +433,31 @@ fn localized_agent_mode_hint(ctx: &AppContext, hint: &'static str) -> Cow<'stati
         return Cow::Borrowed(hint);
     }
 
-    Cow::Owned(hint.replacen("Warp anything e.g. ", "让 Warp 做任何事，例如：", 1))
+    Cow::Owned(hint.replacen("ZYH anything e.g. ", "让 ZYH 做任何事，例如：", 1))
 }
 
 // Rotating hint text options for new Agent Mode conversations
 const AGENT_MODE_HINT_OPTIONS: &[&str] = &[
-    "Warp anything e.g. Deploy my React app to Vercel and set up environment variables",
-    "Warp anything e.g. Help me debug why my Python tests are failing in CI",
-    "Warp anything e.g. Set up a new microservice with Docker and create the deployment pipeline",
-    "Warp anything e.g. Find and fix the memory leak in my Node.js application",
-    "Warp anything e.g. Create a backup script for my PostgreSQL database and schedule it",
-    "Warp anything e.g. Help me migrate my data from MySQL to PostgreSQL",
-    "Warp anything e.g. Set up monitoring and alerts for my AWS infrastructure",
-    "Warp anything e.g. Build a REST API for my mobile app using FastAPI",
-    "Warp anything e.g. Help me optimize my SQL queries that are running slowly",
-    "Warp anything e.g. Create a GitHub Actions workflow to automatically deploy on merge",
-    "Warp anything e.g. Set up Redis caching for my web application",
-    "Warp anything e.g. Help me troubleshoot why my Kubernetes pods keep crashing",
-    "Warp anything e.g. Build a data pipeline to process CSV files and load them into BigQuery",
-    "Warp anything e.g. Set up SSL certificates and configure HTTPS for my domain",
-    "Warp anything e.g. Help me refactor this legacy code to use modern design patterns",
-    "Warp anything e.g. Create unit tests for my authentication service",
-    "Warp anything e.g. Set up log aggregation with ELK stack for my distributed system",
-    "Warp anything e.g. Help me implement OAuth2 authentication in my Express.js app",
-    "Warp anything e.g. Optimize my Docker images to reduce build times and size",
-    "Warp anything e.g. Set up A/B testing infrastructure for my web application",
+    "ZYH anything e.g. Deploy my React app to Vercel and set up environment variables",
+    "ZYH anything e.g. Help me debug why my Python tests are failing in CI",
+    "ZYH anything e.g. Set up a new microservice with Docker and create the deployment pipeline",
+    "ZYH anything e.g. Find and fix the memory leak in my Node.js application",
+    "ZYH anything e.g. Create a backup script for my PostgreSQL database and schedule it",
+    "ZYH anything e.g. Help me migrate my data from MySQL to PostgreSQL",
+    "ZYH anything e.g. Set up monitoring and alerts for my AWS infrastructure",
+    "ZYH anything e.g. Build a REST API for my mobile app using FastAPI",
+    "ZYH anything e.g. Help me optimize my SQL queries that are running slowly",
+    "ZYH anything e.g. Create a GitHub Actions workflow to automatically deploy on merge",
+    "ZYH anything e.g. Set up Redis caching for my web application",
+    "ZYH anything e.g. Help me troubleshoot why my Kubernetes pods keep crashing",
+    "ZYH anything e.g. Build a data pipeline to process CSV files and load them into BigQuery",
+    "ZYH anything e.g. Set up SSL certificates and configure HTTPS for my domain",
+    "ZYH anything e.g. Help me refactor this legacy code to use modern design patterns",
+    "ZYH anything e.g. Create unit tests for my authentication service",
+    "ZYH anything e.g. Set up log aggregation with ELK stack for my distributed system",
+    "ZYH anything e.g. Help me implement OAuth2 authentication in my Express.js app",
+    "ZYH anything e.g. Optimize my Docker images to reduce build times and size",
+    "ZYH anything e.g. Set up A/B testing infrastructure for my web application",
 ];
 
 fn get_agent_mode_new_conversation_hint_text() -> &'static str {
@@ -6529,25 +6529,14 @@ impl Input {
                         let agent_name = conversation.agent_name().unwrap_or("child");
                         if conversation.status().is_in_progress() {
                             if is_queue_next_prompt_enabled {
-                                return if crate::i18n::active_locale(app)
-                                    == crate::i18n::Locale::ZhCn
-                                {
-                                    format!("为 {agent_name} agent 排队后续消息")
-                                } else {
-                                    format!("Queue a follow up for the {agent_name} agent")
-                                };
+                                return tr_cached(Message::TerminalQueueFollowUpForNamedAgent)
+                                    .replace("{}", agent_name);
                             }
-                            return if crate::i18n::active_locale(app) == crate::i18n::Locale::ZhCn {
-                                format!("引导 {agent_name} agent")
-                            } else {
-                                format!("Steer the {agent_name} agent")
-                            };
+                            return tr_cached(Message::TerminalSteerNamedAgent)
+                                .replace("{}", agent_name);
                         }
-                        return if crate::i18n::active_locale(app) == crate::i18n::Locale::ZhCn {
-                            format!("向 {agent_name} agent 追问")
-                        } else {
-                            format!("Ask the {agent_name} agent a follow up")
-                        };
+                        return tr_cached(Message::TerminalAskFollowUpNamedAgent)
+                            .replace("{}", agent_name);
                     }
                 }
 

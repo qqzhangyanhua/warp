@@ -716,10 +716,22 @@ fn en_text(message: Message) -> &'static str {
         Message::EnvironmentFormCustomDockerImageRecommendation => "We couldn't find a good match. We recommend using a custom Docker image for these repos.",
         Message::EnvironmentFormRetry => "Retry",
         Message::EnvironmentFormFailedLoadGithubRepos => "Failed to load GitHub repositories",
+        Message::EnvironmentFormLoadGithubReposFallback => {
+            "Couldn't load GitHub repos. You can paste repo URL(s), or retry."
+        }
         Message::EnvironmentFormLoading => "Loading...",
         Message::EnvironmentFormRepoHelper => {
             "Type owner/repo and press Enter to add, or select from dropdown."
         },
+        Message::EnvironmentFormDeleteEnvironment => "Delete environment",
+        Message::EnvironmentFormShareWithTeam => "Share with team",
+        Message::EnvironmentFormSetupCommandsLabel => "Setup command(s)",
+        Message::EnvironmentFormDescriptionLabel => "Description",
+        Message::EnvironmentFormMissingRepo => "Missing a repo?",
+        Message::EnvironmentFormConfigureAccessOnGithub => "Configure access on GitHub",
+        Message::EnvironmentFormNoRepositoriesFound => "No repositories found",
+        Message::EnvironmentFormGenerating => "Generating…",
+        Message::EnvironmentFormSuggestImage => "Suggest image",
         Message::PlatformSearchApiKeys => "Search API keys",
         Message::PlatformNewApiKey => "New API key",
         Message::PlatformApiKeysDescription => "Create and manage API keys to allow other Oz cloud agents to access your ZYH account.\nFor more information, visit the ",
@@ -810,11 +822,33 @@ fn en_text(message: Message) -> &'static str {
         Message::TerminalInstallingSshExtension => "Installing Warp SSH Extension...",
         Message::TerminalInstallingSshExtensionPct => "Installing Warp SSH Extension... ({p}%)",
         Message::TerminalUpdatingSshExtension => "Updating Warp SSH Extension...",
+        Message::TerminalChecking => "Checking...",
+        Message::TerminalInstalling => "Installing...",
+        Message::TerminalInstallingPct => "Installing... ({p}%)",
+        Message::TerminalUpdating => "Updating...",
         Message::TerminalInitializing => "Initializing...",
         Message::TerminalStartingNamedShell => "Starting {}...",
         Message::TerminalLoadingPrompt => "Loading prompt...",
         Message::TerminalLoadingSession => "Loading session...",
         Message::TerminalFilterBlockOutput => "Filter block output",
+        Message::TerminalBookmarkBlock => "Bookmark this block to quickly scroll to it",
+        Message::TerminalAllow => "Allow",
+        Message::TerminalOsc52ClipboardBlocked => {
+            "A terminal program tried to access your clipboard. This is disabled by default for security reasons."
+        }
+        Message::TerminalRequestEditAccess => "Request edit access",
+        Message::TerminalRequestEditAccessToChangeInputMode => {
+            "Request edit access to change input mode"
+        }
+        Message::TerminalInputModeLockedAgentMonitoring => {
+            "Input mode locked while agent is monitoring a command"
+        }
+        Message::TerminalUseAwsBedrock => "Use AWS Bedrock?",
+        Message::TerminalAwsBedrockAdminEnabled => {
+            "Your ZYH admin has enabled AWS Bedrock for your team."
+        }
+        Message::TerminalLogIntoAws => "Log into AWS",
+        Message::TerminalAskAgentToResume => "Ask the ZYH agent to resume",
         Message::TerminalShowContextLines => "Show context lines around matches",
         Message::TerminalRegexToggle => "Regex toggle",
         Message::TerminalCaseSensitiveSearch => "Case sensitive search",
@@ -830,10 +864,28 @@ fn en_text(message: Message) -> &'static str {
         Message::TerminalManageProfiles => "Manage profiles",
         Message::TerminalCustomModels => "Custom models",
         Message::TerminalModelSpecs => "Model Specs",
+        Message::TerminalModelSpecsDescription => {
+            "ZYH's benchmarks for how well a model performs in our harness, the rate at which it consumes credits, and task speed."
+        }
         Message::TerminalIntelligence => "Intelligence",
         Message::TerminalSpeed => "Speed",
+        Message::TerminalCost => "Cost",
         Message::TerminalAutoMode => "Auto mode",
+        Message::TerminalAutoModeDescription => {
+            "Auto will select the best model for the task. Cost-efficiency optimizes for cost, Responsiveness optimizes for response speed."
+        }
         Message::TerminalReasoningLevel => "Reasoning level",
+        Message::TerminalReasoningLevelDescription => {
+            "Increased reasoning levels consume more credits and have higher latency, but higher performance for complicated tasks."
+        }
+        Message::TerminalCustomModelRouter => "Custom Model Router",
+        Message::TerminalCustomModelRouterDescription => {
+            "Routes each request to a concrete model based on your routing rules, rather than using a single fixed model."
+        }
+        Message::TerminalQueueFollowUpForNamedAgent => "Queue a follow up for the {} agent",
+        Message::TerminalSteerNamedAgent => "Steer the {} agent",
+        Message::TerminalAskFollowUpNamedAgent => "Ask the {} agent a follow up",
+        Message::TerminalSelected => "(selected)",
         Message::TerminalOutOfCredits => "Out of credits",
         Message::TerminalMonthlyLimitReached => "Monthly limit reached",
         Message::TerminalMonthlyLimitReachedDescription => "Your monthly spend limit has been reached. Increase it to continue.",
@@ -890,6 +942,10 @@ fn en_text(message: Message) -> &'static str {
         Message::TerminalManageDefaults => "Manage defaults",
         Message::TerminalBaseModelTab => "Base",
         Message::TerminalFullTerminalUse => "Full Terminal Use",
+        Message::SharedShareSession => "Share session",
+        Message::SharedShareSessionEllipsis => "Share session...",
+        Message::SharedSessionLimitReached => "Shared session limit reached",
+        Message::SharedCopySessionSharingLink => "Copy session sharing link",
         Message::SharedMakeEditor => "Make editor",
         Message::SharedMakeViewer => "Make viewer",
         Message::SharedEditMode => "edit",
@@ -1048,6 +1104,26 @@ fn en_text(message: Message) -> &'static str {
         Message::TeamsJoin => "Join",
         Message::TeamsContactAdminRequestAccess => "Contact Admin to request access",
         Message::TeamsSectionSearchKeywords => "invites teams team members",
+        Message::TeamsConfirmDeleteTeamTitle => "Are you sure you want to delete this team?",
+        Message::TeamsConfirmLeaveTeamTitle => "Are you sure you want to leave this team?",
+        Message::TeamsConfirmRemoveMemberTitle => "Are you sure you want to remove this member?",
+        Message::TeamsConfirmDeleteTeamBody => {
+            "Deleting this team will permanently delete it and all of its related content, including billing information or credits. You will not be able to restore them."
+        }
+        Message::TeamsConfirmLeaveTeamBody => "You will need to be reinvited in order to rejoin.",
+        Message::TeamsConfirmLeaveTeamReloadCreditsBody => {
+            "If you leave this team, you'll lose access to any remaining reload credits tied to it. You'll regain access to any unused, non-expired credits if you rejoin the same team later."
+        }
+        Message::TeamsConfirmRemoveMemberReloadCreditsBody => {
+            "This member will lose access to any remaining reload credits tied to this team. If they rejoin later, they'll regain access to any unused, non-expired credits."
+        }
+        Message::TeamsConfirmYesDelete => "Yes, delete",
+        Message::TeamsConfirmYesLeave => "Yes, leave",
+        Message::TeamsConfirmLeaveTeam => "Leave Team",
+        Message::TeamsConfirmRemoveMember => "Remove Member",
+        Message::TeamsTransferOwnershipDescription => {
+            "Are you sure you want to transfer team ownership to {}? You will no longer be the owner and will not be able to take any administrative actions for this team."
+        },
         Message::BillingOverview => "Overview",
         Message::BillingUsageHistory => "Usage History",
         Message::BillingViewOverageDetails => "View details on overage usage",
@@ -2138,8 +2214,20 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::EnvironmentFormCustomDockerImageRecommendation => "我们找不到合适的匹配项。建议为这些仓库使用自定义 Docker 镜像。",
         Message::EnvironmentFormRetry => "重试",
         Message::EnvironmentFormFailedLoadGithubRepos => "无法加载 GitHub 仓库",
+        Message::EnvironmentFormLoadGithubReposFallback => {
+            "无法加载 GitHub 仓库。你可以粘贴仓库 URL，或重试。"
+        }
         Message::EnvironmentFormLoading => "加载中...",
         Message::EnvironmentFormRepoHelper => "输入 owner/repo 并按 Enter 添加，或从下拉列表中选择。",
+        Message::EnvironmentFormDeleteEnvironment => "删除环境",
+        Message::EnvironmentFormShareWithTeam => "与团队共享",
+        Message::EnvironmentFormSetupCommandsLabel => "设置命令",
+        Message::EnvironmentFormDescriptionLabel => "描述",
+        Message::EnvironmentFormMissingRepo => "缺少仓库？",
+        Message::EnvironmentFormConfigureAccessOnGithub => "在 GitHub 上配置访问权限",
+        Message::EnvironmentFormNoRepositoriesFound => "未找到仓库",
+        Message::EnvironmentFormGenerating => "生成中…",
+        Message::EnvironmentFormSuggestImage => "建议镜像",
         Message::PlatformSearchApiKeys => "搜索 API 密钥",
         Message::PlatformNewApiKey => "新建 API 密钥",
         Message::PlatformApiKeysDescription => "创建和管理 API 密钥，允许其他 Oz 云端 Agent 访问你的 ZYH 账户。\n更多信息请访问 ",
@@ -2230,11 +2318,29 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::TerminalInstallingSshExtension => "正在安装 Warp SSH 扩展…",
         Message::TerminalInstallingSshExtensionPct => "正在安装 Warp SSH 扩展…（{p}%）",
         Message::TerminalUpdatingSshExtension => "正在更新 Warp SSH 扩展…",
+        Message::TerminalChecking => "正在检查…",
+        Message::TerminalInstalling => "正在安装…",
+        Message::TerminalInstallingPct => "正在安装…（{p}%）",
+        Message::TerminalUpdating => "正在更新…",
         Message::TerminalInitializing => "正在初始化…",
         Message::TerminalStartingNamedShell => "正在启动 {}…",
         Message::TerminalLoadingPrompt => "正在加载提示…",
         Message::TerminalLoadingSession => "正在加载会话…",
         Message::TerminalFilterBlockOutput => "过滤区块输出",
+        Message::TerminalBookmarkBlock => "收藏此区块以便快速滚动定位",
+        Message::TerminalAllow => "允许",
+        Message::TerminalOsc52ClipboardBlocked => {
+            "有终端程序试图访问你的剪贴板。默认已禁用，以确保安全。"
+        }
+        Message::TerminalRequestEditAccess => "请求编辑权限",
+        Message::TerminalRequestEditAccessToChangeInputMode => "请求编辑权限以更改输入模式",
+        Message::TerminalInputModeLockedAgentMonitoring => {
+            "Agent 正在监控命令时，输入模式已锁定"
+        }
+        Message::TerminalUseAwsBedrock => "使用 AWS Bedrock？",
+        Message::TerminalAwsBedrockAdminEnabled => "你的 ZYH 管理员已为团队启用 AWS Bedrock。",
+        Message::TerminalLogIntoAws => "登录 AWS",
+        Message::TerminalAskAgentToResume => "让 ZYH Agent 继续处理",
         Message::TerminalShowContextLines => "显示匹配项周围的上下文行",
         Message::TerminalRegexToggle => "正则开关",
         Message::TerminalCaseSensitiveSearch => "区分大小写搜索",
@@ -2250,10 +2356,28 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::TerminalManageProfiles => "管理配置档案",
         Message::TerminalCustomModels => "自定义模型",
         Message::TerminalModelSpecs => "模型规格",
+        Message::TerminalModelSpecsDescription => {
+            "ZYH 在自有评测框架中对模型表现、额度消耗速率与任务速度的基准评分。"
+        }
         Message::TerminalIntelligence => "智能",
         Message::TerminalSpeed => "速度",
+        Message::TerminalCost => "费用",
         Message::TerminalAutoMode => "自动模式",
+        Message::TerminalAutoModeDescription => {
+            "自动模式会为任务选择最合适的模型。成本优先侧重费用，响应优先侧重回复速度。"
+        }
         Message::TerminalReasoningLevel => "推理级别",
+        Message::TerminalReasoningLevelDescription => {
+            "更高的推理级别会消耗更多额度、延迟更高，但在复杂任务上表现更好。"
+        }
+        Message::TerminalCustomModelRouter => "自定义模型路由",
+        Message::TerminalCustomModelRouterDescription => {
+            "根据你的路由规则将每个请求路由到具体模型，而不是使用固定的单一模型。"
+        }
+        Message::TerminalQueueFollowUpForNamedAgent => "为 {} agent 排队后续消息",
+        Message::TerminalSteerNamedAgent => "引导 {} agent",
+        Message::TerminalAskFollowUpNamedAgent => "向 {} agent 追问",
+        Message::TerminalSelected => "（已选中）",
         Message::TerminalOutOfCredits => "额度已用尽",
         Message::TerminalMonthlyLimitReached => "已达月度限额",
         Message::TerminalMonthlyLimitReachedDescription => "你已达到月度消费限额。请提高限额以继续。",
@@ -2310,6 +2434,10 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::TerminalManageDefaults => "管理默认设置",
         Message::TerminalBaseModelTab => "基础",
         Message::TerminalFullTerminalUse => "完整终端控制",
+        Message::SharedShareSession => "共享会话",
+        Message::SharedShareSessionEllipsis => "共享会话…",
+        Message::SharedSessionLimitReached => "已达共享会话上限",
+        Message::SharedCopySessionSharingLink => "复制会话共享链接",
         Message::SharedMakeEditor => "设为编辑者",
         Message::SharedMakeViewer => "设为查看者",
         Message::SharedEditMode => "编辑",
@@ -2458,6 +2586,26 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::TeamsJoin => "加入",
         Message::TeamsContactAdminRequestAccess => "联系管理员申请访问权限",
         Message::TeamsSectionSearchKeywords => "邀请 团队 成员",
+        Message::TeamsConfirmDeleteTeamTitle => "确定要删除此团队吗？",
+        Message::TeamsConfirmLeaveTeamTitle => "确定要离开此团队吗？",
+        Message::TeamsConfirmRemoveMemberTitle => "确定要移除此成员吗？",
+        Message::TeamsConfirmDeleteTeamBody => {
+            "删除团队将永久删除该团队及其全部相关内容，包括账单信息与额度，且无法恢复。"
+        }
+        Message::TeamsConfirmLeaveTeamBody => "你需要被重新邀请才能再次加入。",
+        Message::TeamsConfirmLeaveTeamReloadCreditsBody => {
+            "离开此团队后，你将无法使用与之关联的剩余自动充值额度。若之后重新加入同一团队，可重新获得未使用且未过期的额度。"
+        }
+        Message::TeamsConfirmRemoveMemberReloadCreditsBody => {
+            "该成员将无法使用与此团队关联的剩余自动充值额度。若之后重新加入，可重新获得未使用且未过期的额度。"
+        }
+        Message::TeamsConfirmYesDelete => "是，删除",
+        Message::TeamsConfirmYesLeave => "是，离开",
+        Message::TeamsConfirmLeaveTeam => "离开团队",
+        Message::TeamsConfirmRemoveMember => "移除成员",
+        Message::TeamsTransferOwnershipDescription => {
+            "确定要将团队所有权转让给 {} 吗？你将不再是所有者，也无法再对此团队执行管理操作。"
+        },
         Message::BillingOverview => "概览",
         Message::BillingUsageHistory => "用量历史",
         Message::BillingViewOverageDetails => "查看超额用量详情",
@@ -3458,6 +3606,16 @@ mod tests {
         Message::EnvironmentFormFailedLoadGithubRepos,
         Message::EnvironmentFormLoading,
         Message::EnvironmentFormRepoHelper,
+        Message::EnvironmentFormLoadGithubReposFallback,
+        Message::EnvironmentFormDeleteEnvironment,
+        Message::EnvironmentFormShareWithTeam,
+        Message::EnvironmentFormSetupCommandsLabel,
+        Message::EnvironmentFormDescriptionLabel,
+        Message::EnvironmentFormMissingRepo,
+        Message::EnvironmentFormConfigureAccessOnGithub,
+        Message::EnvironmentFormNoRepositoriesFound,
+        Message::EnvironmentFormGenerating,
+        Message::EnvironmentFormSuggestImage,
         Message::PlatformSearchApiKeys,
         Message::PlatformNewApiKey,
         Message::PlatformApiKeysDescription,
@@ -3544,11 +3702,25 @@ mod tests {
         Message::TerminalInstallingSshExtension,
         Message::TerminalInstallingSshExtensionPct,
         Message::TerminalUpdatingSshExtension,
+        Message::TerminalChecking,
+        Message::TerminalInstalling,
+        Message::TerminalInstallingPct,
+        Message::TerminalUpdating,
         Message::TerminalInitializing,
         Message::TerminalStartingNamedShell,
         Message::TerminalLoadingPrompt,
         Message::TerminalLoadingSession,
         Message::TerminalFilterBlockOutput,
+        Message::TerminalBookmarkBlock,
+        Message::TerminalAllow,
+        Message::TerminalOsc52ClipboardBlocked,
+        Message::TerminalRequestEditAccess,
+        Message::TerminalRequestEditAccessToChangeInputMode,
+        Message::TerminalInputModeLockedAgentMonitoring,
+        Message::TerminalUseAwsBedrock,
+        Message::TerminalAwsBedrockAdminEnabled,
+        Message::TerminalLogIntoAws,
+        Message::TerminalAskAgentToResume,
         Message::TerminalShowContextLines,
         Message::TerminalRegexToggle,
         Message::TerminalCaseSensitiveSearch,
@@ -3564,10 +3736,20 @@ mod tests {
         Message::TerminalManageProfiles,
         Message::TerminalCustomModels,
         Message::TerminalModelSpecs,
+        Message::TerminalModelSpecsDescription,
         Message::TerminalIntelligence,
         Message::TerminalSpeed,
+        Message::TerminalCost,
         Message::TerminalAutoMode,
+        Message::TerminalAutoModeDescription,
         Message::TerminalReasoningLevel,
+        Message::TerminalReasoningLevelDescription,
+        Message::TerminalCustomModelRouter,
+        Message::TerminalCustomModelRouterDescription,
+        Message::TerminalQueueFollowUpForNamedAgent,
+        Message::TerminalSteerNamedAgent,
+        Message::TerminalAskFollowUpNamedAgent,
+        Message::TerminalSelected,
         Message::TerminalOutOfCredits,
         Message::TerminalMonthlyLimitReached,
         Message::TerminalMonthlyLimitReachedDescription,
@@ -3624,6 +3806,10 @@ mod tests {
         Message::TerminalManageDefaults,
         Message::TerminalBaseModelTab,
         Message::TerminalFullTerminalUse,
+        Message::SharedShareSession,
+        Message::SharedShareSessionEllipsis,
+        Message::SharedSessionLimitReached,
+        Message::SharedCopySessionSharingLink,
         Message::SharedMakeEditor,
         Message::SharedMakeViewer,
         Message::SharedEditMode,
@@ -3772,6 +3958,18 @@ mod tests {
         Message::TeamsJoin,
         Message::TeamsContactAdminRequestAccess,
         Message::TeamsSectionSearchKeywords,
+        Message::TeamsConfirmDeleteTeamTitle,
+        Message::TeamsConfirmLeaveTeamTitle,
+        Message::TeamsConfirmRemoveMemberTitle,
+        Message::TeamsConfirmDeleteTeamBody,
+        Message::TeamsConfirmLeaveTeamBody,
+        Message::TeamsConfirmLeaveTeamReloadCreditsBody,
+        Message::TeamsConfirmRemoveMemberReloadCreditsBody,
+        Message::TeamsConfirmYesDelete,
+        Message::TeamsConfirmYesLeave,
+        Message::TeamsConfirmLeaveTeam,
+        Message::TeamsConfirmRemoveMember,
+        Message::TeamsTransferOwnershipDescription,
         Message::BillingOverview,
         Message::BillingUsageHistory,
         Message::BillingViewOverageDetails,

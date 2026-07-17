@@ -12,6 +12,7 @@ use warpui::{
     ViewHandle,
 };
 
+use crate::i18n::{tr_cached, Message};
 use crate::modal::{Modal, ModalEvent};
 use crate::pane_group::TerminalPaneId;
 use crate::terminal::TerminalModel;
@@ -26,9 +27,6 @@ use denied_body::{DeniedBody, DeniedBodyEvent};
 
 use self::body::BodyEvent;
 use super::{SharedSessionActionSource, SharedSessionScrollbackType};
-
-const MODAL_HEADER: &str = "Share session";
-const SESSION_LIMIT_REACHED_HEADER: &str = "Shared session limit reached";
 
 pub struct ShareSessionModal {
     modal: ViewHandle<Modal<Body>>,
@@ -72,7 +70,11 @@ impl ShareSessionModal {
         });
 
         let modal = ctx.add_typed_action_view(|ctx| {
-            Modal::new(Some(MODAL_HEADER.to_string()), body, ctx)
+            Modal::new(
+                Some(tr_cached(Message::SharedShareSession).to_string()),
+                body,
+                ctx,
+            )
                 .with_modal_style(UiComponentStyles {
                     width: Some(MODAL_WIDTH),
                     height: Some(MODAL_HEIGHT),
@@ -91,7 +93,7 @@ impl ShareSessionModal {
         });
         let denied_modal = ctx.add_typed_action_view(|ctx| {
             let mut denied_modal = Modal::new(
-                Some(SESSION_LIMIT_REACHED_HEADER.to_string()),
+                Some(tr_cached(Message::SharedSessionLimitReached).to_string()),
                 denied_body,
                 ctx,
             )

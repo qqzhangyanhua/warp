@@ -48,6 +48,7 @@ use warpui::{
 
 use super::{RichContentInsertionPosition, TerminalAction, TerminalView};
 use crate::ai::blocklist::block::cli_controller::CLISubagentEvent;
+use crate::i18n::{tr_cached, Message};
 use crate::cmd_or_ctrl_shift;
 use crate::code_review::diff_state::GitDeltaPreference;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
@@ -1093,7 +1094,7 @@ impl UseAgentToolbar {
             .with_icon(Icon::Oz)
             .with_keybinding(KeystrokeSource::Fixed(USE_AGENT_KEYSTROKE.clone()), ctx)
             .with_size(button_size)
-            .with_tooltip("Ask the Warp agent to resume")
+            .with_tooltip(tr_cached(Message::TerminalAskAgentToResume))
             .with_tooltip_alignment(TooltipAlignment::Left)
             .on_click(|ctx| {
                 ctx.dispatch_typed_action(TerminalAction::SetInputModeAgent);
@@ -1101,7 +1102,7 @@ impl UseAgentToolbar {
         });
         let dismiss_button = ctx.add_typed_action_view(|_| {
             ActionButton::new(
-                "Dismiss",
+                tr_cached(Message::AuthDismiss),
                 AgentFooterButtonTheme::new(Some(terminal_model.clone())),
             )
             .on_click(|ctx| {
@@ -1111,7 +1112,7 @@ impl UseAgentToolbar {
         });
         let dont_show_again_button = ctx.add_typed_action_view(|_| {
             ActionButton::new(
-                "Don't show again",
+                tr_cached(Message::TerminalDontShowAgain),
                 AgentFooterButtonTheme::new(Some(terminal_model.clone())),
             )
             .on_click(|ctx| {

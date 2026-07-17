@@ -8,9 +8,9 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **1101** |
-| English table (`en_text`) | **1101** complete |
-| Chinese table (`zh_cn_text`) | **1101** complete |
+| `Message` variants | **1309** |
+| English table (`en_text`) | **1309** complete |
+| Chinese table (`zh_cn_text`) | **1309** complete |
 | Call sites | ~1000+ across 75+ files |
 
 ### What the 157 messages cover
@@ -158,10 +158,10 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 ### Teams
 
-- [ ] Team name / Leave team / Delete team / Create Team
-- [ ] Promote/Demote admin / Remove from team / Transfer ownership / Cancel invite
-- [ ] Domain/email validation and invite copy
-- [ ] Your team is full / Payment past due / Free plan usage limits…
+- [x] Team name / Leave team / Delete team / Create Team (page chrome already Message; confirm dialogs wired)
+- [x] Promote/Demote admin / Remove from team / Transfer ownership / Cancel invite (+ transfer description + Cancel)
+- [x] Domain/email validation and invite copy
+- [x] Your team is full / Payment past due / Free plan usage limits…
 
 ### Billing & usage
 
@@ -173,7 +173,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 ### Environments / Platform / MCP
 
 - [x] New environment / Quick setup / Use the agent / You haven’t set up any…
-- [ ] Docker image / Auth with GitHub / Create|Save environment
+- [x] Docker image / Auth with GitHub / Create|Save environment (+ form residuals: Delete, Share with team, Setup commands, Description, Suggest image, GitHub empty/error helpers)
 - [x] Oz Cloud API Keys / + Create API Key / No API Keys…
 - [x] Search MCP Servers / Once you add a MCP server… / No tools available
 
@@ -201,27 +201,30 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [ ] Vertical tabs: No tabs open / No tabs match… / View as / Tab item / Additional metadata
 - [ ] Conversation list: No conversations yet / New conversation / No matching conversations
 - [ ] Search: Search tabs… / Search sessions, agents, files… / Search repos
-- [ ] Toasts: Please sign in again… / Your app is out of date… / Failed to load conversation…
+- [x] Toasts: Please sign in again… / Your app is out of date… (wired; “Failed to load conversation” mostly log/internal)
 - [x] Rename pane / Reset pane name (ActivePane branch aligned with Message)
 - [ ] Launch / feature-intro modals (deferrable; mostly marketing)
 
 ### Terminal input & agent
 
-- [ ] Tell the agent what to build… / Kick off a cloud agent
-- [ ] Run commands / Steer the running agent / Queue a follow up / Ask a follow up
-- [ ] Choose an AI execution profile / Choose an agent model
-- [ ] Model Specs / Reasoning level / Custom Model Router descriptions
+- [x] Tell the agent what to build… / Kick off a cloud agent
+- [x] Run commands / Steer the running agent / Queue a follow up / Ask a follow up
+- [x] Named child-agent variants: Queue/Steer/Ask for `{}` agent (via Message + `replace`)
+- [x] Choose an AI execution profile / Choose an agent model
+- [x] Model Specs / Reasoning level / Custom Model Router descriptions (+ Cost / Intelligence / Speed / Auto mode description / Manage profiles / selected)
+- [x] Agent-mode rotating placeholder prefix: ZYH anything → 让 ZYH 做任何事
 - [x] Preparing handoff… / Local skills cannot run on a remote machine… / custom model / cloud conversation local block
 
 ### Terminal status / banners
 
-- [ ] Loading session… / Starting shell… / Installing Warp SSH Extension… / Initializing…
-- [ ] Out of credits / Monthly limit reached / Manage billing / Auto reload
-- [ ] Login for AI / AI features unavailable for logged-out users / Sign Up
+- [x] Loading session… / Starting shell… / Installing Warp SSH Extension… / Initializing… (+ remote Checking/Installing/Updating)
+- [x] Out of credits / Monthly limit reached / Manage billing / Auto reload
+- [x] Login for AI / AI features unavailable for logged-out users / Sign Up
 - [x] Shell process exited… / Copy error / File issue / More info (shell terminated banner + inline banner)
-- [ ] Filter block output / Bookmark this block… / Save as Workflow
-- [ ] Zero state: New terminal session / Don’t show again
-- [ ] Share session modals and role-request copy
+- [x] Filter block output / Bookmark this block… / Save as Workflow
+- [x] Zero state: New terminal session / Don’t show again
+- [x] Share session modals and role-request copy (headers, menus, Request edit access; role modal body already Message)
+- [x] OSC52 clipboard banner / AWS Bedrock login banner / Use-agent footer (Dismiss / Don’t show again / resume tooltip)
 - [x] Cloud agent loading: GitHub Authentication Required / Failed to start environment / cancelled / footer / first-time setup
 
 ### Other terminal
@@ -276,12 +279,12 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 | Bucket | Status | Rough user-visible strings |
 |--------|--------|----------------------------|
-| Already i18n (1101 `Message`s) | Done | ~1000+ |
+| Already i18n (1309 `Message`s) | Done | ~1300+ |
 | P0 first-run / login / anonymous | Done | ~80–120 |
 | P1 Settings residuals | Done | ~80–120 |
-| P2 full Settings pages | Mostly done | ~250–400 |
-| P3 Workspace / Terminal | **Started** (context menu/categories/tips/rename) | ~300–500 |
-| **Remaining** | | **~300–600** (Teams/Billing/schema/空态/banner)
+| P2 full Settings pages | Done (Teams confirm dialogs + Environments residual) | ~250–400 |
+| P3 Workspace / Terminal | **In progress** — input + banners/share done | ~300–500 |
+| **Remaining** | | **~100–250** (Other terminal / residual workspace metadata / engineering debt)
 
 ---
 
@@ -347,4 +350,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-14. Cloud agent loading + handoff high-frequency strings wired. Message catalog at 1259 variants._
+_Last updated: 2026-07-17. Batch 4 (Teams): leave/delete/remove confirm dialogs + transfer ownership description. Message catalog 1309 variants._

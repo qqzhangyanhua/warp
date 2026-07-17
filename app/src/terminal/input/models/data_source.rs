@@ -22,8 +22,7 @@ use warpui::{
 
 use super::model_spec_scores::{
     render_model_spec_header, render_model_spec_scores, CostRow, CostRowTooltip,
-    ModelSpecScoresLayout, CUSTOM_MODEL_ROUTER_DESCRIPTION, CUSTOM_MODEL_ROUTER_TITLE,
-    MODEL_SPECS_DESCRIPTION, MODEL_SPECS_TITLE, REASONING_LEVEL_DESCRIPTION, REASONING_LEVEL_TITLE,
+    ModelSpecScoresLayout,
 };
 use crate::ai::custom_model_routers::is_custom_router_id;
 use crate::ai::execution_profiles::model_menu_items::is_auto;
@@ -531,8 +530,8 @@ impl SearchItem for ModelSearchItem {
         // Custom auto models get an informational blurb instead of spec bars.
         if self.is_custom_router {
             let header = render_model_spec_header(
-                CUSTOM_MODEL_ROUTER_TITLE,
-                CUSTOM_MODEL_ROUTER_DESCRIPTION,
+                tr_cached(I18nMessage::TerminalCustomModelRouter),
+                tr_cached(I18nMessage::TerminalCustomModelRouterDescription),
                 app,
             );
             let source_text = Text::new(
@@ -554,9 +553,15 @@ impl SearchItem for ModelSearchItem {
         }
 
         let (title, description) = if self.reasoning_level.is_some() {
-            (REASONING_LEVEL_TITLE, REASONING_LEVEL_DESCRIPTION)
+            (
+                tr_cached(I18nMessage::TerminalReasoningLevel),
+                tr_cached(I18nMessage::TerminalReasoningLevelDescription),
+            )
         } else {
-            (MODEL_SPECS_TITLE, MODEL_SPECS_DESCRIPTION)
+            (
+                tr_cached(I18nMessage::TerminalModelSpecs),
+                tr_cached(I18nMessage::TerminalModelSpecsDescription),
+            )
         };
         let header = render_model_spec_header(title, description, app);
 

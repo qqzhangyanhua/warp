@@ -10,11 +10,10 @@ use warpui::{AppContext, Element, SingletonEntity as _};
 
 use crate::ai::execution_profiles::profiles::ClientProfileId;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::search::{ItemHighlightState, SearchItem};
 use crate::terminal::input::inline_menu::styles as inline_styles;
 use crate::terminal::input::profiles::data_source::SelectProfileMenuItem;
-
-const MANAGE_PROFILES_LABEL: &str = "Manage profiles";
 
 #[derive(Debug, Clone)]
 enum ProfileSearchItemKind {
@@ -108,7 +107,9 @@ impl SearchItem for ProfileSearchItem {
                 is_selected,
                 ..
             } => (profile_name.clone(), *is_selected),
-            ProfileSearchItemKind::ManageProfiles => (MANAGE_PROFILES_LABEL.to_owned(), false),
+            ProfileSearchItemKind::ManageProfiles => {
+                (tr_cached(Message::TerminalManageProfiles).to_owned(), false)
+            }
         };
 
         let mut label = Text::new_inline(label_text, appearance.ui_font_family(), font_size)
@@ -132,7 +133,7 @@ impl SearchItem for ProfileSearchItem {
             .with_child(label.finish());
 
         if is_selected {
-            let selected_label = "(selected)";
+            let selected_label = tr_cached(Message::TerminalSelected);
             let selected_text = Text::new_inline(
                 selected_label.to_string(),
                 appearance.ui_font_family(),
@@ -183,7 +184,9 @@ impl SearchItem for ProfileSearchItem {
             ProfileSearchItemKind::Profile { profile_name, .. } => {
                 format!("Profile: {profile_name}")
             }
-            ProfileSearchItemKind::ManageProfiles => MANAGE_PROFILES_LABEL.to_string(),
+            ProfileSearchItemKind::ManageProfiles => {
+                tr_cached(Message::TerminalManageProfiles).to_string()
+            }
         }
     }
 }

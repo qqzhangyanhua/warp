@@ -472,7 +472,7 @@ impl UpdateEnvironmentForm {
 
         // Create buttons
         let submit_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Create", PrimaryTheme)
+            ActionButton::new(tr_cached(Message::EnvironmentFormCreate), PrimaryTheme)
                 .with_icon(Icon::Check)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(UpdateEnvironmentFormAction::Submit);
@@ -480,7 +480,10 @@ impl UpdateEnvironmentForm {
         });
 
         let delete_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Delete environment", DangerSecondaryTheme)
+            ActionButton::new(
+                tr_cached(Message::EnvironmentFormDeleteEnvironment),
+                DangerSecondaryTheme,
+            )
                 .with_icon(Icon::Trash)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(UpdateEnvironmentFormAction::Delete);
@@ -881,7 +884,7 @@ impl UpdateEnvironmentForm {
                 self.remove_setup_command_mouse_states.clear();
                 // Update button text for Create mode
                 self.submit_button.update(ctx, |button, ctx| {
-                    button.set_label("Create", ctx);
+                    button.set_label(tr_cached(Message::EnvironmentFormCreate), ctx);
                 });
             }
             EnvironmentFormInitArgs::Edit {
@@ -922,7 +925,7 @@ impl UpdateEnvironmentForm {
                     .collect();
                 // Update button text for Edit mode
                 self.submit_button.update(ctx, |button, ctx| {
-                    button.set_label("Save", ctx);
+                    button.set_label(tr_cached(Message::SettingsSave), ctx);
                 });
             }
         }
@@ -1371,16 +1374,14 @@ impl UpdateEnvironmentForm {
                     }
                     Ok(UserGithubInfoResult::Unknown) => {
                         me.github_dropdown_state.load_error_message = Some(
-                            "Couldn't load GitHub repos. You can paste repo URL(s), or retry."
-                                .to_string(),
+                            tr_cached(Message::EnvironmentFormLoadGithubReposFallback).to_string(),
                         );
                         me.update_repos_input_placeholder(ctx);
                     }
                     Err(e) => {
                         debug!("Failed to load GitHub repos: {e}");
                         me.github_dropdown_state.load_error_message = Some(
-                            "Couldn't load GitHub repos. You can paste repo URL(s), or retry."
-                                .to_string(),
+                            tr_cached(Message::EnvironmentFormLoadGithubReposFallback).to_string(),
                         );
                         me.update_repos_input_placeholder(ctx);
                     }
@@ -1670,7 +1671,11 @@ impl UpdateEnvironmentForm {
                         theme.active_ui_text_color()
                     };
 
-                    Text::new_inline("Share with team", font_family, font_size)
+                    Text::new_inline(
+                        tr_cached(Message::EnvironmentFormShareWithTeam),
+                        font_family,
+                        font_size,
+                    )
                         .with_color(color.into())
                         .finish()
                 },
@@ -1883,7 +1888,7 @@ impl UpdateEnvironmentForm {
             .with_spacing(FORM_LABEL_SPACING);
 
         field.add_child(Self::render_form_label(
-            "Setup command(s)",
+            tr_cached(Message::EnvironmentFormSetupCommandsLabel),
             false,
             appearance,
         ));
@@ -1954,7 +1959,7 @@ impl UpdateEnvironmentForm {
 
         field.add_child(
             Text::new(
-                "Description",
+                tr_cached(Message::EnvironmentFormDescriptionLabel),
                 appearance.ui_font_family(),
                 appearance.ui_font_size(),
             )
@@ -2521,7 +2526,7 @@ impl UpdateEnvironmentForm {
             // Plain text part
             text_row.add_child(
                 Text::new(
-                    "Missing a repo?",
+                    tr_cached(Message::EnvironmentFormMissingRepo),
                     appearance.ui_font_family(),
                     appearance.ui_font_size() * 0.85,
                 )
@@ -2539,7 +2544,7 @@ impl UpdateEnvironmentForm {
                         theme.accent()
                     };
                     Text::new(
-                        "Configure access on GitHub",
+                        tr_cached(Message::EnvironmentFormConfigureAccessOnGithub),
                         appearance.ui_font_family(),
                         appearance.ui_font_size() * 0.85,
                     )
@@ -2708,7 +2713,7 @@ impl UpdateEnvironmentForm {
             content.add_child(
                 Container::new(
                     Text::new(
-                        "No repositories found",
+                        tr_cached(Message::EnvironmentFormNoRepositoriesFound),
                         appearance.ui_font_family(),
                         appearance.ui_font_size(),
                     )
@@ -3118,9 +3123,9 @@ impl UpdateEnvironmentForm {
         let is_disabled = !self.can_suggest_image_for_current_repos();
 
         let button_text = if is_loading {
-            "Generating…"
+            tr_cached(Message::EnvironmentFormGenerating)
         } else {
-            "Suggest image"
+            tr_cached(Message::EnvironmentFormSuggestImage)
         };
 
         let tooltip_text = tr_cached(Message::EnvironmentFormSuggestDockerTooltip);
