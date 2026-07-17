@@ -1674,7 +1674,9 @@ impl<V: warpui::View> PageType<V> {
                 }
                 let num_categories = categories.len();
                 for (i, category) in categories.into_iter().enumerate() {
-                    if !category.title.is_empty() {
+                    // Prefer localized title; fall back to English constructor title.
+                    // Zero-width placeholder from `Category::localized` still counts as "has title".
+                    if category.localized_title.is_some() || !category.title.is_empty() {
                         let title = category.localized_title(app);
                         if let Some(subtitle) = category.subtitle {
                             page.add_child(render_sub_header_with_description(
@@ -1840,13 +1842,21 @@ impl<V: warpui::View> Category<V> {
         }
     }
 
-    pub(super) fn with_subtitle(mut self, subtitle: &'static str) -> Self {
-        self.subtitle = Some(subtitle);
-        self
+    /// Category whose displayed title comes only from `Message` (no English dual-track).
+    pub(super) fn localized(
+        title: Message,
+        widgets: Vec<Box<dyn SettingsWidget<View = V>>>,
+    ) -> Self {
+        Self {
+            title: "",
+            localized_title: Some(title),
+            subtitle: None,
+            widgets,
+        }
     }
 
-    pub(super) fn with_localized_title(mut self, message: Message) -> Self {
-        self.localized_title = Some(message);
+    pub(super) fn with_subtitle(mut self, subtitle: &'static str) -> Self {
+        self.subtitle = Some(subtitle);
         self
     }
 }

@@ -365,16 +365,14 @@ impl CodeSettingsPageView {
                 Box::new(FormatOnSaveToggleWidget::default()),
             ]);
             let categories = vec![
-                Category::new(
-                    tr_cached(Message::CodeCodebaseIndexing),
-                    codebase_indexing_widgets,
-                )
-                .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
-                Category::new(
-                    tr_cached(Message::SettingsCodeEditorAndReviewCategory),
-                    code_editor_review_widgets,
-                )
-                .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
+                Category::localized(
+                Message::SettingsCodeCodebaseIndexingCategory,
+                codebase_indexing_widgets,
+                ),
+                Category::localized(
+                Message::SettingsCodeEditorAndReviewCategory,
+                code_editor_review_widgets,
+                ),
             ];
             PageType::new_categorized(categories, None)
         } else {
@@ -509,16 +507,14 @@ impl CodeSettingsPageView {
                 Box::new(FormatOnSaveToggleWidget::default()),
             ]);
             let categories = vec![
-                Category::new(
-                    tr_cached(Message::CodeCodebaseIndexing),
-                    codebase_indexing_widgets,
-                )
-                .with_localized_title(Message::SettingsCodeCodebaseIndexingCategory),
-                Category::new(
-                    tr_cached(Message::SettingsCodeEditorAndReviewCategory),
-                    code_editor_review_widgets,
-                )
-                .with_localized_title(Message::SettingsCodeEditorAndReviewCategory),
+                Category::localized(
+                Message::SettingsCodeCodebaseIndexingCategory,
+                codebase_indexing_widgets,
+                ),
+                Category::localized(
+                Message::SettingsCodeEditorAndReviewCategory,
+                code_editor_review_widgets,
+                ),
             ];
             PageType::new_categorized(categories, None)
         } else {

@@ -83,7 +83,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [x] Custom inference: HTTP plaintext warning, form labels, `+ Add model`, Cancel/Save/Add endpoint
 - [x] Custom inference: placeholders
 - [x] Custom inference: remove-endpoint confirmation, custom endpoint descriptions, default-model prompt
-- [ ] Custom inference: Test connection copy — no current UI found in `custom_inference_modal` / `ai_page` scan
+- [x] Custom inference: Test connection copy — wired via `CustomInferenceTestConnection` / testing + result Messages in `custom_inference_connection_test.rs`
 
 ---
 
@@ -94,7 +94,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [x] Input mode: Start/Pin Input at Top/Bottom / Toggle Input Mode
 - [x] Tab bar: Always show / Hide if fullscreen / Only show on hover
 - [x] Code review button show/hide command-palette descriptions
-- [ ] Dual-track `Category::new("English", …).with_localized_title(…)` — clear English fallback names when localized title is enough
+- [x] Dual-track `Category::new("English", …).with_localized_title(…)` — replaced with `Category::localized(Message, …)` (display-only title; English constructor gone for localized categories)
 
 ### Features
 
@@ -283,8 +283,9 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 | P0 first-run / login / anonymous | Done | ~80–120 |
 | P1 Settings residuals | Done | ~80–120 |
 | P2 full Settings pages | Done (Teams confirm dialogs + Environments residual) | ~250–400 |
-| P3 Workspace / Terminal | **In progress** — input + banners/share done | ~300–500 |
-| **Remaining** | | **~100–250** (Other terminal / residual workspace metadata / engineering debt)
+| P3 Workspace / Terminal | High-frequency done; Other terminal residuals open | ~300–500 |
+| Engineering debt (dual-track / Test connection) | Done | — |
+| **Remaining** | | **~50–150** (Other terminal secrets/cwd/shell names; residual workspace metadata; SettingsSection Display deferred)
 
 ---
 
@@ -308,9 +309,9 @@ Often **hidden or lower priority** in anonymous-only mode:
 ## Known engineering gaps
 
 1. **`LocalePreference::System` → OS locale** — implemented via `sys-locale` in `app/src/i18n/mod.rs` (`system_locale` / `locale_from_system_tag`). Unsupported languages fall back to English; explicit traditional Chinese tags (`zh-TW` / `zh-HK` / `zh-Hant`) also fall back to English until a dedicated locale exists.
-2. **Dual-track strings** — e.g. `Category::new("English", …).with_localized_title(Message::…)` still keep English constructors.
-3. **`SettingsSection` `Display` / `FromStr`** still use English names; anything parsing English section titles may disagree with localized UI labels.
-4. **Anonymous-mode high-frequency copy** — toast / missing-provider error / HTTP plaintext warning now use `Message`; broader onboarding/auth still open (P0).
+2. **Dual-track category titles** — ~~`Category::new("English").with_localized_title`~~ replaced by `Category::localized(Message, …)` on Appearance / Features / Code / Warpify. English `Category::new` remains only where there is no Message yet.
+3. **`SettingsSection` `Display` / `FromStr`** still use English names; anything parsing English section titles may disagree with localized UI labels. **Deferred** (out of this checklist sprint; not user-visible chrome by itself).
+4. **Anonymous-mode high-frequency copy** — toast / missing-provider error / HTTP plaintext warning use `Message`; onboarding/auth P0 done.
 5. **Guardrails to add/keep:**
    - Existing test: `all_messages_have_non_empty_text` in `table.rs`
    - Unit tests for `locale_from_system_tag` in `i18n/mod.rs`
@@ -321,11 +322,10 @@ Often **hidden or lower priority** in anonymous-only mode:
 ## Suggested sprint order
 
 1. ~~Fix **System locale** → follow OS language when possible~~ **Done**
-2. ~~**P0** — Onboarding + Auth + anonymous toast / provider setup~~ **Mostly done** (Test connection residual)
-3. ~~P1 settings high-frequency~~ done
-4. ~~**P2** Privacy + Account + Workspace high-frequency~~ **started/mostly done**
-4. **P2** — Privacy / Account (often visible) → other settings; skip Teams/Billing for anonymous-only if hidden
-5. **P3** — Input placeholders, agent status, empty states, high-frequency toasts
+2. ~~**P0** — Onboarding + Auth + anonymous toast / provider setup~~ **Done** (incl. Test connection)
+3. ~~P1 settings high-frequency~~ done (incl. dual-track Category cleanup)
+4. ~~**P2** Privacy / Account / Environments residual / Teams~~ done
+5. ~~**P3** high-frequency Terminal input / banners / share~~ done (residual: Other terminal secrets/working-directory, some workspace metadata)
 6. Process: new user-visible strings must go through `Message` + En/Zh tables
 
 ---
@@ -350,4 +350,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-17. Batch 4 (Teams): leave/delete/remove confirm dialogs + transfer ownership description. Message catalog 1309 variants._
+_Last updated: 2026-07-17. Batch 5: `Category::localized` dual-track cleanup; Test connection confirmed wired. Message catalog 1309 variants._

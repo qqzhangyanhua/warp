@@ -147,9 +147,11 @@ impl WarpifyPageView {
     fn build_page(ctx: &mut ViewContext<Self>) -> PageType<Self> {
         let mut categories = vec![
             Category::new("", vec![Box::new(TitleWidget::default())]),
-            Category::new("Subshells", vec![Box::new(SubshellsWidget::default())])
-                .with_subtitle(tr_cached(Message::WarpifySubshellsSupported))
-                .with_localized_title(Message::SettingsWarpifySubshellsCategory),
+            Category::localized(
+                Message::SettingsWarpifySubshellsCategory,
+                vec![Box::new(SubshellsWidget::default())],
+            )
+            .with_subtitle(tr_cached(Message::WarpifySubshellsSupported)),
         ];
 
         let warpify_settings = WarpifySettings::as_ref(ctx);
@@ -158,9 +160,11 @@ impl WarpifyPageView {
             .is_supported_on_current_platform()
         {
             categories.push(
-                Category::new("SSH", vec![Box::new(SSHWidget::default())])
-                    .with_subtitle(tr_cached(Message::WarpifyInteractiveSshSessions))
-                    .with_localized_title(Message::SettingsWarpifySSHCategory),
+                Category::localized(
+                    Message::SettingsWarpifySSHCategory,
+                    vec![Box::new(SSHWidget::default())],
+                )
+                .with_subtitle(tr_cached(Message::WarpifyInteractiveSshSessions)),
             );
         }
         PageType::new_categorized(categories, None)

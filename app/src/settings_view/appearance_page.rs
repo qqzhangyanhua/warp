@@ -1391,28 +1391,24 @@ impl AppearanceSettingsPageView {
     }
 
     fn build_page(ctx: &mut ViewContext<Self>) -> PageType<Self> {
-        let mut categories =
-            vec![
-                Category::new("General", vec![Box::new(LanguageWidget::default())])
-                    .with_localized_title(Message::SettingsGeneralCategory),
-            ];
+        let mut categories = vec![Category::localized(
+            Message::SettingsGeneralCategory,
+            vec![Box::new(LanguageWidget::default())],
+        )];
 
-        categories.push(
-            Category::new(
-                "Themes",
-                vec![
-                    Box::new(CreateCustomThemeWidget::default()),
-                    Box::new(ThemeSelectWidget::default()),
-                ],
-            )
-            .with_localized_title(Message::SettingsThemesCategory),
-        );
+        categories.push(Category::localized(
+            Message::SettingsThemesCategory,
+            vec![
+                Box::new(CreateCustomThemeWidget::default()),
+                Box::new(ThemeSelectWidget::default()),
+            ],
+        ));
 
         if AppIconSettings::as_ref(ctx).is_supported_on_current_platform() {
-            categories.push(
-                Category::new("Icon", vec![Box::new(CustomAppIconWidget::default())])
-                    .with_localized_title(Message::SettingsIconCategory),
-            );
+            categories.push(Category::localized(
+                Message::SettingsIconCategory,
+                vec![Box::new(CustomAppIconWidget::default())],
+            ));
         }
 
         let window_settings = WindowSettings::as_ref(ctx);
@@ -1455,8 +1451,7 @@ impl AppearanceSettingsPageView {
 
         if !window_settings_widgets.is_empty() {
             categories.push(
-                Category::new("Window", window_settings_widgets)
-                    .with_localized_title(Message::SettingsWindowCategory),
+                Category::localized(Message::SettingsWindowCategory, window_settings_widgets),
             );
         }
 
@@ -1482,8 +1477,7 @@ impl AppearanceSettingsPageView {
         tools_panel_widgets.push(Box::new(ToolsPanelWarpDriveWidget::default()));
         if !tools_panel_widgets.is_empty() {
             categories.push(
-                Category::new("Tools panel", tools_panel_widgets)
-                    .with_localized_title(Message::SettingsToolsPanelCategory),
+                Category::localized(Message::SettingsToolsPanelCategory, tools_panel_widgets),
             );
         }
 
@@ -1497,20 +1491,16 @@ impl AppearanceSettingsPageView {
         ];
 
         categories.push(
-            Category::new("Input", category_widgets)
-                .with_localized_title(Message::SettingsInputCategory),
+            Category::localized(Message::SettingsInputCategory, category_widgets),
         );
 
-        categories.push(
-            Category::new(
-                "Panes",
-                vec![
-                    Box::new(DimInactivePanesWidget::default()),
-                    Box::new(FocusFollowsMouseWidget::default()),
-                ],
-            )
-            .with_localized_title(Message::SettingsPanesCategory),
-        );
+        categories.push(Category::localized(
+            Message::SettingsPanesCategory,
+            vec![
+                Box::new(DimInactivePanesWidget::default()),
+                Box::new(FocusFollowsMouseWidget::default()),
+            ],
+        ));
 
         let mut block_settings_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
             Box::new(CompactModeWidget::default()),
@@ -1520,8 +1510,7 @@ impl AppearanceSettingsPageView {
             block_settings_widgets.push(Box::new(ShowBlockDividersWidget::default()));
         }
         categories.push(
-            Category::new("Blocks", block_settings_widgets)
-                .with_localized_title(Message::SettingsBlocksCategory),
+            Category::localized(Message::SettingsBlocksCategory, block_settings_widgets),
         );
 
         let font_settings = FontSettings::as_ref(ctx);
@@ -1552,20 +1541,16 @@ impl AppearanceSettingsPageView {
         }
 
         categories.push(
-            Category::new("Text", text_settings_widgets)
-                .with_localized_title(Message::SettingsTextCategory),
+            Category::localized(Message::SettingsTextCategory, text_settings_widgets),
         );
 
-        categories.push(
-            Category::new(
-                "Cursor",
-                vec![
-                    Box::new(CursorTypeWidget::default()),
-                    Box::new(BlinkingCursorWidget::default()),
-                ],
-            )
-            .with_localized_title(Message::SettingsCursorCategory),
-        );
+        categories.push(Category::localized(
+            Message::SettingsCursorCategory,
+            vec![
+                Box::new(CursorTypeWidget::default()),
+                Box::new(BlinkingCursorWidget::default()),
+            ],
+        ));
 
         let tab_settings = TabSettings::as_ref(ctx);
         let mut tab_settings_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> =
@@ -1610,16 +1595,14 @@ impl AppearanceSettingsPageView {
         }
 
         categories.push(
-            Category::new("Tabs", tab_settings_widgets)
-                .with_localized_title(Message::SettingsTabsCategory),
+            Category::localized(Message::SettingsTabsCategory, tab_settings_widgets),
         );
 
         categories.push(
-            Category::new(
-                "Full-screen Apps",
-                vec![Box::new(AltScreenPaddingWidget::default())],
-            )
-            .with_localized_title(Message::SettingsFullScreenAppsCategory),
+            Category::localized(
+            Message::SettingsFullScreenAppsCategory,
+            vec![Box::new(AltScreenPaddingWidget::default())],
+            ),
         );
 
         PageType::new_categorized(categories, None)

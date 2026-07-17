@@ -2998,27 +2998,18 @@ impl FeaturesPageView {
         }
 
         let categories = vec![
-            Category::new("General", general_widgets)
-                .with_localized_title(Message::SettingsFeaturesGeneralCategory),
-            Category::new("Session", session_widgets)
-                .with_localized_title(Message::SettingsFeaturesSessionCategory),
-            Category::new("Keys", keys_widgets)
-                .with_localized_title(Message::SettingsFeaturesKeysCategory),
-            Category::new("Text Editing", text_editing_widgets)
-                .with_localized_title(Message::SettingsFeaturesTextEditingCategory),
-            Category::new("Terminal Input", editor_widgets)
-                .with_localized_title(Message::SettingsFeaturesTerminalInputCategory),
-            Category::new("Terminal", terminal_widgets)
-                .with_localized_title(Message::SettingsFeaturesTerminalCategory),
-            Category::new("Notifications", notifications_widgets)
-                .with_localized_title(Message::SettingsFeaturesNotificationsCategory),
-            Category::new(
-                "Workflows",
-                vec![Box::new(WorkflowsInCommandSearch::default())],
-            )
-            .with_localized_title(Message::SettingsFeaturesWorkflowsCategory),
-            Category::new("System", system_widgets)
-                .with_localized_title(Message::SettingsFeaturesSystemCategory),
+            Category::localized(Message::SettingsFeaturesGeneralCategory, general_widgets),
+            Category::localized(Message::SettingsFeaturesSessionCategory, session_widgets),
+            Category::localized(Message::SettingsFeaturesKeysCategory, keys_widgets),
+            Category::localized(Message::SettingsFeaturesTextEditingCategory, text_editing_widgets),
+            Category::localized(Message::SettingsFeaturesTerminalInputCategory, editor_widgets),
+            Category::localized(Message::SettingsFeaturesTerminalCategory, terminal_widgets),
+            Category::localized(Message::SettingsFeaturesNotificationsCategory, notifications_widgets),
+            Category::localized(
+            Message::SettingsFeaturesWorkflowsCategory,
+            vec![Box::new(WorkflowsInCommandSearch::default())],
+            ),
+            Category::localized(Message::SettingsFeaturesSystemCategory, system_widgets),
         ];
 
         PageType::new_categorized(categories, None)
