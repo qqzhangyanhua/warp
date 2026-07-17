@@ -15,6 +15,7 @@ use warpui::{
 
 use super::{is_delete_allowed, style, AIFact, CloudAIFact, CloudAIFactModel};
 use crate::ai::facts::AIMemory;
+use crate::i18n::{tr, Message};
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObject, Revision};
@@ -134,7 +135,7 @@ impl RuleEditorView {
         });
 
         let save_button = ctx.add_typed_action_view(|ctx| {
-            let mut button = ActionButton::new("Save", PrimaryTheme)
+            let mut button = ActionButton::new(tr(ctx, Message::SettingsSave), PrimaryTheme)
                 .with_icon(Icon::Check)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(RuleEditorViewAction::Save);
@@ -144,8 +145,8 @@ impl RuleEditorView {
             button
         });
 
-        let delete_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Delete rule", DangerSecondaryTheme)
+        let delete_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AiDeleteRule), DangerSecondaryTheme)
                 .with_icon(Icon::Trash)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(RuleEditorViewAction::Delete);

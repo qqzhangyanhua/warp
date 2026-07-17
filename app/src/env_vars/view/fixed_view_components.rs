@@ -10,6 +10,7 @@ use warpui::ui_components::button::{ButtonVariant, TextAndIcon, TextAndIconAlign
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{Element, ViewContext};
 
+use crate::i18n::{tr_cached, Message};
 use crate::drive::sharing::{ContentEditability, SharingAccessLevel};
 use crate::env_vars::active_env_var_collection_data::TrashStatus;
 use crate::env_vars::view::env_var_collection::{EnvVarCollectionAction, EnvVarCollectionView};
@@ -118,7 +119,7 @@ impl EnvVarCollectionView {
                                     .build()
                                     .finish()
                             })
-                            .with_text_label("Restore".to_string())
+                            .with_text_label(tr_cached(Message::EnvVarsRestore).to_string())
                             .build()
                             .on_click(|ctx, _, _| {
                                 ctx.dispatch_typed_action(EnvVarCollectionAction::Untrash)

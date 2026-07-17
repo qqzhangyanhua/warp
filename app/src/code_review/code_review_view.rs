@@ -66,6 +66,7 @@ use crate::ai::agent::{
 };
 use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::appearance::Appearance;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::comment_editor::DEFAULT_COMMENT_MAX_WIDTH;
 use crate::code::editor::line::EditorLineLocation;
@@ -1165,8 +1166,8 @@ impl CodeReviewView {
                 .on_click(|ctx| ctx.dispatch_typed_action(CodeReviewAction::ToggleFileSidebar))
         });
 
-        let git_primary_action_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Commit", SecondaryTheme)
+        let git_primary_action_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeReviewCommit), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .with_icon(Icon::GitCommit)
                 .with_adjoined_side(AdjoinedSide::Right)
@@ -1207,7 +1208,7 @@ impl CodeReviewView {
 
         let undo_action_button = ctx.add_typed_action_view(move |ctx| {
             let keybinding = custom_tag_to_keystroke(CustomAction::Undo.into());
-            let mut action_button = ActionButton::new("Undo", NakedTheme)
+            let mut action_button = ActionButton::new(tr(ctx, Message::CodeReviewUndo), NakedTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(move |ctx| {
                     ctx.dispatch_typed_action(WorkspaceAction::UndoRevertInCodeReviewPane {
@@ -1223,13 +1224,13 @@ impl CodeReviewView {
             action_button
         });
 
-        let discard_confirm_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Discard changes", DangerPrimaryTheme)
+        let discard_confirm_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeReviewDiscardChanges), DangerPrimaryTheme)
                 .on_click(|ctx| ctx.dispatch_typed_action(CodeReviewAction::ConfirmDiscardFile))
         });
 
-        let discard_cancel_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Cancel", NakedTheme).on_click(|ctx| {
+        let discard_cancel_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::SettingsCancel), NakedTheme).on_click(|ctx| {
                 ctx.dispatch_typed_action(CodeReviewAction::CancelDiscardFile);
             })
         });
@@ -1296,8 +1297,8 @@ impl CodeReviewView {
         let ui_state_handles = UiStateHandles::default();
         let header = CodeReviewHeader::new();
 
-        let init_project_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Initialize codebase", NakedTheme)
+        let init_project_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeReviewInitializeCodebase), NakedTheme)
                 .with_size(ButtonSize::Small)
                 .with_tooltip("Enables codebase indexing and WARP.md")
                 .with_tooltip_alignment(TooltipAlignment::Center)
@@ -1307,8 +1308,8 @@ impl CodeReviewView {
         });
 
         #[cfg(not(target_family = "wasm"))]
-        let open_repository_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Open repository", NakedTheme)
+        let open_repository_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeReviewOpenRepository), NakedTheme)
                 .with_size(ButtonSize::Small)
                 .with_tooltip("Navigate to a repo and initialize it for coding")
                 .with_tooltip_alignment(TooltipAlignment::Center)
@@ -6645,7 +6646,7 @@ impl CodeReviewView {
     /// only the disabled state flips across modes (enabled in Commit mode,
     /// disabled in Push mode where there's nothing to commit).
     fn commit_menu_item(disabled: bool) -> MenuItem<CodeReviewAction> {
-        MenuItemFields::new("Commit")
+        MenuItemFields::new(tr_cached(Message::CodeReviewCommit))
             .with_icon(Icon::GitCommit)
             .with_on_select_action(CodeReviewAction::OpenCommitDialog)
             .with_disabled(disabled)
@@ -6657,13 +6658,13 @@ impl CodeReviewView {
     /// sets the upstream).
     fn push_or_publish_menu_item(has_upstream: bool, disabled: bool) -> MenuItem<CodeReviewAction> {
         if has_upstream {
-            MenuItemFields::new("Push")
+            MenuItemFields::new(tr_cached(Message::CodeReviewPush))
                 .with_icon(Icon::ArrowUp)
                 .with_on_select_action(CodeReviewAction::OpenPushDialog)
                 .with_disabled(disabled)
                 .into_item()
         } else {
-            MenuItemFields::new("Publish")
+            MenuItemFields::new(tr_cached(Message::CodeReviewPublish))
                 .with_icon(Icon::UploadCloud)
                 .with_on_select_action(CodeReviewAction::PublishBranch)
                 .with_disabled(disabled)
@@ -6688,7 +6689,7 @@ impl CodeReviewView {
             let is_on_main = diff_state.is_on_main_branch(app);
             let has_upstream = diff_state.upstream_ref(app).is_some();
             let upstream_differs_from_main = diff_state.upstream_differs_from_main(app);
-            MenuItemFields::new("Create PR")
+            MenuItemFields::new(tr(app, Message::CodeReviewCreatePr))
                 .with_icon(Icon::Github)
                 .with_on_select_action(CodeReviewAction::OpenCreatePrDialog)
                 .with_disabled(
@@ -6762,7 +6763,7 @@ impl CodeReviewView {
 
         if FeatureFlag::DiffSetAsContext.is_enabled() && has_changes {
             items.push(
-                MenuItemFields::new("Add diff set as context")
+                MenuItemFields::new(tr(ctx, Message::CodeReviewAddDiffSetAsContext))
                     .with_icon(Icon::Paperclip)
                     .with_on_select_action(CodeReviewAction::AddDiffSetAsContext(DiffSetScope::All))
                     .into_item(),
@@ -6770,9 +6771,9 @@ impl CodeReviewView {
         }
 
         let (comment_label, comment_icon) = if self.get_existing_diffset_comment(ctx).is_some() {
-            ("Show saved comment", Icon::MessageText)
+            (tr(ctx, Message::CodeReviewShowSavedComment), Icon::MessageText)
         } else {
-            ("Add comment", Icon::MessagePlusSquare)
+            (tr(ctx, Message::CodeReviewAddComment), Icon::MessagePlusSquare)
         };
 
         items.push(
@@ -6797,7 +6798,7 @@ impl CodeReviewView {
         let is_ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
         if is_ai_enabled && FeatureFlag::DiffSetAsContext.is_enabled() && has_changes {
             items.push(
-                MenuItemFields::new("Add diff set as context")
+                MenuItemFields::new(tr(ctx, Message::CodeReviewAddDiffSetAsContext))
                     .with_icon(Icon::Paperclip)
                     .with_on_select_action(CodeReviewAction::AddDiffSetAsContext(DiffSetScope::All))
                     .into_item(),
@@ -6807,9 +6808,9 @@ impl CodeReviewView {
         if FeatureFlag::FileAndDiffSetComments.is_enabled() && has_changes {
             let (comment_label, comment_icon) = if self.get_existing_diffset_comment(ctx).is_some()
             {
-                ("Show saved comment", Icon::MessageText)
+                (tr(ctx, Message::CodeReviewShowSavedComment), Icon::MessageText)
             } else {
-                ("Add comment", Icon::MessagePlusSquare)
+                (tr(ctx, Message::CodeReviewAddComment), Icon::MessagePlusSquare)
             };
 
             items.push(
@@ -6822,7 +6823,7 @@ impl CodeReviewView {
 
         if FeatureFlag::DiscardPerFileAndAllChanges.is_enabled() && has_changes {
             items.push(
-                MenuItemFields::new("Discard all")
+                MenuItemFields::new(tr(ctx, Message::CodeReviewDiscardAll))
                     .with_icon(Icon::ReverseLeft)
                     .with_on_select_action(CodeReviewAction::ShowDiscardConfirmDialog(None))
                     .into_item(),

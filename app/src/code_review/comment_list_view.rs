@@ -38,6 +38,7 @@ use warpui::{
 
 use crate::ai::request_usage_model::{AIRequestUsageModel, AIRequestUsageModelEvent};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::comment_editor::DEFAULT_COMMENT_MAX_WIDTH;
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorView};
@@ -212,7 +213,7 @@ impl CommentListView {
         });
 
         let send_button = ctx.add_view(|ctx| {
-            ActionButton::new("Send to Agent", PrimaryTheme)
+            ActionButton::new(tr_cached(Message::CodeReviewSendToAgent), PrimaryTheme)
                 .with_size(ButtonSize::Small)
                 .with_keybinding(
                     KeystrokeSource::Fixed(
@@ -905,7 +906,7 @@ impl CommentListView {
                     ButtonVariant::Text,
                     self.view_state.cancel_button_mouse_state.clone(),
                 )
-                .with_text_label("Cancel".to_string())
+                .with_text_label(tr_cached(Message::SettingsCancel).to_string())
                 .build()
                 .finish(),
         )
@@ -1061,12 +1062,12 @@ impl CommentListView {
         html_url: Option<&str>,
         appearance: &Appearance,
     ) -> Vec<MenuItem<CommentListAction>> {
-        let mut items = vec![MenuItemFields::new("Copy text")
+        let mut items = vec![MenuItemFields::new(tr_cached(Message::CodeReviewCopyText))
             .with_icon(Icon::Copy)
             .with_on_select_action(CommentListAction::CopyCommentText)
             .into_item()];
 
-        let mut edit_item = MenuItemFields::new("Edit")
+        let mut edit_item = MenuItemFields::new(tr_cached(Message::AiEdit))
             .with_icon(Icon::Pencil)
             .with_on_select_action(CommentListAction::EditComment);
         if is_file_level || is_outdated {
@@ -1081,7 +1082,7 @@ impl CommentListView {
 
         if let Some(url) = html_url {
             items.push(
-                MenuItemFields::new("View in GitHub")
+                MenuItemFields::new(tr_cached(Message::CodeReviewViewInGithub))
                     .with_icon(Icon::Github)
                     .with_on_select_action(CommentListAction::ViewInGitHub {
                         url: url.to_string(),
@@ -1091,7 +1092,7 @@ impl CommentListView {
         }
 
         items.push(
-            MenuItemFields::new("Remove")
+            MenuItemFields::new(tr_cached(Message::CommonRemove))
                 .with_icon(Icon::Trash)
                 .with_override_text_color(Fill::Solid(appearance.theme().ansi_fg_red()))
                 .with_override_icon_color(Fill::Solid(appearance.theme().ansi_fg_red()))

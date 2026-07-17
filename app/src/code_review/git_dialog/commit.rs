@@ -16,6 +16,7 @@ use warpui::ui_components::switch::SwitchStateHandle;
 use warpui::{AppContext, SingletonEntity, ViewContext, ViewHandle};
 
 use crate::code_review::diff_state::CommitChainMode;
+use crate::i18n::{tr, Message};
 use crate::code_review::git_dialog::pr::show_pr_created_toast;
 use crate::code_review::git_dialog::{
     render_branch_section, render_file_changes_box, should_send_git_ops_ai_request, show_toast,
@@ -123,8 +124,8 @@ pub(super) fn new_state(
         handle_editor_event(me, event, ctx);
     });
 
-    let commit_button = ctx.add_typed_action_view(|_ctx| {
-        ActionButton::new("Commit", SecondaryTheme)
+    let commit_button = ctx.add_typed_action_view(|ctx| {
+        ActionButton::new(tr(ctx, Message::CodeReviewCommit), SecondaryTheme)
             .with_size(ButtonSize::XSmall)
             .with_height(32.)
             .with_icon(Icon::GitCommit)
@@ -147,8 +148,8 @@ pub(super) fn new_state(
     });
 
     let commit_and_create_pr_button = if allow_create_pr {
-        Some(ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Commit and create PR", SecondaryTheme)
+        Some(ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeReviewCommitAndCreatePr), SecondaryTheme)
                 .with_size(ButtonSize::XSmall)
                 .with_height(32.)
                 .with_icon(Icon::Github)

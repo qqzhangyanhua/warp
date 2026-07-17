@@ -19,6 +19,7 @@ use warpui::{
 
 use super::model::{CodeEditorModel, CodeEditorModelEvent};
 use crate::editor::InteractionState;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, ButtonSize, NakedTheme};
 use crate::view_components::find::FIND_BAR_PADDING;
@@ -72,14 +73,14 @@ impl NavBar {
         });
 
         let up_label_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Previous", NakedTheme)
+            ActionButton::new(tr_cached(Message::CodePrevious), NakedTheme)
                 .with_size(ButtonSize::InlineActionHeader)
                 .with_icon(Icon::ArrowUp)
                 .on_click(|ctx| ctx.dispatch_typed_action(NavBarAction::NavigateUp))
         });
 
         let down_label_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Next", NakedTheme)
+            ActionButton::new(tr_cached(Message::CodeNext), NakedTheme)
                 .with_size(ButtonSize::InlineActionHeader)
                 .with_icon(Icon::ArrowDown)
                 .on_click(|ctx| ctx.dispatch_typed_action(NavBarAction::NavigateDown))
@@ -200,7 +201,7 @@ impl NavBar {
                     ButtonVariant::Outlined,
                     self.mouse_state_handles.revert_mouse_state.clone(),
                 )
-                .with_text_label("Reject".to_string())
+                .with_text_label(tr_cached(Message::CodeReject).to_string())
                 .build()
                 .on_click(|ctx, _, _| ctx.dispatch_typed_action(NavBarAction::Revert))
                 .finish(),

@@ -26,6 +26,7 @@ use crate::ai::agent_management::notifications::{
 use crate::ai::agent_management::{AgentManagementEvent, AgentNotificationsModel};
 use crate::ai::artifacts::{Artifact, ArtifactButtonsRow, ArtifactButtonsRowEvent};
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, ButtonSize, NakedTheme};
 
@@ -128,8 +129,8 @@ impl NotificationMailboxView {
                 })
         });
 
-        let mark_all_read_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Mark all as read", NakedTheme)
+        let mark_all_read_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AgentMgmtMarkAllAsRead), NakedTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(NotificationMailboxViewAction::MarkAllRead);

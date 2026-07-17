@@ -165,7 +165,7 @@ impl CommentEditor {
         ViewHandle<ActionButton>,
     ) {
         let save_button = ctx.add_typed_action_view(|ctx| {
-            ActionButton::new("Comment", PrimaryTheme)
+            ActionButton::new(tr(ctx, Message::CodeComment), PrimaryTheme)
                 .with_keybinding(
                     KeystrokeSource::Fixed(
                         Keystroke::parse(crate::code_review::CODE_REVIEW_SUBMIT_KEYSTROKE)

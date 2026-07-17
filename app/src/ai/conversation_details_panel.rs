@@ -52,6 +52,7 @@ use crate::ai::cloud_environments::{AmbientAgentEnvironment, CloudAmbientAgentEn
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::harness_display;
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::auth::UserUid;
 use crate::cloud_object::CloudObjectLookup as _;
 use crate::notebooks::NotebookId;
@@ -685,16 +686,16 @@ impl ConversationDetailsPanel {
         ctx.subscribe_to_view(&action_buttons, Self::handle_action_buttons_event);
 
         #[cfg(not(target_family = "wasm"))]
-        let continue_locally_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Continue locally", PrimaryTheme)
+        let continue_locally_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::ConversationContinueLocally), PrimaryTheme)
                 .with_tooltip("Fork this conversation locally")
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(ConversationDetailsPanelAction::ContinueLocally);
                 })
         });
-        let open_in_oz_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("View in Oz", SecondaryTheme)
+        let open_in_oz_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::ConversationViewInOz), SecondaryTheme)
                 .with_tooltip("View this run in the Oz web app")
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {

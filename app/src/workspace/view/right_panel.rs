@@ -36,6 +36,7 @@ use crate::code_review::code_review_view::{
 use crate::code_review::diff_state::DiffStateModel;
 use crate::code_review::telemetry_event::CodeReviewContextDestination;
 use crate::drive::panel::{MAX_SIDEBAR_WIDTH_RATIO, MIN_SIDEBAR_WIDTH};
+use crate::i18n::{tr, Message};
 use crate::pane_group::pane::view::header::components::HEADER_EDGE_PADDING;
 use crate::pane_group::pane::view::header::PANE_HEADER_HEIGHT;
 use crate::pane_group::{
@@ -509,8 +510,8 @@ impl RightPanelView {
         });
 
         #[cfg(feature = "local_fs")]
-        let open_repository_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Open repository", NakedTheme)
+        let open_repository_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CodeReviewOpenRepository), NakedTheme)
                 .with_size(crate::view_components::action_button::ButtonSize::Small)
                 .with_tooltip("Navigate to a repo and initialize it for coding")
                 .with_tooltip_alignment(TooltipAlignment::Center)

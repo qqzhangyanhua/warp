@@ -64,6 +64,7 @@ use crate::ai::harness_display;
 use crate::app_state::PersistedAgentManagementFilters;
 use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
+use crate::i18n::{tr, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys,
     PropagateHorizontalNavigationKeys, SingleLineEditorOptions, TextOptions,
@@ -221,8 +222,8 @@ impl AgentManagementView {
 
         let list_state = Self::construct_fresh_list_state(ctx.handle());
 
-        let all_filter_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("All", NakedTheme)
+        let all_filter_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AgentMgmtAll), NakedTheme)
                 .with_size(ButtonSize::Small)
                 .with_tooltip("View your agent tasks plus all shared team tasks")
                 .on_click(|ctx| {
@@ -232,8 +233,8 @@ impl AgentManagementView {
                 })
         });
 
-        let personal_filter_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Personal", NakedTheme)
+        let personal_filter_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AgentMgmtPersonal), NakedTheme)
                 .with_size(ButtonSize::Small)
                 .with_tooltip("View agent tasks you created")
                 .on_click(|ctx| {
@@ -244,7 +245,7 @@ impl AgentManagementView {
         });
 
         let setup_guide_button = CompactibleActionButton::new(
-            "Get started".to_string(),
+            tr(ctx, Message::EnvironmentGetStarted).to_string(),
             None,
             ButtonSize::Small,
             AgentManagementViewAction::ToggleSetupGuide,
@@ -253,8 +254,8 @@ impl AgentManagementView {
             ctx,
         );
 
-        let view_agents_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("View Agents", NakedTheme)
+        let view_agents_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AgentMgmtViewAgents), NakedTheme)
                 .with_size(ButtonSize::Small)
                 .with_icon(Icon::ArrowLeft)
                 .on_click(|ctx| {
@@ -271,16 +272,16 @@ impl AgentManagementView {
         let environment_dropdown = ctx.add_typed_action_view(Self::create_environment_dropdown);
         let creator_dropdown = ctx.add_typed_action_view(Self::create_creator_dropdown);
 
-        let no_filter_results_button = ctx.add_typed_action_view(move |_ctx| {
-            ActionButton::new("Clear filters", SecondaryTheme)
+        let no_filter_results_button = ctx.add_typed_action_view(move |ctx| {
+            ActionButton::new(tr(ctx, Message::AgentMgmtClearFilters), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(move |ctx| {
                     ctx.dispatch_typed_action(AgentManagementViewAction::ClearFilters)
                 })
         });
 
-        let clear_all_filters_button = ctx.add_typed_action_view(move |_ctx| {
-            ActionButton::new("Clear all", NakedTheme)
+        let clear_all_filters_button = ctx.add_typed_action_view(move |ctx| {
+            ActionButton::new(tr(ctx, Message::AgentMgmtClearAll), NakedTheme)
                 .with_icon(Icon::X)
                 .with_size(ButtonSize::Small)
                 .on_click(move |ctx| {

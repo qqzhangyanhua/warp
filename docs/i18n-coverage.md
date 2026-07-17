@@ -8,9 +8,9 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **1434** |
-| English table (`en_text`) | **1434** complete |
-| Chinese table (`zh_cn_text`) | **1434** complete |
+| `Message` variants | **1471** |
+| English table (`en_text`) | **1471** complete |
+| Chinese table (`zh_cn_text`) | **1471** complete |
 | Call sites | ~1000+ across 75+ files |
 
 ### What the 157 messages cover
@@ -279,7 +279,7 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 | Bucket | Status | Rough user-visible strings |
 |--------|--------|----------------------------|
-| Already i18n (1434 `Message`s) | Done | ~1430+ |
+| Already i18n (1471 `Message`s) | Done | ~1470+ |
 | P0 first-run / login / anonymous | Done | ~80–120 |
 | P1 Settings residuals | Done | ~80–120 |
 | P2 full Settings pages | Done (Teams confirm dialogs + Environments residual) | ~250–400 |
@@ -351,4 +351,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-17. Batch 9: tab context menus, Use Agent/Warpify footer, tab config remove/open dialogs, Move to group localization. Message catalog 1434 variants._
+_Last updated: 2026-07-17. Batch 10: Code Review/git dialogs, code accept-reject, env vars menus, agent management filters, rules editor, conversation details. Message catalog 1471 variants._

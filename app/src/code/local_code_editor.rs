@@ -67,7 +67,7 @@ use crate::code::footer::{CodeFooterView, CodeFooterViewEvent};
 use crate::code::global_buffer_model::{BufferState, GlobalBufferModel, GlobalBufferModelEvent};
 use crate::code::{SaveOutcome, ShowFindReferencesCardProvider};
 use crate::code_review::comments::CommentId;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{Event, Menu, MenuItem, MenuItemFields};
 use crate::settings::{AISettings, CodeSettings};
 use crate::terminal::TerminalView;
@@ -2401,7 +2401,7 @@ pub fn render_unsaved_changes_banner(
             appearance
                 .ui_builder()
                 .button(ButtonVariant::Text, discard_mouse_state)
-                .with_text_label("Discard this version".into())
+                .with_text_label(tr_cached(Message::CodeDiscardThisVersion).into())
                 .with_style(UiComponentStyles {
                     height: Some(24.),
                     padding: Some(Coords {
@@ -2423,7 +2423,7 @@ pub fn render_unsaved_changes_banner(
                 appearance
                     .ui_builder()
                     .button(ButtonVariant::Outlined, overwrite_mouse_state)
-                    .with_text_label("Overwrite".into())
+                    .with_text_label(tr_cached(Message::CodeOverwrite).into())
                     .with_style(UiComponentStyles {
                         font_color: Some(appearance.theme().active_ui_text_color().into()),
                         ..Default::default()

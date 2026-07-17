@@ -22,6 +22,7 @@ use warpui::{
 
 use super::{is_edit_allowed, is_syncing, style, AIFact, CloudAIFact, CloudAIFactModel};
 use crate::ai::facts::AIMemory;
+use crate::i18n::{tr, Message};
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{
@@ -295,14 +296,14 @@ impl RuleView {
         });
         let search_bar = ctx.add_typed_action_view(|_| SearchBar::new(search_editor.clone()));
 
-        let add_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Add", NakedTheme)
+        let add_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::McpAdd), NakedTheme)
                 .with_icon(Icon::Plus)
                 .on_click(|ctx| ctx.dispatch_typed_action(RuleViewAction::AddRule))
         });
 
-        let initialize_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Initialize Project", NakedTheme)
+        let initialize_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::AiInitializeProject), NakedTheme)
                 .with_icon(Icon::Plus)
                 .on_click(|ctx| ctx.dispatch_typed_action(RuleViewAction::InitializeProject))
         });
