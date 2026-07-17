@@ -19,6 +19,7 @@ use crate::ai::ambient_agents::github_auth_url::{AuthSource, GithubAuthRedirectT
 use crate::ai::request_usage_model::AMBIENT_AGENT_TRIAL_CREDIT_THRESHOLD;
 use crate::ai::{cloud_environments, AIRequestUsageModel};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::ClientId;
 use crate::settings_view::update_environment_form::{
@@ -146,7 +147,7 @@ impl FirstTimeCloudAgentSetupView {
         // Title - 20px medium weight
         column.add_child(
             Text::new(
-                "Start a new Oz cloud agent",
+                tr_cached(Message::CloudStartNewOzAgent),
                 appearance.ui_font_family(),
                 20.,
             )
@@ -157,11 +158,9 @@ impl FirstTimeCloudAgentSetupView {
 
         // Description with "Visit docs" link
         let description_fragments = vec![
-            FormattedTextFragment::plain_text(
-                "Use Oz cloud agents to run parallel agents, build agents that run autonomously, and check in on your agents from anywhere. ",
-            ),
+            FormattedTextFragment::plain_text(tr_cached(Message::CloudUseOzCloudAgentsDesc)),
             FormattedTextFragment::hyperlink(
-                "Visit docs",
+                tr_cached(Message::CloudVisitDocs),
                 "https://docs.warp.dev/agent-platform/cloud-agents/overview",
             ),
         ];
@@ -190,7 +189,7 @@ impl FirstTimeCloudAgentSetupView {
 
         // Bold/semibold text in foreground color (per Figma: font-semibold text-[#e3e2df])
         Text::new(
-            "Cloud agents require an environment that they'll run in to get their task done. Create your first environment below. You'll be able to edit the environment later, or add new environments when you need them.",
+            tr_cached(Message::CloudAgentsRequireEnvironment),
             appearance.ui_font_family(),
             appearance.ui_font_size(),
         )
@@ -210,10 +209,14 @@ impl FirstTimeCloudAgentSetupView {
 
         // Badge with blue border
         let badge = Container::new(
-            Text::new("Free credits", appearance.ui_font_family(), 12.)
-                .with_style(Properties::default().weight(Weight::Semibold))
-                .with_color(theme.accent().into())
-                .finish(),
+            Text::new(
+                tr_cached(Message::CloudFreeCredits),
+                appearance.ui_font_family(),
+                12.,
+            )
+            .with_style(Properties::default().weight(Weight::Semibold))
+            .with_color(theme.accent().into())
+            .finish(),
         )
         .with_horizontal_padding(6.)
         .with_vertical_padding(4.)
@@ -223,12 +226,9 @@ impl FirstTimeCloudAgentSetupView {
 
         // Banner text - dynamic based on credits
         let credits_text = if credits == 1 {
-            "You have 1 free credit to use on Oz cloud agents.".to_string()
+            tr_cached(Message::CloudOneFreeCredit).to_string()
         } else {
-            format!(
-                "You have {} free credits to use on Oz cloud agents.",
-                credits
-            )
+            tr_cached(Message::CloudNFreeCredits).replace("{count}", &credits.to_string())
         };
         let text = Text::new(credits_text, appearance.ui_font_family(), 12.)
             .with_color(blended_colors::text_sub(theme, theme.surface_1()))

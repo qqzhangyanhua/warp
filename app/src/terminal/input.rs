@@ -2165,7 +2165,8 @@ impl Input {
             if let AmbientAgentViewModelEvent::HandoffSnapshotUploadFailed { error_message } = event
             {
                 let window_id = ctx.window_id();
-                let toast_message = format!("Failed to prepare cloud handoff: {error_message}");
+                let toast_message = tr_cached(Message::TerminalFailedPrepareCloudHandoff)
+                    .replace("{error}", &error_message);
                 ToastStack::handle(ctx).update(ctx, |ts, ctx| {
                     ts.add_ephemeral_toast(DismissibleToast::error(toast_message), window_id, ctx);
                 });
@@ -4130,7 +4131,7 @@ impl Input {
                 } else {
                     // Cloud-to-cloud follow-up is unavailable; block rather than run locally.
                     self.show_ephemeral_error_toast(
-                        "This cloud conversation can't continue on your local machine.",
+                        tr_cached(Message::TerminalCloudConversationCantContinueLocal),
                         ctx,
                     );
                 }
@@ -4138,7 +4139,7 @@ impl Input {
             }
             AIQueryRouting::UnconnectedReadOnly => {
                 self.show_ephemeral_error_toast(
-                    "This cloud conversation can't continue on your local machine.",
+                    tr_cached(Message::TerminalCloudConversationCantContinueLocal),
                     ctx,
                 );
                 true
@@ -4548,8 +4549,7 @@ impl Input {
         ToastStack::handle(ctx).update(ctx, |ts, ctx| {
             ts.add_ephemeral_toast(
                 DismissibleToast::error(
-                    "Custom models can't run in the cloud. Switch to a Warp model to hand off."
-                        .to_owned(),
+                    tr_cached(Message::TerminalCustomModelsCantRunCloud).to_owned(),
                 ),
                 window_id,
                 ctx,
@@ -5831,8 +5831,7 @@ impl Input {
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
                     DismissibleToast::default(
-                        "Local skills cannot run on a remote machine. Try forking the conversation locally and running the skill."
-                            .to_owned(),
+                        tr_cached(Message::TerminalLocalSkillsRemote).to_owned(),
                     ),
                     window_id,
                     ctx,
@@ -13573,7 +13572,7 @@ impl Input {
                         ToastStack::handle(ctx).update(ctx, |ts, ctx| {
                             ts.add_ephemeral_toast(
                                 DismissibleToast::default(
-                                    "Preparing handoff — try again in a moment.".to_owned(),
+                                    tr_cached(Message::TerminalPreparingHandoff).to_owned(),
                                 )
                                 .with_object_id("local-to-cloud-handoff-not-ready".to_owned()),
                                 window_id,

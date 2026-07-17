@@ -13,6 +13,7 @@ use warpui::elements::{
 use warpui::fonts::{Properties, Weight};
 use warpui::Element;
 
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::billing_and_usage_page_v2::{
     AGGREGATE_CREDITS_DOT_COLOR, AMBIENT_CREDITS_DOT_COLOR, BASE_CREDITS_DOT_COLOR,
     BONUS_CREDITS_DOT_COLOR, PAYG_CREDITS_DOT_COLOR,
@@ -93,24 +94,28 @@ pub fn cost_type_color(cost_type: &AiCreditsUsageAndCostType) -> ColorU {
 
 fn cost_type_label(cost_type: &AiCreditsUsageAndCostType) -> &'static str {
     match cost_type {
-        AiCreditsUsageAndCostType::BaseLimit => "Base",
-        AiCreditsUsageAndCostType::BonusGrant => "Add-ons",
-        AiCreditsUsageAndCostType::Payg => "Pay-as-you-go",
-        AiCreditsUsageAndCostType::AmbientBonusGrant => "Cloud-only",
-        AiCreditsUsageAndCostType::Aggregate => "Combined",
-        AiCreditsUsageAndCostType::Other(_) => "Other",
+        AiCreditsUsageAndCostType::BaseLimit => tr_cached(Message::BillingCostTypeBase),
+        AiCreditsUsageAndCostType::BonusGrant => tr_cached(Message::BillingCostTypeAddons),
+        AiCreditsUsageAndCostType::Payg => tr_cached(Message::BillingCostTypePayg),
+        AiCreditsUsageAndCostType::AmbientBonusGrant => {
+            tr_cached(Message::BillingCostTypeCloudOnly)
+        }
+        AiCreditsUsageAndCostType::Aggregate => tr_cached(Message::BillingCostTypeCombined),
+        AiCreditsUsageAndCostType::Other(_) => tr_cached(Message::BillingCostTypeOther),
     }
 }
 
 fn bucket_label(bucket: &AiCreditsUsageBucket) -> &'static str {
     match bucket {
-        AiCreditsUsageBucket::Ai => "AI",
-        AiCreditsUsageBucket::Compute => "Compute",
-        AiCreditsUsageBucket::Platform => "Platform",
-        AiCreditsUsageBucket::SuggestedCodeDiffs => "Suggested code diffs",
-        AiCreditsUsageBucket::Voice => "Voice",
-        AiCreditsUsageBucket::Aggregate => "Total",
-        AiCreditsUsageBucket::Other(_) => "Other",
+        AiCreditsUsageBucket::Ai => tr_cached(Message::BillingBucketAi),
+        AiCreditsUsageBucket::Compute => tr_cached(Message::BillingBucketCompute),
+        AiCreditsUsageBucket::Platform => tr_cached(Message::BillingBucketPlatform),
+        AiCreditsUsageBucket::SuggestedCodeDiffs => {
+            tr_cached(Message::BillingBucketSuggestedCodeDiffs)
+        }
+        AiCreditsUsageBucket::Voice => tr_cached(Message::BillingBucketVoice),
+        AiCreditsUsageBucket::Aggregate => tr_cached(Message::BillingBucketTotal),
+        AiCreditsUsageBucket::Other(_) => tr_cached(Message::BillingCostTypeOther),
     }
 }
 
@@ -312,7 +317,7 @@ pub fn render_breakdown_tooltip(
 
     column.add_child(render_tooltip_row(
         /* no swatch on the total row */ None,
-        "Total usage".to_string(),
+        tr_cached(Message::BillingTotalUsage).to_string(),
         total_credits,
         total_cost_cents,
         main,

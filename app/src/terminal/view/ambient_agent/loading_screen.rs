@@ -20,6 +20,7 @@ use warpui::{AppContext, ModelHandle, SingletonEntity};
 
 use crate::ai::agent_tips::{AITip, AITipModel};
 use crate::ai::loading::shimmering_warp_loading_text;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::view::ambient_agent::CloudModeTip;
 use crate::ui_components::blended_colors;
 use crate::workspaces::user_workspaces::UserWorkspaces;
@@ -50,7 +51,10 @@ pub fn render_cloud_mode_loading_screen(
         // Add link at the end if it exists
         if let Some(link_target) = tip.link() {
             fragments.push(FormattedTextFragment::plain_text(" "));
-            fragments.push(FormattedTextFragment::hyperlink("Learn more", link_target));
+            fragments.push(FormattedTextFragment::hyperlink(
+                tr_cached(Message::AuthLearnMore),
+                link_target,
+            ));
         }
 
         let formatted_text = FormattedText::new(vec![FormattedTextLine::Line(fragments)]);
@@ -147,7 +151,9 @@ fn render_tier_limits_footer(
     let policy = workspace.billing_metadata.tier.ambient_agents_policy?;
 
     let shape = policy.instance_shape.as_ref()?;
-    let specs = format!("{}CPU, {}GB", shape.vcpus, shape.memory_gb);
+    let specs = tr_cached(Message::CloudLoadingCpuGb)
+        .replace("{cpu}", &shape.vcpus.to_string())
+        .replace("{gb}", &shape.memory_gb.to_string());
 
     // If there's no way to upgrade, don't render the footer at all
     // (Build Max users can still upgrade to Business plans)
@@ -158,20 +164,22 @@ fn render_tier_limits_footer(
         return None;
     }
 
-    let mut fragments = vec![FormattedTextFragment::plain_text(format!(
-        "Your agent is currently running on a {} machine. ",
-        specs
-    ))];
+    let mut fragments = vec![FormattedTextFragment::plain_text(
+        tr_cached(Message::CloudLoadingAgentRunningOnMachine).replace("{specs}", &specs),
+    )];
 
     // Get the upgrade URL for the current team
     let upgrade_url = UserWorkspaces::as_ref(app)
         .current_team()
         .map(|team| UserWorkspaces::upgrade_link_for_team(team.uid))?;
 
-    fragments.push(FormattedTextFragment::hyperlink("Upgrade", upgrade_url));
-    fragments.push(FormattedTextFragment::plain_text(
-        " for more powerful cloud agents.",
+    fragments.push(FormattedTextFragment::hyperlink(
+        tr_cached(Message::AiUpgrade),
+        upgrade_url,
     ));
+    fragments.push(FormattedTextFragment::plain_text(tr_cached(
+        Message::CloudLoadingForMorePowerfulAgents,
+    )));
 
     let formatted_text = FormattedText::new(vec![FormattedTextLine::Line(fragments)]);
 
@@ -238,7 +246,7 @@ pub fn render_cloud_mode_error_screen(
 
     // Error title text
     let title_text = Text::new(
-        "Failed to start environment",
+        tr_cached(Message::CloudFailedToStartEnvironment),
         appearance.ui_font_family(),
         appearance.monospace_font_size() + 2.,
     )
@@ -328,7 +336,7 @@ pub fn render_cloud_mode_github_auth_required_screen(
 
     // Title text - "GitHub Authentication Required"
     let title_text = Text::new(
-        "GitHub Authentication Required",
+        tr_cached(Message::CloudGithubAuthRequired),
         appearance.ui_font_family(),
         appearance.monospace_font_size() + 2.,
     )
@@ -338,7 +346,7 @@ pub fn render_cloud_mode_github_auth_required_screen(
 
     // Message text - "Please authenticate with GitHub to continue"
     let message_text = Text::new(
-        "Please authenticate with GitHub to continue",
+        tr_cached(Message::CloudPleaseAuthGithub),
         appearance.ui_font_family(),
         appearance.monospace_font_size(),
     )
@@ -350,7 +358,7 @@ pub fn render_cloud_mode_github_auth_required_screen(
     let auth_button = appearance
         .ui_builder()
         .button(ButtonVariant::Accent, auth_button_mouse_state.clone())
-        .with_centered_text_label("Authenticate with GitHub".to_string())
+        .with_centered_text_label(tr_cached(Message::CloudAuthenticateWithGithub).to_string())
         .build()
         .on_click(move |_, app, _| {
             app.open_url(&auth_url_clone);
@@ -415,7 +423,7 @@ pub fn render_cloud_mode_cancelled_screen(appearance: &Appearance) -> Box<dyn El
 
     // Title text - "Cloud Agent Run Cancelled"
     let title_text = Text::new(
-        "Cloud Agent Run Cancelled",
+        tr_cached(Message::CloudAgentRunCancelled),
         appearance.ui_font_family(),
         appearance.monospace_font_size() + 2.,
     )
@@ -425,7 +433,7 @@ pub fn render_cloud_mode_cancelled_screen(appearance: &Appearance) -> Box<dyn El
 
     // Subtitle text - "No cloud environment was started"
     let subtitle_text = Text::new(
-        "No cloud environment was started",
+        tr_cached(Message::CloudNoEnvironmentStarted),
         appearance.ui_font_family(),
         appearance.monospace_font_size(),
     )

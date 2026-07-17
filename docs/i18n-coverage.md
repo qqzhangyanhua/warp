@@ -165,10 +165,10 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 ### Billing & usage
 
-- [ ] Usage History / Monthly spend limit / Auto-reload / Buy credits / Buy more
-- [ ] Cloud agent trial / No usage history / Last 30 days
-- [ ] Contact team admin / Account Executive…
-- [ ] Overall / Local / Cloud agent usage section titles
+- [x] Usage History / Monthly spend limit / Auto-reload / Buy credits / Buy more
+- [x] Cloud agent trial / No usage history / Last 30 days
+- [x] Contact team admin / high-frequency billing chrome (Manage billing / Compare plans / Open admin panel / Plan / Load more)
+- [x] Account Executive / upgrade CTAs / usage section titles / overage modal / credit-type labels
 
 ### Environments / Platform / MCP
 
@@ -211,18 +211,18 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 - [ ] Run commands / Steer the running agent / Queue a follow up / Ask a follow up
 - [ ] Choose an AI execution profile / Choose an agent model
 - [ ] Model Specs / Reasoning level / Custom Model Router descriptions
-- [ ] Preparing handoff… / Local skills cannot run on a remote machine…
+- [x] Preparing handoff… / Local skills cannot run on a remote machine… / custom model / cloud conversation local block
 
 ### Terminal status / banners
 
 - [ ] Loading session… / Starting shell… / Installing Warp SSH Extension… / Initializing…
 - [ ] Out of credits / Monthly limit reached / Manage billing / Auto reload
 - [ ] Login for AI / AI features unavailable for logged-out users / Sign Up
-- [ ] Shell process exited… / Copy error / File issue
+- [x] Shell process exited… / Copy error / File issue / More info (shell terminated banner + inline banner)
 - [ ] Filter block output / Bookmark this block… / Save as Workflow
 - [ ] Zero state: New terminal session / Don’t show again
 - [ ] Share session modals and role-request copy
-- [ ] Cloud agent loading: GitHub Authentication Required / Failed to start environment…
+- [x] Cloud agent loading: GitHub Authentication Required / Failed to start environment / cancelled / footer / first-time setup
 
 ### Other terminal
 
@@ -347,4 +347,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-12. Updated after B0-B4 P3 i18n batch (context menu bridge, AI context categories, agent tips, ActivePane). Message catalog at 1101 variants._
+_Last updated: 2026-07-14. Cloud agent loading + handoff high-frequency strings wired. Message catalog at 1259 variants._

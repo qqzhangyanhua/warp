@@ -21,13 +21,13 @@ use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConvers
 use crate::ai::ambient_agents::telemetry::{CloudAgentTelemetryEvent, CloudModeEntryPoint};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::agent_view::{render_block_container, AgentViewEntryOrigin};
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::pane::{PaneConfiguration, PaneConfigurationEvent, PaneStack};
 use crate::terminal::view::ambient_agent::AmbientAgentViewModel;
 use crate::terminal::{BlockListSettings, TerminalManager, TerminalView};
 use crate::ui_components::agent_icon::terminal_view_agent_icon_variant;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icon_with_status::{render_icon_with_status, IconWithStatusVariant};
-const DEFAULT_CLOUD_AGENT_TITLE: &str = "New cloud agent";
 
 #[derive(Default)]
 struct StateHandles {
@@ -135,8 +135,11 @@ impl AmbientAgentEntryBlock {
 
     fn meaningful_title(title: &str) -> Option<String> {
         let title = title.trim();
-        (!title.is_empty() && !title.eq_ignore_ascii_case(DEFAULT_CLOUD_AGENT_TITLE))
-            .then(|| title.to_owned())
+        let default_title = tr_cached(Message::CloudNewCloudAgent);
+        (!title.is_empty()
+            && !title.eq_ignore_ascii_case(default_title)
+            && !title.eq_ignore_ascii_case("New cloud agent"))
+        .then(|| title.to_owned())
     }
 
     fn title_from_task_data(&self, app: &AppContext) -> Option<String> {
@@ -164,7 +167,7 @@ impl AmbientAgentEntryBlock {
             .and_then(|title| Self::meaningful_title(&title))
             .or_else(|| self.title_from_task_data(app))
             .or_else(|| self.title_from_spawn_request(app))
-            .unwrap_or_else(|| DEFAULT_CLOUD_AGENT_TITLE.to_owned())
+            .unwrap_or_else(|| tr_cached(Message::CloudNewCloudAgent).to_owned())
     }
 
     fn ambient_agent_view_model<'a>(
@@ -181,11 +184,11 @@ impl AmbientAgentEntryBlock {
     fn detail_text(&self, app: &AppContext) -> Option<&'static str> {
         match self.ambient_agent_view_model(app)?.status() {
             Status::Setup | Status::Composing => None,
-            Status::WaitingForSession { .. } => Some("Starting environment..."),
-            Status::AgentRunning => Some("Agent is working on task"),
-            Status::Failed { .. } => Some("Agent failed"),
-            Status::NeedsGithubAuth { .. } => Some("Authentication required"),
-            Status::Cancelled { .. } => Some("Cancelled"),
+            Status::WaitingForSession { .. } => Some(tr_cached(Message::CloudStartingEnvironment)),
+            Status::AgentRunning => Some(tr_cached(Message::CloudAgentWorkingOnTask)),
+            Status::Failed { .. } => Some(tr_cached(Message::CloudAgentFailed)),
+            Status::NeedsGithubAuth { .. } => Some(tr_cached(Message::CloudAuthenticationRequired)),
+            Status::Cancelled { .. } => Some(tr_cached(Message::CloudAgentCancelled)),
         }
     }
 
@@ -197,7 +200,7 @@ impl AmbientAgentEntryBlock {
             }
             Status::Failed { .. } => Some(ConversationStatus::Error),
             Status::NeedsGithubAuth { .. } => Some(ConversationStatus::Blocked {
-                blocked_action: "GitHub authentication required".to_owned(),
+                blocked_action: tr_cached(Message::CloudGithubAuthRequiredShort).to_owned(),
             }),
             Status::Cancelled { .. } => Some(ConversationStatus::Cancelled),
         }
