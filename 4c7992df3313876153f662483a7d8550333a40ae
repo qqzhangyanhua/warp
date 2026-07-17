@@ -1,0 +1,24 @@
+crates/persistence/schema.patch
+  79a00e9820d49613 18-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "4c7992df3313876153f662483a7d8550333a40ae",
+  "prompts": {
+    "79a00e9820d49613": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6e56-9089-75c2-ae6b-c18c9a12b4a8",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 17,
+      "total_deletions": 0,
+      "accepted_lines": 17,
+      "overriden_lines": 0,
+      "messages_url": "https://gitai.tongbaninfo.com/cas/d5ed293e5468f3243511b4cc162c1da202307979e59fa6cc45b64081ff85d033"
+    }
+  }
+}
