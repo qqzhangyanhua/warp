@@ -1,6 +1,26 @@
 use remote_server::codebase_index_proto::{RemoteCodebaseIndexState, RemoteCodebaseIndexStatus};
+use warp_core::features::FeatureFlag;
+use warpui::platform::WindowStyle;
+use warpui::App;
 
-use super::remote_codebase_index_limit_reached;
+use super::{remote_codebase_index_limit_reached, CodeSettingsPageView, SettingsPageMeta};
+use crate::appearance::Appearance;
+
+fn empty_code_settings_page() -> CodeSettingsPageView {
+    CodeSettingsPageView {
+        page: super::PageType::new_uncategorized(Vec::new(), None),
+        active_subpage: None,
+        codebase_manual_resync_mouse_states: Vec::new(),
+        codebase_delete_mouse_states: Vec::new(),
+        remote_codebase_manual_resync_mouse_states: Vec::new(),
+        remote_codebase_delete_mouse_states: Vec::new(),
+        lsp_row_mouse_states: Vec::new(),
+        open_project_rules_mouse_states: Vec::new(),
+        suggested_server_statuses: Default::default(),
+        #[cfg(feature = "local_fs")]
+        external_editor_view: None,
+    }
+}
 
 fn remote_status_with_failure(failure_message: Option<&str>) -> RemoteCodebaseIndexStatus {
     RemoteCodebaseIndexStatus {
@@ -30,4 +50,20 @@ fn other_unavailable_failures_are_not_index_limit_failures() {
     ));
 
     assert!(!remote_codebase_index_limit_reached(&status));
+}
+
+#[test]
+#[serial_test::serial]
+fn selecting_code_settings_in_local_only_mode_does_not_require_team_update_manager() {
+    let _flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        app.add_singleton_model(|_| Appearance::mock());
+        let (_, code_settings) =
+            app.add_window(WindowStyle::NotStealFocus, |_| empty_code_settings_page());
+
+        app.update(|ctx| {
+            code_settings.update(ctx, |view, ctx| view.on_page_selected(false, ctx));
+        });
+    });
 }

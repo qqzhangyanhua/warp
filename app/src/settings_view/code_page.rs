@@ -2708,6 +2708,10 @@ impl SettingsPageMeta for CodeSettingsPageView {
     }
 
     fn on_page_selected(&mut self, _: bool, ctx: &mut ViewContext<Self>) {
+        if crate::local_mode::is_local_only_custom_provider_mode() {
+            return;
+        }
+
         // We want to immediately see if the user is part of a workspace rather than wait for the next poll.
         std::mem::drop(
             TeamUpdateManager::handle(ctx)
