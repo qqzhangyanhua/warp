@@ -147,6 +147,7 @@ fn endpoint(
     models: Vec<CustomEndpointModel>,
 ) -> CustomEndpoint {
     CustomEndpoint {
+        id: format!("endpoint-{name}"),
         name: name.into(),
         url: url.into(),
         api_key: api_key.into(),
