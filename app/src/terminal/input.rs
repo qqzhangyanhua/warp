@@ -401,39 +401,50 @@ pub const INPUT_A11Y_LABEL: &str = "Command Input.";
 pub const INPUT_A11Y_HELPER: &str = "Input your shell command, press enter to execute. Press cmd-up to navigate to output of previously executed commands. Press cmd-l to re-focus command input.";
 pub const AI_COMMAND_SEARCH_HINT_TEXT: &str = "Type '#' for AI command suggestions";
 
-fn input_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-        return Cow::Borrowed(text);
-    }
-
-    Cow::Borrowed(match text {
-        "Command Input." => "命令输入。",
+fn input_message(text: &str) -> Option<crate::i18n::Message> {
+    use crate::i18n::Message;
+    Some(match text {
+        "Command Input." => Message::InputCommandInputLabel,
         "Input your shell command, press enter to execute. Press cmd-up to navigate to output of previously executed commands. Press cmd-l to re-focus command input." => {
-            "输入 shell 命令，按 Enter 执行。按 cmd-up 导航到之前执行命令的输出。按 cmd-l 重新聚焦命令输入。"
+            Message::InputCommandInputHelper
         }
-        "Type '#' for AI command suggestions" => "输入 '#' 获取 AI 命令建议",
-        "Search queries" => "搜索查询",
-        "Search queries to rewind to" => "搜索要回退到的查询",
-        "Search conversations" => "搜索对话",
-        "Search skills" => "搜索技能",
-        "Search models" => "搜索模型",
-        "Search profiles" => "搜索配置",
-        "Search commands" => "搜索命令",
-        "Search prompts" => "搜索提示词",
-        "Search indexed repos" => "搜索已索引仓库",
-        "Search plans" => "搜索计划",
-        "Handoff to cloud" => "移交到云端",
-        "No active conversation to export" => "没有可导出的活动对话",
-        _ => text,
+        "Type '#' for AI command suggestions" => Message::InputAiCommandSearchHint,
+        "Search queries" => Message::InputSearchQueries,
+        "Search queries to rewind to" => Message::InputSearchQueriesToRewind,
+        "Search conversations" => Message::InputSearchConversations,
+        "Search skills" => Message::InputSearchSkills,
+        "Search models" => Message::InputSearchModels,
+        "Search profiles" => Message::InputSearchProfiles,
+        "Search commands" => Message::InputSearchCommands,
+        "Search prompts" => Message::InputSearchPrompts,
+        "Search indexed repos" => Message::InputSearchIndexedRepos,
+        "Search plans" => Message::InputSearchPlans,
+        "Handoff to cloud" => Message::InputHandoffToCloud,
+        "No active conversation to export" => Message::ToastNoActiveConversationExport,
+        _ => return None,
     })
 }
 
+fn input_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+    if let Some(message) = input_message(text) {
+        Cow::Borrowed(crate::i18n::tr(ctx, message))
+    } else {
+        Cow::Borrowed(text)
+    }
+}
+
 fn localized_agent_mode_hint(ctx: &AppContext, hint: &'static str) -> Cow<'static, str> {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+    let prefix_en = "ZYH anything e.g. ";
+    if !hint.starts_with(prefix_en) {
         return Cow::Borrowed(hint);
     }
-
-    Cow::Owned(hint.replacen("ZYH anything e.g. ", "让 ZYH 做任何事，例如：", 1))
+    let rest = &hint[prefix_en.len()..];
+    let prefix = crate::i18n::tr(ctx, crate::i18n::Message::UiAgentModeHintPrefix);
+    if prefix == prefix_en {
+        Cow::Borrowed(hint)
+    } else {
+        Cow::Owned(format!("{prefix}{rest}"))
+    }
 }
 
 // Rotating hint text options for new Agent Mode conversations

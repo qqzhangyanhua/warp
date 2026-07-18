@@ -53,7 +53,7 @@ pub(crate) use self::environment_selector::{
     EnvironmentSelector, EnvironmentSelectorEvent, EnvironmentSelectorTarget,
 };
 use crate::ai::blocklist::agent_view::is_in_cloud_context;
-use crate::i18n::{tr_cached, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::ai::blocklist::history_model::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::usage::icon_for_context_window_usage;
@@ -120,73 +120,77 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 const ENABLE_NLD_TOOLTIP: &str = "Enable terminal command autodetection";
 const DISABLE_NLD_TOOLTIP: &str = "Disable terminal command autodetection";
 
-fn footer_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-        return Cow::Borrowed(text);
-    }
-
-    Cow::Borrowed(match text {
-        "Enable terminal command autodetection" => "启用终端命令自动检测",
-        "Disable terminal command autodetection" => "禁用终端命令自动检测",
-        "Voice input" => "语音输入",
-        "Voice input (hold {key_name} key)" => "语音输入（按住 {key_name} 键）",
-        "Attach file" => "附加文件",
-        "Hand off to cloud (or type &)" => "移交到云端（或输入 &）",
-        "File explorer" => "文件浏览器",
-        "Open file explorer" => "打开文件浏览器",
-        "Rich Input" => "富输入",
-        "Open Rich Input" => "打开富输入",
-        "Hide Rich Input" => "隐藏富输入",
-        "Open coding agent settings" => "打开编码 Agent 设置",
-        "Enable notifications" => "启用通知",
+fn footer_message(text: &str) -> Option<Message> {
+    Some(match text {
+        "Enable terminal command autodetection" => Message::FooterEnableNld,
+        "Disable terminal command autodetection" => Message::FooterDisableNld,
+        "Voice input" => Message::FooterVoiceInput,
+        "Voice input (hold {key_name} key)" => Message::FooterVoiceInputHoldKey,
+        "Attach file" => Message::FooterAttachFile,
+        "Hand off to cloud (or type &)" => Message::FooterHandoffToCloud,
+        "File explorer" => Message::FooterFileExplorer,
+        "Open file explorer" => Message::FooterOpenFileExplorer,
+        "Rich Input" => Message::FooterRichInput,
+        "Open Rich Input" => Message::FooterOpenRichInput,
+        "Hide Rich Input" => Message::FooterHideRichInput,
+        "Open coding agent settings" => Message::FooterOpenCodingAgentSettings,
+        "Enable notifications" => Message::FooterEnableNotifications,
         "Install the Warp plugin to enable rich agent notifications within Warp" => {
-            "安装 Warp 插件以在 Warp 中启用丰富 Agent 通知"
+            Message::FooterInstallPluginForNotifications
         }
-        "Notifications setup instructions" => "通知设置说明",
-        "View instructions to install the Warp plugin" => "查看安装 Warp 插件的说明",
-        "Update Warp plugin" => "更新 Warp 插件",
-        "A new version of the Warp plugin is available" => "有新版 Warp 插件可用",
-        "Plugin update instructions" => "插件更新说明",
-        "View instructions to update the Warp plugin" => "查看更新 Warp 插件的说明",
-        "Dismiss" => "关闭",
-        "Stop sharing" => "停止共享",
-        "Context window usage" => "上下文窗口用量",
-        "Start remote control" => "启动远程控制",
-        "Log in to use /remote-control" => "登录以使用 /remote-control",
+        "Notifications setup instructions" => Message::FooterNotificationsSetupInstructions,
+        "View instructions to install the Warp plugin" => Message::FooterViewInstallPluginInstructions,
+        "Update Warp plugin" => Message::FooterUpdateWarpPlugin,
+        "A new version of the Warp plugin is available" => Message::FooterNewPluginVersionAvailable,
+        "Plugin update instructions" => Message::FooterPluginUpdateInstructions,
+        "View instructions to update the Warp plugin" => Message::FooterViewUpdatePluginInstructions,
+        "Dismiss" => Message::FooterDismiss,
+        "Stop sharing" => Message::FooterStopSharing,
+        "Context window usage" => Message::FooterContextWindowUsage,
+        "Start remote control" => Message::FooterStartRemoteControl,
+        "Log in to use /remote-control" => Message::FooterStartRemoteControlLogin,
         "Connected to a live cloud agent session. Your next prompt continues on the running remote machine." => {
-            "已连接到实时云 Agent 会话。你的下一条提示词会在正在运行的远程机器上继续。"
+            Message::FooterLiveRemoteVm
         }
         "Not connected to cloud agent. Your next prompt starts a new cloud machine to continue this conversation." => {
-            "未连接到云 Agent。你的下一条提示词会启动新的云机器来继续此对话。"
+            Message::FooterNewCloudVm
         }
-        "See logs for details" => "查看日志了解详情",
-        "prompt cache expired" => "提示词缓存已过期",
-        "Turn off auto-approve all agent actions" => "关闭自动批准所有 Agent 操作",
-        "Auto-approve all agent actions for this task" => "自动批准此任务的所有 Agent 操作",
+        "See logs for details" => Message::FooterSeeLogsForDetails,
+        "prompt cache expired" => Message::FooterPromptCacheExpired,
+        "Turn off auto-approve all agent actions" => Message::FooterFastForwardOn,
+        "Auto-approve all agent actions for this task" => Message::FooterFastForwardOff,
         "Fast forward is always enabled for cloud agent conversations" => {
-            "云端 Agent 对话始终启用快进"
+            Message::FooterFastForwardLocked
         }
-        "Installing Warp plugin..." => "正在安装 Warp 插件…",
-        "Failed to install Warp plugin" => "安装 Warp 插件失败",
+        "Installing Warp plugin..." => Message::FooterInstallingWarpPlugin,
+        "Failed to install Warp plugin" => Message::FooterFailedInstallWarpPlugin,
         "Warp plugin installed. Please restart the session to activate." => {
-            "Warp 插件已安装。请重启会话以启用。"
+            Message::FooterWarpPluginInstalledRestart
         }
-        "Updating Warp plugin..." => "正在更新 Warp 插件…",
-        "Failed to update Warp plugin" => "更新 Warp 插件失败",
+        "Updating Warp plugin..." => Message::FooterUpdatingWarpPlugin,
+        "Failed to update Warp plugin" => Message::FooterFailedUpdateWarpPlugin,
         "Warp plugin updated. Please restart the session to activate." => {
-            "Warp 插件已更新。请重启会话以启用。"
+            Message::FooterWarpPluginUpdatedRestart
         }
-        "Voice input limit reached" => "语音输入额度已用完",
-        "No plugin manager available" => "没有可用的插件管理器",
-        "Failed to transcribe voice input" => "语音输入转写失败",
+        "Voice input limit reached" => Message::FooterVoiceInputLimitReached,
+        "No plugin manager available" => Message::FooterNoPluginManager,
+        "Failed to transcribe voice input" => Message::FooterFailedTranscribeVoice,
         "Failed to start voice input (you may need to enable Microphone access)" => {
-            "无法启动语音输入（可能需要启用麦克风访问权限）"
+            Message::ToastFailedStartVoiceInput
         }
         "Voice input is enabled. You can also press and hold the `{key}` key to activate voice input (configure in Settings > AI > Voice)" => {
-            "语音输入已启用。你也可以按住 `{key}` 键来激活语音输入（可在“设置 > AI > 语音”中配置）"
+            Message::FooterVoiceInputEnabledKey
         }
-        _ => text,
+        _ => return None,
     })
+}
+
+fn footer_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+    if let Some(message) = footer_message(text) {
+        Cow::Borrowed(tr(ctx, message))
+    } else {
+        Cow::Borrowed(text)
+    }
 }
 
 #[cfg(feature = "voice_input")]

@@ -21,7 +21,7 @@ use crate::ai::mcp::templatable_installation::{VariableType, VariableValue};
 use crate::ai::mcp::{TemplatableMCPServer, TemplatableMCPServerManager, TemplateVariable};
 use crate::appearance::Appearance;
 use crate::editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions};
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::settings_view::mcp_servers::style::{
     INSTALLATION_MODAL_BUTTON_GAP, INSTALLATION_MODAL_BUTTON_PADDING,
     INSTALLATION_MODAL_INPUT_VERTICAL_SPACING, INSTALLATION_MODAL_LABEL_VERTICAL_SPACING,
@@ -549,7 +549,7 @@ impl View for InstallationModalBody {
                 .finish()
         } else {
             Text::new(
-                "No MCP server selected",
+                tr_cached(Message::UiNoMcpServerSelected),
                 appearance.ui_font_family(),
                 appearance.ui_font_size(),
             )

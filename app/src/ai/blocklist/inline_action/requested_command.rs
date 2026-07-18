@@ -1628,7 +1628,7 @@ impl View for RequestedCommandView {
                     let mut col =
                         Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
                     col.add_child(
-                        Text::new_inline("Request".to_string(), font_family, TREE_FONT_SIZE)
+                        Text::new_inline(tr_cached(Message::UiRequest).to_string(), font_family, TREE_FONT_SIZE)
                             .with_color(colors.annotation)
                             .soft_wrap(false)
                             .finish(),

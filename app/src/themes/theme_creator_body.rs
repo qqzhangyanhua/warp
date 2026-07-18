@@ -23,6 +23,7 @@ use warpui::{
 };
 
 use crate::appearance::{Appearance, AppearanceManager};
+use crate::i18n::{tr_cached, Message};
 use crate::editor::{EditorView, Event as EditorEvent};
 use crate::themes::theme::{InMemoryThemeOptions, ThemeKind};
 use crate::user_config;
@@ -449,7 +450,7 @@ impl View for ThemeCreatorBody {
         if let Some(theme_options) = &self.theme_options {
             flex.add_child(
                 Container::new(
-                    Text::new_inline("Theme name", appearance.ui_font_family(), 14.)
+                    Text::new_inline(tr_cached(Message::UiThemeName), appearance.ui_font_family(), 14.)
                         .with_color(appearance.theme().active_ui_text_color().into())
                         .finish(),
                 )
@@ -478,7 +479,7 @@ impl View for ThemeCreatorBody {
 
             flex.add_child(
                 Container::new(
-                    Text::new_inline("Background color", appearance.ui_font_family(), 14.)
+                    Text::new_inline(tr_cached(Message::UiBackgroundColor), appearance.ui_font_family(), 14.)
                         .with_color(appearance.theme().active_ui_text_color().into())
                         .finish(),
                 )

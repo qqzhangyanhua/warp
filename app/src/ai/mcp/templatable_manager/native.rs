@@ -25,7 +25,7 @@ use super::{
     TemplatableMCPServerManagerEvent,
 };
 use crate::ai::mcp::file_based_manager::FileBasedMCPManagerEvent;
-use crate::i18n::{tr, tr_cached, Message};
+use crate::i18n::{tr_cached, Message};
 use crate::ai::mcp::parsing::resolve_json;
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, GalleryData};
 use crate::ai::mcp::templatable_installation::VariableValue;

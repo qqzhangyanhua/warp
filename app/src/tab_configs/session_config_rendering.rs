@@ -16,6 +16,7 @@ use warpui::ui_components::components::UiComponent;
 use warpui::{Element, EventContext};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::tab_configs::session_config::SessionType;
 use crate::ui_components::blended_colors;
 use crate::view_components::callout_bubble::{
@@ -87,7 +88,7 @@ where
     let on_accent_bg = bg.is_some();
     let on_select = Arc::new(on_select);
 
-    let label = Text::new_inline("Session type".to_string(), appearance.ui_font_family(), 12.)
+    let label = Text::new_inline(tr_cached(Message::UiSessionType).to_string(), appearance.ui_font_family(), 12.)
         .with_color(if on_accent_bg {
             callout_label_color(appearance)
         } else {

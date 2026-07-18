@@ -23,6 +23,7 @@ use warpui::{
 };
 
 use crate::pricing::{PricingInfoModel, PricingInfoModelEvent};
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::general_settings::GeneralSettings;
 use crate::ui_components::blended_colors;
 use crate::view_components::{Dropdown, DropdownEvent, DropdownItem, ToastFlavor};
@@ -514,9 +515,9 @@ impl BuildPlanMigrationModal {
             .unwrap_or((2000, 1800));
 
         let title_text = if is_business {
-            "Welcome to the New Business Plan"
+            tr_cached(Message::UiWelcomeNewBusinessPlan)
         } else {
-            "Welcome to Warp Build"
+            tr_cached(Message::UiWelcomeWarpBuild)
         };
 
         let title = Self::create_text(

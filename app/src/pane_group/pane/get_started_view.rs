@@ -362,7 +362,7 @@ impl BackingView for GetStartedView {
         _ctx: &view::HeaderRenderContext<'_>,
         _app: &AppContext,
     ) -> view::HeaderContent {
-        view::HeaderContent::simple("Get started")
+        view::HeaderContent::simple(tr_cached(Message::UiGetStarted))
     }
 
     fn set_focus_handle(&mut self, focus_handle: PaneFocusHandle, _ctx: &mut ViewContext<Self>) {
