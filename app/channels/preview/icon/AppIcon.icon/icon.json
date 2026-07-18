@@ -1,29 +1,25 @@
 {
-  "fill" : {
-    "automatic-gradient" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
-  },
-  "groups" : [
+  "fill": "system-dark",
+  "groups": [
     {
-      "layers" : [
+      "layers": [
         {
-          "image-name" : "Preview.png",
-          "name" : "Preview"
+          "fill": "none",
+          "glass": false,
+          "image-name": "ZYH.png",
+          "name": "ZYH"
         }
       ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
       }
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
+  "supported-platforms": {
+    "circles": [
       "watchOS"
     ],
-    "squares" : "shared"
+    "squares": "shared"
   }
 }
