@@ -9,6 +9,7 @@ use warpui::elements::{
 use warpui::fonts::{Properties, Weight};
 use warpui::Element;
 
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::billing_and_usage::billing_cycle_usage_common::{
     aggregate_segments, cost_type_color, format_cost_cents, format_credits,
     render_breakdown_tooltip, render_section_subheader, BarSegment, BillingUsageMouseStates,
@@ -59,7 +60,7 @@ pub fn build_team_total_card_summaries(
 ) -> Vec<TeamTotalCardSummary> {
     let (overall_segments, overall_credits, overall_cost) = aggregate_segments(entries.iter());
     let mut summaries = vec![TeamTotalCardSummary {
-        title: "Overall usage",
+        title: tr_cached(Message::BillingOverallUsage),
         card_key: "__card_overall__",
         segments: overall_segments,
         total_credits: overall_credits,
@@ -83,7 +84,7 @@ pub fn build_team_total_card_summaries(
                 .filter(|e| e.usage_source == AiCreditsUsageSource::Cloud),
         );
         summaries.push(TeamTotalCardSummary {
-            title: "Local agent usage",
+            title: tr_cached(Message::BillingLocalAgentUsage),
             card_key: "__card_local__",
             segments: local_segments,
             total_credits: local_credits,
@@ -91,7 +92,7 @@ pub fn build_team_total_card_summaries(
             limit_cents: None,
         });
         summaries.push(TeamTotalCardSummary {
-            title: "Cloud agent usage",
+            title: tr_cached(Message::BillingCloudAgentUsage),
             card_key: "__card_cloud__",
             segments: cloud_segments,
             total_credits: cloud_credits,

@@ -33,6 +33,7 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::agent_view::shortcuts::render_keystroke_with_color_overrides;
 use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISubagentEvent};
 use crate::ai::blocklist::{
@@ -90,7 +91,7 @@ fn build_row_state(
     let send_now_button = ctx.add_typed_action_view(move |_| {
         ActionButton::new("", NakedTheme)
             .with_icon(TerminalIcon::ArrowUp)
-            .with_tooltip("Send now")
+            .with_tooltip(tr_cached(Message::BlockSendNow))
             .with_size(ButtonSize::XSmall)
             .with_disabled_theme(NakedTheme)
             .on_click(move |ctx| {
@@ -110,7 +111,7 @@ fn build_row_state(
     let delete_button = ctx.add_typed_action_view(move |_| {
         ActionButton::new("", NakedTheme)
             .with_icon(TerminalIcon::Trash)
-            .with_tooltip("Delete")
+            .with_tooltip(tr_cached(Message::CodeDelete))
             .with_size(ButtonSize::XSmall)
             .with_disabled_theme(NakedTheme)
             .on_click(move |ctx| {
@@ -121,7 +122,7 @@ fn build_row_state(
         ctx.add_typed_action_view(move |_| {
             ActionButton::new("", NakedTheme)
                 .with_icon(TerminalIcon::Copy)
-                .with_tooltip("Copy")
+                .with_tooltip(tr_cached(Message::CommonCopy))
                 .with_size(ButtonSize::XSmall)
                 .with_disabled_theme(NakedTheme)
                 .on_click(move |ctx| {

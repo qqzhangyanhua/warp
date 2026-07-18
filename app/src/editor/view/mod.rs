@@ -93,6 +93,7 @@ use self::model::{LocalSelections, Selection, UpdateBufferOption};
 use super::soft_wrap::{ClampDirection, DisplayPointAndClampDirection};
 use super::Point;
 use crate::ai::agent::ImageContext;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::{BlocklistAIContextModel, InputType, PendingAttachment, PendingFile};
 use crate::ai::predict::next_command_model::{NextCommandModel, NextCommandSuggestionState};
 use crate::appearance::Appearance;
@@ -5021,7 +5022,7 @@ impl EditorView {
                             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                 toast_stack.add_ephemeral_toast(
                                     DismissibleToast::error(
-                                        "The selected model does not support images as context."
+                                        tr_cached(Message::ToastModelNoImages)
                                             .to_string(),
                                     ),
                                     window_id,
@@ -5127,7 +5128,7 @@ impl EditorView {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            "The selected model does not support images as context".to_owned(),
+                            tr_cached(Message::ToastModelNoImagesShort).to_owned(),
                         ),
                         window_id,
                         ctx,
@@ -5242,7 +5243,7 @@ impl EditorView {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            "The selected model does not support images as context".to_owned(),
+                            tr_cached(Message::ToastModelNoImagesShort).to_owned(),
                         ),
                         window_id,
                         ctx,

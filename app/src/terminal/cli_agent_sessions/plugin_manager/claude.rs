@@ -10,6 +10,7 @@ use super::{
     compare_versions, run_cli_command_logged, CliAgentPluginManager, PluginInstallError,
     PluginInstructionStep, PluginInstructions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::model::session::LocalCommandExecutor;
 use crate::terminal::shell::ShellType;
 
@@ -137,7 +138,7 @@ impl CliAgentPluginManager for ClaudeCodePluginManager {
         if still_outdated {
             log.push_str("Post-update version check: plugin is still outdated\n");
             return Err(PluginInstallError {
-                message: "Plugin update did not take effect".to_owned(),
+                message: tr_cached(Message::PluginErrUpdateDidNotTakeEffect).to_owned(),
                 log,
             });
         }
@@ -201,7 +202,7 @@ impl CliAgentPluginManager for ClaudeCodePluginManager {
         if still_outdated {
             log.push_str("Post-update version check: platform plugin is still outdated\n");
             return Err(PluginInstallError {
-                message: "Platform plugin update did not take effect".to_owned(),
+                message: tr_cached(Message::PluginErrPlatformUpdateDidNotTakeEffect).to_owned(),
                 log,
             });
         }
@@ -211,54 +212,53 @@ impl CliAgentPluginManager for ClaudeCodePluginManager {
 
 static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
     PluginInstructions {
-        title: "Install Warp Plugin for Claude Code",
-        subtitle: "Ensure that jq is installed on your machine. Then, run these commands.",
-        steps: &[
+        title: tr_cached(Message::PluginInstallClaudeTitle),
+        subtitle: tr_cached(Message::PluginInstallClaudeSubtitle),
+        steps: Box::leak(Box::new([
             PluginInstructionStep {
-                description: "Add the Warp plugin marketplace repository",
+                description: tr_cached(Message::PluginStepAddMarketplace),
                 command: "claude plugin marketplace add warpdotdev/claude-code-warp",
                 executable: true,
                 link: None,
             },
             PluginInstructionStep {
-                description: "Install the Warp plugin",
+                description: tr_cached(Message::PluginStepInstallWarpPlugin),
                 command: "claude plugin install warp@claude-code-warp",
                 executable: true,
                 link: None,
             },
-        ],
-        post_install_notes: &[
-            "Restart Claude Code to activate the plugin.",
-            "There are some known issues with Claude Code's plugin system. \
-             If the plugin is not found after step 1, you can try manually adding an \"extraKnownMarketplaces\" entry to ~/.claude/settings.json.",
-        ],
+        ])),
+        post_install_notes: Box::leak(Box::new([
+            tr_cached(Message::PluginNoteRestartClaudeActivate),
+            tr_cached(Message::PluginNoteClaudeKnownIssues),
+        ])),
     }
 });
 
 static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
-    title: "Update Warp Plugin for Claude Code",
-    subtitle: "Run the following commands.",
-    steps: &[
+    title: tr_cached(Message::PluginUpdateClaudeTitle),
+    subtitle: tr_cached(Message::PluginUpdateClaudeSubtitle),
+    steps: Box::leak(Box::new([
         PluginInstructionStep {
-            description: "Remove the existing marketplace (if present)",
+            description: tr_cached(Message::PluginStepRemoveMarketplace),
             command: "claude plugin marketplace remove claude-code-warp",
             executable: true,
             link: None,
         },
         PluginInstructionStep {
-            description: "Re-add the marketplace",
+            description: tr_cached(Message::PluginStepReaddMarketplace),
             command: "claude plugin marketplace add warpdotdev/claude-code-warp",
             executable: true,
             link: None,
         },
         PluginInstructionStep {
-            description: "Install the latest plugin version",
+            description: tr_cached(Message::PluginStepInstallLatestPlugin),
             command: "claude plugin install warp@claude-code-warp",
             executable: true,
             link: None,
         },
-    ],
-    post_install_notes: &["Restart Claude Code to activate the update."],
+    ])),
+    post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartClaudeUpdate)])),
 });
 
 fn check_installed(claude_dir: &Path) -> bool {

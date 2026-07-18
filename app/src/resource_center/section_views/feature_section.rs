@@ -35,11 +35,12 @@ pub enum FeatureSection {
 
 impl FeatureSection {
     pub fn section_name_string(&self) -> &'static str {
+        use crate::i18n::{tr_cached, Message};
         match self {
-            FeatureSection::WhatsNew => "What's New?",
-            FeatureSection::GettingStarted => "Getting Started",
-            FeatureSection::MaximizeWarp => "Maximize Warp",
-            FeatureSection::AdvancedSetup => "Advanced Setup",
+            FeatureSection::WhatsNew => tr_cached(Message::ResourceCenterWhatsNew),
+            FeatureSection::GettingStarted => tr_cached(Message::ResourceCenterGettingStarted),
+            FeatureSection::MaximizeWarp => tr_cached(Message::ResourceCenterMaximizeWarp),
+            FeatureSection::AdvancedSetup => tr_cached(Message::ResourceCenterAdvancedSetup),
         }
     }
 }

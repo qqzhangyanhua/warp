@@ -6,6 +6,7 @@ use warpui::keymap::Keystroke;
 use warpui::{EntityId, SingletonEntity, ViewContext};
 
 use crate::ai::agent::conversation::AIConversationId;
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::ai::blocklist::agent_view::{
     AgentViewEntryBlock, AgentViewEntryBlockEvent, AgentViewEntryBlockParams, AgentViewEntryOrigin,
     AutoTriggerBehavior, DismissalStrategy, EnterAgentViewError, EphemeralMessage,
@@ -65,7 +66,7 @@ impl TerminalView {
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
                     DismissibleToast::error(
-                        "Cannot start a new conversation while agent is monitoring a command."
+                        tr_cached(I18nMessage::ToastCannotStartWhileMonitoring)
                             .to_string(),
                     ),
                     window_id,

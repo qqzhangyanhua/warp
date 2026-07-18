@@ -663,7 +663,7 @@ impl Input {
                             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                 toast_stack.add_ephemeral_toast(
                                     DismissibleToast::error(
-                                        "The /open-file command is only available for local sessions"
+                                        tr(ctx, I18nMessage::ToastOpenFileLocalOnly)
                                             .to_owned(),
                                     ),
                                     window_id,
@@ -698,8 +698,7 @@ impl Input {
                             }
                             Ok(_) => {
                                 show_error_toast(
-                                    "The /open-file command only works for files, not directories"
-                                        .to_owned(),
+                                    tr(ctx, I18nMessage::ToastOpenFileFilesOnly).to_owned(),
                                     ctx,
                                 );
                                 return true;
@@ -724,7 +723,7 @@ impl Input {
                 #[cfg(not(feature = "local_fs"))]
                 {
                     show_error_toast(
-                        "The /open-file command is not supported in this build".to_owned(),
+                        tr(ctx, I18nMessage::ToastOpenFileUnsupportedBuild).to_owned(),
                         ctx,
                     );
                     return true;
@@ -1587,12 +1586,12 @@ pub(crate) fn fork_button_action(
         && conversation_id.is_some_and(|id| conversation_is_cloud_oz_for_slash_command(id, ctx))
     {
         ForkButtonAction {
-            tooltip: "Continue locally",
+            tooltip: tr(ctx, I18nMessage::TooltipContinueLocally),
             command_name: commands::CONTINUE_LOCALLY.name,
         }
     } else {
         ForkButtonAction {
-            tooltip: "Fork conversation",
+            tooltip: tr(ctx, I18nMessage::TooltipForkConversation),
             command_name: commands::FORK.name,
         }
     }

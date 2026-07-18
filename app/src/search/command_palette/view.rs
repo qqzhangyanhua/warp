@@ -23,6 +23,7 @@ use warpui::{
 use super::super::palette_styles as styles;
 use super::CommandPaletteMixer;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::drive::CloudObjectTypeAndId;
 use crate::features::FeatureFlag;
 use crate::palette::PaletteMode;
@@ -836,7 +837,7 @@ impl View {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    "Cannot switch conversations while agent is monitoring a command."
+                                    tr_cached(Message::ToastCannotSwitchWhileMonitoring)
                                         .to_string(),
                                 ),
                                 window_id,
@@ -978,7 +979,7 @@ impl View {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Cannot start a new conversation while agent is monitoring a command.".to_string(),
+                                tr_cached(Message::ToastCannotStartWhileMonitoring).to_string(),
                             ),
                             window_id,
                             ctx,

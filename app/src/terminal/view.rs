@@ -4313,7 +4313,7 @@ impl TerminalView {
         ctx.subscribe_to_view(&orchestration_pill_bar, |_, _, _, ctx| ctx.notify());
 
         let agent_view_back_button = ctx.add_typed_action_view(|ctx| {
-            ActionButton::new("for terminal", AgentViewHeaderTheme)
+            ActionButton::new(tr_cached(Message::AgentForTerminal), AgentViewHeaderTheme)
                 .with_icon(icons::Icon::ArrowLeft)
                 .with_size(ButtonSize::Small)
                 .with_keybinding(
@@ -21362,13 +21362,13 @@ impl TerminalView {
 
         let Some(ambient_agent_view_model) = self.ambient_agent_view_model.clone() else {
             self.restore_followup_prompt_after_failed_submission(&prompt, ctx);
-            self.show_error_toast("Couldn't continue this cloud task.".to_string(), ctx);
+            self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
             return true;
         };
 
         if ambient_agent_view_model.as_ref(ctx).task_id() != Some(task_id) {
             self.restore_followup_prompt_after_failed_submission(&prompt, ctx);
-            self.show_error_toast("Couldn't continue this cloud task.".to_string(), ctx);
+            self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
             return true;
         }
 
@@ -21450,7 +21450,7 @@ impl TerminalView {
                 {
                     return;
                 }
-                self.show_error_toast("Couldn't continue this cloud task.".to_string(), ctx);
+                self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
             }
             InputEvent::CancelSharedSessionConversation {
                 server_conversation_token,
@@ -25508,7 +25508,7 @@ impl TerminalView {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             toast_stack.add_ephemeral_toast(
                 DismissibleToast::error(
-                    "Can not invoke environment variable subshell in a non-local session"
+                    tr_cached(Message::ToastNonLocalEnvVarSubshell)
                         .to_owned(),
                 ),
                 window_id,
@@ -25646,7 +25646,7 @@ impl TerminalView {
         if shell_type == ShellType::PowerShell {
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 let toast = DismissibleToast::error(
-                    terminal_menu_text(ctx, "PowerShell subshells not supported").into_owned(),
+                    tr(ctx, Message::ToastPowershellSubshellsUnsupported).to_owned(),
                 );
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
@@ -27459,7 +27459,7 @@ impl TypedActionView for TerminalView {
                             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                 toast_stack.add_ephemeral_toast(
                                     DismissibleToast::error(
-                                        "Bundled skills cannot be edited".to_string(),
+                                        tr_cached(Message::ToastBundledSkillsCannotEdit).to_string(),
                                     ),
                                     window_id,
                                     ctx,
@@ -27476,7 +27476,7 @@ impl TypedActionView for TerminalView {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Editing skills is not supported in this build".to_string(),
+                                tr_cached(Message::ToastEditingSkillsUnsupported).to_string(),
                             ),
                             window_id,
                             ctx,

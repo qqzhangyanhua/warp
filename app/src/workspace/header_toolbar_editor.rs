@@ -9,6 +9,7 @@ use crate::chip_configurator::{
     ChipEditorSectionsConfig, ConfigurableItem, ControlItemRenderer,
 };
 use crate::workspace::header_toolbar_item::HeaderToolbarItemKind;
+use crate::i18n::{tr_cached, Message};
 use crate::workspace::tab_settings::{
     HeaderToolbarChipSelection, TabSettings, TabSettingsChangedEvent,
 };
@@ -246,7 +247,7 @@ impl View for HeaderToolbarInlineEditor {
         render_chip_editor_sections(
             &self.chip_configurator,
             ChipEditorSectionsConfig {
-                available_section_label: "Available items",
+                available_section_label: tr_cached(Message::AvailableItems),
                 is_at_defaults: is_toolbar_editor_at_defaults(&self.chip_configurator),
                 reset_action: HeaderToolbarInlineEditorAction::ResetDefault,
                 activate_action: HeaderToolbarInlineEditorAction::Activate,
@@ -341,7 +342,7 @@ impl View for HeaderToolbarEditorModal {
             &self.chip_configurator,
             ChipEditorModalConfig {
                 title: MODAL_TITLE,
-                available_section_label: "Available items",
+                available_section_label: tr_cached(Message::AvailableItems),
                 is_at_defaults: self.is_at_defaults(),
                 is_dirty: self.is_dirty,
                 cancel_action: HeaderToolbarEditorAction::Cancel,

@@ -64,26 +64,28 @@ struct FeatureItem {
     badge: Option<&'static str>,
 }
 
-const FEATURE_ITEMS: &[FeatureItem] = &[
-    FeatureItem {
-        icon: Icon::Cloud,
-        title: "Run any agent harness in the cloud",
-        description: "Use Oz to spin up Claude Code or Codex agents in the cloud; Oz will help you track and steer the agents.",
-        badge: None,
-    },
-    FeatureItem {
-        icon: Icon::Atom,
-        title: "Multi-agent orchestration",
-        description: "Warp Agents will now orchestrate swarms of subagents, allowing you to parallelize tasks.",
-        badge: None,
-    },
-    FeatureItem {
-        icon: Icon::Cognition,
-        title: "Agent Memory",
-        description: "Agents will now store and access long-term memories, enabling self-improvement over time.",
-        badge: Some("Research preview"),
-    },
-];
+fn feature_items() -> [FeatureItem; 3] {
+    [
+        FeatureItem {
+            icon: Icon::Cloud,
+            title: tr_cached(Message::OrchRunAnyHarness),
+            description: tr_cached(Message::OrchRunAnyHarnessDesc),
+            badge: None,
+        },
+        FeatureItem {
+            icon: Icon::Atom,
+            title: tr_cached(Message::OrchMultiAgent),
+            description: tr_cached(Message::OrchMultiAgentDesc),
+            badge: None,
+        },
+        FeatureItem {
+            icon: Icon::Cognition,
+            title: tr_cached(Message::OrchAgentMemory),
+            description: tr_cached(Message::OrchAgentMemoryDesc),
+            badge: Some(tr_cached(Message::OrchResearchPreview)),
+        },
+    ]
+}
 
 pub fn init(app: &mut AppContext) {
     use warpui::keymap::macros::*;
@@ -270,7 +272,7 @@ impl OrchestrationLaunchModal {
 
     fn render_title(appearance: &Appearance) -> Box<dyn Element> {
         Text::new(
-            "Orchestrate any agent, anywhere",
+            tr_cached(Message::OrchTitle),
             appearance.ui_font_family(),
             20.,
         )
@@ -281,7 +283,7 @@ impl OrchestrationLaunchModal {
 
     fn render_description(appearance: &Appearance) -> Box<dyn Element> {
         Text::new(
-            "We've made major improvements to Warp's cloud agent orchestration platform, Oz.",
+            tr_cached(Message::OrchSubtitle),
             appearance.ui_font_family(),
             14.,
         )
@@ -349,7 +351,7 @@ impl OrchestrationLaunchModal {
         let mut features_col = Flex::column()
             .with_cross_axis_alignment(CrossAxisAlignment::Start)
             .with_spacing(12.);
-        for item in FEATURE_ITEMS {
+        for item in &feature_items() {
             features_col.add_child(self.render_feature_row(item, appearance));
         }
 

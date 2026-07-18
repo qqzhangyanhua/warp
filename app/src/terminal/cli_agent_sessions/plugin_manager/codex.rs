@@ -11,6 +11,7 @@ use super::{
     PluginInstructionStep, PluginInstructions,
 };
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::model::session::LocalCommandExecutor;
 use crate::terminal::shell::ShellType;
 
@@ -185,7 +186,7 @@ impl CliAgentPluginManager for CodexPluginManager {
         if still_outdated {
             log.push_str("Post-update version check: plugin is still outdated\n");
             return Err(PluginInstallError {
-                message: "Plugin update did not take effect".to_owned(),
+                message: tr_cached(Message::PluginErrUpdateDidNotTakeEffect).to_owned(),
                 log,
             });
         }
@@ -236,7 +237,7 @@ impl CliAgentPluginManager for CodexPluginManager {
         if !updated {
             log.push_str("Post-install version check: platform plugin is still outdated\n");
             return Err(PluginInstallError {
-                message: "Platform plugin installation did not take effect".to_owned(),
+                message: tr_cached(Message::PluginErrPlatformInstallDidNotTakeEffect).to_owned(),
                 log,
             });
         }
@@ -263,7 +264,7 @@ impl CliAgentPluginManager for CodexPluginManager {
         if !updated {
             log.push_str("Post-update version check: platform plugin is still outdated\n");
             return Err(PluginInstallError {
-                message: "Platform plugin update did not take effect".to_owned(),
+                message: tr_cached(Message::PluginErrPlatformUpdateDidNotTakeEffect).to_owned(),
                 log,
             });
         }
@@ -273,76 +274,76 @@ impl CliAgentPluginManager for CodexPluginManager {
 
 static PLUGIN_INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> =
     LazyLock::new(|| PluginInstructions {
-        title: "Install Warp Plugin for Codex",
-        subtitle: "Run the following commands, then restart Codex.",
-        steps: &[
+        title: tr_cached(Message::PluginInstallCodexTitle),
+        subtitle: tr_cached(Message::PluginInstallCodexSubtitle),
+        steps: Box::leak(Box::new([
             PluginInstructionStep {
-                description: "Add the Warp plugin marketplace repository",
+                description: tr_cached(Message::PluginStepAddMarketplace),
                 command: "codex plugin marketplace add warpdotdev/codex-warp",
                 executable: true,
                 link: None,
             },
             PluginInstructionStep {
-                description: "Install the Warp plugin",
+                description: tr_cached(Message::PluginStepInstallWarpPlugin),
                 command: "codex plugin add warp@codex-warp",
                 executable: true,
                 link: None,
             },
-        ],
-        post_install_notes: &["Restart Codex to activate the plugin."],
+        ])),
+        post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartCodexActivate)])),
     });
 
 static NATIVE_INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
     PluginInstructions {
-        title: "Enable Warp Notifications for Codex",
-        subtitle: "Update Codex to the latest version, then enable in-focus notifications so Warp can display them while you work.",
-        steps: &[
+        title: tr_cached(Message::PluginEnableCodexNotificationsTitle),
+        subtitle: tr_cached(Message::PluginEnableCodexNotificationsSubtitle),
+        steps: Box::leak(Box::new([
             PluginInstructionStep {
-                description: "Update Codex to the latest version.",
+                description: tr_cached(Message::PluginStepUpdateCodexLatest),
                 command: "",
                 executable: false,
                 link: Some("https://developers.openai.com/codex/cli#upgrade"),
             },
             PluginInstructionStep {
-                description: "Set the notification condition to \"always\" in your Codex config. Open or create ~/.codex/config.toml and add:",
+                description: tr_cached(Message::PluginStepCodexNotificationAlways),
                 command: "[tui]\nnotification_condition = \"always\"",
                 executable: false,
                 link: None,
             },
-        ],
-        post_install_notes: &["Restart Codex to apply the changes."],
+        ])),
+        post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartCodexApply)])),
     }
 });
 
 static EMPTY_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
     title: "",
     subtitle: "",
-    steps: &[],
-    post_install_notes: &[],
+    steps: Box::leak(Box::new([])),
+    post_install_notes: Box::leak(Box::new([])),
 });
 
 static PLUGIN_UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
     PluginInstructions {
-        title: "Update Warp Plugin for Codex",
-        subtitle: "Run the following commands, then restart Codex.",
-        steps: &[
+        title: tr_cached(Message::PluginUpdateCodexTitle),
+        subtitle: tr_cached(Message::PluginUpdateCodexSubtitle),
+        steps: Box::leak(Box::new([
             PluginInstructionStep {
-                description: "Upgrade the marketplace",
+                description: tr_cached(Message::PluginStepUpgradeMarketplace),
                 command: "codex plugin marketplace upgrade codex-warp",
                 executable: true,
                 link: None,
             },
             PluginInstructionStep {
-                description: "Reinstall the Warp plugin",
+                description: tr_cached(Message::PluginStepReinstallWarpPlugin),
                 command: "codex plugin add warp@codex-warp",
                 executable: true,
                 link: None,
             },
-        ],
-        post_install_notes: &[
-            "Restart Codex to activate the update.",
-            "If this fails because codex-warp is not configured as a Git marketplace, remove and re-add the marketplace.",
-        ],
+        ])),
+        post_install_notes: Box::leak(Box::new([
+            tr_cached(Message::PluginNoteRestartCodexUpdate),
+            tr_cached(Message::PluginNoteCodexMarketplaceGitHint),
+        ])),
     }
 });
 

@@ -1,3 +1,4 @@
+use crate::i18n::{tr_cached, Message};
 use std::sync::Arc;
 
 use pathfinder_geometry::vector::vec2f;
@@ -567,7 +568,7 @@ impl ModelSelector {
         let mut items: Vec<MenuItem<ModelSelectorAction>> = Vec::new();
         if query.is_empty() || "default".contains(query) {
             items.push(MenuItem::Item(
-                MenuItemFields::new("default")
+                MenuItemFields::new(tr_cached(Message::TerminalDefaultLower))
                     .with_icon(icon)
                     .with_icon_size_override(ITEM_ICON_SIZE)
                     .with_font_size_override(ITEM_FONT_SIZE)

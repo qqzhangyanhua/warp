@@ -8,10 +8,10 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **1650** |
-| English table (`en_text`) | **1650** complete |
-| Chinese table (`zh_cn_text`) | **1650** complete |
-| Call sites | ~1000+ across 75+ files |
+| `Message` variants | **1976** |
+| English table (`en_text`) | **1976** complete |
+| Chinese table (`zh_cn_text`) | **1976** complete |
+| Call sites | ~1250+ across 110+ files |
 
 ### What the 157 messages cover
 
@@ -279,13 +279,13 @@ Keep as product names (usually untranslated): Warp, Oz, Warp Drive, Claude Code,
 
 | Bucket | Status | Rough user-visible strings |
 |--------|--------|----------------------------|
-| Already i18n (1650 `Message`s) | Done | ~1650+ |
+| Already i18n (1976 `Message`s) | Done | ~1976+ |
 | P0 first-run / login / anonymous | Done | ~80–120 |
 | P1 Settings residuals | Done | ~80–120 |
 | P2 full Settings pages | Done (Teams confirm dialogs + Environments residual) | ~250–400 |
-| P3 Workspace / Terminal | High-frequency done; shell display names + launch modals open | ~300–500 |
+| P3 Workspace / Terminal | High-frequency + menus + long-tail tooltips/toasts done; shell proper nouns + some launch/marketing copy open | ~300–500 |
 | Engineering debt (dual-track / Test connection) | Done | — |
-| **Remaining** | | **~30–80** (shell proper nouns; launch/marketing modals; SettingsSection Display deferred; long-tail Settings) |
+| **Remaining** | | **~5–20** (debug/dev toasts; pure `{err}` passthrough; SettingsSection Display deferred) |
 
 ---
 
@@ -351,4 +351,4 @@ Often **hidden or lower priority** in anonymous-only mode:
 
 ---
 
-_Last updated: 2026-07-17. Batch 13: migrate terminal/workspace menu bridges to Message; agent filter prefixes/sources; MCP delete dialog; HOA buttons; Add router. Message catalog 1650 variants._
+_Last updated: 2026-07-18. Batch 18 residual: Drive cloud-object toast templates; cloud task/workflow/command copy; URI tab; AWS/alias banners; MCP PATH/auth; plugin auto-install; install/LSP toasts; agent footer tooltips; /open-file errors. Message catalog **1976** variants._

@@ -7,6 +7,7 @@ use super::{
     InlineBannerTextButtonVariant,
 };
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::view::TerminalAction;
 
 const AWS_CLI_INSTALL_DOCS_URL: &str =
@@ -78,7 +79,7 @@ pub fn render_aws_cli_not_installed_banner(
         InlineBannerStyle::Recommendation,
         appearance,
         InlineBannerContent {
-            title: "AWS CLI Not Installed".to_string(),
+            title: tr_cached(Message::ToastAwsCliNotInstalled).to_string(),
             content: Some(vec![description_text]),
             buttons,
             close_button: Some(close_button),

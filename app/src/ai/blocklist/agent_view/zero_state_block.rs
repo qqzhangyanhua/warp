@@ -35,6 +35,7 @@ use crate::ai::blocklist::agent_view::{
 use crate::ai::blocklist::history_model::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::changelog_model::{self, ChangelogModel};
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::terminal::event::BlockType;
@@ -403,13 +404,13 @@ impl View for AgentViewZeroStateBlock {
 
         let header_props = if self.origin.is_cloud_agent() {
             HeaderProps {
-                title: "New Oz cloud agent conversation".into(),
+                title: tr_cached(I18nMessage::AgentNewOzCloudConversation).into(),
                 description: AgentViewDescription::CloudModeWithDocsLink,
                 icon: Icon::OzCloud,
             }
         } else {
             let mut local_description =
-                "Send a prompt below to start a new conversation".to_owned();
+                tr_cached(I18nMessage::AgentSendPromptToStart).to_owned();
             let active_session = self.active_session(app);
             let location_label = active_session.as_deref().and_then(|session| {
                 format_session_location(session, self.current_working_directory.as_deref())
@@ -419,7 +420,7 @@ impl View for AgentViewZeroStateBlock {
             }
 
             HeaderProps {
-                title: "New Oz agent conversation".into(),
+                title: tr_cached(I18nMessage::AgentNewOzConversation).into(),
                 description: AgentViewDescription::PlainText(vec![local_description.into()]),
                 icon: Icon::Oz,
             }

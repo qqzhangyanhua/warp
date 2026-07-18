@@ -25,6 +25,7 @@ use super::{
     TemplatableMCPServerManagerEvent,
 };
 use crate::ai::mcp::file_based_manager::FileBasedMCPManagerEvent;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::ai::mcp::parsing::resolve_json;
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, GalleryData};
 use crate::ai::mcp::templatable_installation::VariableValue;
@@ -811,7 +812,7 @@ impl TemplatableMCPServerManager {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "PATH required to launch MCP server. Please open a new terminal session to autopopulate PATH."
+                                tr_cached(Message::ToastMcpPathRequired)
                                     .to_string(),
                             ),
                             window_id,
@@ -954,9 +955,10 @@ impl TemplatableMCPServerManager {
                                 if let Some(active_window_id) = ctx.windows().active_window() {
                                     ToastStack::handle(ctx).update(ctx, |stack, ctx| {
                                         stack.add_ephemeral_toast(
-                                            DismissibleToast::default(format!(
-                                                "Successfully authenticated {server_name} MCP server"
-                                            )),
+                                            DismissibleToast::default(
+                                                tr_cached(Message::ToastMcpAuthSuccess)
+                                                    .replace("{}", &server_name),
+                                            ),
                                             active_window_id,
                                             ctx,
                                         );

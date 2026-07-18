@@ -17,6 +17,7 @@ use warpui::{
 
 use super::WELCOME_TIP_FEATURE_LENGTH;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::resource_center::{Tip, TipAction, TipsCompleted};
 use crate::themes::theme::{Blend, Fill};
 use crate::util::bindings::trigger_to_keystroke;
@@ -395,7 +396,7 @@ impl TipsView {
                         Align::new(
                             appearance
                                 .ui_builder()
-                                .paragraph("Skip Welcome Tips".to_string())
+                                .paragraph(tr_cached(Message::TipsSkipWelcome).to_string())
                                 .build()
                                 .finish(),
                         )
@@ -460,7 +461,7 @@ impl TipsView {
             .finish();
 
         let sub_text = ui_builder
-            .paragraph("Nice work on finishing the welcome tips!")
+            .paragraph(tr_cached(Message::TipsNiceWorkFinished))
             .with_style(UiComponentStyles {
                 font_size: Some(12.),
                 font_color: Some(Fill::white().into()),

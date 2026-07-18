@@ -19,6 +19,7 @@ use warpui::{
 
 use super::{AgentViewController, AgentViewEntryOrigin};
 use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::BlocklistAIHistoryEvent;
 use crate::terminal::BlockListSettings;
@@ -486,7 +487,7 @@ impl TypedActionView for AgentViewEntryBlock {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    "Couldn't navigate to conversation.".to_string(),
+                                    tr_cached(Message::ToastCouldntNavigateConversation).to_string(),
                                 ),
                                 window_id,
                                 ctx,

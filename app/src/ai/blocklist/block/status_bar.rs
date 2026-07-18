@@ -29,6 +29,7 @@ use super::view_impl::common::{
     WarpingIndicatorProps, WarpingProps, LOAD_OUTPUT_MESSAGE, WAITING_FOR_USER_INPUT_MESSAGE,
 };
 use crate::ai::agent::conversation::AIConversationId;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::{
     icons, AIAgentExchangeId, AIAgentOutput, AIAgentOutputMessageType, CancellationReason,
     SummarizationType,
@@ -971,7 +972,7 @@ impl BlocklistAIStatusBar {
                 color,
                 color,
                 vec![FormattedTextFragment::plain_text(
-                    "Cloud agent run cancelled",
+                    tr_cached(Message::ToastCloudAgentRunCancelledLower),
                 )],
                 app,
             ));

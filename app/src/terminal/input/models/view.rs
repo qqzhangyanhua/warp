@@ -78,13 +78,13 @@ static TAB_CONFIGS: LazyLock<Vec<InlineMenuTabConfig<InlineModelSelectorTab>>> =
     LazyLock::new(|| {
         let mut configs = vec![InlineMenuTabConfig {
             id: InlineModelSelectorTab::BaseAgent,
-            label: "Base".to_string(),
+            label: crate::i18n::tr_cached(Message::TerminalBaseModelTab).to_string(),
             filters: HashSet::from([QueryFilter::BaseModels]),
         }];
         if FeatureFlag::InlineMenuHeaders.is_enabled() {
             configs.push(InlineMenuTabConfig {
                 id: InlineModelSelectorTab::FullTerminalUse,
-                label: "Full Terminal Use".to_string(),
+                label: crate::i18n::tr_cached(Message::FullTerminalUse).to_string(),
                 filters: HashSet::from([QueryFilter::FullTerminalUseModels]),
             });
         }

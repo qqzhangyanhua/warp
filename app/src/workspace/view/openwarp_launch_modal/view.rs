@@ -19,6 +19,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, ActionButtonTheme, ButtonSize};
 
@@ -42,32 +43,35 @@ struct FeatureItem {
     inline_link: Option<InlineLink>,
 }
 
-const FEATURE_ITEMS: &[FeatureItem] = &[
-    FeatureItem {
-        icon: Icon::HeartHand,
-        title: "Contribute",
-        description: "Warp's client code is now open source. Get started by using the /feedback skill to open an issue, and follow the contribution guidelines here.",
-        inline_link: Some(InlineLink {
-            text: "here",
-            url: CONTRIBUTING_URL,
-        }),
-    },
-    FeatureItem {
-        icon: Icon::Oz,
-        title: "Open Automated Development",
-        description: "The Warp repo is managed by an agent-first workflow powered by Oz, our cloud agent orchestration platform.",
-        inline_link: Some(InlineLink {
-            text: "Oz",
-            url: OZ_URL,
-        }),
-    },
-    FeatureItem {
-        icon: Icon::MessageChatSquare,
-        title: "Introducing 'auto (open-weights)'",
-        description: "We've added a new auto model that picks the best open weight model for a task, like Kimi or MiniMax.",
-        inline_link: None,
-    },
-];
+// Titles/descriptions resolved at render via tr_cached so locale switches apply.
+fn feature_items() -> [FeatureItem; 3] {
+    [
+        FeatureItem {
+            icon: Icon::HeartHand,
+            title: tr_cached(Message::OpenWarpContribute),
+            description: tr_cached(Message::OpenWarpContributeDesc),
+            inline_link: Some(InlineLink {
+                text: tr_cached(Message::OpenWarpHere),
+                url: CONTRIBUTING_URL,
+            }),
+        },
+        FeatureItem {
+            icon: Icon::Oz,
+            title: tr_cached(Message::OpenWarpOpenAutomatedDev),
+            description: tr_cached(Message::OpenWarpOpenAutomatedDevDesc),
+            inline_link: Some(InlineLink {
+                text: "Oz",
+                url: OZ_URL,
+            }),
+        },
+        FeatureItem {
+            icon: Icon::MessageChatSquare,
+            title: tr_cached(Message::OpenWarpAutoOpenWeights),
+            description: tr_cached(Message::OpenWarpAutoOpenWeightsDesc),
+            inline_link: None,
+        },
+    ]
+}
 
 pub fn init(app: &mut AppContext) {
     use warpui::keymap::macros::*;
@@ -143,7 +147,7 @@ impl OpenWarpLaunchModal {
         });
 
         let cta_button = ctx.add_view(|_ctx| {
-            ActionButton::new("Visit the repo", CtaButtonTheme)
+            ActionButton::new(tr_cached(Message::OpenWarpVisitRepo), CtaButtonTheme)
                 .with_full_width(true)
                 .on_click(|ctx| ctx.dispatch_typed_action(OpenWarpLaunchModalAction::VisitRepo))
         });
@@ -191,7 +195,7 @@ impl OpenWarpLaunchModal {
     }
 
     fn render_badge(appearance: &Appearance) -> Box<dyn Element> {
-        let text = Text::new_inline("New".to_string(), appearance.ui_font_family(), 14.)
+        let text = Text::new_inline(tr_cached(Message::HoaBadgeNew).to_string(), appearance.ui_font_family(), 14.)
             .with_color(PhenomenonStyle::modal_badge_text())
             .finish();
         ConstrainedBox::new(
@@ -212,7 +216,7 @@ impl OpenWarpLaunchModal {
     }
 
     fn render_title(appearance: &Appearance) -> Box<dyn Element> {
-        Text::new("Warp is now open-source", appearance.ui_font_family(), 20.)
+        Text::new(tr_cached(Message::WarpNowOpenSource), appearance.ui_font_family(), 20.)
             .with_color(PhenomenonStyle::modal_title_text())
             .with_style(Properties::default().weight(Weight::Semibold))
             .finish()
@@ -220,7 +224,7 @@ impl OpenWarpLaunchModal {
 
     fn render_description(appearance: &Appearance) -> Box<dyn Element> {
         Text::new(
-            "You, our community, can participate in building Warp using an agent-first workflow.",
+            tr_cached(Message::OpenWarpCommunityDesc),
             appearance.ui_font_family(),
             14.,
         )
@@ -336,7 +340,7 @@ impl OpenWarpLaunchModal {
         let mut features_col = Flex::column()
             .with_cross_axis_alignment(CrossAxisAlignment::Start)
             .with_spacing(12.);
-        for item in FEATURE_ITEMS {
+        for item in &feature_items() {
             features_col.add_child(Self::render_feature_row(item, appearance));
         }
 

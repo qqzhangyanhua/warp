@@ -53,6 +53,7 @@ pub(crate) use self::environment_selector::{
     EnvironmentSelector, EnvironmentSelectorEvent, EnvironmentSelectorTarget,
 };
 use crate::ai::blocklist::agent_view::is_in_cloud_context;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::history_model::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::usage::icon_for_context_window_usage;
@@ -208,16 +209,6 @@ fn localized_voice_input_tooltip(ctx: &AppContext) -> String {
     footer_text(ctx, "Voice input (hold {key_name} key)").replace("{key_name}", key_name)
 }
 
-const FAST_FORWARD_ON_TOOLTIP: &str = "Turn off auto-approve all agent actions";
-const FAST_FORWARD_OFF_TOOLTIP: &str = "Auto-approve all agent actions for this task";
-const FAST_FORWARD_LOCKED_TOOLTIP: &str =
-    "Fast forward is always enabled for cloud agent conversations";
-
-const START_REMOTE_CONTROL_TOOLTIP: &str = "Start remote control";
-const START_REMOTE_CONTROL_LOGIN_REQUIRED_TOOLTIP: &str = "Log in to use /remote-control";
-
-const LIVE_REMOTE_VM_INDICATOR_TOOLTIP: &str = "Connected to a live cloud agent session. Your next prompt continues on the running remote machine.";
-const NEW_CLOUD_VM_INDICATOR_TOOLTIP: &str = "Not connected to cloud agent. Your next prompt starts a new cloud machine to continue this conversation.";
 
 const CLOUD_MODE_V2_FOOTER_GAP: f32 = 4.;
 
@@ -521,7 +512,7 @@ impl AgentInputFooter {
         let fast_forward_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new("", FastForwardButtonTheme)
                 .with_icon(Icon::FastForward)
-                .with_tooltip(footer_text(ctx, FAST_FORWARD_OFF_TOOLTIP).into_owned())
+                .with_tooltip(tr_cached(Message::FooterFastForwardOff).to_owned())
                 .with_size(button_size)
                 .with_tooltip_alignment(TooltipAlignment::Left)
                 .with_disabled_theme(FastForwardLockedTheme)
@@ -781,7 +772,7 @@ impl AgentInputFooter {
         let start_remote_control_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new("/remote-control", RemoteControlButtonTheme)
                 .with_icon(Icon::Phone01)
-                .with_tooltip(footer_text(ctx, START_REMOTE_CONTROL_TOOLTIP).into_owned())
+                .with_tooltip(tr_cached(Message::FooterStartRemoteControl).to_owned())
                 .with_size(cli_button_size)
                 .with_tooltip_alignment(TooltipAlignment::Left)
                 .on_click(|ctx| {
@@ -817,7 +808,7 @@ impl AgentInputFooter {
         let live_session_indicator = ctx.add_typed_action_view(|ctx| {
             ActionButton::new("", AgentInputButtonTheme)
                 .with_icon(Icon::CloudFilled)
-                .with_tooltip(footer_text(ctx, LIVE_REMOTE_VM_INDICATOR_TOOLTIP).into_owned())
+                .with_tooltip(tr_cached(Message::FooterLiveRemoteVm).to_owned())
                 .with_size(button_size)
                 .with_tooltip_alignment(TooltipAlignment::Left)
         });
@@ -825,7 +816,7 @@ impl AgentInputFooter {
             ActionButton::new("", AgentInputButtonTheme)
                 .with_icon(Icon::CloudOffline)
                 .with_icon_ansi_color(AnsiColorIdentifier::Yellow)
-                .with_tooltip(footer_text(ctx, NEW_CLOUD_VM_INDICATOR_TOOLTIP).into_owned())
+                .with_tooltip(tr_cached(Message::FooterNewCloudVm).to_owned())
                 .with_size(button_size)
                 .with_tooltip_alignment(TooltipAlignment::Left)
         });
@@ -1391,9 +1382,7 @@ impl AgentInputFooter {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             toast_stack.add_ephemeral_toast(
                 DismissibleToast::error(
-                    "Could not automatically install plugin. \
-                     Please click the chip again for manual installation steps."
-                        .to_owned(),
+                    tr_cached(Message::ToastPluginAutoInstallFailed).to_owned(),
                 ),
                 window_id,
                 ctx,
@@ -2121,11 +2110,7 @@ impl AgentInputFooter {
         let window_id = ctx.window_id();
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             let toast = DismissibleToast::error(
-                footer_text(
-                    ctx,
-                    "Failed to start voice input (you may need to enable Microphone access)",
-                )
-                .into_owned(),
+                tr_cached(Message::ToastFailedStartVoiceInput).to_owned(),
             );
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
@@ -2138,11 +2123,7 @@ impl AgentInputFooter {
             if let Some(toggle_key) = settings.maybe_setup_first_time_voice(ctx) {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast = DismissibleToast::success(
-                        footer_text(
-                            ctx,
-                            "Voice input is enabled. You can also press and hold the `{key}` key to activate voice input (configure in Settings > AI > Voice)",
-                        )
-                        .replace("{key}", &toggle_key.display_name()),
+                        tr_cached(Message::ToastVoiceInputEnabled).replace("{}", &toggle_key.display_name()),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -2173,13 +2154,13 @@ impl AgentInputFooter {
             Icon::FastForward
         };
         let tooltip = if is_force_enabled {
-            FAST_FORWARD_LOCKED_TOOLTIP
+            tr_cached(Message::FooterFastForwardLocked)
         } else if is_active {
-            FAST_FORWARD_ON_TOOLTIP
+            tr_cached(Message::FooterFastForwardOn)
         } else {
-            FAST_FORWARD_OFF_TOOLTIP
-        };
-        let tooltip = footer_text(ctx, tooltip).into_owned();
+            tr_cached(Message::FooterFastForwardOff)
+        }
+        .to_owned();
 
         self.fast_forward_button.update(ctx, |button, ctx| {
             button.set_icon(Some(icon), ctx);
@@ -2197,11 +2178,11 @@ impl AgentInputFooter {
             .get()
             .is_anonymous_or_logged_out();
         let tooltip = if login_required {
-            START_REMOTE_CONTROL_LOGIN_REQUIRED_TOOLTIP
+            tr_cached(Message::FooterStartRemoteControlLogin)
         } else {
-            START_REMOTE_CONTROL_TOOLTIP
-        };
-        let tooltip = footer_text(ctx, tooltip).into_owned();
+            tr_cached(Message::FooterStartRemoteControl)
+        }
+        .to_owned();
         self.start_remote_control_button.update(ctx, |button, ctx| {
             button.set_disabled(login_required, ctx);
             button.set_tooltip(Some(tooltip), ctx);

@@ -6,6 +6,7 @@ use super::{
     InlineBannerContent, InlineBannerStyle, InlineBannerTextButton, InlineBannerTextButtonVariant,
 };
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::alias::AliasedCommand;
 use crate::terminal::view::TerminalAction;
 
@@ -88,7 +89,7 @@ pub fn render_alias_expansion_banner(
         InlineBannerStyle::VeryLowPriority,
         appearance,
         InlineBannerContent {
-            title: "Warp can auto-expand aliases.".into(),
+            title: tr_cached(Message::ToastAliasAutoExpand).into(),
             buttons,
             content: Some(content),
             close_button: Some(close_button),

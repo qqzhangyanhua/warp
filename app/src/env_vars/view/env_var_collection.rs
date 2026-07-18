@@ -21,6 +21,7 @@ use warpui::{
 use super::command_dialog::EnvVarCommandDialog;
 use super::menus::Menus;
 use crate::ai::blocklist::block::secret_redaction::find_secrets_in_text_with_levels;
+use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::breadcrumbs::ContainingObject;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{CloudObjectEventEntrypoint, Owner};
@@ -742,7 +743,7 @@ impl EnvVarCollectionView {
                     crate::workspace::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "An error occurred while trying to invoke the env var".to_owned(),
+                                tr_cached(Message::ToastEnvVarInvokeError).to_owned(),
                             ),
                             window_id,
                             ctx,

@@ -26,6 +26,7 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::ai::agent::icons::yellow_stop_icon;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{AIAgentActionId, AIAgentActionResult, AIAgentActionResultType};
@@ -1817,21 +1818,20 @@ fn ask_user_question_completion_state(
 
     if answered_count == 0 {
         AskUserQuestionCompletionState {
-            label: "Questions skipped".to_string(),
+            label: tr_cached(I18nMessage::QuestionsSkipped).to_string(),
             status_icon: inline_action_icons::reverted_icon(appearance),
         }
     } else {
         let label = if answered_count == total {
             if total == 1 {
-                "Answered question".to_string()
+                tr_cached(I18nMessage::AnsweredQuestion).to_string()
             } else {
-                format!("Answered all {total} questions")
+                tr_cached(I18nMessage::AnsweredAllQuestions).replace("{}", &total.to_string())
             }
         } else {
-            format!(
-                "Answered {answered_count} of {total} question{}",
-                if total == 1 { "" } else { "s" }
-            )
+            tr_cached(I18nMessage::AnsweredPartialQuestions)
+                .replace("{answered}", &answered_count.to_string())
+                .replace("{total}", &total.to_string())
         };
         AskUserQuestionCompletionState {
             label,

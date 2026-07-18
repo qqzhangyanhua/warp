@@ -1,6 +1,7 @@
 use warpui::{SingletonEntity, View, ViewContext};
 
 use crate::ai::agent::conversation::AIConversationId;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::{BeginConversationRenameError, BlocklistAIHistoryModel};
 use crate::server::server_api::ServerApiProvider;
 use crate::view_components::DismissibleToast;
@@ -99,7 +100,7 @@ pub(crate) fn rename_conversation<T: View>(
                     });
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::success(format!("Conversation renamed to {title}")),
+                            DismissibleToast::success(tr_cached(Message::ToastConversationRenamed).replace("{}", &title)),
                             window_id,
                             ctx,
                         );
@@ -111,7 +112,7 @@ pub(crate) fn rename_conversation<T: View>(
                     });
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(format!("Failed to rename conversation: {e}")),
+                            DismissibleToast::error(tr_cached(Message::ToastFailedRenameConversation).replace("{}", &e.to_string())),
                             window_id,
                             ctx,
                         );

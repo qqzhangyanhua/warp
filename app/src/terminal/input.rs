@@ -3443,7 +3443,7 @@ impl Input {
                     ToastStack::handle(ctx).update(ctx, |ts, ctx| {
                         ts.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Attached images were removed — the selected model does not support images.".to_string(),
+                                tr_cached(Message::ToastAttachedImagesRemoved).to_string(),
                             ),
                             window_id,
                             ctx,
@@ -5923,7 +5923,7 @@ impl Input {
             let window_id = ctx.window_id();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 let toast = DismissibleToast::default(
-                    input_text(ctx, "No active conversation to export").into_owned(),
+                    tr_cached(Message::ToastNoActiveConversationExport).to_owned(),
                 );
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
@@ -5988,9 +5988,9 @@ impl Input {
             let window_id = ctx.window_id();
             let display_path = file_path.display().to_string();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast = DismissibleToast::default(format!(
-                    "File {display_path} already exists and will be overwritten"
-                ));
+                let toast = DismissibleToast::default(
+                    tr_cached(Message::ToastFileWillBeOverwritten).replace("{}", &display_path)
+                );
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
         }
@@ -6002,9 +6002,9 @@ impl Input {
                 let window_id = ctx.window_id();
                 let display_path = file_path.display().to_string();
                 ToastStack::handle(ctx).update(ctx, move |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(format!(
-                        "Conversation exported to {display_path}"
-                    ));
+                    let toast = DismissibleToast::default(
+                        tr_cached(Message::ToastConversationExported).replace("{}", &display_path)
+                    );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }
@@ -7500,9 +7500,10 @@ impl Input {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(format!(
-                            "Cannot run `{truncated_command}` (command already running)."
-                        )),
+                        DismissibleToast::error(
+                            tr_cached(Message::ToastCannotRunCommandAlreadyRunning)
+                                .replace("{}", &truncated_command)
+                        ),
                         window_id,
                         ctx,
                     );
@@ -13507,7 +13508,7 @@ impl Input {
                         ToastStack::handle(ctx).update(ctx, |ts, ctx| {
                             ts.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    "No agent harnesses are available. Contact your team admin."
+                                    tr_cached(Message::ToastNoAgentHarnesses)
                                         .to_string(),
                                 ),
                                 window_id,
@@ -14770,7 +14771,7 @@ impl Input {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    "Too many attachments for this conversation.".to_string(),
+                                    tr_cached(Message::ToastTooManyAttachments).to_string(),
                                 ),
                                 window_id,
                                 ctx,
@@ -16134,7 +16135,7 @@ impl TypedActionView for Input {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Cannot start a new conversation while agent is monitoring a command.".to_string()
+                                tr_cached(Message::ToastCannotStartWhileMonitoring).to_string()
                             ),
                             window_id,
                             ctx,

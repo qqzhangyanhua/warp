@@ -3,6 +3,7 @@ use std::sync::LazyLock;
 use async_trait::async_trait;
 
 use super::{CliAgentPluginManager, PluginInstructionStep, PluginInstructions};
+use crate::i18n::{tr_cached, Message};
 
 // Keep in sync with the opencode-warp npm package version.
 // This version is also hardcoded into UPDATE_INSTRUCTIONS below (so the update
@@ -33,46 +34,45 @@ impl CliAgentPluginManager for OpenCodePluginManager {
 
 static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
     PluginInstructions {
-        title: "Install Warp Plugin for OpenCode",
-        subtitle:
-            "Add the Warp plugin to your OpenCode configuration, then restart OpenCode.",
-        steps: &[
+        title: tr_cached(Message::PluginInstallOpenCodeTitle),
+        subtitle: tr_cached(Message::PluginInstallOpenCodeSubtitle),
+        steps: Box::leak(Box::new([
             PluginInstructionStep {
-                description: "Open or create your opencode.json. This can be in your project root, or the global config path:",
+                description: tr_cached(Message::PluginStepOpenOpencodeJson),
                 command: "~/.config/opencode/opencode.json",
                 executable: false,
                 link: None,
             },
             PluginInstructionStep {
-                description: "Add \"@warp-dot-dev/opencode-warp\" to the \"plugin\" array in the top-level JSON object:",
+                description: tr_cached(Message::PluginStepAddOpencodePlugin),
                 command: "\"plugin\": [\"@warp-dot-dev/opencode-warp\"]",
                 executable: false,
                 link: None,
             },
-        ],
-        post_install_notes: &["Restart OpenCode to activate the plugin."],
+        ])),
+        post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartOpenCodeActivate)])),
     }
 });
 
 static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
     PluginInstructions {
-        title: "Update Warp Plugin for OpenCode",
-        subtitle: "Pin the plugin to the latest version in your opencode.json. OpenCode caches plugins per version spec, so changing the pin forces it to re-fetch on restart.",
-        steps: &[
+        title: tr_cached(Message::PluginUpdateOpenCodeTitle),
+        subtitle: tr_cached(Message::PluginUpdateOpenCodeSubtitle),
+        steps: Box::leak(Box::new([
             PluginInstructionStep {
-                description: "Open or create your opencode.json. This can be in your project root, or the global config path:",
+                description: tr_cached(Message::PluginStepOpenOpencodeJson),
                 command: "~/.config/opencode/opencode.json",
                 executable: false,
                 link: None,
             },
             PluginInstructionStep {
-                description: "Replace the existing \"@warp-dot-dev/opencode-warp\" entry in the \"plugin\" array with the explicit version:",
+                description: tr_cached(Message::PluginStepReplaceOpencodePluginPin),
                 command: "\"plugin\": [\"@warp-dot-dev/opencode-warp@0.1.5\"]",
                 executable: false,
                 link: None,
             },
-        ],
-        post_install_notes: &["Restart OpenCode to load the updated plugin."],
+        ])),
+        post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartOpenCodeUpdate)])),
     }
 });
 

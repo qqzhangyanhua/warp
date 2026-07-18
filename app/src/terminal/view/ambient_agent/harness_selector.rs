@@ -21,6 +21,7 @@ use warpui::{
 };
 
 use crate::ai::blocklist::agent_view::agent_input_footer::AgentInputButtonTheme;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::harness_display::{brand_color, icon_for};
@@ -312,7 +313,7 @@ fn build_menu_items(
             fields = fields
                 .with_disabled(true)
                 .with_override_text_color(disabled_text_color)
-                .with_tooltip("Disabled by your administrator");
+                .with_tooltip(tr_cached(Message::TooltipDisabledByAdmin));
         }
         items.push(MenuItem::Item(fields));
     }

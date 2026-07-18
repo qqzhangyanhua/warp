@@ -955,12 +955,12 @@ impl TerminalView {
         }
 
         let Some(ambient_agent_view_model) = self.ambient_agent_view_model.as_ref() else {
-            self.show_error_toast("Couldn't continue this cloud task.".to_string(), ctx);
+            self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
             return;
         };
 
         if ambient_agent_view_model.as_ref(ctx).task_id() != Some(task_id) {
-            self.show_error_toast("Couldn't continue this cloud task.".to_string(), ctx);
+            self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
             return;
         }
         self.enable_cloud_followup_input_after_conversation_end(task_id, ctx);

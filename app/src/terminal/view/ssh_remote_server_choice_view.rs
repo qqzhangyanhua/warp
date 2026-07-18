@@ -37,6 +37,7 @@ use crate::ai::blocklist::inline_action::inline_action_header::{
     HeaderConfig, INLINE_ACTION_HORIZONTAL_PADDING,
 };
 use crate::server::telemetry::TelemetryEvent;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::model::session::SessionId;
 use crate::terminal::warpify::settings::{SshExtensionInstallMode, WarpifySettings};
 use crate::ui_components::blended_colors;
@@ -156,7 +157,7 @@ impl SshRemoteServerChoiceView {
 
         let checkbox_label =
             Hoverable::new(self.do_not_ask_again_label_mouse_state.clone(), move |_| {
-                Text::new("Don't ask me this again", ui_font_family, footer_font_size)
+                Text::new(tr_cached(Message::SshDontAskAgain), ui_font_family, footer_font_size)
                     .with_color(muted_color)
                     .finish()
             })

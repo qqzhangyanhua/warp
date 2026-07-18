@@ -2263,7 +2263,7 @@ impl Workspace {
                     log::warn!("Failed to remove tab config file: {e:?}");
                     self.toast_stack.update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(format!("Failed to remove tab config: {e}")),
+                            DismissibleToast::error(tr_cached(Message::ToastFailedRemoveTabConfig).replace("{}", &e.to_string())),
                             ctx,
                         );
                     });
@@ -2685,7 +2685,7 @@ impl Workspace {
                     me.shown_staging_banner_count += 1;
                     me.toast_stack.update(ctx, |toast_stack, ctx| {
                         let toast = DismissibleToast::error(
-                            "Staging API call failed. Did your IP address change?".to_string(),
+                            tr(ctx, Message::ToastStagingApiFailed).to_string(),
                         )
                         .with_object_id("staging_access_blocked_toast".to_string());
                         toast_stack.add_ephemeral_toast(toast, ctx);
@@ -4505,7 +4505,7 @@ impl Workspace {
                     report_error!("Failed to load conversation from server");
                     me.toast_stack.update(ctx, |view, ctx| {
                         let new_toast = DismissibleToast::error(
-                            "Failed to load conversation data.".to_string(),
+                            tr(ctx, Message::ToastFailedLoadConversationData).to_string(),
                         );
                         view.add_ephemeral_toast(new_toast, ctx);
                     });
@@ -9023,7 +9023,7 @@ impl Workspace {
             async { cli_install::uninstall_oz() },
             |view, result, ctx| {
                 let toast = DismissibleToast::success(
-                    "Removed the global Oz CLI installation — it still works inside Warp."
+                    tr(ctx, Message::ToastRemovedGlobalOzCli)
                         .to_string(),
                 );
                 view.handle_cli_command_result(
@@ -9062,7 +9062,7 @@ impl Workspace {
             async { cli_install::uninstall_warpctrl() },
             |view, result, ctx| {
                 let toast = DismissibleToast::success(
-                    "Removed the global Warp Control CLI installation — it still works inside Warp."
+                    tr(ctx, Message::ToastRemovedGlobalWarpControlCli)
                         .to_string(),
                 );
                 view.handle_cli_command_result(
@@ -13498,8 +13498,7 @@ impl Workspace {
                         );
                         WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             let toast = DismissibleToast::error(
-                                "Couldn't continue this conversation locally. Check the logs for details."
-                                    .to_owned(),
+                                tr(ctx, Message::ToastCouldntContinueConversationLocally).to_owned(),
                             );
                             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                         });
@@ -13987,7 +13986,7 @@ impl Workspace {
             let toast = if crate::i18n::active_locale(ctx) == crate::i18n::Locale::ZhCn {
                 DismissibleToast::default(format!("已分叉“{title}”"))
             } else {
-                DismissibleToast::default(format!("Forked \"{title}\""))
+                DismissibleToast::default(tr_cached(Message::ToastForkedTitle).replace("{}", &title))
             };
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
@@ -14249,8 +14248,7 @@ impl Workspace {
                         let url = NOTIFICATIONS_TROUBLESHOOT_URL.to_string();
                         view.toast_stack.update(ctx, |toast_stack, ctx| {
                             let toast = DismissibleToast::error(
-                                "Warp doesn't have permission to send desktop notifications."
-                                    .to_string(),
+                                tr(ctx, Message::ToastDesktopNotificationsPermission).to_string(),
                             )
                             .with_link(
                                 ToastLink::new(
@@ -15244,9 +15242,7 @@ impl Workspace {
                 me.handoff_environment_creation_modal = None;
                 me.toast_stack.update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(format!(
-                            "Failed to create environment: {error_message}"
-                        )),
+                        DismissibleToast::error(tr(ctx, Message::HandoffFailedCreateEnvironment).replace("{}", &error_message)),
                         ctx,
                     );
                 });
@@ -15372,9 +15368,7 @@ impl Workspace {
                 me.handoff_environment_creation_modal = None;
                 me.toast_stack.update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(format!(
-                            "Failed to create environment: {error_message}"
-                        )),
+                        DismissibleToast::error(tr(ctx, Message::HandoffFailedCreateEnvironment).replace("{}", &error_message)),
                         ctx,
                     );
                 });
@@ -15411,7 +15405,7 @@ impl Workspace {
         WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             toast_stack.add_ephemeral_toast(
                 DismissibleToast::default(
-                    "Starting cloud environment for this session...".to_owned(),
+                    tr(ctx, Message::HandoffStartingCloudEnvironment).to_owned(),
                 ),
                 window_id,
                 ctx,
@@ -15494,8 +15488,7 @@ impl Workspace {
             WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
                     DismissibleToast::error(
-                        "Couldn't open a cloud pane for handoff. Try again, or restart Warp if this keeps happening."
-                            .to_owned(),
+                        tr(ctx, Message::HandoffCouldntOpenCloudPane).to_owned(),
                     ),
                     window_id,
                     ctx,
@@ -15573,8 +15566,7 @@ impl Workspace {
             WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
                     DismissibleToast::error(
-                        "No active terminal session to hand off. Focus a pane and try again."
-                            .to_owned(),
+                        tr(ctx, Message::HandoffNoActiveTerminalSession).to_owned(),
                     ),
                     window_id,
                     ctx,
@@ -15742,8 +15734,7 @@ impl Workspace {
                     WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Can't hand off while a command is running. Cancel the command or wait for it to finish."
-                                    .to_owned(),
+                                tr(ctx, Message::HandoffCommandRunning).to_owned(),
                             ),
                             window_id,
                             ctx,
@@ -15779,8 +15770,7 @@ impl Workspace {
                 WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            "Your conversation hasn't synced to the cloud yet. Try sending another message, then hand off again."
-                                .to_owned(),
+                            tr(ctx, Message::HandoffConversationNotSynced).to_owned(),
                         ),
                         window_id,
                         ctx,
@@ -15833,8 +15823,7 @@ impl Workspace {
                         WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    "Couldn't start the handoff. Check your network connection and try again."
-                                        .to_owned(),
+                                    tr(ctx, Message::HandoffCouldntStart).to_owned(),
                                 ),
                                 window_id,
                                 ctx,
@@ -15891,8 +15880,7 @@ impl Workspace {
                     WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                "Couldn't save your conversation locally. Try sending another message, then hand off again."
-                                    .to_owned(),
+                                tr(ctx, Message::HandoffCouldntSaveLocally).to_owned(),
                             ),
                             window_id,
                             ctx,
@@ -15917,8 +15905,7 @@ impl Workspace {
                 WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            "Couldn't open a cloud pane for handoff. Try again, or restart Warp if this keeps happening."
-                                .to_owned(),
+                            tr(ctx, Message::HandoffCouldntOpenCloudPane).to_owned(),
                         ),
                         window_id,
                         ctx,
@@ -16248,9 +16235,9 @@ impl Workspace {
 
                 if !object_found {
                     self.toast_stack.update(ctx, |toast_stack, ctx| {
-                        let toast = DismissibleToast::error(String::from(
-                            "Resource not found or access denied",
-                        ));
+                        let toast = DismissibleToast::error(
+                            tr(ctx, Message::WorkspaceResourceNotFoundOrAccessDenied).to_string(),
+                        );
                         toast_stack.add_ephemeral_toast(toast, ctx);
                     });
                     ctx.notify();
@@ -17679,7 +17666,7 @@ impl Workspace {
             let window_id = ctx.window_id();
             WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 let toast = DismissibleToast::default(
-                    "No terminal pane open. Open a new pane to attach as context.".to_owned(),
+                    tr(ctx, Message::ToastNoTerminalPaneOpen).to_owned(),
                 );
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
@@ -17782,7 +17769,7 @@ impl Workspace {
             // RequireExisting or OpenIfNone. In those cases, show a toast and no-op.
             self.toast_stack.update(ctx, |toast_stack, ctx| {
                 let mut toast = DismissibleToast::error(
-                    "A command in this session is still running.".to_string(),
+                    tr(ctx, Message::ToastCommandStillRunning).to_string(),
                 );
                 if let Some(id) = object_id {
                     toast = toast.with_object_id(id.uid());
@@ -18070,7 +18057,7 @@ impl Workspace {
                                     self.toast_stack.update(ctx, |view, ctx| {
                                         view.add_ephemeral_toast(
                                             DismissibleToast::error(
-                                                "This workflow is no longer available.".to_string(),
+                                                tr(ctx, Message::ToastWorkflowNoLongerAvailable).to_string(),
                                             ),
                                             ctx,
                                         );
@@ -18255,7 +18242,7 @@ impl Workspace {
                                             },
                                         ) {
                                             new_toast = DismissibleToast::success(
-                                                "Plan synced to your Warp Drive".to_string(),
+                                                tr(ctx, Message::ToastPlanSyncedWarpDrive).to_string(),
                                             )
                                             .with_object_id(object_id_clone)
                                             .with_link(
@@ -18340,7 +18327,7 @@ impl Workspace {
                                     DismissibleToast::error(message)
                                         .with_link(
                                             ToastLink::new(
-                                                "Check out the latest version and try again."
+                                                tr(ctx, Message::ToastCheckoutLatestVersion)
                                                     .to_string(),
                                             )
                                             .with_onclick_action(
@@ -18354,7 +18341,7 @@ impl Workspace {
                                     DismissibleToast::error(message)
                                         .with_link(
                                             ToastLink::new(
-                                                "Check out the latest version and try again."
+                                                tr(ctx, Message::ToastCheckoutLatestVersion)
                                                     .to_string(),
                                             )
                                             .with_onclick_action(
@@ -26257,7 +26244,7 @@ impl TypedActionView for Workspace {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    "Failed to delete conversation. Please exit the agent view and try again.".to_string(),
+                                    tr(ctx, Message::ToastFailedDeleteConversation).to_string(),
                                 ),
                                 window_id,
                                 ctx,

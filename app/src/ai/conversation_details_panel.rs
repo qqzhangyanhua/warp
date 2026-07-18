@@ -52,7 +52,7 @@ use crate::ai::cloud_environments::{AmbientAgentEnvironment, CloudAmbientAgentEn
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::harness_display;
 use crate::appearance::Appearance;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::auth::UserUid;
 use crate::cloud_object::CloudObjectLookup as _;
 use crate::notebooks::NotebookId;
@@ -543,7 +543,7 @@ impl ConversationDetailsData {
                 environment_id: None,
                 conversation_id: None,
             },
-            title: "Cloud agent run".to_string(),
+            title: tr_cached(Message::ToastCloudAgentRun).to_string(),
             creator: None,
             executor: None,
             created_at: None,
@@ -688,7 +688,7 @@ impl ConversationDetailsPanel {
         #[cfg(not(target_family = "wasm"))]
         let continue_locally_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new(tr(ctx, Message::ConversationContinueLocally), PrimaryTheme)
-                .with_tooltip("Fork this conversation locally")
+                .with_tooltip(tr_cached(Message::TooltipForkConversationLocally))
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(ConversationDetailsPanelAction::ContinueLocally);
@@ -696,7 +696,7 @@ impl ConversationDetailsPanel {
         });
         let open_in_oz_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new(tr(ctx, Message::ConversationViewInOz), SecondaryTheme)
-                .with_tooltip("View this run in the Oz web app")
+                .with_tooltip(tr_cached(Message::TooltipViewRunInOz))
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(ConversationDetailsPanelAction::OpenInOz);
@@ -828,7 +828,7 @@ impl ConversationDetailsPanel {
 
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::default("Copied branch name".to_string());
+                    let toast = DismissibleToast::default(tr_cached(Message::ToastCopiedBranchName).to_string());
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }

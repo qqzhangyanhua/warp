@@ -1624,7 +1624,7 @@ impl WorkflowView {
                     id
                 } else {
                     report_error!("No client_id obtained for creating workflow");
-                    self.display_error_toast(String::from("Could not create workflow"), ctx);
+                    self.display_error_toast(tr_cached(Message::ToastCouldNotCreateWorkflow).to_string(), ctx);
                     return;
                 };
 
@@ -1735,9 +1735,9 @@ impl WorkflowView {
         crate::workspace::ToastStack::handle(ctx).update(ctx, |stack, ctx| {
             stack.add_ephemeral_toast(
                 DismissibleToast::success(if self.is_for_agent_mode {
-                    "Prompt copied.".to_string()
+                    tr_cached(Message::ToastPromptCopied).to_string()
                 } else {
-                    "Command copied.".to_string()
+                    tr_cached(Message::ToastCommandCopied).to_string()
                 }),
                 window_id,
                 ctx,
@@ -2719,7 +2719,7 @@ impl WorkflowView {
 
         crate::workspace::ToastStack::handle(ctx).update(ctx, |stack, ctx| {
             stack.add_ephemeral_toast(
-                DismissibleToast::error("Looks like you're out of AI credits.".into())
+                DismissibleToast::error(tr_cached(Message::WorkspaceOutOfAiCredits).into())
                     .with_link(toast_link),
                 window_id,
                 ctx,

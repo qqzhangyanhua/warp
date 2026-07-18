@@ -13,6 +13,7 @@ use warpui::{elements, AppContext, Element, SingletonEntity, ViewContext, ViewHa
 
 use super::{EditorAction, EditorView, VoiceTranscriber, VoiceTranscriptionOptions};
 use crate::ai::blocklist::InputType;
+use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::editor::EditorElement;
 use crate::server::server_api::TranscribeError;
@@ -328,10 +329,7 @@ impl EditorView {
                             if let Some(toggle_key) = settings.maybe_setup_first_time_voice(ctx) {
                                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                     let toast = crate::view_components::DismissibleToast::success(
-                                        format!(
-                                            "Voice input is enabled. You can also press and hold the `{}` key to activate voice input (configure in Settings > AI > Voice)",
-                                            toggle_key.display_name()
-                                        )
+                                        tr_cached(Message::ToastVoiceInputEnabled).replace("{}", &toggle_key.display_name())
                                             .to_string(),
                                     );
                                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
@@ -359,7 +357,7 @@ impl EditorView {
         let active_window_id = ctx.window_id();
         ToastStack::handle(ctx).update(ctx, move |toast_stack, ctx| {
             let mut toast = crate::view_components::DismissibleToast::error(String::from(
-                "Failed to start voice input (you may need to enable Microphone access)",
+                tr_cached(Message::ToastFailedStartVoiceInput),
             ));
             // Set an id so the toast is shown at most once.
             toast = toast.with_object_id(MICROPHONE_ACCESS_ERROR_ID.to_string());

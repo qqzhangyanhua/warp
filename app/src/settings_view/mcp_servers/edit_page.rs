@@ -31,7 +31,7 @@ use warpui::{
 use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
 use crate::ai::mcp::parsing::{prettify_json, resolve_json, ParsedTemplatableMCPServerResult};
 use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::ai::mcp::{
     MCPServer, TemplatableMCPServer, TemplatableMCPServerInstallation, TemplatableMCPServerManager,
     TransportType,
@@ -541,7 +541,7 @@ impl MCPServersEditPageView {
             let window_id = ctx.window_id();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
-                    DismissibleToast::error("This MCP server contains secrets. Visit Settings > Privacy to modify your secret redaction settings.".to_string()),
+                    DismissibleToast::error(tr_cached(Message::McpSecretsInServerVisitPrivacy).to_string()),
                     window_id,
                     ctx,
                 );
@@ -601,13 +601,13 @@ impl MCPServersEditPageView {
             let window_id = ctx.window_id();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
-                    DismissibleToast::error("No MCP Server specified.".to_string()),
+                    DismissibleToast::error(tr_cached(Message::ToastNoMcpServerSpecified).to_string()),
                     window_id,
                     ctx,
                 );
             });
 
-            return Err("No MCP Server specified.".to_string());
+            return Err(tr_cached(Message::ToastNoMcpServerSpecified).to_string());
         }
 
         if parsed_templatable_mcp_servers.len() > 1 {
@@ -615,7 +615,7 @@ impl MCPServersEditPageView {
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
                     DismissibleToast::error(
-                        "Cannot add multiple MCP servers while editing a single server."
+                        tr_cached(Message::ToastMcpCannotAddMultipleWhileEditing)
                             .to_string(),
                     ),
                     window_id,
@@ -899,7 +899,7 @@ impl TypedActionView for MCPServersEditPageView {
                         let window_id = ctx.window_id();
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error("No MCP Server specified.".to_string()),
+                                DismissibleToast::error(tr_cached(Message::ToastNoMcpServerSpecified).to_string()),
                                 window_id,
                                 ctx,
                             );

@@ -20,6 +20,7 @@ use crate::code_review::telemetry_event::{
     CodeReviewTelemetryEvent, GitDialogStatus, GitOperationKind,
 };
 use crate::ui_components::icons::Icon;
+use crate::i18n::{tr_cached, Message};
 use crate::util::git::{FileChangeEntry, PrInfo};
 use crate::view_components::{DismissibleToast, ToastLink};
 use crate::workspace::ToastStack;
@@ -168,7 +169,7 @@ pub(super) fn show_pr_created_toast(pr_info: &PrInfo, ctx: &mut ViewContext<GitD
     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
         let link = ToastLink::new("Open PR".to_string()).with_href(url);
         let toast =
-            DismissibleToast::default("PR successfully created.".to_string()).with_link(link);
+            DismissibleToast::default(tr_cached(Message::ToastPrCreated).to_string()).with_link(link);
         toast_stack.add_ephemeral_toast(toast, window_id, ctx);
     });
 }

@@ -801,7 +801,7 @@ impl NotebookView {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            "This notebook cannot be saved because its content contains secrets"
+                            tr_cached(Message::ToastNotebookSecretsContent)
                                 .to_string(),
                         ),
                         window_id,
@@ -1731,7 +1731,7 @@ impl NotebookView {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            "This notebook cannot be saved because its title contains secrets"
+                            tr_cached(Message::ToastNotebookSecretsTitle)
                                 .to_string(),
                         ),
                         window_id,
@@ -2315,7 +2315,7 @@ impl TypedActionView for NotebookView {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success("Link copied to clipboard".to_string()),
+                        DismissibleToast::success(tr_cached(Message::ToastLinkCopiedToClipboard).to_string()),
                         window_id,
                         ctx,
                     );

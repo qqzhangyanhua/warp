@@ -18,6 +18,7 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity, WindowId};
 
 use super::CloudObjectTypeAndId;
 use crate::cloud_object::model::persistence::CloudModel;
+use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::Space;
 use crate::safe_warn;
 use crate::view_components::DismissibleToast;
@@ -243,7 +244,7 @@ impl ExportManager {
                         .with_onclick_action(WorkspaceAction::OpenInExplorer { path: root_dir });
                 }
                 toast_stack.add_ephemeral_toast(
-                    DismissibleToast::success("Finished exporting objects".to_string())
+                    DismissibleToast::success(tr_cached(Message::ToastFinishedExporting).to_string())
                         .with_link(toast_link),
                     window_id,
                     ctx,

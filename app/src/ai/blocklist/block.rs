@@ -611,7 +611,7 @@ impl ImportedCommentElementState {
                 ActionButton::new("", NakedTheme)
                     .with_icon(Icon::Github)
                     .with_size(ButtonSize::Small)
-                    .with_tooltip("Open in GitHub")
+                    .with_tooltip(tr_cached(Message::TooltipOpenInGithub))
                     .on_click({
                         let url = url.clone();
                         move |ctx| {
@@ -1428,7 +1428,7 @@ impl AIBlock {
         let rewind_button = ctx.add_typed_action_view(|_| {
             ActionButton::new(tr_cached(Message::BlockRewind), RewindButtonTheme)
                 .with_size(ButtonSize::XSmall)
-                .with_tooltip("Rewind to before this block")
+                .with_tooltip(tr_cached(Message::TooltipRewindBeforeBlock))
                 .on_click(move |ctx| {
                     ctx.dispatch_typed_action(TerminalAction::RewindAIConversation {
                         ai_block_view_id,
@@ -6379,7 +6379,7 @@ impl TypedActionView for AIBlock {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success(String::from("Copied to clipboard")),
+                        DismissibleToast::success(tr_cached(Message::ToastCopiedToClipboard).to_string()),
                         window_id,
                         ctx,
                     );
@@ -6686,7 +6686,7 @@ impl TypedActionView for AIBlock {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast =
-                        DismissibleToast::default(String::from("Thank you for the feedback!"));
+                        DismissibleToast::default(tr_cached(Message::ToastThankYouFeedback).to_string());
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
 
@@ -6891,7 +6891,7 @@ impl TypedActionView for AIBlock {
                             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                 toast_stack.add_ephemeral_toast(
                                     DismissibleToast::error(
-                                        "Failed to open recording.".to_string(),
+                                        tr_cached(Message::ToastFailedOpenRecording).to_string(),
                                     ),
                                     window_id,
                                     ctx,

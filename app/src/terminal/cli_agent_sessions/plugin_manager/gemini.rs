@@ -10,6 +10,7 @@ use super::{
     compare_versions, run_cli_command_logged, CliAgentPluginManager, PluginInstallError,
     PluginInstructionStep, PluginInstructions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::model::session::LocalCommandExecutor;
 use crate::terminal::shell::ShellType;
 
@@ -98,7 +99,7 @@ impl CliAgentPluginManager for GeminiPluginManager {
         if still_outdated {
             log.push_str("Post-update version check: plugin is still outdated\n");
             return Err(PluginInstallError {
-                message: "Plugin update did not take effect".to_owned(),
+                message: tr_cached(Message::PluginErrUpdateDidNotTakeEffect).to_owned(),
                 log,
             });
         }
@@ -123,28 +124,28 @@ impl CliAgentPluginManager for GeminiPluginManager {
 }
 
 static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
-    title: "Install Warp Plugin for Gemini CLI",
-    subtitle: "Run the following command, then restart Gemini CLI.",
-    steps: &[PluginInstructionStep {
-        description: "Install the Warp extension",
+    title: tr_cached(Message::PluginInstallGeminiTitle),
+    subtitle: tr_cached(Message::PluginInstallGeminiSubtitle),
+    steps: Box::leak(Box::new([PluginInstructionStep {
+        description: tr_cached(Message::PluginStepInstallWarpExtension),
         command:
             "gemini extensions install https://github.com/warpdotdev/gemini-cli-warp --consent",
         executable: true,
         link: None,
-    }],
-    post_install_notes: &["Restart Gemini CLI to activate the plugin."],
+    }])),
+    post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartGeminiActivate)])),
 });
 
 static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
-    title: "Update Warp Plugin for Gemini CLI",
-    subtitle: "Run the following command, then restart Gemini CLI.",
-    steps: &[PluginInstructionStep {
-        description: "Update the Warp extension",
+    title: tr_cached(Message::PluginUpdateGeminiTitle),
+    subtitle: tr_cached(Message::PluginUpdateGeminiSubtitle),
+    steps: Box::leak(Box::new([PluginInstructionStep {
+        description: tr_cached(Message::PluginStepUpdateWarpExtension),
         command: "gemini extensions update gemini-warp",
         executable: true,
         link: None,
-    }],
-    post_install_notes: &["Restart Gemini CLI to activate the update."],
+    }])),
+    post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartGeminiUpdate)])),
 });
 
 fn check_installed(extensions_dir: &Path) -> bool {

@@ -225,7 +225,7 @@ impl AgentManagementView {
         let all_filter_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new(tr(ctx, Message::AgentMgmtAll), NakedTheme)
                 .with_size(ButtonSize::Small)
-                .with_tooltip("View your agent tasks plus all shared team tasks")
+                .with_tooltip(tr_cached(Message::TooltipViewAllAgentTasks))
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(AgentManagementViewAction::SetOwnerFilter(
                         OwnerFilter::All,
@@ -236,7 +236,7 @@ impl AgentManagementView {
         let personal_filter_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new(tr(ctx, Message::AgentMgmtPersonal), NakedTheme)
                 .with_size(ButtonSize::Small)
-                .with_tooltip("View agent tasks you created")
+                .with_tooltip(tr_cached(Message::TooltipViewYourAgentTasks))
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(AgentManagementViewAction::SetOwnerFilter(
                         OwnerFilter::PersonalOnly,
@@ -1230,7 +1230,7 @@ impl AgentManagementView {
 
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::default("Copied branch name".to_string());
+                    let toast = DismissibleToast::default(tr_cached(Message::ToastCopiedBranchName).to_string());
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }

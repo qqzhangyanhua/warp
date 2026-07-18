@@ -170,7 +170,7 @@ impl AutoHandoffSleepModal {
     }
 
     fn render_title(appearance: &Appearance) -> Box<dyn Element> {
-        Text::new("Enable auto-handoff?", appearance.ui_font_family(), 20.)
+        Text::new(tr_cached(Message::EnableAutoHandoffQuestion), appearance.ui_font_family(), 20.)
             .with_color(
                 appearance
                     .theme()

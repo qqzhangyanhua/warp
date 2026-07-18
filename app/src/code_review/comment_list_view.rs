@@ -205,7 +205,10 @@ impl CommentListView {
         let menu = ctx.add_view(|_| Menu::new());
 
         let comments_button = ctx.add_view(|_| {
-            ActionButton::new("1 Comment", CustomSecondaryActionTheme)
+            ActionButton::new(
+                tr_cached(Message::CodeReviewCommentCount).replace("{}", "1"),
+                CustomSecondaryActionTheme,
+            )
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(CommentListAction::ToggleCollapsed);
@@ -270,24 +273,27 @@ impl CommentListView {
                 .count();
 
             if non_outdated_count == 0 && total_count > 0 {
-                format!(
-                    "{} outdated comment{}",
-                    total_count,
-                    if total_count == 1 { "" } else { "s" }
-                )
+                let template = if total_count == 1 {
+                    tr_cached(Message::CodeReviewOutdatedComment)
+                } else {
+                    tr_cached(Message::CodeReviewOutdatedComments)
+                };
+                template.replace("{}", &total_count.to_string())
             } else {
-                format!(
-                    "{} comment{}",
-                    non_outdated_count,
-                    if non_outdated_count == 1 { "" } else { "s" }
-                )
+                let template = if non_outdated_count == 1 {
+                    tr_cached(Message::CodeReviewCommentCountLower)
+                } else {
+                    tr_cached(Message::CodeReviewCommentsCountLower)
+                };
+                template.replace("{}", &non_outdated_count.to_string())
             }
         } else {
-            format!(
-                "{} comment{}",
-                total_count,
-                if total_count == 1 { "" } else { "s" }
-            )
+            let template = if total_count == 1 {
+                tr_cached(Message::CodeReviewCommentCountLower)
+            } else {
+                tr_cached(Message::CodeReviewCommentsCountLower)
+            };
+            template.replace("{}", &total_count.to_string())
         };
 
         self.comments_button

@@ -956,7 +956,7 @@ impl SharingDialog {
             let window_id = ctx.window_id();
             let object_name = self.targeted_object_name(ctx);
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast = DismissibleToast::default(format!("Copied link to {object_name}."));
+                let toast = DismissibleToast::default(tr_cached(Message::ToastCopiedLinkToObject).replace("{}", &object_name));
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
         }
@@ -2449,7 +2449,7 @@ impl SharingDialog {
     fn download_qr_code(&self, ctx: &mut ViewContext<Self>) {
         let Some(url) = self.target_link(ctx) else {
             self.show_ephemeral_toast(
-                DismissibleToast::error("Unable to download QR code.".to_string()),
+                DismissibleToast::error(tr_cached(Message::ToastUnableDownloadQr).to_string()),
                 ctx,
             );
             return;
@@ -2459,7 +2459,7 @@ impl SharingDialog {
             Ok(png) => png,
             Err(_) => {
                 self.show_ephemeral_toast(
-                    DismissibleToast::error("Unable to download QR code.".to_string()),
+                    DismissibleToast::error(tr_cached(Message::ToastUnableDownloadQr).to_string()),
                     ctx,
                 );
                 return;
@@ -2487,11 +2487,11 @@ impl SharingDialog {
     fn handle_qr_write_result(&self, result: std::io::Result<()>, ctx: &mut ViewContext<Self>) {
         match result {
             Ok(()) => self.show_ephemeral_toast(
-                DismissibleToast::success("QR code downloaded.".to_string()),
+                DismissibleToast::success(tr_cached(Message::ToastQrDownloaded).to_string()),
                 ctx,
             ),
             Err(_) => self.show_ephemeral_toast(
-                DismissibleToast::error("Unable to download QR code.".to_string()),
+                DismissibleToast::error(tr_cached(Message::ToastUnableDownloadQr).to_string()),
                 ctx,
             ),
         }
@@ -2705,7 +2705,7 @@ impl SharingDialog {
             .unwrap_or_else(|| {
                 appearance
                     .ui_builder()
-                    .paragraph("Unable to create QR code for this session link.")
+                    .paragraph(tr_cached(Message::SharingUnableCreateQr))
                     .with_style(UiComponentStyles {
                         font_color: Some(style::acl_secondary_text_color(appearance)),
                         ..Default::default()

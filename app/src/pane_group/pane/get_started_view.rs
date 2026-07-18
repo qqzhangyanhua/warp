@@ -16,6 +16,7 @@ use warpui::{
 };
 
 use crate::coding_entrypoints::clone_repo_view::{CloneRepoEvent, CloneRepoView};
+use crate::i18n::{tr_cached, Message};
 use crate::coding_entrypoints::create_project_view::{CreateProjectEvent, CreateProjectView};
 use crate::coding_entrypoints::project_buttons::{ProjectButtons, ProjectButtonsEvent};
 use crate::pane_group::focus_state::PaneFocusHandle;
@@ -223,7 +224,7 @@ impl GetStartedView {
                 .finish(),
                 appearance
                     .ui_builder()
-                    .paragraph("Welcome to ZYH")
+                    .paragraph(tr_cached(Message::GetStartedWelcome))
                     .with_style(UiComponentStyles {
                         font_size: Some(20.),
                         ..Default::default()
@@ -233,7 +234,7 @@ impl GetStartedView {
                 Container::new(
                     appearance
                         .ui_builder()
-                        .paragraph("The Agentic Development Environment")
+                        .paragraph(tr_cached(Message::GetStartedAgenticDevEnv))
                         .with_style(UiComponentStyles {
                             font_size: Some(14.),
                             font_family_id: Some(appearance.monospace_font_family()),

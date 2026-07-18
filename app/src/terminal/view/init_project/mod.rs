@@ -993,10 +993,7 @@ impl InitStepBlock {
 
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::success(format!(
-                                "{} installed and enabled successfully.",
-                                server_type.binary_name()
-                            )),
+                            DismissibleToast::success(tr_cached(Message::ToastInstalledEnabledSuccess).replace("{}", server_type.binary_name())),
                             window_id,
                             ctx,
                         );
@@ -1017,10 +1014,7 @@ impl InitStepBlock {
 
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(format!(
-                                "Failed to install {}: {e}",
-                                server_type.binary_name()
-                            )),
+                            DismissibleToast::error(tr_cached(Message::ToastFailedInstallNamed).replacen("{}", server_type.binary_name(), 1).replacen("{}", &e.to_string(), 1)),
                             window_id,
                             ctx,
                         );
@@ -1141,9 +1135,7 @@ impl TypedActionView for InitStepBlock {
                         servers_to_install.iter().map(|s| s.binary_name()).collect();
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::default(format!(
-                                "Installing {} in background...",
-                                server_names.join(", ")
+                            DismissibleToast::default(tr_cached(Message::ToastInstallingInBackground).replace("{}", &server_names.join(", ")
                             )),
                             window_id,
                             ctx,

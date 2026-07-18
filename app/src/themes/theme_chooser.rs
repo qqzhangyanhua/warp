@@ -23,6 +23,7 @@ use warpui::{
 
 use super::theme;
 use crate::appearance::{Appearance, AppearanceManager};
+use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
@@ -116,13 +117,13 @@ impl ThemeChooserMode {
         let hint_text = match self {
             ThemeChooserMode::SystemAgnostic => appearance
                 .ui_builder()
-                .paragraph("Change your current theme.".to_string()),
+                .paragraph(tr_cached(Message::ThemeChooserChangeCurrent).to_string()),
             ThemeChooserMode::SystemLight => appearance
                 .ui_builder()
-                .paragraph("Pick a theme for when your system is in light mode.".to_string()),
+                .paragraph(tr_cached(Message::ThemeChooserPickLight).to_string()),
             ThemeChooserMode::SystemDark => appearance
                 .ui_builder()
-                .paragraph("Pick a theme for when your system is in dark mode.".to_string()),
+                .paragraph(tr_cached(Message::ThemeChooserPickDark).to_string()),
         };
         hint_text
             .build()

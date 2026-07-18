@@ -14,6 +14,7 @@ use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity, Win
 
 use super::file::is_markdown_file;
 use crate::drive::OpenWarpDriveObjectArgs;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::model::session::Session;
 use crate::uri::parse_url_paths::{get_item_data_from_warp_link, WarpWebLink};
 #[cfg(feature = "local_fs")]
@@ -49,16 +50,16 @@ impl LinkTarget {
     pub fn secondary_action(&self) -> Option<SecondaryAction> {
         match self {
             LinkTarget::LocalDirectory { .. } => Some(SecondaryAction {
-                label: "New session".into(),
-                tooltip: Some("Open a new terminal session in this directory".into()),
-                accessibility_content: "Open in terminal session".into(),
+                label: tr_cached(Message::NotebookNewSession).into(),
+                tooltip: Some(tr_cached(Message::NotebookOpenNewTerminalSession).into()),
+                accessibility_content: tr_cached(Message::NotebookOpenInTerminalSession).into(),
             }),
             LinkTarget::LocalFile {
                 is_markdown: true, ..
             } => Some(SecondaryAction {
-                label: "Open in editor".into(),
+                label: tr_cached(Message::NotebookOpenInEditor).into(),
                 tooltip: None,
-                accessibility_content: "Edit Markdown file".into(),
+                accessibility_content: tr_cached(Message::NotebookEditMarkdownFile).into(),
             }),
             LinkTarget::Url(_) | LinkTarget::LocalFile { .. } => None,
         }

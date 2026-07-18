@@ -106,7 +106,10 @@ impl ThemeDeletionBody {
             }
         }
         if errored {
-            self.send_error_toast("Something went wrong", ctx);
+            self.send_error_toast(
+                crate::i18n::tr(ctx, crate::i18n::Message::ToastSomethingWentWrong),
+                ctx,
+            );
         }
     }
 

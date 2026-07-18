@@ -38,7 +38,7 @@ use super::link::{NotebookLinks, SessionSource};
 use super::telemetry::NotebookTelemetryAction;
 use super::{styles, NotebookLocation};
 use crate::appearance::Appearance;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::editor::InteractionState;
@@ -938,7 +938,7 @@ impl FileNotebookView {
         Align::new(
             appearance
                 .ui_builder()
-                .paragraph("Missing source file".to_string())
+                .paragraph(tr_cached(Message::NotebookMissingSourceFile).to_string())
                 .with_style(self.state_style(appearance))
                 .build()
                 .finish(),

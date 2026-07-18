@@ -14,6 +14,7 @@ use warpui::{
 };
 
 use crate::menu::{self, Event as MenuEvent, Menu, MenuItemFields};
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::model_events::{ModelEvent, ModelEventDispatcher};
 use crate::ui_components::{blended_colors, icons};
 use crate::view_components::action_button::{ActionButton, SecondaryTheme};
@@ -73,14 +74,14 @@ impl NodeVersionPopupView {
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let install_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Install nvm", SecondaryTheme)
+            ActionButton::new(tr_cached(Message::InstallNvm), SecondaryTheme)
                 .with_icon(icons::Icon::Terminal)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(NodeVersionPopupAction::InstallNvm);
                 })
         });
         let install_latest_node_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("nvm install node", SecondaryTheme)
+            ActionButton::new(tr_cached(Message::NvmInstallNode), SecondaryTheme)
                 .with_icon(icons::Icon::Terminal)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(NodeVersionPopupAction::InstallLatestNodeVersion);
@@ -282,7 +283,7 @@ impl NodeVersionPopupView {
 
         col.add_child(
             Container::new(
-                Text::new("Installed", styles.ui_font_family, styles.detail_font_size)
+                Text::new(tr_cached(Message::NodeVersionInstalled), styles.ui_font_family, styles.detail_font_size)
                     .with_style(Properties::default())
                     .with_color(styles.secondary_text_color)
                     .finish(),

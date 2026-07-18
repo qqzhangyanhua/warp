@@ -57,11 +57,16 @@ pub struct FeatureIntro {
     pub hero_image_path: &'static str,
     /// Optional metadata label rendered above the title (e.g. "NEW").
     pub badge: Option<&'static str>,
+    /// English source copy; UI reads the localized form via `localized_title`.
+    #[allow(dead_code)]
     pub title: &'static str,
+    /// English source copy; UI reads the localized form via `localized_description`.
+    #[allow(dead_code)]
     pub description: &'static str,
     /// Optional icon rendered to the left of the description.
     pub description_icon: Option<Icon>,
-    /// Label for the primary call-to-action button.
+    /// English CTA; UI uses `localized_cta` for display.
+    #[allow(dead_code)]
     pub cta_label: &'static str,
     /// Destination opened when the user clicks the call-to-action. `None`
     /// simply dismisses the popover.
@@ -73,6 +78,7 @@ pub struct FeatureIntro {
 pub const FEATURE_INTROS: &[FeatureIntro] = &[FeatureIntro {
     id: FeatureIntroId::CustomModelRouter,
     hero_image_path: "async/png/onboarding/custom_model_router_intro_banner.png",
+    // Localized at render / set_feature via Message.
     badge: Some("NEW"),
     title: "Build a custom model router for the Warp Agent.",
     description: "Custom routers can be complexity-based, where tasks are routed based on how difficult they are, or rule-based, where they are routed based on a set of natural language prompts.",
@@ -83,6 +89,30 @@ pub const FEATURE_INTROS: &[FeatureIntro] = &[FeatureIntro {
         widget_id: custom_model_routers_widget_id,
     }),
 }];
+// Keep static English keys for identity; localized strings resolved below.
+
+fn localized_badge(badge: Option<&'static str>) -> Option<&'static str> {
+    badge.map(|_| tr_cached(Message::FeatureIntroBadgeNew))
+}
+
+fn localized_title(intro: &FeatureIntro) -> &'static str {
+    match intro.id {
+        FeatureIntroId::CustomModelRouter => tr_cached(Message::FeatureIntroCustomRouterTitle),
+    }
+}
+
+fn localized_description(intro: &FeatureIntro) -> &'static str {
+    match intro.id {
+        FeatureIntroId::CustomModelRouter => tr_cached(Message::FeatureIntroCustomRouterDesc),
+    }
+}
+
+fn localized_cta(intro: &FeatureIntro) -> &'static str {
+    match intro.id {
+        FeatureIntroId::CustomModelRouter => tr_cached(Message::EnvironmentGetStarted),
+    }
+}
+
 
 /// Looks up a feature-intro descriptor by its id.
 pub fn feature_intro_by_id(id: FeatureIntroId) -> Option<&'static FeatureIntro> {
@@ -186,7 +216,7 @@ impl FeatureIntroModal {
         self.current = intro;
         if let Some(intro) = intro {
             self.cta_button.update(ctx, |button, ctx| {
-                button.set_label(intro.cta_label, ctx);
+                button.set_label(localized_cta(intro), ctx);
             });
         }
         ctx.notify();
@@ -246,7 +276,7 @@ impl FeatureIntroModal {
     }
 
     fn render_description(intro: &FeatureIntro, appearance: &Appearance) -> Box<dyn Element> {
-        let description = Text::new(intro.description, appearance.ui_font_family(), 14.)
+        let description = Text::new(localized_description(intro), appearance.ui_font_family(), 14.)
             .with_color(modal_text_sub(appearance))
             .finish();
 
@@ -279,9 +309,12 @@ impl FeatureIntroModal {
             .with_cross_axis_alignment(CrossAxisAlignment::Start)
             .with_spacing(8.);
         if let Some(badge) = intro.badge {
-            header.add_child(Self::render_badge(badge, appearance));
+            header.add_child(Self::render_badge(
+                localized_badge(Some(badge)).unwrap_or(badge),
+                appearance,
+            ));
         }
-        header.add_child(Self::render_title(intro.title, appearance));
+        header.add_child(Self::render_title(localized_title(intro), appearance));
         header.add_child(Self::render_description(intro, appearance));
 
         let body = Container::new(header.finish())

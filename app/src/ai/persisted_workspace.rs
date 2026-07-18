@@ -33,6 +33,7 @@ use warpui::windowing::WindowManager;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
+use crate::i18n::{tr_cached, Message};
 #[cfg(feature = "local_fs")]
 use crate::ai::codebase_auto_indexing::{
     auto_index_candidate_roots, should_auto_index_codebase, CodebaseAutoIndexingSurface,
@@ -978,10 +979,7 @@ impl PersistedWorkspace {
                     if let Some(window_id) = WindowManager::as_ref(ctx).active_window() {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
-                                DismissibleToast::success(format!(
-                                    "{} installed and enabled successfully.",
-                                    server_type.binary_name()
-                                )),
+                                DismissibleToast::success(tr_cached(Message::ToastInstalledEnabledSuccess).replace("{}", server_type.binary_name())),
                                 window_id,
                                 ctx,
                             );
@@ -1017,11 +1015,8 @@ impl PersistedWorkspace {
                     if let Some(window_id) = WindowManager::as_ref(ctx).active_window() {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error(format!(
-                                    "Failed to install {}: {}",
-                                    server_type.binary_name(),
-                                    e
-                                )),
+                                DismissibleToast::error(tr_cached(Message::ToastFailedInstallNamed).replacen("{}", server_type.binary_name(), 1).replacen("{}", &e
+                                .to_string(), 1)),
                                 window_id,
                                 ctx,
                             );
@@ -1137,9 +1132,11 @@ impl PersistedWorkspace {
                     if let Some(window_id) = WindowManager::as_ref(ctx).active_window()
                     {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                            let toast = DismissibleToast::error(format!(
-                                "Failed to start LSP server for {workspace_root_display} with error {e}",
-                            ));
+                            let toast = DismissibleToast::error(
+                                tr_cached(Message::ToastFailedStartLsp)
+                                    .replacen("{}", &workspace_root_display, 1)
+                                    .replacen("{}", &e.to_string(), 1),
+                            );
                             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                         });
                     }

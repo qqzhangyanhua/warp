@@ -22,6 +22,7 @@ use warpui::{AppContext, EntityId, SingletonEntity as _, TypedActionView, ViewHa
 
 use self::docker::open_docker_container;
 use crate::ai::active_agent_views_model::{ActiveAgentViewsModel, ConversationOrTaskId};
+use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use crate::cloud_object::ObjectType;
@@ -997,7 +998,7 @@ impl Action {
                     if let Some(window_id) = primary_window_id {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             let toast =
-                                DismissibleToast::error("Custom URI is invalid.".to_owned());
+                                DismissibleToast::error(tr_cached(Message::ToastCustomUriInvalid).to_owned());
                             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                         });
                     }
@@ -1197,7 +1198,7 @@ impl Action {
             | Self::FocusCloudMode
             | Self::AutoHandoffToCloud { .. } => W::default(),
             Self::NewTab => W::ShowPrimaryWindow(WindowActivationFallbackBehavior::Notify {
-                title: "New tab created".to_owned(),
+                title: tr_cached(Message::ToastNewTabCreated).to_owned(),
                 description: "Go to Warp to see your new tab.".to_owned(),
             }),
             Self::NewWindow => W::Nothing,
@@ -1238,7 +1239,7 @@ pub fn handle_incoming_uri(url: &Url, ctx: &mut AppContext) {
         Err(e) => {
             if let Some(window_id) = primary_window_id {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::error(format!("Custom URI is invalid: {e:?}"));
+                    let toast = DismissibleToast::error(tr_cached(Message::ToastCustomUriInvalidDetail).replace("{}", &format!("{e:?}")));
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }
