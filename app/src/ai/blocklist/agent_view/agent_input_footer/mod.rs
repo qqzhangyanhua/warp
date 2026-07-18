@@ -1667,8 +1667,9 @@ impl AgentInputFooter {
                 if is_conversation_transcript_context {
                     return None;
                 }
-                let enabled = FeatureFlag::CreatingSharedSessions.is_enabled()
-                    && FeatureFlag::HOARemoteControl.is_enabled()
+                // Builds without account sign-in must not surface the chip or a
+                // dead "log in to use /remote-control" CTA.
+                let enabled = AgentToolbarItemKind::remote_control_available()
                     && ContextFlag::CreateSharedSession.is_enabled();
                 if !enabled {
                     return None;
@@ -2182,10 +2183,16 @@ impl AgentInputFooter {
     /// Disable the start-remote-control chip and swap its tooltip when the
     /// user is anonymous or logged out, since session sharing requires a
     /// real account.
+    ///
+    /// Builds without account sign-in (Anonymous-only / Local-only) never show
+    /// a login CTA — remote control is hidden for those modes instead.
     fn sync_remote_control_button(&self, ctx: &mut ViewContext<Self>) {
-        let login_required = AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out();
+        let account_sign_in_unavailable = FeatureFlag::AnonymousOnlyMode.is_enabled()
+            || crate::local_mode::is_local_only_custom_provider_mode();
+        let login_required = !account_sign_in_unavailable
+            && AuthStateProvider::as_ref(ctx)
+                .get()
+                .is_anonymous_or_logged_out();
         let tooltip = if login_required {
             tr_cached(Message::FooterStartRemoteControlLogin)
         } else {
@@ -2371,8 +2378,7 @@ impl AgentInputFooter {
                 if is_conversation_transcript_context {
                     return None;
                 }
-                let enabled = FeatureFlag::CreatingSharedSessions.is_enabled()
-                    && FeatureFlag::HOARemoteControl.is_enabled()
+                let enabled = AgentToolbarItemKind::remote_control_available()
                     && ContextFlag::CreateSharedSession.is_enabled();
                 if !enabled {
                     return None;

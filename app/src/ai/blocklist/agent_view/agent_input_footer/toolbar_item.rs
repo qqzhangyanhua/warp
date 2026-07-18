@@ -213,9 +213,7 @@ impl AgentToolbarItemKind {
             Self::ContextWindowUsage,
             Self::ModelSelector,
         ];
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if Self::remote_control_available() {
             items.push(Self::ShareSession);
         }
         if FeatureFlag::OzHandoff.is_enabled()
@@ -245,9 +243,7 @@ impl AgentToolbarItemKind {
         if FeatureFlag::FastForwardAutoexecuteButton.is_enabled() {
             items.push(Self::FastForwardToggle);
         }
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if Self::remote_control_available() {
             items.push(Self::ShareSession);
         }
         if FeatureFlag::OzHandoff.is_enabled()
@@ -266,9 +262,7 @@ impl AgentToolbarItemKind {
             Self::VoiceInput,
             Self::ContextChip(ContextChipKind::GitDiffStats),
         ];
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if Self::remote_control_available() {
             items.push(Self::ShareSession);
         }
         items.push(Self::FileExplorer);
@@ -300,12 +294,19 @@ impl AgentToolbarItemKind {
             Self::VoiceInput,
             Self::Settings,
         ]);
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if Self::remote_control_available() {
             items.push(Self::ShareSession);
         }
         items
+    }
+
+    /// Remote control needs cloud session sharing and a Warp account. Hide it
+    /// entirely when the build has no account sign-in path.
+    pub(crate) fn remote_control_available() -> bool {
+        FeatureFlag::CreatingSharedSessions.is_enabled()
+            && FeatureFlag::HOARemoteControl.is_enabled()
+            && !FeatureFlag::AnonymousOnlyMode.is_enabled()
+            && !crate::local_mode::is_local_only_custom_provider_mode()
     }
 
     /// Returns the appropriate defaults and available items for a given editor mode.
