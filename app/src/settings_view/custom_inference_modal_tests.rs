@@ -10,6 +10,7 @@ use crate::test_util::terminal::initialize_app_for_terminal_view;
 
 fn endpoint_with_models(model_count: usize) -> CustomEndpoint {
     CustomEndpoint {
+        id: "test-endpoint".to_string(),
         name: "Test endpoint".to_string(),
         url: "https://api.example.com/v1".to_string(),
         api_key: "key".to_string(),
@@ -367,15 +368,14 @@ fn endpoint_form_valid_rejects_invalid_current_url() {
     assert!(!is_endpoint_form_valid(
         "Endpoint",
         "ftp://api.example.com/v1",
-        "key",
-        true
+        "key"
     ));
 }
 
 #[test]
 fn endpoint_form_valid_requires_non_empty_url() {
-    assert!(!is_endpoint_form_valid("Endpoint", "", "key", true));
-    assert!(!is_endpoint_form_valid("Endpoint", "   ", "key", true));
+    assert!(!is_endpoint_form_valid("Endpoint", "", "key"));
+    assert!(!is_endpoint_form_valid("Endpoint", "   ", "key"));
 }
 
 #[test]
@@ -383,7 +383,15 @@ fn endpoint_form_valid_accepts_complete_valid_form() {
     assert!(is_endpoint_form_valid(
         "Endpoint",
         "https://api.example.com/v1",
-        "key",
-        true
+        "key"
+    ));
+}
+
+#[test]
+fn endpoint_form_valid_accepts_voice_only_endpoint_without_chat_models() {
+    assert!(is_endpoint_form_valid(
+        "Voice endpoint",
+        "https://api.example.com/v1",
+        "key"
     ));
 }

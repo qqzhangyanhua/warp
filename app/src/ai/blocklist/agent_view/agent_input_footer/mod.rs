@@ -66,6 +66,8 @@ use crate::auth::{AuthManager, AuthStateProvider};
 use crate::completer::SessionContext;
 use crate::context_chips::display_chip::{DisplayChip, DisplayChipConfig, PromptChipShellCommand};
 use crate::context_chips::prompt_type::PromptType;
+#[cfg(feature = "voice_input")]
+use crate::editor::Transcriber;
 use crate::context_chips::{self, ContextChipKind};
 use crate::features::FeatureFlag;
 use crate::network::NetworkStatus;
@@ -1909,8 +1911,8 @@ impl AgentInputFooter {
 
     // ── CLI agent voice input (self-contained, bypasses editor) ──────
 
-    /// Toggle voice input for CLI agent mode. Records audio and writes the
-    /// transcription directly to the PTY, bypassing the editor voice flow.
+    /// Toggle voice input for CLI agent mode. Records audio and inserts the
+    /// transcription into CLI Rich Input, bypassing the editor voice flow.
     #[cfg(feature = "voice_input")]
     pub fn toggle_cli_voice_input(
         &mut self,
@@ -1936,7 +1938,20 @@ impl AgentInputFooter {
 
         match &self.cli_voice_input_state {
             CLIVoiceInputState::Stopped => {
-                if !crate::ai::AIRequestUsageModel::as_ref(ctx).can_request_voice() {
+                let resolved =
+                    match crate::editor::VoiceTranscriber::as_ref(ctx).resolve_for_app(ctx) {
+                        Ok(resolved) => resolved,
+                        Err(_) => {
+                            self.show_cli_voice_error_toast(
+                                "Configure a Voice Provider and model in Settings > AI > Voice.",
+                                ctx,
+                            );
+                            return;
+                        }
+                    };
+                if resolved.uses_warp_voice()
+                    && !crate::ai::AIRequestUsageModel::as_ref(ctx).can_request_voice()
+                {
                     self.show_cli_voice_error_toast(
                         &footer_text(ctx, "Voice input limit reached").into_owned(),
                         ctx,
@@ -1967,8 +1982,9 @@ impl AgentInputFooter {
                             self.maybe_show_first_time_cli_voice_toast(ctx);
                         }
 
+                        let transcriber = resolved.transcriber().clone();
                         ctx.spawn(
-                            async move { session.await_result().await },
+                            async move { (session.await_result().await, transcriber) },
                             Self::handle_cli_voice_session_result,
                         );
                     }
@@ -2002,32 +2018,24 @@ impl AgentInputFooter {
     #[cfg(feature = "voice_input")]
     fn handle_cli_voice_session_result(
         &mut self,
-        result: VoiceSessionResult,
+        (result, transcriber): (VoiceSessionResult, Arc<dyn Transcriber>),
         ctx: &mut ViewContext<Self>,
     ) {
-        use crate::editor::VoiceTranscriber;
-
         match result {
             VoiceSessionResult::Audio {
                 wav_base64,
                 session_duration_ms: _,
             } => {
-                let voice_transcriber = VoiceTranscriber::as_ref(ctx);
-                if let Some(transcriber) = voice_transcriber.transcriber() {
-                    let transcriber = transcriber.clone();
-                    self.cli_voice_input_state = CLIVoiceInputState::Transcribing;
+                self.cli_voice_input_state = CLIVoiceInputState::Transcribing;
 
-                    voice_input::VoiceInput::handle(ctx).update(ctx, |voice, _| {
-                        voice.set_transcribing_active(true);
-                    });
+                voice_input::VoiceInput::handle(ctx).update(ctx, |voice, _| {
+                    voice.set_transcribing_active(true);
+                });
 
-                    self.cli_transcription_handle = Some(ctx.spawn(
-                        async move { transcriber.transcribe(wav_base64).await },
-                        Self::apply_cli_transcribed_voice_input,
-                    ));
-                } else {
-                    self.cli_voice_input_state = CLIVoiceInputState::Stopped;
-                }
+                self.cli_transcription_handle = Some(ctx.spawn(
+                    async move { transcriber.transcribe(wav_base64).await },
+                    Self::apply_cli_transcribed_voice_input,
+                ));
             }
             VoiceSessionResult::Aborted { .. } => {
                 self.cli_voice_input_state = CLIVoiceInputState::Stopped;
@@ -2050,23 +2058,20 @@ impl AgentInputFooter {
         match result {
             Ok(transcribed_text) => {
                 if !transcribed_text.is_empty() {
-                    if self.has_active_cli_agent_input_session(ctx) {
-                        ctx.emit(AgentInputFooterEvent::InsertIntoCLIRichInput(
-                            transcribed_text,
-                        ));
-                    } else {
-                        ctx.emit(AgentInputFooterEvent::WriteToPty(transcribed_text));
-                    }
+                    ctx.emit(AgentInputFooterEvent::InsertIntoCLIRichInput(
+                        transcribed_text,
+                    ));
                 }
             }
-            Err(e) => match e {
-                TranscribeError::QuotaLimit => {
+            Err(e) => {
+                if let Some(message) = crate::voice::transcriber::provider_error_message(&e) {
+                    self.show_cli_voice_error_toast(message, ctx);
+                } else if matches!(e, TranscribeError::QuotaLimit) {
                     self.show_cli_voice_error_toast(
                         &footer_text(ctx, "Voice input limit reached").into_owned(),
                         ctx,
                     );
-                }
-                _ => {
+                } else {
                     report_error!(
                         anyhow::Error::new(e).context("Failed to transcribe CLI voice input")
                     );
@@ -2075,7 +2080,7 @@ impl AgentInputFooter {
                         ctx,
                     );
                 }
-            },
+            }
         }
 
         self.cli_voice_input_state = CLIVoiceInputState::Stopped;

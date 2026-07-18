@@ -41,15 +41,43 @@ pub struct ApiKeys {
     pub openai: Option<String>,
     pub open_router: Option<String>,
     pub custom_endpoints: Vec<CustomEndpoint>,
+    pub voice_transcription: Option<VoiceTranscriptionConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct CustomEndpoint {
+    /// Stable local identifier used by settings that reference this endpoint.
+    pub id: String,
     pub name: String,
     pub url: String,
     pub api_key: String,
     pub models: Vec<CustomEndpointModel>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VoiceTranscriptionConfig {
+    pub endpoint_id: String,
+    pub model: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VoiceTranscriptionProvider {
+    pub base_url: String,
+    pub api_key: String,
+    pub model: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum VoiceTranscriptionConfigError {
+    #[error("Voice transcription is not configured")]
+    NotConfigured,
+    #[error("The selected Voice Provider no longer exists")]
+    EndpointNotFound,
+    #[error("The selected Voice Provider configuration is invalid")]
+    InvalidEndpoint,
+    #[error("The Voice transcription model is missing")]
+    MissingModel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -103,17 +131,57 @@ impl CustomEndpointModel {
 }
 
 impl CustomEndpoint {
+    pub fn is_valid_for_voice(&self) -> bool {
+        is_valid_custom_endpoint_url(&self.url) && !self.api_key.trim().is_empty()
+    }
+
     pub fn is_valid_for_request(&self) -> bool {
-        is_valid_custom_endpoint_url(&self.url)
-            && !self.api_key.trim().is_empty()
+        self.is_valid_for_voice()
             && self
                 .models
                 .iter()
                 .any(CustomEndpointModel::is_valid_for_request)
     }
+
+    fn ensure_id(&mut self) {
+        if self.id.trim().is_empty() {
+            self.id = Uuid::new_v4().to_string();
+        }
+    }
 }
 
 impl ApiKeys {
+    fn ensure_custom_endpoint_ids(&mut self) {
+        for endpoint in &mut self.custom_endpoints {
+            endpoint.ensure_id();
+        }
+    }
+
+    pub fn voice_transcription_provider(
+        &self,
+    ) -> Result<Option<VoiceTranscriptionProvider>, VoiceTranscriptionConfigError> {
+        let Some(config) = &self.voice_transcription else {
+            return Ok(None);
+        };
+        if config.model.trim().is_empty() {
+            return Err(VoiceTranscriptionConfigError::MissingModel);
+        }
+        let endpoint = self
+            .custom_endpoints
+            .iter()
+            .find(|endpoint| endpoint.id == config.endpoint_id)
+            .ok_or(VoiceTranscriptionConfigError::EndpointNotFound)?;
+        if !endpoint.is_valid_for_voice() {
+            return Err(VoiceTranscriptionConfigError::InvalidEndpoint);
+        }
+
+        Ok(Some(VoiceTranscriptionProvider {
+            base_url: endpoint.url.clone(),
+            api_key: endpoint.api_key.clone(),
+            model: config.model.trim().to_string(),
+        }))
+    }
+
     pub fn has_any_key(&self) -> bool {
         self.openai.is_some()
             || self.anthropic.is_some()
@@ -264,7 +332,8 @@ pub struct ApiKeyManager {
 
 impl ApiKeyManager {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        let keys = Self::load_keys_from_secure_storage(ctx);
+        let mut keys = Self::load_keys_from_secure_storage(ctx);
+        keys.ensure_custom_endpoint_ids();
         let grok_tokens = Self::load_grok_tokens_from_secure_storage(ctx);
         Self {
             keys,
@@ -351,6 +420,7 @@ impl ApiKeyManager {
         ctx: &mut ModelContext<Self>,
     ) {
         self.keys.custom_endpoints.push(CustomEndpoint {
+            id: Uuid::new_v4().to_string(),
             name,
             url,
             api_key,
@@ -382,6 +452,7 @@ impl ApiKeyManager {
         if index >= self.keys.custom_endpoints.len() {
             return;
         }
+        let id = self.keys.custom_endpoints[index].id.clone();
         let existing_models = &self.keys.custom_endpoints[index].models;
         let models = models
             .into_iter()
@@ -403,11 +474,25 @@ impl ApiKeyManager {
             })
             .collect();
         self.keys.custom_endpoints[index] = CustomEndpoint {
+            id,
             name,
             url,
             api_key,
             models,
         };
+        ctx.emit(ApiKeyManagerEvent::KeysUpdated);
+        self.write_keys_to_secure_storage(ctx);
+    }
+
+    pub fn set_voice_transcription_config(
+        &mut self,
+        config: Option<VoiceTranscriptionConfig>,
+        ctx: &mut ModelContext<Self>,
+    ) {
+        if self.keys.voice_transcription == config {
+            return;
+        }
+        self.keys.voice_transcription = config;
         ctx.emit(ApiKeyManagerEvent::KeysUpdated);
         self.write_keys_to_secure_storage(ctx);
     }

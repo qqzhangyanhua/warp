@@ -531,14 +531,17 @@ impl CustomEndpointModal {
         let name = self.endpoint_name_editor.as_ref(app).buffer_text(app);
         let url = self.endpoint_url_editor.as_ref(app).buffer_text(app);
         let api_key = self.api_key_editor.as_ref(app).buffer_text(app);
-        let has_models = self.model_rows.iter().any(|row| {
+        is_endpoint_form_valid(&name, &url, &api_key)
+    }
+
+    fn has_chat_model(&self, app: &AppContext) -> bool {
+        self.model_rows.iter().any(|row| {
             !row.name_editor
                 .as_ref(app)
                 .buffer_text(app)
                 .trim()
                 .is_empty()
-        });
-        is_endpoint_form_valid(&name, &url, &api_key, has_models)
+        })
     }
 
     fn focus_editor(&self, editor: &ViewHandle<EditorView>, ctx: &mut ViewContext<Self>) {
@@ -721,6 +724,7 @@ impl View for CustomEndpointModal {
         let theme = appearance.theme();
 
         let is_valid = self.is_valid(app);
+        let can_test_chat = is_valid && self.has_chat_model(app);
         let is_editing = self.editing_index.is_some();
 
         let label_font_family = appearance.ui_font_family();
@@ -981,7 +985,7 @@ impl View for CustomEndpointModal {
         column.add_child(render_connection_test_control(
             self.connection_test.state(),
             self.test_connection_button_mouse_state.clone(),
-            is_valid,
+            can_test_chat,
             button_style,
             app,
         ));
@@ -1089,11 +1093,10 @@ fn is_insecure_http_url(url: &str) -> bool {
     Url::parse(url).is_ok_and(|url| url.scheme() == "http")
 }
 
-fn is_endpoint_form_valid(name: &str, url: &str, api_key: &str, has_models: bool) -> bool {
+fn is_endpoint_form_valid(name: &str, url: &str, api_key: &str) -> bool {
     !name.trim().is_empty()
         && !url.trim().is_empty()
         && !api_key.trim().is_empty()
-        && has_models
         && validate_url(url).is_ok()
 }
 

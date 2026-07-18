@@ -98,6 +98,7 @@ fn endpoint_with_keys(
     models: &[(&str, Option<&str>, &str)],
 ) -> CustomEndpoint {
     CustomEndpoint {
+        id: format!("endpoint-{name}"),
         name: name.into(),
         url: url.into(),
         api_key: api_key.into(),
@@ -111,6 +112,58 @@ fn endpoint_with_keys(
             })
             .collect(),
     }
+}
+
+#[test]
+fn legacy_custom_endpoint_defaults_to_an_empty_id() {
+    let endpoint: CustomEndpoint = serde_json::from_str(
+        r#"{"name":"legacy","url":"https://provider.example/v1","api_key":"key","models":[]}"#,
+    )
+    .unwrap();
+
+    assert!(endpoint.id.is_empty());
+}
+
+#[test]
+fn voice_only_endpoint_is_valid_for_voice_but_not_chat() {
+    let endpoint = endpoint("voice", "https://provider.example/v1", "key", &[]);
+
+    assert!(endpoint.is_valid_for_voice());
+    assert!(!endpoint.is_valid_for_request());
+}
+
+#[test]
+fn resolves_voice_transcription_provider_from_selected_endpoint() {
+    let endpoint = endpoint("voice", "https://provider.example/v1", "secret", &[]);
+    let keys = ApiKeys {
+        voice_transcription: Some(VoiceTranscriptionConfig {
+            endpoint_id: endpoint.id.clone(),
+            model: "qwen3-asr-flash".into(),
+        }),
+        custom_endpoints: vec![endpoint],
+        ..Default::default()
+    };
+
+    let provider = keys.voice_transcription_provider().unwrap().unwrap();
+    assert_eq!(provider.base_url, "https://provider.example/v1");
+    assert_eq!(provider.api_key, "secret");
+    assert_eq!(provider.model, "qwen3-asr-flash");
+}
+
+#[test]
+fn stale_voice_endpoint_selection_is_an_error() {
+    let keys = ApiKeys {
+        voice_transcription: Some(VoiceTranscriptionConfig {
+            endpoint_id: "missing-endpoint".into(),
+            model: "qwen3-asr-flash".into(),
+        }),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        keys.voice_transcription_provider(),
+        Err(VoiceTranscriptionConfigError::EndpointNotFound)
+    );
 }
 
 // ── serde round-trip ────────────────────────────────────────────
@@ -165,6 +218,7 @@ fn serde_round_trip_with_provider_keys() {
         google: Some("AIzaSy123".into()),
         open_router: Some("sk-or-xxx".into()),
         custom_endpoints: vec![],
+        voice_transcription: None,
     };
     let json = serde_json::to_string(&keys).unwrap();
     let deser: ApiKeys = serde_json::from_str(&json).unwrap();
@@ -187,6 +241,7 @@ fn serde_round_trip_with_custom_endpoints() {
                 &[("llama-70b", None), ("mixtral", Some("mix"))],
             ),
         ],
+        voice_transcription: None,
     };
     let json = serde_json::to_string(&keys).unwrap();
     let deser: ApiKeys = serde_json::from_str(&json).unwrap();
@@ -303,6 +358,7 @@ fn provider_key_count_counts_each_provider_key() {
         google: Some("AIza".into()),
         open_router: Some("sk-or".into()),
         custom_endpoints: vec![],
+        voice_transcription: None,
     };
     assert_eq!(keys.provider_key_count(), 4);
 }
@@ -315,6 +371,7 @@ fn provider_key_count_ignores_blank_keys_and_endpoints() {
         google: None,
         open_router: None,
         custom_endpoints: vec![endpoint("ep", "https://a.io", "k", &[("m", None)])],
+        voice_transcription: None,
     };
     // Only the non-blank OpenAI key counts; the whitespace Anthropic key and the
     // custom endpoint are excluded.

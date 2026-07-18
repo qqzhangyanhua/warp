@@ -223,6 +223,9 @@ impl TerminalView {
                 self.write_user_bytes_to_pty(text.as_bytes().to_vec(), ctx);
             }
             UseAgentToolbarEvent::InsertIntoRichInput(text) => {
+                if !self.has_active_cli_agent_input_session(ctx) {
+                    self.open_cli_agent_rich_input(CLIAgentInputEntrypoint::FooterButton, ctx);
+                }
                 self.input.update(ctx, |input, ctx| {
                     input.insert_into_cli_agent_rich_input(text, ctx);
                 });

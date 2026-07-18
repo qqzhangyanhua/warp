@@ -1,4 +1,4 @@
-use ::ai::api_keys::{ApiKeyManager, ApiKeyManagerEvent, ApiKeys};
+use ::ai::api_keys::{ApiKeyManager, ApiKeyManagerEvent, ApiKeys, VoiceTranscriptionConfig};
 #[cfg(not(target_family = "wasm"))]
 use ::ai::grok_subscription::oauth::{self, ManualCodeExchange};
 use chrono::{DateTime, Local};
@@ -173,7 +173,6 @@ const AI_SETTINGS_DROPDOWN_MAX_HEIGHT: f32 = 250.;
 const CONTEXT_WINDOW_SLIDER_WIDTH: f32 = 220.;
 const CONTEXT_WINDOW_INPUT_BOX_WIDTH: f32 = 120.;
 
-const WISPR_FLOW_URL: &str = "https://wisprflow.ai/";
 const CUSTOM_INFERENCE_LEARN_MORE_URL: &str =
     "https://docs.warp.dev/agent-platform/inference/custom-inference-endpoint/";
 const CUSTOM_INFERENCE_TERMS_URL: &str = "https://www.warp.dev/legal/terms-of-service";
@@ -651,6 +650,9 @@ pub struct AISettingsPageView {
     page: PageType<Self>,
     active_subpage: Option<AISubpage>,
     voice_input_toggle_key_dropdown: ViewHandle<Dropdown<AISettingsPageAction>>,
+    voice_provider_dropdown: ViewHandle<Dropdown<AISettingsPageAction>>,
+    voice_model_editor: ViewHandle<EditorView>,
+    voice_test_button: ViewHandle<ActionButton>,
     local_only_icon_tooltip_states: RefCell<HashMap<String, MouseStateHandle>>,
     autodetection_denylist_editor: ViewHandle<EditorView>,
     autonomy_dropdown_menu: ViewHandle<Dropdown<AISettingsPageAction>>,
@@ -816,6 +818,75 @@ impl AISettingsPageView {
             dropdown.set_selected_by_index(selected_index, ctx);
 
             dropdown
+        });
+
+        let voice_provider_dropdown = ctx.add_typed_action_view(|ctx| {
+            let mut dropdown = Dropdown::new(ctx);
+            dropdown.set_top_bar_max_width(AI_SETTINGS_DROPDOWN_WIDTH);
+            dropdown.set_menu_width(AI_SETTINGS_DROPDOWN_WIDTH, ctx);
+            dropdown.set_menu_max_height(AI_SETTINGS_DROPDOWN_MAX_HEIGHT, ctx);
+            dropdown
+        });
+        Self::refresh_voice_provider_dropdown(&voice_provider_dropdown, ctx);
+
+        let configured_voice_model = ApiKeyManager::as_ref(ctx)
+            .keys()
+            .voice_transcription
+            .as_ref()
+            .map(|config| config.model.clone())
+            .unwrap_or_default();
+        let voice_model_editor = ctx.add_typed_action_view(|ctx| {
+            let options = SingleLineEditorOptions {
+                propagate_and_no_op_vertical_navigation_keys:
+                    PropagateAndNoOpNavigationKeys::Always,
+                text: TextOptions {
+                    font_size_override: Some(Appearance::as_ref(ctx).ui_font_size()),
+                    text_colors_override: Some(editor_text_colors(Appearance::as_ref(ctx))),
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+            let mut editor = EditorView::single_line(options, ctx);
+            editor.set_placeholder_text("qwen3-asr-flash", ctx);
+            editor.set_buffer_text(&configured_voice_model, ctx);
+            editor
+        });
+        ctx.subscribe_to_view(&voice_model_editor, |_, editor, event, ctx| {
+            if matches!(event, EditorEvent::Blurred | EditorEvent::Enter) {
+                let model = editor.as_ref(ctx).buffer_text(ctx).trim().to_string();
+                let config = ApiKeyManager::as_ref(ctx)
+                    .keys()
+                    .voice_transcription
+                    .as_ref()
+                    .map(|config| VoiceTranscriptionConfig {
+                        endpoint_id: config.endpoint_id.clone(),
+                        model,
+                    });
+                if let Some(config) = config {
+                    ApiKeyManager::handle(ctx).update(ctx, |manager, ctx| {
+                        manager.set_voice_transcription_config(Some(config), ctx);
+                    });
+                }
+            }
+        });
+
+        let voice_test_button = ctx.add_typed_action_view(|_| {
+            ActionButton::new("Test voice model", SecondaryTheme)
+                .with_size(ButtonSize::Small)
+                .on_click(|ctx| {
+                    ctx.dispatch_typed_action(AISettingsPageAction::TestVoiceProvider);
+                })
+        });
+        voice_test_button.update(ctx, |button, ctx| {
+            button.set_disabled(
+                ApiKeyManager::as_ref(ctx)
+                    .keys()
+                    .voice_transcription_provider()
+                    .ok()
+                    .flatten()
+                    .is_none(),
+                ctx,
+            );
         });
 
         let coding_model_dropdown = ctx.add_typed_action_view(|ctx| {
@@ -1159,6 +1230,7 @@ impl AISettingsPageView {
             Self::refresh_coding_model_menu(&me.coding_model_dropdown, ctx);
             me.sync_context_window_editor(ctx, false);
             me.sync_custom_endpoint_buttons(ctx);
+            me.sync_voice_configuration_controls(ctx);
             // Driving the prompt off the key-store update (rather than the editor's
             // blur/Enter) means it fires reliably however the key was committed —
             // clicking outside the field, pressing Enter, or tabbing away.
@@ -1923,6 +1995,9 @@ impl AISettingsPageView {
             page: Self::build_page(None, ctx),
             active_subpage: None,
             voice_input_toggle_key_dropdown,
+            voice_provider_dropdown,
+            voice_model_editor,
+            voice_test_button,
             autodetection_denylist_editor,
             local_only_icon_tooltip_states: Default::default(),
             command_execution_allowlist_editor,
@@ -1986,16 +2061,111 @@ impl AISettingsPageView {
         }
     }
 
+    fn refresh_voice_provider_dropdown(
+        dropdown: &ViewHandle<Dropdown<AISettingsPageAction>>,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        let keys = ApiKeyManager::as_ref(ctx).keys();
+        let default_label = if crate::local_mode::is_local_only_custom_provider_mode() {
+            "Not configured"
+        } else {
+            "Warp Voice"
+        };
+        let mut items = vec![DropdownItem::new(
+            default_label,
+            AISettingsPageAction::SetVoiceProvider(None),
+        )];
+        items.extend(
+            keys.custom_endpoints
+                .iter()
+                .filter(|endpoint| endpoint.is_valid_for_voice())
+                .map(|endpoint| {
+                    DropdownItem::new(
+                        endpoint.name.clone(),
+                        AISettingsPageAction::SetVoiceProvider(Some(endpoint.id.clone())),
+                    )
+                }),
+        );
+        let selected_endpoint = keys
+            .voice_transcription
+            .as_ref()
+            .map(|config| config.endpoint_id.clone());
+        dropdown.update(ctx, |dropdown, ctx| {
+            dropdown.set_items(items, ctx);
+            dropdown.set_selected_by_action(
+                AISettingsPageAction::SetVoiceProvider(selected_endpoint),
+                ctx,
+            );
+        });
+    }
+
+    fn sync_voice_configuration_controls(&mut self, ctx: &mut ViewContext<Self>) {
+        Self::refresh_voice_provider_dropdown(&self.voice_provider_dropdown, ctx);
+        let (model, has_selected_endpoint, can_test_provider) = {
+            let keys = ApiKeyManager::as_ref(ctx).keys();
+            let selected_endpoint_id = keys
+                .voice_transcription
+                .as_ref()
+                .map(|config| config.endpoint_id.as_str());
+            (
+                keys.voice_transcription
+                    .as_ref()
+                    .map(|config| config.model.clone())
+                    .unwrap_or_default(),
+                selected_endpoint_id.is_some_and(|endpoint_id| {
+                    keys.custom_endpoints
+                        .iter()
+                        .any(|endpoint| endpoint.id == endpoint_id && endpoint.is_valid_for_voice())
+                }),
+                keys.voice_transcription_provider().ok().flatten().is_some(),
+            )
+        };
+        if !self.voice_model_editor.is_focused(ctx)
+            && self.voice_model_editor.as_ref(ctx).buffer_text(ctx) != model
+        {
+            self.voice_model_editor.update(ctx, |editor, ctx| {
+                editor.system_reset_buffer_text(&model, ctx);
+            });
+        }
+        let is_voice_enabled = AISettings::as_ref(ctx).is_voice_input_enabled(ctx);
+        Self::update_editor_interaction_state(
+            self.voice_model_editor.clone(),
+            has_selected_endpoint && is_voice_enabled,
+            ctx,
+        );
+        self.voice_test_button.update(ctx, |button, ctx| {
+            button.set_disabled(!(can_test_provider && is_voice_enabled), ctx);
+        });
+        ctx.notify();
+    }
+
+    fn show_voice_test_toast(&self, success: bool, message: &str, ctx: &mut ViewContext<Self>) {
+        let window_id = ctx.window_id();
+        crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
+            let toast = if success {
+                crate::view_components::DismissibleToast::success(message.to_string())
+            } else {
+                crate::view_components::DismissibleToast::error(message.to_string())
+            };
+            toast_stack.add_ephemeral_toast(toast, window_id, ctx);
+        });
+    }
+
     fn update_voice_input_dropdown_enablement(&mut self, ctx: &mut ViewContext<Self>) {
         let is_voice_enabled = AISettings::as_ref(ctx).is_voice_input_enabled(ctx);
-        self.voice_input_toggle_key_dropdown
-            .update(ctx, |dropdown, ctx| {
+        for dropdown in [
+            &self.voice_input_toggle_key_dropdown,
+            &self.voice_provider_dropdown,
+        ] {
+            dropdown.update(ctx, |dropdown, ctx| {
                 if is_voice_enabled {
                     dropdown.set_enabled(ctx);
                 } else {
                     dropdown.set_disabled(ctx);
                 }
             });
+        }
+        self.sync_voice_configuration_controls(ctx);
         ctx.notify();
     }
 
@@ -3572,6 +3742,8 @@ impl Entity for AISettingsPageView {
 pub enum AISettingsPageAction {
     OpenUrl(String),
     SetVoiceInputToggleKey(VoiceInputToggleKey),
+    SetVoiceProvider(Option<String>),
+    TestVoiceProvider,
     ToggleGlobalAI,
     ToggleActiveAI,
     ToggleIntelligentAutosuggestions,
@@ -3691,6 +3863,71 @@ impl TypedActionView for AISettingsPageView {
                         .set_value(true, ctx));
                 });
                 ctx.notify();
+            }
+            AISettingsPageAction::SetVoiceProvider(endpoint_id) => {
+                let model = ApiKeyManager::as_ref(ctx)
+                    .keys()
+                    .voice_transcription
+                    .as_ref()
+                    .map(|config| config.model.trim().to_string())
+                    .filter(|model| !model.is_empty())
+                    .unwrap_or_else(|| "qwen3-asr-flash".to_string());
+                let config = endpoint_id
+                    .as_ref()
+                    .map(|endpoint_id| VoiceTranscriptionConfig {
+                        endpoint_id: endpoint_id.clone(),
+                        model,
+                    });
+                ApiKeyManager::handle(ctx).update(ctx, |manager, ctx| {
+                    manager.set_voice_transcription_config(config, ctx);
+                });
+                self.sync_voice_configuration_controls(ctx);
+            }
+            AISettingsPageAction::TestVoiceProvider => {
+                let model = self
+                    .voice_model_editor
+                    .as_ref(ctx)
+                    .buffer_text(ctx)
+                    .trim()
+                    .to_string();
+                let current = ApiKeyManager::as_ref(ctx)
+                    .keys()
+                    .voice_transcription
+                    .clone();
+                if let Some(mut config) = current {
+                    config.model = model;
+                    ApiKeyManager::handle(ctx).update(ctx, |manager, ctx| {
+                        manager.set_voice_transcription_config(Some(config), ctx);
+                    });
+                }
+                let resolved = crate::editor::VoiceTranscriber::as_ref(ctx).resolve_for_app(ctx);
+                let Ok(resolved) = resolved else {
+                    self.show_voice_test_toast(
+                        false,
+                        "Configure a Voice Provider and model first.",
+                        ctx,
+                    );
+                    return;
+                };
+                if resolved.uses_warp_voice() {
+                    self.show_voice_test_toast(
+                        false,
+                        "Select a Custom Endpoint for Voice transcription.",
+                        ctx,
+                    );
+                    return;
+                }
+                let transcriber = resolved.transcriber().clone();
+                let audio = crate::voice::chat_completions_audio::test_wav_base64();
+                ctx.spawn(
+                    async move { transcriber.transcribe(audio).await },
+                    |me, result, ctx| match result {
+                        Ok(_) => {
+                            me.show_voice_test_toast(true, "Voice model connection succeeded.", ctx)
+                        }
+                        Err(error) => me.show_voice_test_toast(false, &error.to_string(), ctx),
+                    },
+                );
             }
             AISettingsPageAction::ToggleGlobalAI => {
                 match AISettings::handle(ctx).update(ctx, |settings, ctx| {
@@ -7064,7 +7301,6 @@ impl SettingsWidget for AIFactWidget {
 #[derive(Default)]
 struct VoiceWidget {
     voice_input_toggle: SwitchStateHandle,
-    wispr_highlight_index: HighlightedHyperlink,
 }
 
 impl VoiceWidget {
@@ -7086,36 +7322,60 @@ impl VoiceWidget {
             app,
         ));
 
-        let voice_input_description_text_fragments = vec![
-            FormattedTextFragment::plain_text(tr_cached(Message::AiVoiceInputDescriptionPrefix)),
-            FormattedTextFragment::hyperlink(tr_cached(Message::AiWisprFlow), WISPR_FLOW_URL),
-            FormattedTextFragment::plain_text(")."),
-        ];
-
-        let voice_input_description = FormattedTextElement::new(
-            FormattedText::new([FormattedTextLine::Line(
-                voice_input_description_text_fragments,
-            )]),
-            appearance.ui_font_size(),
-            appearance.ui_font_family(),
-            appearance.ui_font_family(),
-            styles::description_font_color(is_toggleable, app).into(),
-            self.wispr_highlight_index.clone(),
-        )
-        .with_hyperlink_font_color(appearance.theme().accent().into_solid())
-        .register_default_click_handlers(|url, ctx, _| {
-            ctx.dispatch_typed_action(AISettingsPageAction::HyperlinkClick(url));
-        });
-
-        column.add_child(
-            Container::new(voice_input_description.finish())
-                .with_margin_top(styles::DESCRIPTION_NEGATIVE_MARGIN_OFFSET)
-                .with_margin_bottom(styles::DESCRIPTION_MARGIN_BOTTOM)
-                .with_margin_right(styles::TOGGLE_WIDTH_MARGIN)
-                .finish(),
-        );
-
         if ai_settings.is_voice_input_enabled(app) {
+            column.add_child(render_dropdown_item(
+                appearance,
+                "Voice Provider",
+                None,
+                None,
+                LocalOnlyIconState::Hidden,
+                None,
+                &view.voice_provider_dropdown,
+            ));
+
+            let model_label = render_dropdown_item_label(
+                "Voice model".to_string(),
+                None,
+                LocalOnlyIconState::Hidden,
+                None,
+                appearance,
+            );
+            let model_input = appearance
+                .ui_builder()
+                .text_input(view.voice_model_editor.clone())
+                .with_style(UiComponentStyles {
+                    width: Some(AI_SETTINGS_DROPDOWN_WIDTH),
+                    padding: Some(Coords {
+                        top: 6.,
+                        bottom: 6.,
+                        left: 10.,
+                        right: 10.,
+                    }),
+                    background: Some(appearance.theme().surface_2().into()),
+                    ..Default::default()
+                })
+                .build()
+                .finish();
+            column.add_child(
+                Container::new(
+                    Flex::row()
+                        .with_main_axis_size(MainAxisSize::Max)
+                        .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
+                        .with_cross_axis_alignment(CrossAxisAlignment::Center)
+                        .with_child(model_label)
+                        .with_child(model_input)
+                        .finish(),
+                )
+                .with_margin_top(12.)
+                .finish(),
+            );
+            column.add_child(
+                Container::new(view.voice_test_button.as_ref(app).render(app))
+                    .with_margin_top(8.)
+                    .with_margin_bottom(12.)
+                    .finish(),
+            );
+
             column.add_child(render_dropdown_item(
                 appearance,
                 tr_cached(Message::AiKeyForActivatingVoiceInput),

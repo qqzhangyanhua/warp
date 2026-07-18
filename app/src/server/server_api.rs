@@ -415,6 +415,27 @@ pub enum TranscribeError {
     #[error("Failed to deserialize JSON.")]
     Deserialization,
 
+    #[error("Voice Provider authentication failed.")]
+    ProviderAuthentication,
+
+    #[error("Voice transcription model was not found.")]
+    ProviderModelNotFound,
+
+    #[error("Voice Provider rate limit reached.")]
+    ProviderRateLimit,
+
+    #[error("Voice Provider is unavailable.")]
+    ProviderServer,
+
+    #[error("Voice Provider rejected the transcription request.")]
+    ProviderRejected,
+
+    #[error("Could not reach the Voice Provider.")]
+    ProviderTransport(#[source] reqwest::Error),
+
+    #[error("Voice recording is too long for the configured Provider.")]
+    RecordingTooLong,
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
