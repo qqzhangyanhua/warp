@@ -19,16 +19,17 @@ mod tools;
 mod transport;
 
 pub(crate) use connection_test::test_provider_connection;
-use messages::{chat_messages_from_inputs, chat_messages_from_tasks, ChatMessage, ChatRole};
+use messages::{
+    agent_output_message, chat_messages_from_tasks, chat_messages_from_user_inputs,
+    local_messages_from_inputs, ChatMessage, ChatRole,
+};
 #[cfg(test)]
 pub(super) use streaming::content_deltas_from_sse_data;
 use streaming::{completion_deltas_from_sse_data, SseDataParser};
 use tools::{ChatToolDefinition, ToolCallAssembler, ToolCatalog};
 use transport::{LocalProviderTransport, ReqwestLocalProviderTransport};
 
-use super::convert_to::convert_context;
 use super::{ConvertToAPITypeError, RequestParams, ResponseStream, ServerConversationToken};
-use crate::ai::agent::AIAgentInput;
 use crate::server::server_api::AIApiError;
 
 const DEFAULT_LOCAL_TOOL_CALL_LIMIT: usize = 32;
@@ -94,9 +95,18 @@ async fn generate_local_provider_output_with_transport(
             .first()
             .map(|task| task.id.clone())
             .unwrap_or_else(|| Uuid::new_v4().to_string());
-        let initial_task = params.tasks.is_empty().then(|| {
-            local_task_from_inputs(&task_id, &request_id, &params.input)
-        });
+        let input_messages = local_messages_from_inputs(&task_id, &request_id, &params.input);
+        let input_action = if params.tasks.is_empty() {
+            Some(create_task_action(api::Task {
+                id: task_id.clone(),
+                messages: input_messages,
+                ..Default::default()
+            }))
+        } else if input_messages.is_empty() {
+            None
+        } else {
+            Some(add_messages_action(&task_id, input_messages))
+        };
 
         let tool_call_limit = match local_tool_call_limit() {
             Ok(limit) => limit,
@@ -106,6 +116,9 @@ async fn generate_local_provider_output_with_transport(
             }
         };
         if should_pause_for_tool_call_limit(&params, tool_call_limit) {
+            if let Some(action) = input_action.clone() {
+                yield Ok(client_actions_event(vec![action]));
+            }
             let message_id = Uuid::new_v4().to_string();
             let message = format!(
                 "The local tool-call limit ({tool_call_limit}) was reached. Confirm that you want to continue."
@@ -146,8 +159,8 @@ async fn generate_local_provider_output_with_transport(
             return;
         }
 
-        if let Some(task) = initial_task {
-            yield Ok(client_actions_event(vec![create_task_action(task)]));
+        if let Some(action) = input_action {
+            yield Ok(client_actions_event(vec![action]));
         }
 
         let mut byte_stream = response.body;
@@ -312,8 +325,8 @@ fn build_chat_completion_request(
     params: &RequestParams,
     model: String,
 ) -> Result<ChatCompletionRequest, &'static str> {
-    let mut messages = chat_messages_from_tasks(&params.tasks);
-    messages.extend(chat_messages_from_inputs(&params.input));
+    let mut messages = chat_messages_from_tasks(&params.tasks, &params.input);
+    messages.extend(chat_messages_from_user_inputs(&params.input));
 
     if messages.is_empty() {
         return Err("Local provider request requires at least one text message");
@@ -412,48 +425,6 @@ fn client_actions_event(actions: Vec<api::ClientAction>) -> api::ResponseEvent {
     }
 }
 
-fn local_task_from_inputs(task_id: &str, request_id: &str, inputs: &[AIAgentInput]) -> api::Task {
-    let messages = inputs
-        .iter()
-        .filter_map(|input| {
-            let AIAgentInput::UserQuery {
-                query,
-                context,
-                referenced_attachments,
-                user_query_mode,
-                intended_agent,
-                ..
-            } = input
-            else {
-                return None;
-            };
-
-            Some(api::Message {
-                id: Uuid::new_v4().to_string(),
-                task_id: task_id.to_string(),
-                request_id: request_id.to_string(),
-                message: Some(api::message::Message::UserQuery(api::message::UserQuery {
-                    query: query.clone(),
-                    context: Some(convert_context(context.as_ref())),
-                    referenced_attachments: referenced_attachments
-                        .iter()
-                        .map(|(name, attachment)| (name.clone(), attachment.clone().into()))
-                        .collect(),
-                    mode: Some(user_query_mode.clone().into()),
-                    intended_agent: intended_agent.clone().map(Into::into).unwrap_or_default(),
-                })),
-                ..Default::default()
-            })
-        })
-        .collect();
-
-    api::Task {
-        id: task_id.to_string(),
-        messages,
-        ..Default::default()
-    }
-}
-
 fn create_task_action(task: api::Task) -> api::ClientAction {
     api::ClientAction {
         action: Some(api::client_action::Action::CreateTask(
@@ -512,23 +483,6 @@ fn append_to_message_action(
     }
 }
 
-fn agent_output_message(
-    task_id: &str,
-    message_id: &str,
-    request_id: &str,
-    content: String,
-) -> api::Message {
-    api::Message {
-        id: message_id.to_string(),
-        task_id: task_id.to_string(),
-        request_id: request_id.to_string(),
-        message: Some(api::message::Message::AgentOutput(
-            api::message::AgentOutput { text: content },
-        )),
-        ..Default::default()
-    }
-}
-
 #[cfg(test)]
 #[path = "local_provider_tests.rs"]
 mod tests;
@@ -536,3 +490,11 @@ mod tests;
 #[cfg(test)]
 #[path = "local_provider/limit_tests.rs"]
 mod limit_tests;
+
+#[cfg(test)]
+#[path = "local_provider/history_tests.rs"]
+mod history_tests;
+
+#[cfg(test)]
+#[path = "local_provider/persistence_tests.rs"]
+mod persistence_tests;

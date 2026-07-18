@@ -1,9 +1,14 @@
+use std::collections::HashMap;
+
 use serde::Serialize;
 use serde_json::json;
 use uuid::Uuid;
 use warp_multi_agent_api as api;
 
 use super::tools::mcp_provider_name;
+use crate::ai::agent::api::convert_conversation::convert_tool_call_result_to_input;
+use crate::ai::agent::api::convert_to::convert_context;
+use crate::ai::agent::task::TaskId;
 use crate::ai::agent::AIAgentInput;
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -38,12 +43,137 @@ struct ChatFunctionCall {
     arguments: String,
 }
 
-pub(super) fn chat_messages_from_tasks(tasks: &[api::Task]) -> Vec<ChatMessage> {
-    tasks
-        .iter()
-        .flat_map(|task| task.messages.iter())
-        .filter_map(chat_message_from_api_message)
-        .collect()
+enum ToolResultSource<'a> {
+    Stored(&'a api::message::ToolCallResult),
+    Current(&'a AIAgentInput),
+}
+
+pub(super) fn chat_messages_from_tasks(
+    tasks: &[api::Task],
+    inputs: &[AIAgentInput],
+) -> Vec<ChatMessage> {
+    let mut document_versions = HashMap::new();
+    let mut messages = Vec::new();
+    for task in tasks {
+        let task_id = TaskId::new(task.id.clone());
+        let mut pending_tool_calls = HashMap::<String, Vec<usize>>::new();
+        let mut tool_results = HashMap::<usize, ToolResultSource<'_>>::new();
+        for (index, message) in task.messages.iter().enumerate() {
+            match message.message.as_ref() {
+                Some(api::message::Message::ToolCall(tool_call)) => pending_tool_calls
+                    .entry(tool_call.tool_call_id.clone())
+                    .or_default()
+                    .push(index),
+                Some(api::message::Message::ToolCallResult(result)) => {
+                    if let Some(call_index) = pending_tool_calls
+                        .get_mut(result.tool_call_id.as_str())
+                        .and_then(Vec::pop)
+                    {
+                        tool_results.insert(call_index, ToolResultSource::Stored(result));
+                    }
+                }
+                _ => {}
+            }
+        }
+        for input in inputs {
+            let AIAgentInput::ActionResult { result, .. } = input else {
+                continue;
+            };
+            if result.task_id.to_string() != task.id {
+                continue;
+            }
+            if let Some(call_index) = pending_tool_calls
+                .get_mut(result.id.to_string().as_str())
+                .and_then(Vec::pop)
+            {
+                tool_results.insert(call_index, ToolResultSource::Current(input));
+            }
+        }
+
+        let mut message_index = 0;
+        while message_index < task.messages.len() {
+            if matches!(
+                task.messages[message_index].message.as_ref(),
+                Some(api::message::Message::ToolCall(_))
+            ) {
+                let request_id = &task.messages[message_index].request_id;
+                let group_start = message_index;
+                while message_index < task.messages.len()
+                    && task.messages[message_index].request_id == *request_id
+                    && matches!(
+                        task.messages[message_index].message.as_ref(),
+                        Some(api::message::Message::ToolCall(_))
+                    )
+                {
+                    message_index += 1;
+                }
+
+                let tool_calls = task.messages[group_start..message_index]
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(offset, message)| match message.message.as_ref() {
+                        Some(api::message::Message::ToolCall(tool_call)) => {
+                            Some((group_start + offset, tool_call))
+                        }
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>();
+                let group_is_resolved = tool_calls.len() == message_index - group_start
+                    && !tool_calls.is_empty()
+                    && tool_calls
+                        .iter()
+                        .all(|(index, _)| tool_results.contains_key(index));
+                if !group_is_resolved {
+                    continue;
+                }
+
+                let chat_tool_calls = tool_calls
+                    .iter()
+                    .map(|(_, tool_call)| chat_tool_call(tool_call))
+                    .collect::<Option<Vec<_>>>();
+                let group_tool_call_map = tool_calls
+                    .iter()
+                    .map(|(_, tool_call)| (tool_call.tool_call_id.clone(), *tool_call))
+                    .collect::<HashMap<_, _>>();
+                let tool_result_messages = tool_calls
+                    .iter()
+                    .map(|(index, _)| match tool_results.get(index)? {
+                        ToolResultSource::Stored(result) => {
+                            let input = convert_tool_call_result_to_input(
+                                &task_id,
+                                result,
+                                &group_tool_call_map,
+                                &mut document_versions,
+                            )?;
+                            chat_message_from_tool_result_input(&input)
+                        }
+                        ToolResultSource::Current(input) => {
+                            chat_message_from_tool_result_input(input)
+                        }
+                    })
+                    .collect::<Option<Vec<_>>>();
+                if let (Some(tool_calls), Some(tool_results)) =
+                    (chat_tool_calls, tool_result_messages)
+                {
+                    messages.push(ChatMessage {
+                        role: ChatRole::Assistant,
+                        content: None,
+                        tool_calls,
+                        tool_call_id: None,
+                    });
+                    messages.extend(tool_results);
+                }
+                continue;
+            }
+
+            let message = &task.messages[message_index];
+            if let Some(message) = chat_message_from_api_message(message) {
+                messages.push(message);
+            }
+            message_index += 1;
+        }
+    }
+    messages
 }
 
 fn chat_message_from_api_message(message: &api::Message) -> Option<ChatMessage> {
@@ -54,35 +184,136 @@ fn chat_message_from_api_message(message: &api::Message) -> Option<ChatMessage> 
         api::message::Message::AgentOutput(output) if !output.text.trim().is_empty() => {
             Some(text_message(ChatRole::Assistant, output.text.clone()))
         }
-        api::message::Message::ToolCall(tool_call) => {
-            let tool_call = chat_tool_call(tool_call)?;
-            Some(ChatMessage {
-                role: ChatRole::Assistant,
-                content: None,
-                tool_calls: vec![tool_call],
-                tool_call_id: None,
-            })
-        }
         _ => None,
     }
 }
 
-pub(super) fn chat_messages_from_inputs(inputs: &[AIAgentInput]) -> Vec<ChatMessage> {
+pub(super) fn chat_messages_from_user_inputs(inputs: &[AIAgentInput]) -> Vec<ChatMessage> {
     inputs
         .iter()
         .filter_map(|input| match input {
             AIAgentInput::UserQuery { query, .. } if !query.trim().is_empty() => {
                 Some(text_message(ChatRole::User, query.clone()))
             }
-            AIAgentInput::ActionResult { result, .. } => Some(ChatMessage {
-                role: ChatRole::Tool,
-                content: Some(result.to_string()),
-                tool_calls: vec![],
-                tool_call_id: Some(result.id.to_string()),
-            }),
             _ => None,
         })
         .collect()
+}
+
+fn chat_message_from_tool_result_input(input: &AIAgentInput) -> Option<ChatMessage> {
+    match input {
+        AIAgentInput::ActionResult { result, .. } => Some(ChatMessage {
+            role: ChatRole::Tool,
+            content: Some(result.to_string()),
+            tool_calls: vec![],
+            tool_call_id: Some(result.id.to_string()),
+        }),
+        _ => None,
+    }
+}
+
+pub(super) fn local_messages_from_inputs(
+    task_id: &str,
+    request_id: &str,
+    inputs: &[AIAgentInput],
+) -> Vec<api::Message> {
+    inputs
+        .iter()
+        .filter_map(|input| match input {
+            AIAgentInput::UserQuery {
+                query,
+                context,
+                referenced_attachments,
+                user_query_mode,
+                intended_agent,
+                ..
+            } => Some(api::Message {
+                id: Uuid::new_v4().to_string(),
+                task_id: task_id.to_string(),
+                request_id: request_id.to_string(),
+                message: Some(api::message::Message::UserQuery(api::message::UserQuery {
+                    query: query.clone(),
+                    context: Some(convert_context(context.as_ref())),
+                    referenced_attachments: referenced_attachments
+                        .iter()
+                        .map(|(name, attachment)| (name.clone(), attachment.clone().into()))
+                        .collect(),
+                    mode: Some(user_query_mode.clone().into()),
+                    intended_agent: intended_agent.clone().map(Into::into).unwrap_or_default(),
+                })),
+                ..Default::default()
+            }),
+            AIAgentInput::ActionResult { result, context } => {
+                let result_type = local_tool_call_result(result)?;
+                Some(api::Message {
+                    id: Uuid::new_v4().to_string(),
+                    task_id: task_id.to_string(),
+                    request_id: request_id.to_string(),
+                    message: Some(api::message::Message::ToolCallResult(
+                        api::message::ToolCallResult {
+                            tool_call_id: result.id.to_string(),
+                            result: Some(result_type),
+                            context: Some(convert_context(context.as_ref())),
+                        },
+                    )),
+                    ..Default::default()
+                })
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+#[allow(deprecated)]
+fn local_tool_call_result(
+    result: &crate::ai::agent::AIAgentActionResult,
+) -> Option<api::message::tool_call_result::Result> {
+    use api::message::tool_call_result::Result as MessageResult;
+    use api::request::input::tool_call_result::Result as InputResult;
+    use api::request::input::user_inputs::user_input::Input as UserInput;
+
+    if matches!(
+        &result.result,
+        crate::ai::agent::AIAgentActionResultType::RequestCommandOutput(
+            crate::ai::agent::RequestCommandOutputResult::CancelledBeforeExecution
+        ) | crate::ai::agent::AIAgentActionResultType::ReadFiles(
+            crate::ai::agent::ReadFilesResult::Cancelled
+        ) | crate::ai::agent::AIAgentActionResultType::RequestFileEdits(
+            crate::ai::agent::RequestFileEditsResult::Cancelled
+        ) | crate::ai::agent::AIAgentActionResultType::CallMCPTool(
+            crate::ai::agent::CallMCPToolResult::Cancelled
+        )
+    ) {
+        return Some(MessageResult::Cancel(()));
+    }
+
+    let UserInput::ToolCallResult(result) = result.clone().try_into().ok()? else {
+        return None;
+    };
+    match result.result? {
+        InputResult::RunShellCommand(result) => Some(MessageResult::RunShellCommand(result)),
+        InputResult::ReadFiles(result) => Some(MessageResult::ReadFiles(result)),
+        InputResult::ApplyFileDiffs(result) => Some(MessageResult::ApplyFileDiffs(result)),
+        InputResult::CallMcpTool(result) => Some(MessageResult::CallMcpTool(result)),
+        _ => None,
+    }
+}
+
+pub(super) fn agent_output_message(
+    task_id: &str,
+    message_id: &str,
+    request_id: &str,
+    content: String,
+) -> api::Message {
+    api::Message {
+        id: message_id.to_string(),
+        task_id: task_id.to_string(),
+        request_id: request_id.to_string(),
+        message: Some(api::message::Message::AgentOutput(
+            api::message::AgentOutput { text: content },
+        )),
+        ..Default::default()
+    }
 }
 
 fn text_message(role: ChatRole, content: String) -> ChatMessage {

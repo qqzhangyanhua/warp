@@ -206,7 +206,7 @@ fn agent_event_stream_sends_typed_request_and_streams_provider_text() {
     assert_eq!(captured.1.messages.len(), 1);
     assert_eq!(captured.1.messages[0].content.as_deref(), Some("hello"));
 
-    assert_eq!(events.len(), 4);
+    assert_eq!(events.len(), 5);
     assert!(matches!(
         events[0].r#type,
         Some(api::response_event::Type::Init(_))
@@ -221,10 +221,14 @@ fn agent_event_stream_sends_typed_request_and_streams_provider_text() {
     ));
     assert!(matches!(
         events[3].r#type,
+        Some(api::response_event::Type::ClientActions(_))
+    ));
+    assert!(matches!(
+        events[4].r#type,
         Some(api::response_event::Type::Finished(_))
     ));
 
-    let Some(api::response_event::Type::ClientActions(first_actions)) = &events[1].r#type else {
+    let Some(api::response_event::Type::ClientActions(first_actions)) = &events[2].r#type else {
         panic!("expected first text action");
     };
     let Some(api::client_action::Action::AddMessagesToTask(first_text)) =
@@ -238,7 +242,7 @@ fn agent_event_stream_sends_typed_request_and_streams_provider_text() {
     };
     assert_eq!(first_output.text, "hel");
 
-    let Some(api::response_event::Type::ClientActions(second_actions)) = &events[2].r#type else {
+    let Some(api::response_event::Type::ClientActions(second_actions)) = &events[3].r#type else {
         panic!("expected second text action");
     };
     let Some(api::client_action::Action::AppendToMessageContent(second_text)) =

@@ -80,7 +80,25 @@ fn thirty_second_tool_result_pauses_for_confirmation_without_calling_provider() 
         events
     });
 
-    assert_eq!(events.len(), 3);
+    assert_eq!(events.len(), 4);
+    let persisted_message = match &events[1].r#type {
+        Some(api::response_event::Type::ClientActions(actions)) => actions
+            .actions
+            .first()
+            .and_then(|action| action.action.as_ref())
+            .and_then(|action| match action {
+                api::client_action::Action::AddMessagesToTask(add) => add.messages.first(),
+                _ => None,
+            })
+            .expect("current tool result should be persisted before pausing"),
+        _ => panic!("expected input persistence action before confirmation"),
+    };
+    let Some(api::message::Message::ToolCallResult(tool_result)) = &persisted_message.message
+    else {
+        panic!("expected the current tool result to be persisted");
+    };
+    assert_eq!(tool_result.tool_call_id, "call-32");
+
     let message = events
         .iter()
         .filter_map(|event| match &event.r#type {
