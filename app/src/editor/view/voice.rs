@@ -16,9 +16,9 @@ use warpui::{elements, AppContext, Element, SingletonEntity, ViewContext, ViewHa
 
 use super::{EditorAction, EditorView, Transcriber, VoiceTranscriber, VoiceTranscriptionOptions};
 use crate::ai::blocklist::InputType;
-use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::editor::EditorElement;
+use crate::i18n::{tr_cached, Message};
 use crate::server::server_api::TranscribeError;
 use crate::server::telemetry::TelemetryEvent;
 use crate::settings::{AISettings, VoiceInputToggleKey};
@@ -355,7 +355,8 @@ impl EditorView {
                             if let Some(toggle_key) = settings.maybe_setup_first_time_voice(ctx) {
                                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                     let toast = crate::view_components::DismissibleToast::success(
-                                        tr_cached(Message::ToastVoiceInputEnabled).replace("{}", &toggle_key.display_name())
+                                        tr_cached(Message::ToastVoiceInputEnabled)
+                                            .replace("{}", &toggle_key.display_name())
                                             .to_string(),
                                     );
                                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);

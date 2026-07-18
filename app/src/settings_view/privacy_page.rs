@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 use std::time::Duration;
 
 use pathfinder_geometry::vector::vec2f;
@@ -63,12 +62,9 @@ use crate::workspaces::workspace::{
 
 const FONT_SIZE: f32 = 12.;
 
-static SAFE_MODE_DESCRIPTION: LazyLock<&'static str> = LazyLock::new(|| {
-    "When this setting is enabled, Warp will scan blocks, the contents of \
-        Warp Drive objects, and Oz prompts for potential sensitive \
-        information and prevent saving or sending this data to any \
-        servers. You can customize this list via regexes."
-});
+fn safe_mode_description(app: &AppContext) -> &'static str {
+    tr(app, Message::PrivacySafeModeDescription)
+}
 const USER_SECRET_REGEX_DESCRIPTION: &str =
     "Use regex to define additional secrets or data you'd like to redact. This will take effect \
     when the next command runs. You can use the inline (?i) flag as a prefix to your regex \
@@ -1214,7 +1210,7 @@ impl SettingsWidget for SecretRedactionWidget {
             .with_child(secret_redaction_title_row)
             .with_child(
                 ui_builder
-                    .paragraph((*SAFE_MODE_DESCRIPTION).to_owned())
+                    .paragraph(safe_mode_description(app).to_owned())
                     .with_style(UiComponentStyles {
                         font_color: Some(description_text_color),
                         font_size: Some(FONT_SIZE + 1.), // One size up from current 12px to 13px
@@ -1795,7 +1791,7 @@ impl SettingsWidget for NetworkLogWidget {
                 ui_builder
                     .paragraph(
                         "We've built a native console that allows you to view all communications \
-                        from Warp to external servers to ensure you feel comfortable that your \
+                        from ZYH to external servers to ensure you feel comfortable that your \
                         work is always kept safe."
                             .to_owned(),
                     )

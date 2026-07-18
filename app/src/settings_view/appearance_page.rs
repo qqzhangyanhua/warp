@@ -1450,9 +1450,10 @@ impl AppearanceSettingsPageView {
         }
 
         if !window_settings_widgets.is_empty() {
-            categories.push(
-                Category::localized(Message::SettingsWindowCategory, window_settings_widgets),
-            );
+            categories.push(Category::localized(
+                Message::SettingsWindowCategory,
+                window_settings_widgets,
+            ));
         }
 
         // Tools panel tab visibility toggles. These control which of the four
@@ -1476,9 +1477,10 @@ impl AppearanceSettingsPageView {
         }
         tools_panel_widgets.push(Box::new(ToolsPanelWarpDriveWidget::default()));
         if !tools_panel_widgets.is_empty() {
-            categories.push(
-                Category::localized(Message::SettingsToolsPanelCategory, tools_panel_widgets),
-            );
+            categories.push(Category::localized(
+                Message::SettingsToolsPanelCategory,
+                tools_panel_widgets,
+            ));
         }
 
         // Create the Input category with all widgets
@@ -1490,9 +1492,10 @@ impl AppearanceSettingsPageView {
             Box::new(InputModeWidget::default()),
         ];
 
-        categories.push(
-            Category::localized(Message::SettingsInputCategory, category_widgets),
-        );
+        categories.push(Category::localized(
+            Message::SettingsInputCategory,
+            category_widgets,
+        ));
 
         categories.push(Category::localized(
             Message::SettingsPanesCategory,
@@ -1509,9 +1512,10 @@ impl AppearanceSettingsPageView {
         if FeatureFlag::MinimalistUI.is_enabled() {
             block_settings_widgets.push(Box::new(ShowBlockDividersWidget::default()));
         }
-        categories.push(
-            Category::localized(Message::SettingsBlocksCategory, block_settings_widgets),
-        );
+        categories.push(Category::localized(
+            Message::SettingsBlocksCategory,
+            block_settings_widgets,
+        ));
 
         let font_settings = FontSettings::as_ref(ctx);
         let mut text_settings_widgets: Vec<Box<dyn SettingsWidget<View = Self>>> = vec![
@@ -1540,9 +1544,10 @@ impl AppearanceSettingsPageView {
             text_settings_widgets.push(Box::new(LigaturesWidget::default()));
         }
 
-        categories.push(
-            Category::localized(Message::SettingsTextCategory, text_settings_widgets),
-        );
+        categories.push(Category::localized(
+            Message::SettingsTextCategory,
+            text_settings_widgets,
+        ));
 
         categories.push(Category::localized(
             Message::SettingsCursorCategory,
@@ -1594,16 +1599,15 @@ impl AppearanceSettingsPageView {
             tab_settings_widgets.push(Box::new(DirectoryTabColorsWidget { add_picker }));
         }
 
-        categories.push(
-            Category::localized(Message::SettingsTabsCategory, tab_settings_widgets),
-        );
+        categories.push(Category::localized(
+            Message::SettingsTabsCategory,
+            tab_settings_widgets,
+        ));
 
-        categories.push(
-            Category::localized(
+        categories.push(Category::localized(
             Message::SettingsFullScreenAppsCategory,
             vec![Box::new(AltScreenPaddingWidget::default())],
-            ),
-        );
+        ));
 
         PageType::new_categorized(categories, None)
     }
@@ -1761,7 +1765,7 @@ impl AppearanceSettingsPageView {
             AppIcon::Original => "Original",
             AppIcon::Starburst => "Starburst",
             AppIcon::Sticker => "Sticker",
-            AppIcon::WarpOne => "Warp 1",
+            AppIcon::WarpOne => "ZYH 1",
         }
     }
 
@@ -3834,7 +3838,7 @@ impl SettingsWidget for ToolsPanelWarpDriveWidget {
         app: &AppContext,
     ) -> Box<dyn Element> {
         render_body_item::<AppearancePageAction>(
-            "Warp Drive".to_string(),
+            "ZYH Drive".to_string(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -3848,7 +3852,7 @@ impl SettingsWidget for ToolsPanelWarpDriveWidget {
                     evt_ctx.dispatch_typed_action(AppearancePageAction::ToggleToolsPanelWarpDrive);
                 })
                 .finish(),
-            Some("Show the Warp Drive tab in the tools panel.".to_string()),
+            Some("Show the ZYH Drive tab in the tools panel.".to_string()),
         )
     }
 }
@@ -3884,7 +3888,7 @@ impl SettingsWidget for InputTypeWidget {
             .radio_buttons(
                 self.radio_buttons_states.clone(),
                 vec![
-                    RadioButtonItem::text("Warp"),
+                    RadioButtonItem::text("ZYH"),
                     RadioButtonItem::text("Shell (PS1)"),
                 ],
                 view.input_type_radio_state.clone(),

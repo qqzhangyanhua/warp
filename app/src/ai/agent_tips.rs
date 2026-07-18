@@ -108,7 +108,7 @@ static DEFAULT_TIPS: LazyLock<Vec<AgentTip>> = LazyLock::new(|| {
             kind: AgentTipKind::SlashCommands,
         },
         AgentTip {
-            description: "<keybinding> to open the Command Palette and access Warp actions and shortcuts.".to_string(),
+            description: "<keybinding> to open the Command Palette and access ZYH actions and shortcuts.".to_string(),
             link: Some("https://docs.warp.dev/terminal/command-palette".to_string()),
             binding_name: Some(TOGGLE_COMMAND_PALETTE_KEYBINDING_NAME),
             action: Some(WorkspaceAction::OpenPalette {
@@ -133,7 +133,7 @@ static DEFAULT_TIPS: LazyLock<Vec<AgentTip>> = LazyLock::new(|| {
             kind: AgentTipKind::General,
         },
         AgentTip {
-            description: "`@` to add context from files, blocks, or Warp Drive objects to your prompt.".to_string(),
+            description: "`@` to add context from files, blocks, or ZYH Drive objects to your prompt.".to_string(),
             link: Some("https://docs.warp.dev/agent-platform/local-agents/agent-context/using-to-add-context".to_string()),
             binding_name: None,
             action: None,
@@ -371,14 +371,14 @@ fn localized_tip_description(ctx: &AppContext, en: &str) -> String {
             "按 <keybinding> 切换自然语言检测，在 Agent 输入和终端输入之间切换。".into(),
         "`/plan` <prompt> to create a plan for the agent before executing." =>
             "使用 `/plan` <提示词> 在执行前为 Agent 创建执行计划。".into(),
-        "<keybinding> to open the Command Palette and access Warp actions and shortcuts." =>
-            "按 <keybinding> 打开命令面板，访问 Warp 操作和快捷键。".into(),
+        "<keybinding> to open the Command Palette and access ZYH actions and shortcuts." =>
+            "按 <keybinding> 打开命令面板，访问 ZYH 操作和快捷键。".into(),
         "Store reusable workflows, notebooks, and prompts in your" =>
-            "在 Warp Drive 中存储可复用的工作流、笔记本和提示词。".into(),
+            "在 ZYH Drive 中存储可复用的工作流、笔记本和提示词。".into(),
         "Enter a new prompt to redirect the agent while it's running." =>
             "输入新的提示词，在 Agent 运行时重定向其任务。".into(),
-        "`@` to add context from files, blocks, or Warp Drive objects to your prompt." =>
-            "使用 `@` 将文件、块或 Warp Drive 对象作为上下文添加到提示词中。".into(),
+        "`@` to add context from files, blocks, or ZYH Drive objects to your prompt." =>
+            "使用 `@` 将文件、块或 ZYH Drive 对象作为上下文添加到提示词中。".into(),
         "<keybinding> to attach the prior command output as agent context." =>
             "按 <keybinding> 将上一条命令输出附加为 Agent 上下文。".into(),
         "`/init` to index the repo so the agent can understand your codebase." =>
@@ -528,7 +528,7 @@ impl WorkspaceAction {
     pub fn display_text(&self) -> Option<String> {
         match self {
             WorkspaceAction::OpenPalette { .. } => Some("Open palette".to_string()),
-            WorkspaceAction::OpenWarpDrive => Some("Warp Drive.".to_string()),
+            WorkspaceAction::OpenWarpDrive => Some("ZYH Drive.".to_string()),
             WorkspaceAction::ToggleRightPanel => Some("Show diff view".to_string()),
             _ => None,
         }

@@ -80,7 +80,7 @@ pub const FEATURE_INTROS: &[FeatureIntro] = &[FeatureIntro {
     hero_image_path: "async/png/onboarding/custom_model_router_intro_banner.png",
     // Localized at render / set_feature via Message.
     badge: Some("NEW"),
-    title: "Build a custom model router for the Warp Agent.",
+    title: "Build a custom model router for the ZYH Agent.",
     description: "Custom routers can be complexity-based, where tasks are routed based on how difficult they are, or rule-based, where they are routed based on a set of natural language prompts.",
     description_icon: Some(Icon::Compass),
     cta_label: "Get started",
@@ -112,7 +112,6 @@ fn localized_cta(intro: &FeatureIntro) -> &'static str {
         FeatureIntroId::CustomModelRouter => tr_cached(Message::EnvironmentGetStarted),
     }
 }
-
 
 /// Looks up a feature-intro descriptor by its id.
 pub fn feature_intro_by_id(id: FeatureIntroId) -> Option<&'static FeatureIntro> {
@@ -276,9 +275,13 @@ impl FeatureIntroModal {
     }
 
     fn render_description(intro: &FeatureIntro, appearance: &Appearance) -> Box<dyn Element> {
-        let description = Text::new(localized_description(intro), appearance.ui_font_family(), 14.)
-            .with_color(modal_text_sub(appearance))
-            .finish();
+        let description = Text::new(
+            localized_description(intro),
+            appearance.ui_font_family(),
+            14.,
+        )
+        .with_color(modal_text_sub(appearance))
+        .finish();
 
         if let Some(icon) = intro.description_icon {
             Flex::row()

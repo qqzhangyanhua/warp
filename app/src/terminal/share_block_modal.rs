@@ -83,7 +83,7 @@ const COMMAND_OPTION: (&str, DisplaySetting) = ("Command", DisplaySetting::Comma
 const OUTPUT_OPTION: (&str, DisplaySetting) = ("Output", DisplaySetting::Output);
 
 /// This default title is helpful for screen readers.
-const DEFAULT_EMBED_TITLE: &str = "embedded warp block";
+const DEFAULT_EMBED_TITLE: &str = "embedded ZYH block";
 
 #[derive(PartialEq)]
 enum ShareRequestState {

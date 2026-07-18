@@ -20,11 +20,11 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
+use crate::i18n::{tr, tr_cached, Message};
 use crate::modal::{Modal, ModalViewState};
 use crate::util::truncation::truncate_from_end;
 use crate::view_components::dropdown::{DROPDOWN_PADDING, TOP_MENU_BAR_HEIGHT};
@@ -164,7 +164,7 @@ impl CreateApiKeyModal {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("Warp API Key", ctx);
+            editor.set_placeholder_text("ZYH API Key", ctx);
             editor
         });
 
@@ -341,7 +341,7 @@ impl CreateApiKeyModal {
         let name = self.name_editor.as_ref(ctx).buffer_text(ctx);
 
         let final_name = if name.trim().is_empty() {
-            "Warp API Key".to_string()
+            "ZYH API Key".to_string()
         } else {
             name.trim().to_string()
         };
@@ -657,8 +657,8 @@ impl View for CreateApiKeyModal {
                     appearance.ui_font_family(),
                     LABEL_FONT_SIZE,
                 )
-                    .with_color(theme.active_ui_text_color().into())
-                    .finish();
+                .with_color(theme.active_ui_text_color().into())
+                .finish();
 
                 let is_pending = self.request_state == RequestState::Pending;
 
@@ -720,14 +720,13 @@ impl View for CreateApiKeyModal {
                 let mut render_agent_dropdown = false;
 
                 if self.has_team || self.has_named_agents {
-                    let type_label =
-                        Text::new(
-                            tr(app, Message::PlatformApiKeyTypeLabel),
-                            appearance.ui_font_family(),
-                            LABEL_FONT_SIZE,
-                        )
-                            .with_color(theme.active_ui_text_color().into())
-                            .finish();
+                    let type_label = Text::new(
+                        tr(app, Message::PlatformApiKeyTypeLabel),
+                        appearance.ui_font_family(),
+                        LABEL_FONT_SIZE,
+                    )
+                    .with_color(theme.active_ui_text_color().into())
+                    .finish();
                     col.add_child(Container::new(type_label).with_margin_bottom(4.).finish());
                     col.add_child(
                         Container::new(ChildView::new(&self.api_key_type_control).finish())
@@ -743,14 +742,13 @@ impl View for CreateApiKeyModal {
                 );
 
                 if selected_key_type == ApiKeyType::Agent {
-                    let agent_label =
-                        Text::new(
-                            tr(app, Message::FeaturesDefaultSessionAgent),
-                            appearance.ui_font_family(),
-                            LABEL_FONT_SIZE,
-                        )
-                            .with_color(theme.active_ui_text_color().into())
-                            .finish();
+                    let agent_label = Text::new(
+                        tr(app, Message::FeaturesDefaultSessionAgent),
+                        appearance.ui_font_family(),
+                        LABEL_FONT_SIZE,
+                    )
+                    .with_color(theme.active_ui_text_color().into())
+                    .finish();
                     col.add_child(Container::new(agent_label).with_margin_bottom(4.).finish());
 
                     let available_agents: Vec<&AgentIdentity> =
@@ -836,10 +834,13 @@ impl View for CreateApiKeyModal {
                     .finish(),
                 );
 
-                let expiration_label =
-                    Text::new(tr(app, Message::PlatformExpiration), appearance.ui_font_family(), LABEL_FONT_SIZE)
-                        .with_color(theme.active_ui_text_color().into())
-                        .finish();
+                let expiration_label = Text::new(
+                    tr(app, Message::PlatformExpiration),
+                    appearance.ui_font_family(),
+                    LABEL_FONT_SIZE,
+                )
+                .with_color(theme.active_ui_text_color().into())
+                .finish();
 
                 col.add_child(
                     Container::new(expiration_label)

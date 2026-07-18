@@ -469,7 +469,7 @@ pub(crate) fn classify_renderable_error(
         RenderableAIError::ServerOverloaded => (
             AgentTaskState::Error,
             Some(TaskStatusUpdate::with_error_code(
-                "Warp is temporarily overloaded. Please try again shortly.",
+                "ZYH is temporarily overloaded. Please try again shortly.",
                 PlatformErrorCode::ResourceUnavailable,
             )),
         ),

@@ -17,8 +17,8 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
-use crate::ui_components::blended_colors;
 use crate::i18n::{tr_cached, Message};
+use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, ActionButtonTheme};
 
@@ -111,7 +111,7 @@ impl CodexModal {
 
         // Title
         let title = FormattedTextElement::from_str(
-            "Use Codex models in Warp",
+            "Use Codex models in ZYH",
             appearance.ui_font_family(),
             24.,
         )

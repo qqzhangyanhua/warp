@@ -659,7 +659,7 @@ fn terminal_menu_message(text: &str) -> Option<Message> {
         "Copy path" => Message::CodeCopyPath,
         "Show in Finder" => Message::TerminalShowInFinder,
         "Show containing folder" => Message::TerminalShowContainingFolder,
-        "Open in Warp" => Message::SharedOpenInWarp,
+        "Open in Warp" | "Open in ZYH" => Message::SharedOpenInWarp,
         "Open in editor" => Message::NotebookOpenInEditor,
         "Copy" => Message::CommonCopy,
         "Insert into input" => Message::TerminalInsertIntoInput,
@@ -672,7 +672,7 @@ fn terminal_menu_message(text: &str) -> Option<Message> {
         "Copy share link" => Message::TerminalCopyShareLink,
         "Share conversation" => Message::ConversationShareConversation,
         "Copy conversation text" => Message::TerminalCopyConversationText,
-        "Ask Warp AI" => Message::TerminalAskWarpAi,
+        "Ask Warp AI" | "Ask ZYH AI" => Message::TerminalAskWarpAi,
         "Copy output" => Message::TerminalCopyOutput,
         "Copy output as Markdown" => Message::TerminalCopyOutputAsMarkdown,
         "Copy filtered output" => Message::TerminalCopyFilteredOutput,
@@ -866,16 +866,16 @@ impl NotificationsTrigger {
     pub fn discovery_banner_copy(&self) -> &'static str {
         match self {
             NotificationsTrigger::LongRunningCommand(..) => {
-                "Warp can notify you when long-running commands finish."
+                "ZYH can notify you when long-running commands finish."
             }
             NotificationsTrigger::AgentTaskCompleted(..) => {
-                "Warp can notify you when an agent finishes responding."
+                "ZYH can notify you when an agent finishes responding."
             }
             NotificationsTrigger::NeedsAttention => {
-                "Warp can notify you when a command or agent needs your attention."
+                "ZYH can notify you when a command or agent needs your attention."
             }
             NotificationsTrigger::PasswordPrompt => {
-                "Warp can notify you when you're prompted to enter a password."
+                "ZYH can notify you when you're prompted to enter a password."
             }
         }
     }
@@ -4009,7 +4009,7 @@ impl TerminalView {
         let incompatible_configuration_banner = ctx.add_typed_action_view(|_| {
             Banner::new(BannerTextContent::formatted_text(vec![
                 FormattedTextFragment::plain_text(
-                    "Your shell configuration is incompatible with Warp...  ",
+                    "Your shell configuration is incompatible with ZYH...  ",
                 ),
                 FormattedTextFragment::hyperlink("More info", KNOWN_ISSUES_URL),
             ]))
@@ -4067,9 +4067,11 @@ impl TerminalView {
                     BannerTextButton::new(
                         tr_cached(Message::TerminalAllow).to_string(),
                         Rc::new(|event_ctx, _ctx, _position| {
-                            event_ctx.dispatch_typed_action(BannerAction::<TerminalAction>::Action(
-                                TerminalAction::Osc52AllowBlockedClipboardOperation,
-                            ));
+                            event_ctx.dispatch_typed_action(
+                                BannerAction::<TerminalAction>::Action(
+                                    TerminalAction::Osc52AllowBlockedClipboardOperation,
+                                ),
+                            );
                         }),
                     ),
                     BannerTextButton::new(
@@ -9993,11 +9995,11 @@ impl TerminalView {
 
         let a11y_message = match &warpify_keybinding {
             Some(keystroke) => format!(
-                "You can press {} to Warpify this {} for more Warp features.",
+                "You can press {} to Warpify this {} for more ZYH features.",
                 keystroke.displayed(),
                 lowercase_title
             ),
-            None => format!("You can Warpify this {lowercase_title} for more Warp features."),
+            None => format!("You can Warpify this {lowercase_title} for more ZYH features."),
         };
 
         model
@@ -10162,7 +10164,7 @@ impl TerminalView {
 
         let a11y_content = AccessibilityContent::new(
             banner_title,
-            "Make sure you have enabled access for Warp notifications in System Preferences.",
+            "Make sure you have enabled access for ZYH notifications in System Preferences.",
             WarpA11yRole::TextRole,
         );
         ctx.emit_a11y_content(a11y_content);
@@ -13103,8 +13105,9 @@ impl TerminalView {
                         }
                         RemoteServerSetupState::Installing {
                             progress_percent: Some(p),
-                        } => tr_cached(Message::TerminalInstallingPct)
-                            .replace("{p}", &p.to_string()),
+                        } => {
+                            tr_cached(Message::TerminalInstallingPct).replace("{p}", &p.to_string())
+                        }
                         RemoteServerSetupState::Installing {
                             progress_percent: None,
                         } => tr_cached(Message::TerminalInstalling).to_string(),
@@ -21362,13 +21365,19 @@ impl TerminalView {
 
         let Some(ambient_agent_view_model) = self.ambient_agent_view_model.clone() else {
             self.restore_followup_prompt_after_failed_submission(&prompt, ctx);
-            self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
+            self.show_error_toast(
+                tr_cached(Message::ToastCouldntContinueCloudTask).to_string(),
+                ctx,
+            );
             return true;
         };
 
         if ambient_agent_view_model.as_ref(ctx).task_id() != Some(task_id) {
             self.restore_followup_prompt_after_failed_submission(&prompt, ctx);
-            self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
+            self.show_error_toast(
+                tr_cached(Message::ToastCouldntContinueCloudTask).to_string(),
+                ctx,
+            );
             return true;
         }
 
@@ -21450,7 +21459,10 @@ impl TerminalView {
                 {
                     return;
                 }
-                self.show_error_toast(tr_cached(Message::ToastCouldntContinueCloudTask).to_string(), ctx);
+                self.show_error_toast(
+                    tr_cached(Message::ToastCouldntContinueCloudTask).to_string(),
+                    ctx,
+                );
             }
             InputEvent::CancelSharedSessionConversation {
                 server_conversation_token,
@@ -22353,7 +22365,7 @@ impl TerminalView {
         let show_banner = if honor_ps1 {
             let banner_content = if shell_plugins.contains("p10k_unsupported") {
                 Some(BannerTextContent::formatted_text(vec![
-                    FormattedTextFragment::bold("Powerlevel10k now supports Warp!  "),
+                    FormattedTextFragment::bold("Powerlevel10k now supports ZYH!  "),
                     FormattedTextFragment::plain_text(
                         "You seem to be running an older (unsupported) version, please follow ",
                     ),
@@ -25507,10 +25519,7 @@ impl TerminalView {
     ) {
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             toast_stack.add_ephemeral_toast(
-                DismissibleToast::error(
-                    tr_cached(Message::ToastNonLocalEnvVarSubshell)
-                        .to_owned(),
-                ),
+                DismissibleToast::error(tr_cached(Message::ToastNonLocalEnvVarSubshell).to_owned()),
                 window_id,
                 ctx,
             );
@@ -27459,7 +27468,8 @@ impl TypedActionView for TerminalView {
                             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                 toast_stack.add_ephemeral_toast(
                                     DismissibleToast::error(
-                                        tr_cached(Message::ToastBundledSkillsCannotEdit).to_string(),
+                                        tr_cached(Message::ToastBundledSkillsCannotEdit)
+                                            .to_string(),
                                     ),
                                     window_id,
                                     ctx,

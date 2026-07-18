@@ -61,65 +61,66 @@ const EXPORT_DEFAULT_SETTINGS_CSV_MENU_ITEM_NAME: &str =
 const SETTINGS_CSV_FILE_NAME: &str = "warp_default_settings.csv";
 const MAX_RECENT_REPOS_IN_MENU: usize = 10;
 
-fn app_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-        return Cow::Borrowed(text);
-    }
-
-    Cow::Borrowed(match text {
-        "New Window" => "新建窗口",
-        "Preferences" => "偏好设置",
-        "Privacy Policy..." => "隐私政策...",
-        "Debug" => "调试",
-        "Set Warp as Default Terminal" => "将 Warp 设为默认终端",
-        "Log out" => "退出登录",
-        "Open Recent" => "打开最近项目",
-        "File" => "文件",
-        "Use Warp's Prompt" => "使用 Warp 提示符",
-        "Copy on Select within the Terminal" => "在终端中选择即复制",
-        "Synchronize Inputs" => "同步输入",
-        "Edit" => "编辑",
-        "Toggle Mouse Reporting" => "切换鼠标事件报告",
-        "Toggle Scroll Reporting" => "切换滚动事件报告",
-        "Toggle Focus Reporting" => "切换焦点事件报告",
-        "Compact Mode" => "紧凑模式",
-        "View" => "视图",
-        "Tab" => "标签页",
-        "AI" => "AI",
-        "Blocks" => "块",
-        "Drive" => "Warp Drive",
-        "Show In-band Command Blocks" => "显示带内命令块",
-        "Hide In-band Command Blocks" => "隐藏带内命令块",
-        "Show Warpified SSH Blocks" => "显示 Warpified SSH 块",
-        "Hide Warpified SSH Blocks" => "隐藏 Warpified SSH 块",
-        "Show Initialization Block" => "显示初始化块",
-        "Hide Initialization Block" => "隐藏初始化块",
-        "Window" => "窗口",
-        "Enable Shell Debug Mode (-x) for New Sessions" => "为新会话启用 Shell 调试模式 (-x)",
-        "Disable Shell Debug Mode (-x) for New Sessions" => "为新会话禁用 Shell 调试模式 (-x)",
-        "Enable PTY Recording Mode (warp.pty.recording)" => {
-            "启用 PTY 录制模式 (warp.pty.recording)"
-        }
-        "Disable PTY Recording Mode (warp.pty.recording)" => {
-            "禁用 PTY 录制模式 (warp.pty.recording)"
-        }
-        "Enable In-band Generators for New Sessions" => "为新会话启用带内生成器",
-        "Disable in-band generators for new sessions" => "为新会话禁用带内生成器",
-        "Manually Toggle Network Status" => "手动切换网络状态",
-        "Export Default Settings as CSV to home dir" => "将默认设置以 CSV 导出到主目录",
-        "Create anonymous user" => "创建匿名用户",
-        "Send Feedback..." => "发送反馈...",
-        "Help" => "帮助",
-        "Warp Documentation..." => "Warp 文档...",
-        "GitHub Issues..." => "GitHub Issues...",
-        "Join our Slack community..." => "加入我们的 Slack 社区...",
-        "Save New..." => "新建保存...",
-        "New Terminal Tab" => "新建终端标签页",
-        "New Agent Tab" => "新建 Agent 标签页",
-        "Reopen closed session" => "重新打开已关闭会话",
-        "Launch Configurations" => "启动配置",
-        _ => text,
+fn app_menu_message(text: &str) -> Option<crate::i18n::Message> {
+    use crate::i18n::Message;
+    Some(match text {
+        "New Window" => Message::AppMenuNewWindow,
+        "Preferences" => Message::AppMenuPreferences,
+        "Privacy Policy..." => Message::AppMenuPrivacyPolicy,
+        "Debug" => Message::AppMenuDebug,
+        "Set ZYH as Default Terminal" => Message::AppMenuSetAsDefaultTerminal,
+        "Log out" => Message::AppMenuLogOut,
+        "Open Recent" => Message::AppMenuOpenRecent,
+        "File" => Message::AppMenuFile,
+        "Use ZYH's Prompt" => Message::AppMenuUseWarpPrompt,
+        "Copy on Select within the Terminal" => Message::AppMenuCopyOnSelect,
+        "Synchronize Inputs" => Message::AppMenuSynchronizeInputs,
+        "Edit" => Message::AppMenuEdit,
+        "Toggle Mouse Reporting" => Message::AppMenuToggleMouseReporting,
+        "Toggle Scroll Reporting" => Message::AppMenuToggleScrollReporting,
+        "Toggle Focus Reporting" => Message::AppMenuToggleFocusReporting,
+        "Compact Mode" => Message::AppMenuCompactMode,
+        "View" => Message::AppMenuView,
+        "Tab" => Message::AppMenuTab,
+        "AI" => Message::AppMenuAi,
+        "Blocks" => Message::AppMenuBlocks,
+        "Drive" => Message::AppMenuDrive,
+        "Show In-band Command Blocks" => Message::AppMenuShowInBandBlocks,
+        "Hide In-band Command Blocks" => Message::AppMenuHideInBandBlocks,
+        "Show Warpified SSH Blocks" => Message::AppMenuShowSshBlocks,
+        "Hide Warpified SSH Blocks" => Message::AppMenuHideSshBlocks,
+        "Show Initialization Block" => Message::AppMenuShowInitBlock,
+        "Hide Initialization Block" => Message::AppMenuHideInitBlock,
+        "Window" => Message::AppMenuWindow,
+        "Enable Shell Debug Mode (-x) for New Sessions" => Message::AppMenuEnableShellDebug,
+        "Disable Shell Debug Mode (-x) for New Sessions" => Message::AppMenuDisableShellDebug,
+        "Enable PTY Recording Mode (warp.pty.recording)" => Message::AppMenuEnablePtyRecording,
+        "Disable PTY Recording Mode (warp.pty.recording)" => Message::AppMenuDisablePtyRecording,
+        "Enable In-band Generators for New Sessions" => Message::AppMenuEnableInBandGenerators,
+        "Disable in-band generators for new sessions" => Message::AppMenuDisableInBandGenerators,
+        "Manually Toggle Network Status" => Message::AppMenuManuallyToggleNetwork,
+        "Export Default Settings as CSV to home dir" => Message::AppMenuExportDefaultSettings,
+        "Create anonymous user" => Message::AppMenuCreateAnonymousUser,
+        "Send Feedback..." => Message::AppMenuSendFeedback,
+        "Help" => Message::AppMenuHelp,
+        "ZYH Documentation..." => Message::AppMenuWarpDocumentation,
+        "GitHub Issues..." => Message::AppMenuGithubIssues,
+        "Join our Slack community..." => Message::AppMenuJoinSlack,
+        "Save New..." => Message::AppMenuSaveNew,
+        "New Terminal Tab" => Message::AppMenuNewTerminalTab,
+        "New Agent Tab" => Message::AppMenuNewAgentTab,
+        "Reopen closed session" => Message::AppMenuReopenClosedSession,
+        "Launch Configurations" => Message::AppMenuLaunchConfigurations,
+        _ => return None,
     })
+}
+
+fn app_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
+    if let Some(message) = app_menu_message(text) {
+        Cow::Borrowed(crate::i18n::tr(ctx, message))
+    } else {
+        Cow::Borrowed(text)
+    }
 }
 
 /// Creates the root app menu bar
@@ -282,7 +283,7 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
     menu_items.push(MenuItem::Standard(StandardAction::ShowAllApps));
     menu_items.push(MenuItem::Separator);
     menu_items.push(MenuItem::Custom(CustomMenuItem::new(
-        app_menu_text(ctx, "Set Warp as Default Terminal").as_ref(),
+        app_menu_text(ctx, "Set ZYH as Default Terminal").as_ref(),
         move |ctx| {
             DefaultTerminal::handle(ctx).update(ctx, |default_terminal, ctx| {
                 default_terminal.make_warp_default(ctx)
@@ -375,7 +376,7 @@ fn make_new_edit_menu(ctx: &AppContext) -> Menu {
     ];
     let group_5 = vec![
         MenuItem::Custom(CustomMenuItem::new(
-            app_menu_text(ctx, "Use Warp's Prompt").as_ref(),
+            app_menu_text(ctx, "Use ZYH's Prompt").as_ref(),
             move |ctx| ctx.dispatch_global_action("app:toggle_user_ps1", &()),
             move |_props, ctx| MenuItemPropertyChanges {
                 checked: Some(
@@ -1008,7 +1009,7 @@ fn make_new_help_menu(ctx: &AppContext) -> Menu {
         app_menu_text(ctx, "Help").into_owned(),
         vec![
             feedback_menu_item(),
-            link_menu_item(ctx, "Warp Documentation...", links::USER_DOCS_URL.into()),
+            link_menu_item(ctx, "ZYH Documentation...", links::USER_DOCS_URL.into()),
             link_menu_item(ctx, "GitHub Issues...", links::GITHUB_ISSUES_URL.into()),
             link_menu_item(ctx, "Join our Slack community...", links::SLACK_URL.into()),
         ],

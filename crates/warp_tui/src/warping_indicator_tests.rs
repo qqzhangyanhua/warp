@@ -62,7 +62,7 @@ fn renders_the_indicator_row_and_requests_a_repaint() {
                 "unexpected spinner glyph in row: {line:?}"
             );
             assert!(
-                line.contains(" Warping... (0s)"),
+                line.contains(" Working... (0s)"),
                 "unexpected indicator row: {line:?}"
             );
 

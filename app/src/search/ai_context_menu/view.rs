@@ -128,33 +128,31 @@ impl AIContextMenuCategory {
     }
 
     pub fn localized_name(&self, ctx: &AppContext) -> &'static str {
+        use crate::i18n::Message;
         let en = self.name();
-        if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-            return en;
-        }
-
-        match en {
-            "Files and folders" => "文件和文件夹",
-            "Commands" => "命令",
-            "Blocks" => "块",
-            "Workflows" => "工作流",
-            "Notebooks" => "笔记本",
-            "Plans" => "计划",
-            "Diffs" => "差异",
-            "Docs" => "文档",
-            "Past tasks" => "历史任务",
-            "Rules" => "规则",
-            "Servers and integrations" => "服务器与集成",
-            "Terminal" => "终端",
-            "Web" => "网页",
-            "Most recent diff" => "最近差异",
-            "Most recent block" => "最近块",
-            "Code" => "代码",
-            "Diff sets" => "差异组",
-            "Conversations" => "对话",
-            "Skills" => "技能",
-            _ => en,
-        }
+        let message = match en {
+            "Files and folders" => Message::CtxCatFilesAndFolders,
+            "Commands" => Message::CtxCatCommands,
+            "Blocks" => Message::CtxCatBlocks,
+            "Workflows" => Message::CtxCatWorkflows,
+            "Notebooks" => Message::CtxCatNotebooks,
+            "Plans" => Message::CtxCatPlans,
+            "Diffs" => Message::CtxCatDiffs,
+            "Docs" => Message::CtxCatDocs,
+            "Past tasks" => Message::CtxCatPastTasks,
+            "Rules" => Message::CtxCatRules,
+            "Servers and integrations" => Message::CtxCatServers,
+            "Terminal" => Message::CtxCatTerminal,
+            "Web" => Message::CtxCatWeb,
+            "Most recent diff" => Message::CtxCatMostRecentDiff,
+            "Most recent block" => Message::CtxCatMostRecentBlock,
+            "Code" => Message::CtxCatCode,
+            "Diff sets" => Message::CtxCatDiffSets,
+            "Conversations" => Message::CtxCatConversations,
+            "Skills" => Message::CtxCatSkills,
+            _ => return en,
+        };
+        crate::i18n::tr(ctx, message)
     }
 
     pub fn icon(&self) -> &'static str {

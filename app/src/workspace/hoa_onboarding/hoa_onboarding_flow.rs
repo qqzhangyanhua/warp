@@ -24,8 +24,8 @@ use warpui::{
 };
 
 use super::{tab_config_step, welcome_banner};
-use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::settings::AISettings;
 use crate::tab_configs::session_config::{is_git_repo, SessionConfigSelection, SessionType};
 use crate::tab_configs::session_config_rendering;
@@ -208,9 +208,12 @@ impl HoaOnboardingFlow {
         });
 
         let cta_button = ctx.add_view(|_ctx| {
-            ActionButton::new(tr_cached(Message::HoaSeeWhatsNew), HoaWelcomeModalButtonTheme)
-                .with_full_width(true)
-                .on_click(|ctx| ctx.dispatch_typed_action(HoaOnboardingAction::AdvanceFromWelcome))
+            ActionButton::new(
+                tr_cached(Message::HoaSeeWhatsNew),
+                HoaWelcomeModalButtonTheme,
+            )
+            .with_full_width(true)
+            .on_click(|ctx| ctx.dispatch_typed_action(HoaOnboardingAction::AdvanceFromWelcome))
         });
 
         let enter = Keystroke::parse("enter").unwrap_or_default();
@@ -478,7 +481,7 @@ impl HoaOnboardingFlow {
 
         let formatted = FormattedText::new([FormattedTextLine::Line(vec![
             FormattedTextFragment::plain_text(
-                "Warp pipes through notifications from any CLI coding agent into a unified notification center that works across all coding agents and harnesses. ",
+                "ZYH pipes through notifications from any CLI coding agent into a unified notification center that works across all coding agents and harnesses. ",
             ),
             learn_more_fragment,
         ])]);

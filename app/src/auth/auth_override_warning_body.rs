@@ -381,7 +381,7 @@ impl View for AuthOverrideWarningBody {
     fn accessibility_contents(&self, _: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
             "New login detected",
-            "Warp has detected a new login from a web browser. Press escape to cancel and continue using Warp without login.",
+            "ZYH has detected a new login from a web browser. Press escape to cancel and continue using ZYH without login.",
             WarpA11yRole::HelpRole,
         ))
     }

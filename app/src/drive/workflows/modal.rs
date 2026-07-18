@@ -31,7 +31,6 @@ use super::workflow_arg_selector::{
     WorkflowArgSelector, WorkflowArgSelectorEvent, WorkflowArgSelectorStyles,
 };
 use super::workflow_arg_type_helpers::{self, ArgumentEditorRowIndex};
-use crate::i18n::{tr, tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::auth::UserUid;
 use crate::cloud_object::breadcrumbs::{ContainingObject, ContainingObjectKind};
@@ -45,6 +44,7 @@ use crate::editor::{
     PlainTextEditorViewAction as EditorAction, PropagateAndNoOpNavigationKeys, TextOptions,
     TextStyleOperation,
 };
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{Event, Menu, MenuItem, MenuItemFields};
 use crate::network::NetworkStatus;
 use crate::server::cloud_objects::update_manager::UpdateManager;
@@ -1726,7 +1726,7 @@ impl WorkflowModal {
                 .finish();
 
             let button_with_tool_tip = appearance.ui_builder().tool_tip_on_element(
-                "Generate a title, descriptions, or parameters with Warp AI".to_string(),
+                "Generate a title, descriptions, or parameters with ZYH AI".to_string(),
                 self.button_mouse_states.ai_assist_tool_tip.clone(),
                 rendered_button,
                 ParentAnchor::BottomMiddle,

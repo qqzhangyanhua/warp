@@ -821,7 +821,9 @@ impl MCPServersListPageView {
                 // Show the toast that the server updated, even though we don't update the cloud template in this case
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::success(String::from(tr_cached(Message::ToastMcpServerUpdated)));
+                    let toast = DismissibleToast::success(String::from(tr_cached(
+                        Message::ToastMcpServerUpdated,
+                    )));
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }
@@ -1260,8 +1262,8 @@ impl MCPServersListPageView {
                         .current_team()
                         .map(|team| team.name.clone());
                     let shared_by_text = match team_name {
-                        Some(name) => format!("Shared by Warp and {name}"),
-                        None => "Shared by Warp and from other devices".to_string(),
+                        Some(name) => format!("Shared by ZYH and {name}"),
+                        None => "Shared by ZYH and from other devices".to_string(),
                     };
 
                     page.add_child(self.render_server_cards_section(
@@ -1272,7 +1274,7 @@ impl MCPServersListPageView {
                     ));
                 } else if !filtered_gallery_cards.is_empty() {
                     page.add_child(self.render_server_cards_section(
-                        "Shared from Warp",
+                        "Shared from ZYH",
                         &filtered_gallery_cards,
                         appearance,
                         app,

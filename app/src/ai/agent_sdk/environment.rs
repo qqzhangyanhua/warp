@@ -167,7 +167,7 @@ impl EnvironmentCommandRunner {
                         OutputFormat::Text | OutputFormat::Pretty
                     ) {
                         println!(
-                            "All Warp dev images contain Python and Node. For more information, see: {}\n",
+                            "All ZYH dev images contain Python and Node. For more information, see: {}\n",
                             WARP_DEV_ENVIRONMENTS_REPO
                         );
                     }
@@ -192,7 +192,7 @@ impl EnvironmentCommandRunner {
         ctx.spawn(initial_sync, move |_, result, ctx| {
             if result.is_err() {
                 super::report_fatal_error(
-                    anyhow::anyhow!("Timed out waiting for Warp Drive to sync"),
+                    anyhow::anyhow!("Timed out waiting for ZYH Drive to sync"),
                     ctx,
                 );
                 return;
@@ -263,7 +263,7 @@ impl EnvironmentCommandRunner {
         ctx.spawn(initial_sync, move |_, result, ctx| {
             if result.is_err() {
                 super::report_fatal_error(
-                    anyhow::anyhow!("Timed out waiting for Warp Drive to sync"),
+                    anyhow::anyhow!("Timed out waiting for ZYH Drive to sync"),
                     ctx,
                 );
                 return;
@@ -354,7 +354,7 @@ impl EnvironmentCommandRunner {
                 ListWarpDevImagesResult::ListWarpDevImagesOutput(output) => {
                     if output.images.is_empty() {
                         super::report_fatal_error(
-                            anyhow::anyhow!("No Warp dev images available."),
+                            anyhow::anyhow!("No ZYH dev images available."),
                             ctx,
                         );
                         return;
@@ -475,7 +475,7 @@ impl EnvironmentCommandRunner {
         ctx.spawn(initial_sync, move |_, result, ctx| {
             if result.is_err() {
                 super::report_fatal_error(
-                    anyhow::anyhow!("Timed out waiting for Warp Drive to sync"),
+                    anyhow::anyhow!("Timed out waiting for ZYH Drive to sync"),
                     ctx,
                 );
                 return;
@@ -857,7 +857,7 @@ impl EnvironmentCommandRunner {
         ctx.spawn(initial_sync, move |_, result, ctx| {
             if result.is_err() {
                 super::report_fatal_error(
-                    anyhow::anyhow!("Timed out waiting for Warp Drive to sync"),
+                    anyhow::anyhow!("Timed out waiting for ZYH Drive to sync"),
                     ctx,
                 );
                 return;
@@ -1036,7 +1036,7 @@ impl EnvironmentCommandRunner {
         ctx.spawn(initial_sync, move |_, result, ctx| {
             if result.is_err() {
                 super::report_fatal_error(
-                    anyhow::anyhow!("Timed out waiting for Warp Drive to sync"),
+                    anyhow::anyhow!("Timed out waiting for ZYH Drive to sync"),
                     ctx,
                 );
                 return;

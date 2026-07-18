@@ -56,7 +56,7 @@ pub enum Host {
 impl Host {
     fn display_name(&self) -> &str {
         match self {
-            Host::Warp => "Warp",
+            Host::Warp => "ZYH",
             Host::SelfHosted { slug } => slug.as_str(),
         }
     }

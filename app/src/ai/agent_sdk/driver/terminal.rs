@@ -58,11 +58,11 @@ impl std::fmt::Display for BootstrapError {
             BootstrapError::PtySpawnFailed { reason: Some(r) } => {
                 write!(
                     f,
-                    "Shell spawn failed: {r}. Check the Warp logs for details."
+                    "Shell spawn failed: {r}. Check the ZYH logs for details."
                 )
             }
             BootstrapError::PtySpawnFailed { reason: None } => {
-                write!(f, "Shell spawn failed. Check the Warp logs for details.")
+                write!(f, "Shell spawn failed. Check the ZYH logs for details.")
             }
             BootstrapError::TimedOut => write!(
                 f,

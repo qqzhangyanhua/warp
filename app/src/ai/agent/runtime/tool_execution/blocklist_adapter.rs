@@ -114,14 +114,14 @@ impl RuntimeToolActionAdapter for BlocklistRuntimeToolActionAdapter {
                 .await
                 .is_err()
             {
-                return failed_outcome("The Warp tool executor is unavailable.", false);
+                return failed_outcome("The ZYH tool executor is unavailable.", false);
             }
             match result.await {
                 Ok(Ok(result)) => effect_outcome(result),
                 Ok(Err(RuntimeToolExecutionError::ExecutorUnavailable)) => {
-                    failed_outcome("The Warp tool executor could not start the action.", false)
+                    failed_outcome("The ZYH tool executor could not start the action.", false)
                 }
-                Err(_) => failed_outcome("The Warp tool executor stopped unexpectedly.", true),
+                Err(_) => failed_outcome("The ZYH tool executor stopped unexpectedly.", true),
             }
         })
     }

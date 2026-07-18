@@ -171,7 +171,8 @@ fn match_data_countable_zero_is_not_truthy() {
 
 #[test]
 fn subpage_display_names_are_correct() {
-    assert_eq!(SettingsSection::WarpAgent.to_string(), "Warp Agent");
+    assert_eq!(SettingsSection::WarpDrive.to_string(), "ZYH Drive");
+    assert_eq!(SettingsSection::WarpAgent.to_string(), "ZYH Agent");
     assert_eq!(SettingsSection::AgentProfiles.to_string(), "Profiles");
     assert_eq!(SettingsSection::AgentMCPServers.to_string(), "MCP servers");
     assert_eq!(SettingsSection::Knowledge.to_string(), "Knowledge");
@@ -199,10 +200,9 @@ fn subpage_display_names_are_correct() {
 
 #[test]
 fn subpage_from_str_parses_display_names() {
-    // Both the legacy "Oz" name and the new "Warp Agent" display name must
-    // resolve to SettingsSection::WarpAgent so existing deep links, persisted
-    // telemetry strings, and external callers continue to work after the
-    // user-facing rename (see specs/GH1063/product.md, Behavior #8).
+    // Legacy and current display names must resolve to the same section so
+    // existing deep links, persisted telemetry strings, and external callers
+    // continue to work after the user-facing rename.
     assert_eq!(
         SettingsSection::from_str("Oz"),
         Ok(SettingsSection::WarpAgent)
@@ -210,6 +210,18 @@ fn subpage_from_str_parses_display_names() {
     assert_eq!(
         SettingsSection::from_str("Warp Agent"),
         Ok(SettingsSection::WarpAgent)
+    );
+    assert_eq!(
+        SettingsSection::from_str("ZYH Agent"),
+        Ok(SettingsSection::WarpAgent)
+    );
+    assert_eq!(
+        SettingsSection::from_str("Warp Drive"),
+        Ok(SettingsSection::WarpDrive)
+    );
+    assert_eq!(
+        SettingsSection::from_str("ZYH Drive"),
+        Ok(SettingsSection::WarpDrive)
     );
     assert_eq!(
         SettingsSection::from_str("Profiles"),

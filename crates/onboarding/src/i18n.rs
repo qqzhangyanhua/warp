@@ -158,7 +158,7 @@ pub fn tr(message: OnboardingMessage, locale: Locale) -> &'static str {
 
 fn en_text(message: OnboardingMessage) -> &'static str {
     match message {
-        OnboardingMessage::WelcomeToWarp => "Welcome to Warp",
+        OnboardingMessage::WelcomeToWarp => "Welcome to ZYH",
         OnboardingMessage::ModernTerminalDescription => {
             "A modern terminal with state of the art agents built in."
         },
@@ -179,9 +179,9 @@ fn en_text(message: OnboardingMessage) -> &'static str {
 
         OnboardingMessage::ChooseYourAiSetup => "Choose your AI setup",
         OnboardingMessage::ChooseYourAiSetupDescription => {
-            "Choose if you'd like to use Warp Agent or third party agents."
+            "Choose if you'd like to use ZYH Agent or third party agents."
         },
-        OnboardingMessage::UseWarpAgent => "Use Warp Agent",
+        OnboardingMessage::UseWarpAgent => "Use ZYH Agent",
         OnboardingMessage::AccessMoreModels => "Access more models",
         OnboardingMessage::WarpAgentDescription => {
             "State of the art agent harness deeply integrated into the terminal."
@@ -194,7 +194,7 @@ fn en_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::GetAiAccess => "Get AI access",
         OnboardingMessage::ConfigureAi => "Configure AI",
         OnboardingMessage::AiAccessSubtitleLoggedIn => {
-            "Save with a recurring plan, or explore Warp's AI before committing."
+            "Save with a recurring plan, or explore ZYH's AI before committing."
         },
         OnboardingMessage::AiAccessSubtitleAnonymous => {
             "Add an OpenAI-compatible provider from Settings when you are ready."
@@ -207,7 +207,7 @@ fn en_text(message: OnboardingMessage) -> &'static str {
         },
         OnboardingMessage::SetUpLater => "Set up later",
         OnboardingMessage::SetUpLaterDescription => {
-            "Explore Warp's built-in AI features before committing to a plan, or bring your own \
+            "Explore ZYH's built-in AI features before committing to a plan, or bring your own \
              inference."
         },
         OnboardingMessage::IfBrowserHasntLaunched => "If your browser hasn't launched, ",
@@ -218,7 +218,7 @@ fn en_text(message: OnboardingMessage) -> &'static str {
 
         OnboardingMessage::OpenAProject => "Open a project",
         OnboardingMessage::ProjectSubtitle => {
-            "Set up a project to optimize it for coding in Warp."
+            "Set up a project to optimize it for coding in ZYH."
         },
         OnboardingMessage::OpenLocalFolder => "Open local folder",
         OnboardingMessage::Skip => "Skip",
@@ -227,7 +227,7 @@ fn en_text(message: OnboardingMessage) -> &'static str {
             "Prepares the project environment, builds an index of your code, and generates project \
              rules\u{2014}giving the agent deeper understanding and better performance."
         },
-        OnboardingMessage::GetWarping => "Get Warping",
+        OnboardingMessage::GetWarping => "Get started",
 
         OnboardingMessage::ChooseATheme => "Choose a theme",
         OnboardingMessage::ThemeSubtitle => {
@@ -238,10 +238,10 @@ fn en_text(message: OnboardingMessage) -> &'static str {
             "If you'd like to opt out of analytics, you can adjust your "
         },
         OnboardingMessage::PrivacySettings => "Privacy Settings",
-        OnboardingMessage::ByContinuingAgreeTo => "By continuing, you agree to Warp's ",
+        OnboardingMessage::ByContinuingAgreeTo => "By continuing, you agree to ZYH's ",
         OnboardingMessage::TermsOfService => "Terms of Service",
 
-        OnboardingMessage::CustomizeYourWarp => "Customize your Warp",
+        OnboardingMessage::CustomizeYourWarp => "Customize your ZYH",
         OnboardingMessage::CustomizeSubtitle => {
             "Tailor your features and UI to your working style."
         },
@@ -254,11 +254,11 @@ fn en_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::FileExplorer => "File explorer",
         OnboardingMessage::ConversationHistory => "Conversation history",
         OnboardingMessage::GlobalFileSearch => "Global file search",
-        OnboardingMessage::WarpDrive => "Warp Drive",
+        OnboardingMessage::WarpDrive => "ZYH Drive",
         OnboardingMessage::CodeReview => "Code review",
 
-        OnboardingMessage::CustomizeYourWarpAgent => "Customize your Warp Agent",
-        OnboardingMessage::AgentSlideSubtitle => "Select your Warp Agent's defaults.",
+        OnboardingMessage::CustomizeYourWarpAgent => "Customize your ZYH Agent",
+        OnboardingMessage::AgentSlideSubtitle => "Select your ZYH Agent's defaults.",
         OnboardingMessage::DefaultModel => "Default model",
         OnboardingMessage::Recommended => "Recommended",
         OnboardingMessage::Autonomy => "Autonomy",
@@ -266,14 +266,14 @@ fn en_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::Partial => "Partial",
         OnboardingMessage::NoneAutonomy => "None",
         OnboardingMessage::FullAutonomyDescription => {
-            "Warp Agent runs commands, writes code, and reads files without asking."
+            "ZYH Agent runs commands, writes code, and reads files without asking."
         },
         OnboardingMessage::PartialAutonomyDescription => {
-            "Warp Agent can plan, read files, and execute low-risk commands. Asks before making any \
+            "ZYH Agent can plan, read files, and execute low-risk commands. Asks before making any \
              changes or executing sensitive commands."
         },
         OnboardingMessage::NoneAutonomyDescription => {
-            "Warp Agent takes no actions without your approval."
+            "ZYH Agent takes no actions without your approval."
         },
         OnboardingMessage::SetByTeamWorkspace => "Set by Team Workspace",
         OnboardingMessage::AutonomyTeamWorkspaceDescription => {
@@ -291,7 +291,7 @@ fn en_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::Next => "Next",
 
         OnboardingMessage::AiFeature0 => {
-            "Use frontier and open-weight models with Warp Agent"
+            "Use frontier and open-weight models with ZYH Agent"
         },
         OnboardingMessage::AiFeature1 => "Hand off agent work to cloud agents",
         OnboardingMessage::AiFeature2 => "Automatically diagnose and fix terminal errors",
@@ -310,19 +310,19 @@ fn en_text(message: OnboardingMessage) -> &'static str {
             "Model routing across frontier and open-weight models"
         },
         OnboardingMessage::WarpAgentFeature3 => "Multi-agent orchestration",
-        OnboardingMessage::WarpDriveFeature0 => "Warp Drive",
+        OnboardingMessage::WarpDriveFeature0 => "ZYH Drive",
         OnboardingMessage::WarpDriveFeature1 => "Session Sharing",
 
         OnboardingMessage::AreYouSureNoAi => "Are you sure you don't want AI?",
         OnboardingMessage::NoAiWarningBody => {
-            "Without AI, you'll still get a modern, high-performance terminal with Warp Drive, \
+            "Without AI, you'll still get a modern, high-performance terminal with ZYH Drive, \
              Session Sharing, and other great features."
         },
         OnboardingMessage::GiveMeAiFeatures => "Give me AI features",
         OnboardingMessage::IDontWantAi => "I don't want AI",
         OnboardingMessage::PlanSuccessfullyActivated => "Plan successfully activated!",
 
-        OnboardingMessage::MeetWarpInput => "Meet the Warp input",
+        OnboardingMessage::MeetWarpInput => "Meet the ZYH input",
         OnboardingMessage::UniversalInputDescription => {
             "Your terminal input accepts both terminal commands and agent prompts and automatically \
              detects which you're using. Use {} to lock the input to Agent mode (natural language) \
@@ -339,7 +339,7 @@ fn en_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::YoureInTerminalMode => "You’re in terminal mode",
         OnboardingMessage::TerminalModeDescription => {
             "Run commands here, just like a regular terminal. If you type a question or task using \
-             natural language, Warp can suggest opening it in agent mode. You can always override \
+             natural language, ZYH can suggest opening it in agent mode. You can always override \
              using {}."
         },
         OnboardingMessage::EnableNaturalLanguageDetection => "Enable Natural Language Detection",
@@ -362,7 +362,7 @@ fn en_text(message: OnboardingMessage) -> &'static str {
 
 fn zh_cn_text(message: OnboardingMessage) -> &'static str {
     match message {
-        OnboardingMessage::WelcomeToWarp => "欢迎使用 Warp",
+        OnboardingMessage::WelcomeToWarp => "欢迎使用 ZYH",
         OnboardingMessage::ModernTerminalDescription => {
             "内置最先进 AI Agent 的现代终端。"
         },
@@ -379,9 +379,9 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
 
         OnboardingMessage::ChooseYourAiSetup => "选择你的 AI 设置",
         OnboardingMessage::ChooseYourAiSetupDescription => {
-            "选择使用 Warp Agent 还是第三方 Agent。"
+            "选择使用 ZYH Agent 还是第三方 Agent。"
         },
-        OnboardingMessage::UseWarpAgent => "使用 Warp Agent",
+        OnboardingMessage::UseWarpAgent => "使用 ZYH Agent",
         OnboardingMessage::AccessMoreModels => "访问更多模型",
         OnboardingMessage::WarpAgentDescription => "深度集成到终端中的最先进 Agent 框架。",
         OnboardingMessage::UseThirdPartyAgents => "使用第三方 Agent",
@@ -390,7 +390,7 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::GetAiAccess => "获取 AI 访问权限",
         OnboardingMessage::ConfigureAi => "配置 AI",
         OnboardingMessage::AiAccessSubtitleLoggedIn => {
-            "选择订阅计划以节省费用，或先体验 Warp 的 AI 功能再决定。"
+            "选择订阅计划以节省费用，或先体验 ZYH 的 AI 功能再决定。"
         },
         OnboardingMessage::AiAccessSubtitleAnonymous => {
             "准备就绪后，可在设置中添加兼容 OpenAI 的推理服务商。"
@@ -402,7 +402,7 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         },
         OnboardingMessage::SetUpLater => "稍后设置",
         OnboardingMessage::SetUpLaterDescription => {
-            "在决定订阅之前，先体验 Warp 内置的 AI 功能，或使用你自己的推理服务。"
+            "在决定订阅之前，先体验 ZYH 内置的 AI 功能，或使用你自己的推理服务。"
         },
         OnboardingMessage::IfBrowserHasntLaunched => "如果浏览器没有自动打开，",
         OnboardingMessage::CopyTheUrl => "复制 URL",
@@ -411,7 +411,7 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::ToPasteYourToken => " 粘贴来自浏览器的令牌。",
 
         OnboardingMessage::OpenAProject => "打开项目",
-        OnboardingMessage::ProjectSubtitle => "设置项目以优化 Warp 中的编码体验。",
+        OnboardingMessage::ProjectSubtitle => "设置项目以优化 ZYH 中的编码体验。",
         OnboardingMessage::OpenLocalFolder => "打开本地文件夹",
         OnboardingMessage::Skip => "跳过",
         OnboardingMessage::InitializeProjectAutomatically => "自动初始化项目",
@@ -425,10 +425,10 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::SyncWithOs => "与系统同步浅色/深色主题",
         OnboardingMessage::OptOutAnalytics => "如果你想退出数据分析，可以调整你的",
         OnboardingMessage::PrivacySettings => "隐私设置",
-        OnboardingMessage::ByContinuingAgreeTo => "继续即表示你同意 Warp 的",
+        OnboardingMessage::ByContinuingAgreeTo => "继续即表示你同意 ZYH 的",
         OnboardingMessage::TermsOfService => "服务条款",
 
-        OnboardingMessage::CustomizeYourWarp => "自定义你的 Warp",
+        OnboardingMessage::CustomizeYourWarp => "自定义你的 ZYH",
         OnboardingMessage::CustomizeSubtitle => "根据你的工作风格定制功能和界面。",
         OnboardingMessage::TabStyling => "标签页样式",
         OnboardingMessage::Vertical => "垂直",
@@ -439,11 +439,11 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::FileExplorer => "文件浏览器",
         OnboardingMessage::ConversationHistory => "对话历史",
         OnboardingMessage::GlobalFileSearch => "全局文件搜索",
-        OnboardingMessage::WarpDrive => "Warp Drive",
+        OnboardingMessage::WarpDrive => "ZYH Drive",
         OnboardingMessage::CodeReview => "代码审查",
 
-        OnboardingMessage::CustomizeYourWarpAgent => "自定义你的 Warp Agent",
-        OnboardingMessage::AgentSlideSubtitle => "选择 Warp Agent 的默认设置。",
+        OnboardingMessage::CustomizeYourWarpAgent => "自定义你的 ZYH Agent",
+        OnboardingMessage::AgentSlideSubtitle => "选择 ZYH Agent 的默认设置。",
         OnboardingMessage::DefaultModel => "默认模型",
         OnboardingMessage::Recommended => "推荐",
         OnboardingMessage::Autonomy => "自主程度",
@@ -451,13 +451,13 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::Partial => "部分自主",
         OnboardingMessage::NoneAutonomy => "无自主",
         OnboardingMessage::FullAutonomyDescription => {
-            "Warp Agent 无需询问即可运行命令、编写代码和读取文件。"
+            "ZYH Agent 无需询问即可运行命令、编写代码和读取文件。"
         },
         OnboardingMessage::PartialAutonomyDescription => {
-            "Warp Agent 可以规划、读取文件并执行低风险命令。在进行任何更改或执行敏感命令前会请求确认。"
+            "ZYH Agent 可以规划、读取文件并执行低风险命令。在进行任何更改或执行敏感命令前会请求确认。"
         },
         OnboardingMessage::NoneAutonomyDescription => {
-            "未经你的批准，Warp Agent 不会执行任何操作。"
+            "未经你的批准，ZYH Agent 不会执行任何操作。"
         },
         OnboardingMessage::SetByTeamWorkspace => "由团队工作区设置",
         OnboardingMessage::AutonomyTeamWorkspaceDescription => {
@@ -472,7 +472,7 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::Back => "返回",
         OnboardingMessage::Next => "下一步",
 
-        OnboardingMessage::AiFeature0 => "使用 Warp Agent 驱动前沿模型和开源模型",
+        OnboardingMessage::AiFeature0 => "使用 ZYH Agent 驱动前沿模型和开源模型",
         OnboardingMessage::AiFeature1 => "将 Agent 工作交给云端 Agent 处理",
         OnboardingMessage::AiFeature2 => "自动诊断和修复终端错误",
         OnboardingMessage::AiFeature3 => "对长时间运行的命令和 TUI 进行 Agent 控制",
@@ -482,18 +482,18 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::WarpAgentFeature1 => "来自 OpenAI、Anthropic 和 Google 的前沿模型",
         OnboardingMessage::WarpAgentFeature2 => "跨前沿模型和开源模型的路由",
         OnboardingMessage::WarpAgentFeature3 => "多 Agent 编排",
-        OnboardingMessage::WarpDriveFeature0 => "Warp Drive",
+        OnboardingMessage::WarpDriveFeature0 => "ZYH Drive",
         OnboardingMessage::WarpDriveFeature1 => "会话共享",
 
         OnboardingMessage::AreYouSureNoAi => "确定不需要 AI 吗？",
         OnboardingMessage::NoAiWarningBody => {
-            "即便没有 AI，你仍然可以获得一个现代、高性能的终端，支持 Warp Drive、会话共享等出色功能。"
+            "即便没有 AI，你仍然可以获得一个现代、高性能的终端，支持 ZYH Drive、会话共享等出色功能。"
         },
         OnboardingMessage::GiveMeAiFeatures => "我要 AI 功能",
         OnboardingMessage::IDontWantAi => "我不需要 AI",
         OnboardingMessage::PlanSuccessfullyActivated => "计划已成功激活！",
 
-        OnboardingMessage::MeetWarpInput => "认识 Warp 输入框",
+        OnboardingMessage::MeetWarpInput => "认识 ZYH 输入框",
         OnboardingMessage::UniversalInputDescription => {
             "终端输入框既能输入终端命令，也能输入 Agent 提示词，并会自动识别你正在使用哪一种。使用 {} 可将输入锁定为 \
              Agent 模式（自然语言）或终端模式（命令）。"
@@ -507,7 +507,7 @@ fn zh_cn_text(message: OnboardingMessage) -> &'static str {
         OnboardingMessage::WelcomeTerminalMode => "欢迎使用终端模式",
         OnboardingMessage::YoureInTerminalMode => "你正在使用终端模式",
         OnboardingMessage::TerminalModeDescription => {
-            "在这里运行命令，就像使用普通终端一样。如果你输入自然语言问题或任务，Warp 可以建议在 Agent 模式中打开。\
+            "在这里运行命令，就像使用普通终端一样。如果你输入自然语言问题或任务，ZYH 可以建议在 Agent 模式中打开。\
              你随时可以使用 {} 手动切换。"
         },
         OnboardingMessage::EnableNaturalLanguageDetection => "启用自然语言检测",

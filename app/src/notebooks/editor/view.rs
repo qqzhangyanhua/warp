@@ -55,10 +55,10 @@ use super::model::{NotebooksEditorModel, RichTextEditorModelEvent};
 use super::omnibar::{Omnibar, OmnibarEvent};
 use super::{rich_text_styles, BlockType, NotebookWorkflow};
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::cmd_or_ctrl_shift;
 use crate::editor::InteractionState;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::notebooks::editor::find_bar::FindBarAction;
 use crate::notebooks::editor::model::word_unit;
 use crate::notebooks::file::MarkdownDisplayMode;
@@ -2542,7 +2542,7 @@ impl RichTextEditorView {
         if show_open_in_warp {
             let path_for_warp = path.clone();
             links.push(TooltipLink {
-                text: "Open in Warp".to_string(),
+                text: "Open in ZYH".to_string(),
                 on_click: Box::new(move |ctx: &mut EventContext| {
                     ctx.dispatch_typed_action(EditorViewAction::OpenFile {
                         path: path_for_warp.clone(),
@@ -2848,7 +2848,9 @@ impl TypedActionView for RichTextEditorView {
                 }
                 let window_id = ctx.window_id();
                 crate::workspace::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(String::from(tr_cached(Message::ToastLinkCopied)));
+                    let toast = DismissibleToast::default(String::from(tr_cached(
+                        Message::ToastLinkCopied,
+                    )));
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
                 ctx.notify();

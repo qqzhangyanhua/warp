@@ -36,8 +36,8 @@ use crate::ai::blocklist::block::keyboard_navigable_buttons::{
 use crate::ai::blocklist::inline_action::inline_action_header::{
     HeaderConfig, INLINE_ACTION_HORIZONTAL_PADDING,
 };
-use crate::server::telemetry::TelemetryEvent;
 use crate::i18n::{tr_cached, Message};
+use crate::server::telemetry::TelemetryEvent;
 use crate::terminal::model::session::SessionId;
 use crate::terminal::warpify::settings::{SshExtensionInstallMode, WarpifySettings};
 use crate::ui_components::blended_colors;
@@ -76,7 +76,7 @@ impl SshRemoteServerChoiceView {
         let buttons = ctx.add_typed_action_view(|_| {
             KeyboardNavigableButtons::new(vec![
                 rich_navigation_button(
-                    "Install Warp's SSH extension".to_string(),
+                    "Install ZYH's SSH extension".to_string(),
                     Some(
                         "Install Warp's extension to enable agent features like file browsing, \
                          code review, and intelligent command completions in this session."
@@ -157,9 +157,13 @@ impl SshRemoteServerChoiceView {
 
         let checkbox_label =
             Hoverable::new(self.do_not_ask_again_label_mouse_state.clone(), move |_| {
-                Text::new(tr_cached(Message::SshDontAskAgain), ui_font_family, footer_font_size)
-                    .with_color(muted_color)
-                    .finish()
+                Text::new(
+                    tr_cached(Message::SshDontAskAgain),
+                    ui_font_family,
+                    footer_font_size,
+                )
+                .with_color(muted_color)
+                .finish()
             })
             .with_cursor(Cursor::PointingHand)
             .on_click(|ctx, _, _| {

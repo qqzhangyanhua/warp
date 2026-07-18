@@ -48,10 +48,10 @@ use warpui::{
 
 use super::{RichContentInsertionPosition, TerminalAction, TerminalView};
 use crate::ai::blocklist::block::cli_controller::CLISubagentEvent;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::cmd_or_ctrl_shift;
 use crate::code_review::diff_state::GitDeltaPreference;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::server::telemetry::{CLIAgentType, CLISubagentControlState, TelemetryEvent};
 use crate::settings::{
     AISettings, AISettingsChangedEvent, CompiledCommandsForCodingAgentToolbar, InputModeSettings,

@@ -26,11 +26,11 @@ use crate::ai::custom_model_routers::{
     PromptRule,
 };
 use crate::ai::execution_profiles::model_menu_items::available_model_menu_items;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::llms::{LLMPreferences, LLMPreferencesEvent};
 use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
 use crate::editor::{EditorView, SingleLineEditorOptions, TextOptions};
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::view;
 use crate::pane_group::{BackingView, PaneConfiguration, PaneEvent};
@@ -688,7 +688,7 @@ impl CustomRouterEditorView {
             );
             let rules_copy = FormattedText::new([
                 FormattedTextLine::Line(vec![FormattedTextFragment::plain_text(
-                    "Rules are custom prompts that describe when to use a specific model. Warp intelligently matches your tasks against these rules.",
+                    "Rules are custom prompts that describe when to use a specific model. ZYH intelligently matches your tasks against these rules.",
                 )]),
                 FormattedTextLine::Line(vec![FormattedTextFragment::plain_text(
                     "Rules are matched top to bottom — rules higher in the list take precedence over those below.",
@@ -751,7 +751,7 @@ impl CustomRouterEditorView {
             FormattedTextLine::Line(vec![
                 FormattedTextFragment::bold("Complexity-based"),
                 FormattedTextFragment::plain_text(
-                    " routing chooses a model based on Warp's classification of the task's difficulty.",
+                    " routing chooses a model based on ZYH's classification of the task's difficulty.",
                 ),
             ]),
             FormattedTextLine::Line(vec![

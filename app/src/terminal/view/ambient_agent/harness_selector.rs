@@ -21,10 +21,10 @@ use warpui::{
 };
 
 use crate::ai::blocklist::agent_view::agent_input_footer::AgentInputButtonTheme;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::harness_display::{brand_color, icon_for};
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::terminal::input::{MenuPositioning, MenuPositioningProvider};
 use crate::terminal::view::ambient_agent::AmbientAgentViewModel;
@@ -226,7 +226,7 @@ impl HarnessSelector {
             button.set_disabled(is_locked_to_oz, ctx);
             button.set_tooltip(
                 Some(if is_locked_to_oz {
-                    "This conversation is with the Warp Agent, so the cloud handoff will also use Warp"
+                    "This conversation is with the ZYH Agent, so the cloud handoff will also use ZYH"
                 } else {
                     BUTTON_TOOLTIP
                 }),

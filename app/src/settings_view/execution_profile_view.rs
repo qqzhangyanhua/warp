@@ -161,9 +161,13 @@ impl View for ExecutionProfileView {
                     let mut model_flex = Flex::column();
                     model_flex.add_child(
                         Container::new(
-                            Text::new(tr_cached(Message::ExecutionProfileModels), appearance.ui_font_family(), 10.)
-                                .with_color(appearance.theme().disabled_ui_text_color().into())
-                                .finish(),
+                            Text::new(
+                                tr_cached(Message::ExecutionProfileModels),
+                                appearance.ui_font_family(),
+                                10.,
+                            )
+                            .with_color(appearance.theme().disabled_ui_text_color().into())
+                            .finish(),
                         )
                         .with_margin_bottom(8.)
                         .finish(),
@@ -207,11 +211,13 @@ impl View for ExecutionProfileView {
                         let mut permissions_column = Flex::column()
                             .with_child(
                                 Container::new(
-                                    Text::new(tr_cached(Message::ExecutionProfilePermissions), appearance.ui_font_family(), 10.)
-                                        .with_color(
-                                            appearance.theme().disabled_ui_text_color().into(),
-                                        )
-                                        .finish(),
+                                    Text::new(
+                                        tr_cached(Message::ExecutionProfilePermissions),
+                                        appearance.ui_font_family(),
+                                        10.,
+                                    )
+                                    .with_color(appearance.theme().disabled_ui_text_color().into())
+                                    .finish(),
                                 )
                                 .with_margin_bottom(8.)
                                 .finish(),
@@ -383,7 +389,7 @@ impl View for ExecutionProfileView {
                         permissions_column.add_child(with_standard_vertical_margin(
                             render_bool_permission_line_with_icon(
                                 Icon::Compass,
-                                "Auto-sync plans to Warp Drive:",
+                                "Auto-sync plans to ZYH Drive:",
                                 profile.autosync_plans_to_warp_drive,
                                 appearance,
                                 is_any_ai_enabled,

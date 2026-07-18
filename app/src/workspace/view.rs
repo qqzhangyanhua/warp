@@ -758,7 +758,7 @@ const MAX_WINDOW_TITLE_LENGTH: usize = 80;
 
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 const AUTO_CLOUD_HANDOFF_PROMPT: &str =
-    "Continue this local Warp Agent task in the cloud from the current conversation state.";
+    "Continue this local ZYH Agent task in the cloud from the current conversation state.";
 
 /// The default display name used for the user if they have no associated display name.
 pub const DEFAULT_USER_DISPLAY_NAME: &str = "User";
@@ -2263,7 +2263,10 @@ impl Workspace {
                     log::warn!("Failed to remove tab config file: {e:?}");
                     self.toast_stack.update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(tr_cached(Message::ToastFailedRemoveTabConfig).replace("{}", &e.to_string())),
+                            DismissibleToast::error(
+                                tr_cached(Message::ToastFailedRemoveTabConfig)
+                                    .replace("{}", &e.to_string()),
+                            ),
                             ctx,
                         );
                     });
@@ -7791,12 +7794,8 @@ impl Workspace {
         }
 
         let terminal_colors = Appearance::as_ref(ctx).theme().terminal_colors().normal;
-        let menu_items = self.tab_group_menu_items(
-            group_id,
-            uses_vertical_tabs(ctx),
-            terminal_colors,
-            ctx,
-        );
+        let menu_items =
+            self.tab_group_menu_items(group_id, uses_vertical_tabs(ctx), terminal_colors, ctx);
         ctx.update_view(&self.tab_right_click_menu, |context_menu, view_ctx| {
             context_menu.set_items(menu_items, view_ctx);
         });
@@ -9007,7 +9006,7 @@ impl Workspace {
     fn install_oz(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.spawn(async { cli_install::install_oz() }, |view, result, ctx| {
             let command_name = ChannelState::channel().cli_command_name();
-            let message = format!("Installed the Oz CLI globally. You can now run '{command_name}' from any terminal outside of Warp.");
+            let message = format!("Installed the Oz CLI globally. You can now run '{command_name}' from any terminal outside of ZYH.");
             let toast = DismissibleToast::success(message).with_link(
                 ToastLink::new(workspace_menu_text(ctx, "Learn more").into_owned())
                     .with_href("https://docs.warp.dev/reference/cli".to_string()),
@@ -9023,8 +9022,7 @@ impl Workspace {
             async { cli_install::uninstall_oz() },
             |view, result, ctx| {
                 let toast = DismissibleToast::success(
-                    tr(ctx, Message::ToastRemovedGlobalOzCli)
-                        .to_string(),
+                    tr(ctx, Message::ToastRemovedGlobalOzCli).to_string(),
                 );
                 view.handle_cli_command_result(
                     result,
@@ -9043,12 +9041,12 @@ impl Workspace {
             async { cli_install::install_warpctrl() },
             |view, result, ctx| {
                 let command_name = ChannelState::channel().warpctrl_command_name();
-                let message = format!("Installed the Warp Control CLI globally. You can now run '{command_name}' from any terminal outside of Warp.");
+                let message = format!("Installed the ZYH Control CLI globally. You can now run '{command_name}' from any terminal outside of ZYH.");
                 let toast = DismissibleToast::success(message);
                 view.handle_cli_command_result(
                     result,
                     toast,
-                    "Failed to install Warp Control command",
+                    "Failed to install ZYH Control command",
                     ctx,
                 );
             },
@@ -9062,13 +9060,12 @@ impl Workspace {
             async { cli_install::uninstall_warpctrl() },
             |view, result, ctx| {
                 let toast = DismissibleToast::success(
-                    tr(ctx, Message::ToastRemovedGlobalWarpControlCli)
-                        .to_string(),
+                    tr(ctx, Message::ToastRemovedGlobalWarpControlCli).to_string(),
                 );
                 view.handle_cli_command_result(
                     result,
                     toast,
-                    "Failed to uninstall Warp Control command",
+                    "Failed to uninstall ZYH Control command",
                     ctx,
                 );
             },
@@ -9924,11 +9921,9 @@ impl Workspace {
         };
 
         let close_section = {
-            let mut items = vec![
-                workspace_group_menu_fields(ctx, "Close all tabs in group")
-                    .with_on_select_action(WorkspaceAction::CloseTabGroup(group_id))
-                    .into_item(),
-            ];
+            let mut items = vec![workspace_group_menu_fields(ctx, "Close all tabs in group")
+                .with_on_select_action(WorkspaceAction::CloseTabGroup(group_id))
+                .into_item()];
             if has_tabs_outside {
                 items.push(
                     workspace_group_menu_fields(ctx, "Close other tabs")
@@ -13986,7 +13981,9 @@ impl Workspace {
             let toast = if crate::i18n::active_locale(ctx) == crate::i18n::Locale::ZhCn {
                 DismissibleToast::default(format!("已分叉“{title}”"))
             } else {
-                DismissibleToast::default(tr_cached(Message::ToastForkedTitle).replace("{}", &title))
+                DismissibleToast::default(
+                    tr_cached(Message::ToastForkedTitle).replace("{}", &title),
+                )
             };
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
@@ -15242,7 +15239,10 @@ impl Workspace {
                 me.handoff_environment_creation_modal = None;
                 me.toast_stack.update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(tr(ctx, Message::HandoffFailedCreateEnvironment).replace("{}", &error_message)),
+                        DismissibleToast::error(
+                            tr(ctx, Message::HandoffFailedCreateEnvironment)
+                                .replace("{}", &error_message),
+                        ),
                         ctx,
                     );
                 });
@@ -15368,7 +15368,10 @@ impl Workspace {
                 me.handoff_environment_creation_modal = None;
                 me.toast_stack.update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(tr(ctx, Message::HandoffFailedCreateEnvironment).replace("{}", &error_message)),
+                        DismissibleToast::error(
+                            tr(ctx, Message::HandoffFailedCreateEnvironment)
+                                .replace("{}", &error_message),
+                        ),
                         ctx,
                     );
                 });
@@ -17665,9 +17668,8 @@ impl Workspace {
         let Some(view) = self.active_session_view(ctx) else {
             let window_id = ctx.window_id();
             WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast = DismissibleToast::default(
-                    tr(ctx, Message::ToastNoTerminalPaneOpen).to_owned(),
-                );
+                let toast =
+                    DismissibleToast::default(tr(ctx, Message::ToastNoTerminalPaneOpen).to_owned());
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
             return;
@@ -17768,9 +17770,8 @@ impl Workspace {
             // The active terminal exists but is busy, and the fallback behavior is
             // RequireExisting or OpenIfNone. In those cases, show a toast and no-op.
             self.toast_stack.update(ctx, |toast_stack, ctx| {
-                let mut toast = DismissibleToast::error(
-                    tr(ctx, Message::ToastCommandStillRunning).to_string(),
-                );
+                let mut toast =
+                    DismissibleToast::error(tr(ctx, Message::ToastCommandStillRunning).to_string());
                 if let Some(id) = object_id {
                     toast = toast.with_object_id(id.uid());
                 }
@@ -18057,7 +18058,8 @@ impl Workspace {
                                     self.toast_stack.update(ctx, |view, ctx| {
                                         view.add_ephemeral_toast(
                                             DismissibleToast::error(
-                                                tr(ctx, Message::ToastWorkflowNoLongerAvailable).to_string(),
+                                                tr(ctx, Message::ToastWorkflowNoLongerAvailable)
+                                                    .to_string(),
                                             ),
                                             ctx,
                                         );
@@ -18242,7 +18244,8 @@ impl Workspace {
                                             },
                                         ) {
                                             new_toast = DismissibleToast::success(
-                                                tr(ctx, Message::ToastPlanSyncedWarpDrive).to_string(),
+                                                tr(ctx, Message::ToastPlanSyncedWarpDrive)
+                                                    .to_string(),
                                             )
                                             .with_object_id(object_id_clone)
                                             .with_link(
@@ -18996,7 +18999,7 @@ impl Workspace {
                 let command = code.trim().to_string();
                 let args_state =
                     ArgumentsState::for_command_workflow(&Default::default(), command.clone());
-                let workflow = Workflow::new("Command from Warp AI", command)
+                let workflow = Workflow::new("Command from ZYH AI", command)
                     .with_arguments(args_state.arguments);
                 self.run_workflow_in_active_input(
                     &WorkflowType::AIGenerated {
@@ -19767,7 +19770,7 @@ impl Workspace {
         let body = appearance
             .ui_builder()
             .wrappable_text(
-                "Ask Warp AI to explain errors, suggest commands or write scripts.".to_owned(),
+                "Ask ZYH AI to explain errors, suggest commands or write scripts.".to_owned(),
                 true,
             )
             .with_style(UiComponentStyles {
@@ -20447,7 +20450,7 @@ impl Workspace {
                         ToolPanelView::GlobalSearch { .. } => {
                             tr_cached(Message::WorkspaceGlobalSearch)
                         }
-                        ToolPanelView::WarpDrive => "Warp Drive",
+                        ToolPanelView::WarpDrive => "ZYH Drive",
                         ToolPanelView::ConversationListView => {
                             tr_cached(Message::WorkspaceAgentConversations)
                         }
@@ -20503,7 +20506,7 @@ impl Workspace {
             {
                 ToolPanelView::ProjectExplorer => tr_cached(Message::WorkspaceProjectExplorer),
                 ToolPanelView::GlobalSearch { .. } => tr_cached(Message::WorkspaceGlobalSearch),
-                ToolPanelView::WarpDrive => "Warp Drive",
+                ToolPanelView::WarpDrive => "ZYH Drive",
                 ToolPanelView::ConversationListView => {
                     tr_cached(Message::WorkspaceAgentConversations)
                 }
@@ -21710,7 +21713,7 @@ impl Workspace {
                 icons::Icon::Lightbulb,
                 &self.mouse_states.resource_center_icon,
                 WorkspaceAction::ToggleResourceCenter,
-                "Warp Essentials".to_string(),
+                "ZYH Essentials".to_string(),
                 self.cached_keybindings[TOGGLE_RESOURCE_CENTER_KEYBINDING_NAME].clone(),
                 false,
                 false,
@@ -22278,7 +22281,7 @@ impl Workspace {
                         if is_incoming_version_past_current(new_version.soft_cutoff.as_deref()) {
                             VERSION_DEPRECATION_WITHOUT_PERMISSIONS_BANNER_TEXT.to_owned()
                         } else {
-                            "A new version is available but Warp is unable to perform the update."
+                            "A new version is available but ZYH is unable to perform the update."
                                 .to_owned()
                         };
 
@@ -23846,7 +23849,7 @@ impl Workspace {
             // Many users' browser settings will block Local Network Access so this will end up redirecting to download page,
             // even if they have the app installed.
             let toast_message = format!(
-                "Have Warp installed but redirecting to download page?\nEnable Local Network Access for {} in your browser.",
+                "Have ZYH installed but redirecting to download page?\nEnable Local Network Access for {} in your browser.",
                 ChannelState::server_root_url()
             );
             self.toast_stack.update(ctx, |toast_stack, ctx| {

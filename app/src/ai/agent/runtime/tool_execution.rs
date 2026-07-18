@@ -291,7 +291,7 @@ impl ToolExecutionAuthority {
         let projection = ToolResultProjection::Denied {
             denied_by,
             content: vec![RuntimeContentBlock::Text {
-                text: "Warp denied this tool request. No tool was executed.".to_string(),
+                text: "ZYH denied this tool request. No tool was executed.".to_string(),
             }],
             truncated: false,
         };

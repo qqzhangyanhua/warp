@@ -99,7 +99,7 @@ impl DefaultTerminal {
     pub fn make_warp_default(&mut self, ctx: &mut ModelContext<Self>) {
         if let Err(e) = set_warp_as_default_terminal() {
             report_error!(
-                "Error setting Warp as default terminal",
+                "Error setting ZYH as default terminal",
                 extra: { "error" => %e }
             );
         } else {

@@ -4,7 +4,7 @@ pub(super) fn unknown_outcome_projection() -> ToolResultProjection {
     error_projection(
         ToolErrorCode::ToolOutcomeUnknown,
         true,
-        "Warp cannot determine whether the previous tool effect completed.",
+        "ZYH cannot determine whether the previous tool effect completed.",
     )
 }
 

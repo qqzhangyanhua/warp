@@ -13,12 +13,12 @@ use warpui::{AppContext, Element, SingletonEntity, ViewHandle};
 
 use super::{ExecutionProfileEditorView, ExecutionProfileEditorViewAction};
 use crate::ai::blocklist::BlocklistAIPermissions;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::execution_profiles::{
     long_context_pricing_warning_title, AIExecutionProfile, AIExecutionProfileAppExt as _,
     ActionPermission,
 };
 use crate::editor::EditorView;
+use crate::i18n::{tr_cached, Message};
 use crate::settings::AISettings;
 use crate::ui_components::icons::Icon;
 use crate::view_components::{
@@ -105,10 +105,14 @@ pub fn render_header_section(
 }
 
 fn render_header_title(appearance: &Appearance) -> Box<dyn Element> {
-    Text::new_inline(tr_cached(Message::UiEditProfile), appearance.ui_font_family(), 16.)
-        .with_style(Properties::default().weight(Weight::Bold))
-        .with_color(appearance.theme().active_ui_text_color().into())
-        .finish()
+    Text::new_inline(
+        tr_cached(Message::UiEditProfile),
+        appearance.ui_font_family(),
+        16.,
+    )
+    .with_style(Properties::default().weight(Weight::Bold))
+    .with_color(appearance.theme().active_ui_text_color().into())
+    .finish()
 }
 
 fn render_header_name_label(appearance: &Appearance) -> Box<dyn Element> {
@@ -268,7 +272,7 @@ pub fn render_models_section(
         .with_child(render_filterable_dropdown_row(
             appearance,
             "Base model",
-            "This model serves as the primary engine behind the agent. It powers most interactions and invokes other models for tasks like planning or code generation when necessary. Warp may automatically switch to alternate models based on model availability or for auxiliary tasks such as conversation summarization.",
+            "This model serves as the primary engine behind the agent. It powers most interactions and invokes other models for tasks like planning or code generation when necessary. ZYH may automatically switch to alternate models based on model availability or for auxiliary tasks such as conversation summarization.",
             &view.base_model_dropdown,
         ));
 
@@ -910,7 +914,7 @@ pub fn render_plan_auto_sync_toggle(
     .finish();
 
     let desc_elem = Text::new(
-        "The plans this agent creates will be automatically added and synced to Warp Drive."
+        "The plans this agent creates will be automatically added and synced to ZYH Drive."
             .to_string(),
         appearance.ui_font_family(),
         11.,

@@ -305,7 +305,7 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
     ];
 
     toggle_binding_pairs.push(ToggleSettingActionPair::new(
-        "reuse existing SSH ControlMaster in the Warp SSH wrapper",
+        "reuse existing SSH ControlMaster in the ZYH SSH wrapper",
         builder(SettingsAction::FeaturesPageToggle(
             FeaturesPageAction::ToggleSshReuseControlMaster,
         )),
@@ -3001,13 +3001,22 @@ impl FeaturesPageView {
             Category::localized(Message::SettingsFeaturesGeneralCategory, general_widgets),
             Category::localized(Message::SettingsFeaturesSessionCategory, session_widgets),
             Category::localized(Message::SettingsFeaturesKeysCategory, keys_widgets),
-            Category::localized(Message::SettingsFeaturesTextEditingCategory, text_editing_widgets),
-            Category::localized(Message::SettingsFeaturesTerminalInputCategory, editor_widgets),
-            Category::localized(Message::SettingsFeaturesTerminalCategory, terminal_widgets),
-            Category::localized(Message::SettingsFeaturesNotificationsCategory, notifications_widgets),
             Category::localized(
-            Message::SettingsFeaturesWorkflowsCategory,
-            vec![Box::new(WorkflowsInCommandSearch::default())],
+                Message::SettingsFeaturesTextEditingCategory,
+                text_editing_widgets,
+            ),
+            Category::localized(
+                Message::SettingsFeaturesTerminalInputCategory,
+                editor_widgets,
+            ),
+            Category::localized(Message::SettingsFeaturesTerminalCategory, terminal_widgets),
+            Category::localized(
+                Message::SettingsFeaturesNotificationsCategory,
+                notifications_widgets,
+            ),
+            Category::localized(
+                Message::SettingsFeaturesWorkflowsCategory,
+                vec![Box::new(WorkflowsInCommandSearch::default())],
             ),
             Category::localized(Message::SettingsFeaturesSystemCategory, system_widgets),
         ];
@@ -3147,10 +3156,7 @@ impl FeaturesPageView {
         }
         // the selected item needs to update if the settings gets changed via the command palette
         self.global_hotkey_dropdown.update(ctx, |dropdown, ctx| {
-            dropdown.set_selected_by_name(
-                Self::global_hotkey_mode_label(global_hotkey_mode),
-                ctx,
-            );
+            dropdown.set_selected_by_name(Self::global_hotkey_mode_label(global_hotkey_mode), ctx);
             ctx.notify();
         });
         ctx.notify();
@@ -4518,10 +4524,7 @@ fn init_global_hotkey_dropdown(
     ];
 
     dropdown.set_items(items, ctx);
-    dropdown.set_selected_by_name(
-        FeaturesPageView::global_hotkey_mode_label(hotkey_mode),
-        ctx,
-    );
+    dropdown.set_selected_by_name(FeaturesPageView::global_hotkey_mode_label(hotkey_mode), ctx);
 }
 
 fn init_display_count_dropdown(
@@ -7678,7 +7681,7 @@ impl SettingsWidget for WindowSystemWidget {
                     may be blurry if your Wayland compositor is using fraction scaling (ex: 125%)."
                 .to_string();
         if view.force_x11_changed {
-            secondary_text.push_str("\n\nRestart Warp for changes to take effect.");
+            secondary_text.push_str("\n\nRestart ZYH for changes to take effect.");
         }
         let warp_theme = appearance.theme();
         children.add_child(

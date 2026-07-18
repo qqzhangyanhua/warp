@@ -146,11 +146,11 @@ impl CliAgentPluginManager for ClaudeCodePluginManager {
     }
 
     fn install_success_message(&self) -> &'static str {
-        "Warp plugin installed. Please run /reload-plugins to activate."
+        "ZYH plugin installed. Please run /reload-plugins to activate."
     }
 
     fn update_success_message(&self) -> &'static str {
-        "Warp plugin updated. Please run /reload-plugins to activate."
+        "ZYH plugin updated. Please run /reload-plugins to activate."
     }
 
     fn install_instructions(&self) -> &'static PluginInstructions {
@@ -210,29 +210,27 @@ impl CliAgentPluginManager for ClaudeCodePluginManager {
     }
 }
 
-static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
-    PluginInstructions {
-        title: tr_cached(Message::PluginInstallClaudeTitle),
-        subtitle: tr_cached(Message::PluginInstallClaudeSubtitle),
-        steps: Box::leak(Box::new([
-            PluginInstructionStep {
-                description: tr_cached(Message::PluginStepAddMarketplace),
-                command: "claude plugin marketplace add warpdotdev/claude-code-warp",
-                executable: true,
-                link: None,
-            },
-            PluginInstructionStep {
-                description: tr_cached(Message::PluginStepInstallWarpPlugin),
-                command: "claude plugin install warp@claude-code-warp",
-                executable: true,
-                link: None,
-            },
-        ])),
-        post_install_notes: Box::leak(Box::new([
-            tr_cached(Message::PluginNoteRestartClaudeActivate),
-            tr_cached(Message::PluginNoteClaudeKnownIssues),
-        ])),
-    }
+static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
+    title: tr_cached(Message::PluginInstallClaudeTitle),
+    subtitle: tr_cached(Message::PluginInstallClaudeSubtitle),
+    steps: Box::leak(Box::new([
+        PluginInstructionStep {
+            description: tr_cached(Message::PluginStepAddMarketplace),
+            command: "claude plugin marketplace add warpdotdev/claude-code-warp",
+            executable: true,
+            link: None,
+        },
+        PluginInstructionStep {
+            description: tr_cached(Message::PluginStepInstallWarpPlugin),
+            command: "claude plugin install warp@claude-code-warp",
+            executable: true,
+            link: None,
+        },
+    ])),
+    post_install_notes: Box::leak(Box::new([
+        tr_cached(Message::PluginNoteRestartClaudeActivate),
+        tr_cached(Message::PluginNoteClaudeKnownIssues),
+    ])),
 });
 
 static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
@@ -258,7 +256,9 @@ static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| Plug
             link: None,
         },
     ])),
-    post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartClaudeUpdate)])),
+    post_install_notes: Box::leak(Box::new([tr_cached(
+        Message::PluginNoteRestartClaudeUpdate,
+    )])),
 });
 
 fn check_installed(claude_dir: &Path) -> bool {
@@ -285,7 +285,7 @@ fn check_plugin_installed(claude_dir: &Path, plugin_key: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Reads the installed version string for the Warp plugin, if present.
+/// Reads the installed version string for the ZYH plugin, if present.
 fn installed_version(claude_dir: &Path) -> Option<String> {
     installed_plugin_version(claude_dir, PLUGIN_KEY)
 }

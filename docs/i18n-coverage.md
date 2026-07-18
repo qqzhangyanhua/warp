@@ -1,6 +1,6 @@
 # GUI i18n Coverage Checklist
 
-Status of Chinese/English localization for Warp GUI copy.
+Status of Chinese/English localization for ZYH GUI copy.
 
 ## Baseline (current)
 
@@ -8,9 +8,9 @@ Status of Chinese/English localization for Warp GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **2040** |
-| English table (`en_text`) | **2040** complete |
-| Chinese table (`zh_cn_text`) | **2040** complete |
+| `Message` variants | **2108** |
+| English table (`en_text`) | **2108** complete |
+| Chinese table (`zh_cn_text`) | **2108** complete |
 | Call sites | ~1300+ across 120+ files |
 | Guard test | `all_messages_have_non_empty_text` in `table.rs` |
 
@@ -19,9 +19,11 @@ Status of Chinese/English localization for Warp GUI copy.
 | Area | Status |
 |------|--------|
 | Settings sidebar + Appearance / Features / Privacy / Account / Teams residual | Done |
-| Onboarding + Auth (incl. anonymous) | Done |
+| Onboarding + Auth (incl. anonymous); brand copy ZYH | Done |
 | Workspace / tab menus (via `workspace_menu_message` → `Message`) | Done |
 | Terminal context menus (via `terminal_menu_message` → `Message`) | Done |
+| Platform app menus (`app_menus.rs` via `app_menu_message` → `Message`) | Done |
+| `@` AI context menu categories (via `CtxCat*` → `Message`) | Done |
 | Agent input footer tooltips/toasts (via `footer_message` → `Message`) | Done |
 | Terminal input search placeholders / a11y (via `input_message` → `Message`) | Done |
 | Agent blocklist chrome, management filters, zero-state | Done |
@@ -32,29 +34,32 @@ Status of Chinese/English localization for Warp GUI copy.
 | Launch modals (OpenWarp, Orchestration, Feature intro, Oz launch, HOA banner) | Done |
 | Resource center sections + tips | Done |
 | High-frequency toasts (clipboard, voice, images, export, MCP, skills, …) | Done |
+| Privacy Safe Mode description | Done |
 
 ### Intentionally not translated
 
 | Kind | Why |
 |------|-----|
-| Product / brand names | Warp, Oz, Claude Code, Codex, Gemini, Warp Drive, … |
+| Product / brand names | ZYH, Oz, Claude Code, Codex, Gemini, ZYH Drive, … |
+| Technical IDs / paths | `dev.warp.WarpOss`, binary `warp-oss`, data dirs (compat) |
 | Action / command IDs | Not user-facing chrome |
 | Telemetry / feature-flag names | Internal |
 | Pure `{err}` / backend error passthrough | Server or OS text |
 | Debug-only toasts | Heap profile, IAP credential refresh (dev/dogfood) |
 | Logs | Not UI |
 
-### Known residual debt (small)
+### Known residual debt
 
 | Item | Notes |
 |------|-------|
 | `SettingsSection` `Display` / `FromStr` | Still English for parse identity; deferred |
-| `footer_text` / `input_text` / menu bridges | Now **Message-backed** (English key → `Message`); not dual Chinese literals |
+| Slash command descriptions/hints | Dual-track `match` in `static_commands/mod.rs` — migrate to `Message` |
+| Settings toggle binding descriptions | Dual-track map in `settings_view/mod.rs` `localized_toggle_binding_description` |
+| Agent tips | Dual-track `localized_tip_description` in `agent_tips.rs` |
 | Rare empty states / marketing modals | Spot-check remaining hardcodes as features ship |
 | Agent mode rotating hint examples | Prefix localized; example English kept |
-| `app_menus.rs` | Platform menus — verify if any residual |
 
-**Rough completion (user-visible GUI):** high for Chinese daily use; not a claim of absolute 100% of every string in the monorepo.
+**Rough completion (user-visible GUI):** high for Chinese daily use; residual dual-track maps above still work but should move to `Message` when touched.
 
 ---
 
@@ -72,15 +77,16 @@ Do **not** reintroduce dual-track `match text { "English" => "中文" }` tables.
 
 ---
 
-## Historical checklist (P0–P3)
+## Brand display (OSS / local)
 
-Earlier sprint checklists (onboarding, settings, terminal) are complete. See git history for batch commits:
+User-facing app name is **ZYH**:
 
-- Menu bridges → Message
-- Agent blocklist / management
-- Notebooks / Drive / workflows
-- Long-tail tooltips/toasts/plugins/handoff/modals
-- Residual Drive toasts + footer/input Message migration
+| Surface | Value |
+|---------|--------|
+| `CFBundleDisplayName` / `CFBundleName` (oss + local) | `ZYH` |
+| `package.metadata.bundle.bin.warp-oss` / `warp` `name` | `ZYH` |
+| Bundle identifier / AppId application name | keep `WarpOss` (paths / install id compat) |
+| Binary name | `warp-oss` |
 
 ---
 
@@ -102,4 +108,4 @@ Earlier sprint checklists (onboarding, settings, terminal) are complete. See git
 
 ---
 
-_Last updated: 2026-07-18. Wrap-up: footer/input bridges migrated to Message maps; residual UI labels; coverage doc rewritten. Catalog **2040** variants._
+_Last updated: 2026-07-18. WarpOss display → ZYH; app menus + context categories → Message; onboarding brand ZYH; residual dual-track listed. Catalog **2108** variants._

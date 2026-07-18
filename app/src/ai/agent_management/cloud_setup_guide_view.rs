@@ -21,12 +21,12 @@ use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle};
 
 use crate::ai::agent_management::telemetry::{AgentManagementTelemetryEvent, SetupGuideStep};
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::code_block::{
     render_code_block_plain, CodeBlockOptions, CodeSnippetButtonHandles,
 };
 use crate::appearance::Appearance;
 use crate::completer::SessionAgnosticContext;
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::view_components::action_button::{ActionButton, SecondaryTheme};
 use crate::workflows::workflow::{Argument, ArgumentType, Workflow};
@@ -157,7 +157,7 @@ impl CloudSetupGuideView {
         header_container.add_child(title);
 
         let subtitle = Text::new(
-            "Start Oz cloud agents directly in Warp from an integration (Linear, Slack), with an event (GitHub, built-in schedule), or programmatically with the Oz SDK or CLI.",
+            "Start Oz cloud agents directly in ZYH from an integration (Linear, Slack), with an event (GitHub, built-in schedule), or programmatically with the Oz SDK or CLI.",
             appearance.ui_font_family(),
             subtitle_font_size,
         )
@@ -456,7 +456,7 @@ impl CloudSetupGuideView {
         .finish();
 
         let sub_description = Container::new(Self::render_description_with_link(
-            "Use Warp's environment setup command to have an agent help you through it. ",
+            "Use ZYH's environment setup command to have an agent help you through it. ",
             "Visit docs",
             self.env_docs_link_mouse_state.clone(),
             SetupGuideDocs::Environment,
@@ -529,7 +529,7 @@ impl CloudSetupGuideView {
             .finish();
 
         let sub_description = Container::new(Self::render_description_with_link(
-            "Integrate Slack or Linear to assign Warp's Agent tasks with @Warp. ",
+            "Integrate Slack or Linear to assign ZYH Agent tasks with @Warp. ",
             "Visit docs",
             self.integration_docs_link_mouse_state.clone(),
             SetupGuideDocs::Integration,

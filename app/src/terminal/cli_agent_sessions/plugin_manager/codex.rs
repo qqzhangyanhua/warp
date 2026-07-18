@@ -194,11 +194,11 @@ impl CliAgentPluginManager for CodexPluginManager {
     }
 
     fn install_success_message(&self) -> &'static str {
-        "Warp plugin installed. Please restart Codex to activate."
+        "ZYH plugin installed. Please restart Codex to activate."
     }
 
     fn update_success_message(&self) -> &'static str {
-        "Warp plugin updated. Please restart Codex to activate."
+        "ZYH plugin updated. Please restart Codex to activate."
     }
 
     fn install_instructions(&self) -> &'static PluginInstructions {
@@ -290,11 +290,13 @@ static PLUGIN_INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> =
                 link: None,
             },
         ])),
-        post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartCodexActivate)])),
+        post_install_notes: Box::leak(Box::new([tr_cached(
+            Message::PluginNoteRestartCodexActivate,
+        )])),
     });
 
-static NATIVE_INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
-    PluginInstructions {
+static NATIVE_INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> =
+    LazyLock::new(|| PluginInstructions {
         title: tr_cached(Message::PluginEnableCodexNotificationsTitle),
         subtitle: tr_cached(Message::PluginEnableCodexNotificationsSubtitle),
         steps: Box::leak(Box::new([
@@ -312,8 +314,7 @@ static NATIVE_INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new
             },
         ])),
         post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartCodexApply)])),
-    }
-});
+    });
 
 static EMPTY_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
     title: "",
@@ -322,8 +323,8 @@ static EMPTY_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| Plugi
     post_install_notes: Box::leak(Box::new([])),
 });
 
-static PLUGIN_UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
-    PluginInstructions {
+static PLUGIN_UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> =
+    LazyLock::new(|| PluginInstructions {
         title: tr_cached(Message::PluginUpdateCodexTitle),
         subtitle: tr_cached(Message::PluginUpdateCodexSubtitle),
         steps: Box::leak(Box::new([
@@ -344,8 +345,7 @@ static PLUGIN_UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(
             tr_cached(Message::PluginNoteRestartCodexUpdate),
             tr_cached(Message::PluginNoteCodexMarketplaceGitHint),
         ])),
-    }
-});
+    });
 
 fn check_installed(codex_dir: &Path) -> bool {
     check_plugin_enabled(codex_dir, PLUGIN_KEY)
@@ -372,7 +372,7 @@ fn check_plugin_enabled(codex_dir: &Path, plugin_key: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Reads the latest cached Warp plugin version, if present.
+/// Reads the latest cached ZYH plugin version, if present.
 fn installed_version(codex_dir: &Path) -> Option<String> {
     installed_plugin_version(codex_dir, PLUGIN_NAME)
 }

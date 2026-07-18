@@ -21,7 +21,6 @@ use warpui::{
 use super::command_dialog::EnvVarCommandDialog;
 use super::menus::Menus;
 use crate::ai::blocklist::block::secret_redaction::find_secrets_in_text_with_levels;
-use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::breadcrumbs::ContainingObject;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{CloudObjectEventEntrypoint, Owner};
@@ -37,6 +36,7 @@ use crate::env_vars::{
     EnvVarCollectionType, EnvVarValue,
 };
 use crate::external_secrets::SecretManager;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::MenuItem;
 use crate::network::{NetworkStatus, NetworkStatusEvent};
 use crate::pane_group::focus_state::PaneFocusHandle;
@@ -71,7 +71,7 @@ const SECTION_SPACING: f32 = 16.;
 
 // Variable rows
 pub(super) const ROW_SPACING: f32 = 8.;
-pub const EDUCATION_TEXT: &str = "Add secret or command. Warp never stores external secrets";
+pub const EDUCATION_TEXT: &str = "Add secret or command. ZYH never stores external secrets";
 const VARIABLE_FONT_SIZE: f32 = 13.;
 const DESCRIPTION_EDITOR_CUTOFF: f32 = 30.;
 const DESCRIPTION_BOTTOM_MARGIN: f32 = 12.;

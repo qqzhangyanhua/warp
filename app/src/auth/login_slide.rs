@@ -540,7 +540,7 @@ impl LoginSlideView {
 
         let (title_text, subtitle_text) = match self.login_purpose() {
             LoginPurpose::WarpDrive => (
-                "Get started with Warp Drive",
+                "Get started with ZYH Drive",
                 "Connect your account to save and share notebooks, workflows, and more across devices.",
             ),
             LoginPurpose::WarpAgent => (
@@ -579,7 +579,7 @@ impl LoginSlideView {
         let tos_line = Flex::row()
             .with_child(
                 ui_builder
-                    .span("By continuing, you agree to Warp's ")
+                    .span("By continuing, you agree to ZYH's ")
                     .with_style(disclaimer_styles)
                     .build()
                     .finish(),
@@ -671,7 +671,7 @@ impl LoginSlideView {
 
         let cmd_enter = Keystroke::parse("cmdorctrl-enter").unwrap_or_default();
         let skip_label = match self.login_purpose() {
-            LoginPurpose::WarpDrive => "Disable Warp Drive",
+            LoginPurpose::WarpDrive => "Disable ZYH Drive",
             LoginPurpose::WarpAgent => tr(app, Message::AuthSkipForNow),
             LoginPurpose::ThirdParty => tr(app, Message::AuthSkipForNow),
         };
@@ -972,10 +972,10 @@ impl LoginSlideView {
             &'static str,
         ) = match self.login_purpose() {
             LoginPurpose::WarpDrive => (
-                "Are you sure you want to disable Warp Drive?",
-                "Warp Drive lets you save workflows and knowledge across devices and share them with your team. By continuing, you won't have access to the following features:",
+                "Are you sure you want to disable ZYH Drive?",
+                "ZYH Drive lets you save workflows and knowledge across devices and share them with your team. By continuing, you won't have access to the following features:",
                 onboarding::warp_drive_features(onboarding::i18n::Locale::En),
-                "Enable Warp Drive",
+                "Enable ZYH Drive",
             ),
             LoginPurpose::WarpAgent | LoginPurpose::ThirdParty => (
                 "Continue without signing in?",

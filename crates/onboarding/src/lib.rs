@@ -37,7 +37,7 @@ pub fn ai_features(locale: Locale) -> &'static [&'static str] {
 }
 
 const AI_FEATURES_EN: &[&str] = &[
-    "Use frontier and open-weight models with Warp Agent",
+    "Use frontier and open-weight models with ZYH Agent",
     "Hand off agent work to cloud agents",
     "Automatically diagnose and fix terminal errors",
     "Agentic control of long-running commands and TUIs",
@@ -46,7 +46,7 @@ const AI_FEATURES_EN: &[&str] = &[
 ];
 
 const AI_FEATURES_ZH_CN: &[&str] = &[
-    "使用 Warp Agent 驱动前沿模型和开源模型",
+    "使用 ZYH Agent 驱动前沿模型和开源模型",
     "将 Agent 工作交给云端 Agent 处理",
     "自动诊断和修复终端错误",
     "对长时间运行的命令和 TUI 进行 Agent 控制",
@@ -54,8 +54,8 @@ const AI_FEATURES_ZH_CN: &[&str] = &[
     "远程控制 Claude Code、Codex 等 Agent",
 ];
 
-/// User-facing names of the Warp Drive features enabled when the terminal
-/// intention is selected with Warp Drive turned on. Shared by the login slide's
+/// User-facing names of the ZYH Drive features enabled when the terminal
+/// intention is selected with ZYH Drive turned on. Shared by the login slide's
 /// skip-login confirmation dialog so the list stays in sync with any future
 /// surfaces that need it.
 pub fn warp_drive_features(locale: Locale) -> &'static [&'static str] {
@@ -65,9 +65,9 @@ pub fn warp_drive_features(locale: Locale) -> &'static [&'static str] {
     }
 }
 
-const WARP_DRIVE_FEATURES_EN: &[&str] = &["Warp Drive", "Session Sharing"];
+const WARP_DRIVE_FEATURES_EN: &[&str] = &["ZYH Drive", "Session Sharing"];
 
-const WARP_DRIVE_FEATURES_ZH_CN: &[&str] = &["Warp Drive", "会话共享"];
+const WARP_DRIVE_FEATURES_ZH_CN: &[&str] = &["ZYH Drive", "会话共享"];
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "bin")] {

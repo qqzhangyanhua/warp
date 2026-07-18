@@ -1884,7 +1884,7 @@ pub fn init(app: &mut AppContext) {
 
     app.register_editable_bindings([EditableBinding::new(
         "input:insert_network_logging_workflow",
-        "Show Warp network log",
+        "Show ZYH network log",
         WorkspaceAction::OpenNetworkLogPane,
     )
     .with_enabled(|| ContextFlag::NetworkLogConsole.is_enabled())]);
@@ -6000,7 +6000,7 @@ impl Input {
             let display_path = file_path.display().to_string();
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 let toast = DismissibleToast::default(
-                    tr_cached(Message::ToastFileWillBeOverwritten).replace("{}", &display_path)
+                    tr_cached(Message::ToastFileWillBeOverwritten).replace("{}", &display_path),
                 );
                 toast_stack.add_ephemeral_toast(toast, window_id, ctx);
             });
@@ -6014,7 +6014,7 @@ impl Input {
                 let display_path = file_path.display().to_string();
                 ToastStack::handle(ctx).update(ctx, move |toast_stack, ctx| {
                     let toast = DismissibleToast::default(
-                        tr_cached(Message::ToastConversationExported).replace("{}", &display_path)
+                        tr_cached(Message::ToastConversationExported).replace("{}", &display_path),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -7513,7 +7513,7 @@ impl Input {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
                             tr_cached(Message::ToastCannotRunCommandAlreadyRunning)
-                                .replace("{}", &truncated_command)
+                                .replace("{}", &truncated_command),
                         ),
                         window_id,
                         ctx,
@@ -13519,8 +13519,7 @@ impl Input {
                         ToastStack::handle(ctx).update(ctx, |ts, ctx| {
                             ts.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    tr_cached(Message::ToastNoAgentHarnesses)
-                                        .to_string(),
+                                    tr_cached(Message::ToastNoAgentHarnesses).to_string(),
                                 ),
                                 window_id,
                                 ctx,
@@ -16146,7 +16145,7 @@ impl TypedActionView for Input {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                tr_cached(Message::ToastCannotStartWhileMonitoring).to_string()
+                                tr_cached(Message::ToastCannotStartWhileMonitoring).to_string(),
                             ),
                             window_id,
                             ctx,

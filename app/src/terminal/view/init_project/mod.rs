@@ -31,9 +31,9 @@ use crate::ai::blocklist::block::view_impl::WithContentItemSpacing;
 use crate::ai::blocklist::inline_action::inline_action_header::HeaderConfig;
 use crate::ai::blocklist::inline_action::requested_action::RenderableAction;
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
 use crate::code::lsp_telemetry::{LspEnablementSource, LspTelemetryEvent};
+use crate::i18n::{tr_cached, Message};
 use crate::server::telemetry::{
     AgentModeSetupCodebaseContextActionType, AgentModeSetupCreateEnvironmentActionType,
     AgentModeSetupProjectScopedRulesActionType,
@@ -43,7 +43,7 @@ use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
 use crate::{send_telemetry_from_ctx, TelemetryEvent};
 
-const ONBOARDING_TEXT: &str = "Great - let's begin setting up this project! Would you like to give me permission to index this codebase? It allows me to quickly understand context and provide more targeted solutions when working in this codebase. No code is stored on Warp servers.";
+const ONBOARDING_TEXT: &str = "Great - let's begin setting up this project! Would you like to give me permission to index this codebase? It allows me to quickly understand context and provide more targeted solutions when working in this codebase. No code is stored on ZYH servers.";
 const ALREADY_SETUP_TEXT: &str = "It looks like this project has already been initialized. You can re-generate the AGENTS.md for this codebase by clicking the button below.";
 // Native Warp rules file format.
 pub const FILES_TO_CHECK: [&str; 2] = ["AGENTS.md", "WARP.md"];
@@ -682,7 +682,9 @@ impl InitStepBlock {
                                 ButtonVariant::Outlined,
                                 mouse_states.view_status_button.clone(),
                             )
-                            .with_text_label(tr_cached(Message::TerminalViewIndexStatus).to_string())
+                            .with_text_label(
+                                tr_cached(Message::TerminalViewIndexStatus).to_string(),
+                            )
                             .build()
                             .on_click(|ctx, _, _| {
                                 ctx.dispatch_typed_action(
@@ -830,7 +832,7 @@ impl InitStepBlock {
                 };
                 Self::render_ready_with_buttons(
                     action_view,
-                    "Would you like to create an AGENTS.md file? Warp can create one for you with project specific rules, context, and conventions inferred from your codebase. The agent will use this context as it codes.",
+                    "Would you like to create an AGENTS.md file? ZYH can create one for you with project specific rules, context, and conventions inferred from your codebase. The agent will use this context as it codes.",
                     app,
                 )
             }
@@ -993,7 +995,10 @@ impl InitStepBlock {
 
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::success(tr_cached(Message::ToastInstalledEnabledSuccess).replace("{}", server_type.binary_name())),
+                            DismissibleToast::success(
+                                tr_cached(Message::ToastInstalledEnabledSuccess)
+                                    .replace("{}", server_type.binary_name()),
+                            ),
                             window_id,
                             ctx,
                         );
@@ -1014,7 +1019,11 @@ impl InitStepBlock {
 
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(tr_cached(Message::ToastFailedInstallNamed).replacen("{}", server_type.binary_name(), 1).replacen("{}", &e.to_string(), 1)),
+                            DismissibleToast::error(
+                                tr_cached(Message::ToastFailedInstallNamed)
+                                    .replacen("{}", server_type.binary_name(), 1)
+                                    .replacen("{}", &e.to_string(), 1),
+                            ),
                             window_id,
                             ctx,
                         );
@@ -1135,8 +1144,10 @@ impl TypedActionView for InitStepBlock {
                         servers_to_install.iter().map(|s| s.binary_name()).collect();
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::default(tr_cached(Message::ToastInstallingInBackground).replace("{}", &server_names.join(", ")
-                            )),
+                            DismissibleToast::default(
+                                tr_cached(Message::ToastInstallingInBackground)
+                                    .replace("{}", &server_names.join(", ")),
+                            ),
                             window_id,
                             ctx,
                         );

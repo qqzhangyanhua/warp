@@ -116,13 +116,13 @@ pub fn localized_command_description(ctx: &AppContext, description: &'static str
         }
         "Create a new docker sandbox terminal session" => "创建新的 Docker 沙盒终端会话",
         "Have Oz walk you through creating a new coding project" => "让 Oz 引导你创建新的代码项目",
-        "Open a skill's markdown file in Warp's built-in editor" => {
-            "在 Warp 内置编辑器中打开技能的 Markdown 文件"
+        "Open a skill's markdown file in ZYH's built-in editor" => {
+            "在 ZYH 内置编辑器中打开技能的 Markdown 文件"
         }
         "Invoke a skill" => "调用技能",
         "Add new Agent prompt" => "添加新的 Agent 提示词",
         "Add a new global rule for the agent" => "为 Agent 添加新的全局规则",
-        "Open a file in Warp's code editor" => "在 Warp 代码编辑器中打开文件",
+        "Open a file in ZYH's code editor" => "在 ZYH 代码编辑器中打开文件",
         "Rename the current tab" => "重命名当前标签页",
         "Rename the current conversation" => "重命名当前对话",
         "Set the color of the current tab" => "设置当前标签页颜色",

@@ -13,7 +13,7 @@ const WARP_HOME_CONTENT: &str = r#"
 Welcome to ZYH on Web - your browser-based home for ZYH!
 Use ZYH on Web to:
 * Join Shared Sessions
-* Create, View, and Edit Warp Drive Objects
+* Create, View, and Edit ZYH Drive Objects
 * Manage your ZYH Settings
 
 ZYH on Web can also be used by your teammates and peers who don't have ZYH downloaded yet to view your shared sessions, notebooks, and workflows."#;

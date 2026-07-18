@@ -22,8 +22,8 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
-use crate::pricing::{PricingInfoModel, PricingInfoModelEvent};
 use crate::i18n::{tr_cached, Message};
+use crate::pricing::{PricingInfoModel, PricingInfoModelEvent};
 use crate::terminal::general_settings::GeneralSettings;
 use crate::ui_components::blended_colors;
 use crate::view_components::{Dropdown, DropdownEvent, DropdownItem, ToastFlavor};
@@ -529,9 +529,9 @@ impl BuildPlanMigrationModal {
         );
 
         let intro_text = if is_business {
-            "Your workspace has been updated to the new Warp Business Plan as the legacy Business plan is sunset."
+            "Your workspace has been updated to the new ZYH Business Plan as the legacy Business plan is sunset."
         } else {
-            "Your workspace has been updated to the Warp Build Plan as the legacy Pro, Turbo, and Lightspeed plans are sunset."
+            "Your workspace has been updated to the ZYH Build Plan as the legacy Pro, Turbo, and Lightspeed plans are sunset."
         };
 
         let intro = Self::create_text(intro_text.to_string(), font_family, 14., text_color, None);
@@ -540,7 +540,7 @@ impl BuildPlanMigrationModal {
             if is_business {
                 "The new Business plan is a primarily usage-based plan, starting at:"
             } else {
-                "Warp Build is a primarily usage-based plan, starting at:"
+                "ZYH Build is a primarily usage-based plan, starting at:"
             }
             .to_string(),
             font_family,

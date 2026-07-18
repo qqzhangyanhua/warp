@@ -127,7 +127,7 @@ impl TipsView {
         let tip_items = vec![
             TipItem::new(
                 "Command Palette".to_string(),
-                "Easily discover everything you can do in Warp without your hands leaving the keyboard.".to_string(),
+                "Easily discover everything you can do in ZYH without your hands leaving the keyboard.".to_string(),
                 TipAction::CommandPalette,
                 ctx,
             ),

@@ -300,8 +300,8 @@ impl Display for SettingsSection {
             SettingsSection::SharedBlocks => write!(f, "Shared blocks"),
             SettingsSection::MCPServers => write!(f, "MCP Servers"),
             SettingsSection::Scripting => write!(f, "Scripting"),
-            SettingsSection::WarpDrive => write!(f, "Warp Drive"),
-            SettingsSection::WarpAgent => write!(f, "Warp Agent"),
+            SettingsSection::WarpDrive => write!(f, "ZYH Drive"),
+            SettingsSection::WarpAgent => write!(f, "ZYH Agent"),
             SettingsSection::AgentProfiles => write!(f, "Profiles"),
             SettingsSection::AgentMCPServers => write!(f, "MCP servers"),
             SettingsSection::Knowledge => write!(f, "Knowledge"),
@@ -450,9 +450,9 @@ impl FromStr for SettingsSection {
             "Shared blocks" => Ok(Self::SharedBlocks),
             "Teams" => Ok(Self::Teams),
             "Warpify" => Ok(Self::Warpify),
-            "WarpDrive" | "Warp Drive" => Ok(Self::WarpDrive),
+            "WarpDrive" | "Warp Drive" | "ZYH Drive" => Ok(Self::WarpDrive),
             // This page was called "Oz" at one point, keep for backward compatibility.
-            "Oz" | "Warp Agent" => Ok(Self::WarpAgent),
+            "Oz" | "Warp Agent" | "ZYH Agent" => Ok(Self::WarpAgent),
             "Profiles" | "AgentProfiles" => Ok(Self::AgentProfiles),
             "MCP servers" | "AgentMCPServers" => Ok(Self::AgentMCPServers),
             "Knowledge" => Ok(Self::Knowledge),
@@ -930,8 +930,8 @@ fn toggle_description_suffix_zh_cn(description_suffix: &str) -> Option<&'static 
         "autosuggestions" => Some("自动建议"),
         "autosuggestion keybinding hint" => Some("自动建议快捷键提示"),
         "autosuggestion ignore button" => Some("忽略自动建议按钮"),
-        "reuse existing SSH ControlMaster in the Warp SSH wrapper" => {
-            Some("Warp SSH 包装器中复用现有 SSH ControlMaster")
+        "reuse existing SSH ControlMaster in the ZYH SSH wrapper" => {
+            Some("ZYH SSH 包装器中复用现有 SSH ControlMaster")
         }
         "show tooltip on click on links" => Some("点击链接时显示工具提示"),
         "long-running command notifications" => Some("长时间运行命令通知"),

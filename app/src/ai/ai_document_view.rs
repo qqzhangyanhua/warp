@@ -22,7 +22,6 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::ai::document::ai_document_model::{
     AIDocumentId, AIDocumentInstance, AIDocumentModel, AIDocumentModelEvent, AIDocumentSaveStatus,
@@ -34,6 +33,7 @@ use crate::drive::items::WarpDriveItemId;
 use crate::drive::sharing::ShareableObject;
 use crate::drive::CloudObjectTypeAndId;
 use crate::editor::InteractionState;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Menu, MenuItem, MenuItemFields};
 use crate::notebooks::editor::model::NotebooksEditorModel;
 use crate::notebooks::editor::rich_text_styles;
@@ -670,7 +670,7 @@ impl AIDocumentView {
                 let appearance = Appearance::as_ref(app);
                 let ui_builder = appearance.ui_builder().clone();
                 let tooltip = ui_builder
-                    .tool_tip("Save and auto-sync this plan to your Warp Drive".to_string())
+                    .tool_tip("Save and auto-sync this plan to your ZYH Drive".to_string())
                     .build()
                     .finish();
                 let sync_button_mouse_state = self.sync_button_mouse_state.clone();
@@ -723,7 +723,7 @@ impl AIDocumentView {
                 let color = theme.nonactive_ui_detail().into_solid();
                 let ui_builder = appearance.ui_builder().clone();
                 let tooltip_text =
-                    "This plan is synced to your Warp Drive and will auto save any edits you make."
+                    "This plan is synced to your ZYH Drive and will auto save any edits you make."
                         .to_string();
                 let synced_status_mouse_state = self.synced_status_mouse_state.clone();
                 Container::new(
@@ -1152,7 +1152,9 @@ impl TypedActionView for AIDocumentView {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success(tr_cached(Message::ToastCopiedToClipboardMarkdown).to_string()),
+                        DismissibleToast::success(
+                            tr_cached(Message::ToastCopiedToClipboardMarkdown).to_string(),
+                        ),
                         window_id,
                         ctx,
                     );
@@ -1170,7 +1172,9 @@ impl TypedActionView for AIDocumentView {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success(tr_cached(Message::ToastLinkCopiedToClipboard).to_string()),
+                        DismissibleToast::success(
+                            tr_cached(Message::ToastLinkCopiedToClipboard).to_string(),
+                        ),
                         window_id,
                         ctx,
                     );
@@ -1183,7 +1187,9 @@ impl TypedActionView for AIDocumentView {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success(tr_cached(Message::ToastPlanIdCopied).to_string()),
+                        DismissibleToast::success(
+                            tr_cached(Message::ToastPlanIdCopied).to_string(),
+                        ),
                         window_id,
                         ctx,
                     );

@@ -107,11 +107,11 @@ impl CliAgentPluginManager for GeminiPluginManager {
     }
 
     fn install_success_message(&self) -> &'static str {
-        "Warp plugin installed. Please restart Gemini CLI to activate."
+        "ZYH plugin installed. Please restart Gemini CLI to activate."
     }
 
     fn update_success_message(&self) -> &'static str {
-        "Warp plugin updated. Please restart Gemini CLI to activate."
+        "ZYH plugin updated. Please restart Gemini CLI to activate."
     }
 
     fn install_instructions(&self) -> &'static PluginInstructions {
@@ -133,7 +133,9 @@ static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| Plu
         executable: true,
         link: None,
     }])),
-    post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartGeminiActivate)])),
+    post_install_notes: Box::leak(Box::new([tr_cached(
+        Message::PluginNoteRestartGeminiActivate,
+    )])),
 });
 
 static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
@@ -145,7 +147,9 @@ static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| Plug
         executable: true,
         link: None,
     }])),
-    post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartGeminiUpdate)])),
+    post_install_notes: Box::leak(Box::new([tr_cached(
+        Message::PluginNoteRestartGeminiUpdate,
+    )])),
 });
 
 fn check_installed(extensions_dir: &Path) -> bool {
@@ -158,7 +162,7 @@ fn check_installed(extensions_dir: &Path) -> bool {
     serde_json::from_str::<Value>(&contents).is_ok()
 }
 
-/// Reads the installed version string for the Warp extension, if present.
+/// Reads the installed version string for the ZYH extension, if present.
 fn installed_version(extensions_dir: &Path) -> Option<String> {
     let manifest_path = extensions_dir
         .join(EXTENSION_NAME)

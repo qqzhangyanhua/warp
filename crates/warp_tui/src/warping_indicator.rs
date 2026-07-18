@@ -1,4 +1,4 @@
-//! The in-progress `⋮ Warping... (Ns)` indicator row rendered between the
+//! The in-progress `⋮ Working... (Ns)` indicator row rendered between the
 //! transcript and the input box while the selected conversation is in
 //! progress — the TUI counterpart of the GUI's warping indicator — and its
 //! resting form, the completed-response summary row (`∷ 5s • 0.5 credits`).
@@ -68,7 +68,7 @@ static SPINNER_TIMELINE: LazyLock<KeyframeTimeline<&'static str>> = LazyLock::ne
     ])
 });
 
-/// Renders the `⋮ Warping... (Ns)` row for an exchange that has been running for
+/// Renders the `⋮ Working... (Ns)` row for an exchange that has been running for
 /// `elapsed`.
 pub(crate) fn render_warping_indicator(elapsed: Duration, app: &AppContext) -> Box<dyn TuiElement> {
     let builder = TuiUiBuilder::from_app(app);
@@ -87,7 +87,7 @@ pub(crate) fn render_warping_indicator(elapsed: Duration, app: &AppContext) -> B
     });
 
     let label = TuiShimmeringText::new(
-        "Warping...",
+        "Working...",
         builder.warping_base_color(),
         builder.warping_shimmer_color(),
         ShimmerConfig::default(),

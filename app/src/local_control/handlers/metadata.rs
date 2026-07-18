@@ -313,7 +313,7 @@ pub(crate) fn surface_unavailable_reason(
         | SurfaceDestination::Keybindings
         | SurfaceDestination::ResourceCenter => None,
         SurfaceDestination::WarpDrive if !WarpDriveSettings::is_warp_drive_enabled(ctx) => {
-            Some("Warp Drive is disabled")
+            Some(crate::i18n::tr_cached(crate::i18n::Message::SurfaceWarpDriveDisabled))
         }
         SurfaceDestination::WarpDrive => None,
         SurfaceDestination::AiAssistant if !AISettings::as_ref(ctx).is_any_ai_enabled(ctx) => {

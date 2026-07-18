@@ -53,7 +53,6 @@ pub(crate) use self::environment_selector::{
     EnvironmentSelector, EnvironmentSelectorEvent, EnvironmentSelectorTarget,
 };
 use crate::ai::blocklist::agent_view::is_in_cloud_context;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::ai::blocklist::history_model::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::usage::icon_for_context_window_usage;
@@ -66,10 +65,11 @@ use crate::auth::{AuthManager, AuthStateProvider};
 use crate::completer::SessionContext;
 use crate::context_chips::display_chip::{DisplayChip, DisplayChipConfig, PromptChipShellCommand};
 use crate::context_chips::prompt_type::PromptType;
+use crate::context_chips::{self, ContextChipKind};
 #[cfg(feature = "voice_input")]
 use crate::editor::Transcriber;
-use crate::context_chips::{self, ContextChipKind};
 use crate::features::FeatureFlag;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::network::NetworkStatus;
 use crate::send_telemetry_from_ctx;
 #[cfg(feature = "voice_input")]
@@ -137,15 +137,15 @@ fn footer_message(text: &str) -> Option<Message> {
         "Hide Rich Input" => Message::FooterHideRichInput,
         "Open coding agent settings" => Message::FooterOpenCodingAgentSettings,
         "Enable notifications" => Message::FooterEnableNotifications,
-        "Install the Warp plugin to enable rich agent notifications within Warp" => {
+        "Install the ZYH plugin to enable rich agent notifications within ZYH" => {
             Message::FooterInstallPluginForNotifications
         }
         "Notifications setup instructions" => Message::FooterNotificationsSetupInstructions,
-        "View instructions to install the Warp plugin" => Message::FooterViewInstallPluginInstructions,
-        "Update Warp plugin" => Message::FooterUpdateWarpPlugin,
-        "A new version of the Warp plugin is available" => Message::FooterNewPluginVersionAvailable,
+        "View instructions to install the ZYH plugin" => Message::FooterViewInstallPluginInstructions,
+        "Update ZYH plugin" => Message::FooterUpdateWarpPlugin,
+        "A new version of the ZYH plugin is available" => Message::FooterNewPluginVersionAvailable,
         "Plugin update instructions" => Message::FooterPluginUpdateInstructions,
-        "View instructions to update the Warp plugin" => Message::FooterViewUpdatePluginInstructions,
+        "View instructions to update the ZYH plugin" => Message::FooterViewUpdatePluginInstructions,
         "Dismiss" => Message::FooterDismiss,
         "Stop sharing" => Message::FooterStopSharing,
         "Context window usage" => Message::FooterContextWindowUsage,
@@ -164,14 +164,14 @@ fn footer_message(text: &str) -> Option<Message> {
         "Fast forward is always enabled for cloud agent conversations" => {
             Message::FooterFastForwardLocked
         }
-        "Installing Warp plugin..." => Message::FooterInstallingWarpPlugin,
-        "Failed to install Warp plugin" => Message::FooterFailedInstallWarpPlugin,
-        "Warp plugin installed. Please restart the session to activate." => {
+        "Installing ZYH plugin..." => Message::FooterInstallingWarpPlugin,
+        "Failed to install ZYH plugin" => Message::FooterFailedInstallWarpPlugin,
+        "ZYH plugin installed. Please restart the session to activate." => {
             Message::FooterWarpPluginInstalledRestart
         }
-        "Updating Warp plugin..." => Message::FooterUpdatingWarpPlugin,
-        "Failed to update Warp plugin" => Message::FooterFailedUpdateWarpPlugin,
-        "Warp plugin updated. Please restart the session to activate." => {
+        "Updating ZYH plugin..." => Message::FooterUpdatingWarpPlugin,
+        "Failed to update ZYH plugin" => Message::FooterFailedUpdateWarpPlugin,
+        "ZYH plugin updated. Please restart the session to activate." => {
             Message::FooterWarpPluginUpdatedRestart
         }
         "Voice input limit reached" => Message::FooterVoiceInputLimitReached,
@@ -214,7 +214,6 @@ fn localized_voice_input_tooltip(ctx: &AppContext) -> String {
 
     footer_text(ctx, "Voice input (hold {key_name} key)").replace("{key_name}", key_name)
 }
-
 
 const CLOUD_MODE_V2_FOOTER_GAP: f32 = 4.;
 
@@ -515,7 +514,7 @@ impl AgentInputFooter {
         // Fast-forward (auto-approve) toggle button.
         // Uses FastForwardButtonTheme so the button keeps its one-off semantics.
         // The theme still delegates its fill to the shared chip background.
-        let fast_forward_button = ctx.add_typed_action_view(|ctx| {
+        let fast_forward_button = ctx.add_typed_action_view(|_| {
             ActionButton::new("", FastForwardButtonTheme)
                 .with_icon(Icon::FastForward)
                 .with_tooltip(tr_cached(Message::FooterFastForwardOff).to_owned())
@@ -599,7 +598,7 @@ impl AgentInputFooter {
             .with_tooltip(
                 footer_text(
                     ctx,
-                    "Install the Warp plugin to enable rich agent notifications within Warp",
+                    "Install the ZYH plugin to enable rich agent notifications within ZYH",
                 )
                 .into_owned(),
             )
@@ -618,7 +617,7 @@ impl AgentInputFooter {
             )
             .with_icon(Icon::Info)
             .with_tooltip(
-                footer_text(ctx, "View instructions to install the Warp plugin").into_owned(),
+                footer_text(ctx, "View instructions to install the ZYH plugin").into_owned(),
             )
             .with_size(cli_button_size)
             .with_tooltip_alignment(TooltipAlignment::Left)
@@ -632,12 +631,12 @@ impl AgentInputFooter {
 
         let update_plugin_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new(
-                footer_text(ctx, "Update Warp plugin").into_owned(),
+                footer_text(ctx, "Update ZYH plugin").into_owned(),
                 InstallPluginButtonTheme,
             )
             .with_icon(Icon::Download)
             .with_tooltip(
-                footer_text(ctx, "A new version of the Warp plugin is available").into_owned(),
+                footer_text(ctx, "A new version of the ZYH plugin is available").into_owned(),
             )
             .with_size(cli_button_size)
             .with_tooltip_alignment(TooltipAlignment::Left)
@@ -654,7 +653,7 @@ impl AgentInputFooter {
             )
             .with_icon(Icon::Info)
             .with_tooltip(
-                footer_text(ctx, "View instructions to update the Warp plugin").into_owned(),
+                footer_text(ctx, "View instructions to update the ZYH plugin").into_owned(),
             )
             .with_size(cli_button_size)
             .with_tooltip_alignment(TooltipAlignment::Left)
@@ -775,7 +774,7 @@ impl AgentInputFooter {
             },
         );
 
-        let start_remote_control_button = ctx.add_typed_action_view(|ctx| {
+        let start_remote_control_button = ctx.add_typed_action_view(|_| {
             ActionButton::new("/remote-control", RemoteControlButtonTheme)
                 .with_icon(Icon::Phone01)
                 .with_tooltip(tr_cached(Message::FooterStartRemoteControl).to_owned())
@@ -811,14 +810,14 @@ impl AgentInputFooter {
 
         // Non-interactive cloud follow-up indicators. Only one is rendered at a time, chosen by
         // `AIQueryRouting` at render time.
-        let live_session_indicator = ctx.add_typed_action_view(|ctx| {
+        let live_session_indicator = ctx.add_typed_action_view(|_| {
             ActionButton::new("", AgentInputButtonTheme)
                 .with_icon(Icon::CloudFilled)
                 .with_tooltip(tr_cached(Message::FooterLiveRemoteVm).to_owned())
                 .with_size(button_size)
                 .with_tooltip_alignment(TooltipAlignment::Left)
         });
-        let new_cloud_vm_indicator = ctx.add_typed_action_view(|ctx| {
+        let new_cloud_vm_indicator = ctx.add_typed_action_view(|_| {
             ActionButton::new("", AgentInputButtonTheme)
                 .with_icon(Icon::CloudOffline)
                 .with_icon_ansi_color(AnsiColorIdentifier::Yellow)
@@ -1445,7 +1444,7 @@ impl AgentInputFooter {
             // executor so it runs inside the container and targets the
             // container's shell / package layout. A common use case will be
             // running a 3p harness (e.g. Claude Code) inside a sandbox and
-            // needing the Warp plugin to integrate with it.
+            // needing the ZYH plugin to integrate with it.
             Some(ShellLaunchData::DockerSandbox { .. }) => return false,
         };
 
@@ -1571,13 +1570,13 @@ impl AgentInputFooter {
             .unwrap_or_else(|| {
                 footer_text(
                     ctx,
-                    "Warp plugin installed. Please restart the session to activate.",
+                    "ZYH plugin installed. Please restart the session to activate.",
                 )
                 .into_owned()
             });
         self.handle_plugin_operation(
-            &footer_text(ctx, "Installing Warp plugin...").into_owned(),
-            &footer_text(ctx, "Failed to install Warp plugin").into_owned(),
+            &footer_text(ctx, "Installing ZYH plugin...").into_owned(),
+            &footer_text(ctx, "Failed to install ZYH plugin").into_owned(),
             &success_msg,
             PluginChipTelemetryKind::Install,
             |manager| async move { manager.install().await },
@@ -1594,13 +1593,13 @@ impl AgentInputFooter {
             .unwrap_or_else(|| {
                 footer_text(
                     ctx,
-                    "Warp plugin updated. Please restart the session to activate.",
+                    "ZYH plugin updated. Please restart the session to activate.",
                 )
                 .into_owned()
             });
         self.handle_plugin_operation(
-            &footer_text(ctx, "Updating Warp plugin...").into_owned(),
-            &footer_text(ctx, "Failed to update Warp plugin").into_owned(),
+            &footer_text(ctx, "Updating ZYH plugin...").into_owned(),
+            &footer_text(ctx, "Failed to update ZYH plugin").into_owned(),
             &success_msg,
             PluginChipTelemetryKind::Update,
             |manager| async move { manager.update().await },
@@ -2119,9 +2118,8 @@ impl AgentInputFooter {
     fn show_cli_microphone_access_toast(&self, ctx: &mut ViewContext<Self>) {
         let window_id = ctx.window_id();
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::error(
-                tr_cached(Message::ToastFailedStartVoiceInput).to_owned(),
-            );
+            let toast =
+                DismissibleToast::error(tr_cached(Message::ToastFailedStartVoiceInput).to_owned());
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
     }
@@ -2133,7 +2131,8 @@ impl AgentInputFooter {
             if let Some(toggle_key) = settings.maybe_setup_first_time_voice(ctx) {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     let toast = DismissibleToast::success(
-                        tr_cached(Message::ToastVoiceInputEnabled).replace("{}", &toggle_key.display_name()),
+                        tr_cached(Message::ToastVoiceInputEnabled)
+                            .replace("{}", &toggle_key.display_name()),
                     );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
@@ -2976,7 +2975,7 @@ impl ActionButtonTheme for ActiveMicButtonTheme {
     }
 }
 
-/// Green-accented theme for the "Install Warp plugin" chip.
+/// Green-accented theme for the "Install ZYH plugin" chip.
 struct InstallPluginButtonTheme;
 
 impl ActionButtonTheme for InstallPluginButtonTheme {
@@ -3016,7 +3015,7 @@ async fn write_install_log(agent: CLIAgent, err: &PluginInstallError) -> Option<
     let log_path = env::temp_dir().join("warp-plugin-install.log");
     let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC");
     let contents = format!(
-        "Warp plugin installation — {agent:?}\n\
+        "ZYH plugin installation — {agent:?}\n\
          {now}\n\
          \n\
          {log}",
