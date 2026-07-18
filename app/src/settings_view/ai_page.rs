@@ -3881,7 +3881,6 @@ impl TypedActionView for AISettingsPageView {
                 ApiKeyManager::handle(ctx).update(ctx, |manager, ctx| {
                     manager.set_voice_transcription_config(config, ctx);
                 });
-                self.sync_voice_configuration_controls(ctx);
             }
             AISettingsPageAction::TestVoiceProvider => {
                 let model = self
