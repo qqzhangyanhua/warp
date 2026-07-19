@@ -1753,7 +1753,7 @@ impl AppContext {
     #[cfg(not(debug_assertions))]
     pub fn register_binding_validator<T: View>(
         &mut self,
-        binding_validator: impl Fn(BindingLens) -> IsBindingValid + 'static,
+        _: impl Fn(BindingLens) -> IsBindingValid + 'static,
     ) {
     }
 
@@ -1775,7 +1775,7 @@ impl AppContext {
     #[cfg(not(debug_assertions))]
     pub fn set_default_binding_validator(
         &mut self,
-        binding_validator: impl Fn(BindingLens) -> IsBindingValid + 'static,
+        _: impl Fn(BindingLens) -> IsBindingValid + 'static,
     ) {
     }
 

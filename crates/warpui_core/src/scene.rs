@@ -546,6 +546,8 @@ impl Scene {
             })
             .unwrap_or_default();
         #[cfg(not(debug_assertions))]
+        let _ = location;
+        #[cfg(not(debug_assertions))]
         let location_info = "";
         debug_assert!(
             !rect.origin().y().is_infinite(),

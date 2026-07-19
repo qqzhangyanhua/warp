@@ -151,14 +151,19 @@ impl Element for Rect {
     }
 
     #[cfg_attr(debug_assertions, track_caller)]
-    fn finish(mut self) -> Box<dyn Element>
+    fn finish(self) -> Box<dyn Element>
     where
         Self: 'static + Sized,
     {
         #[cfg(debug_assertions)]
-        {
-            self.constructor_location = Some(std::panic::Location::caller());
-        }
-        Box::new(self)
+        let element = {
+            let mut element = self;
+            element.constructor_location = Some(std::panic::Location::caller());
+            element
+        };
+        #[cfg(not(debug_assertions))]
+        let element = self;
+
+        Box::new(element)
     }
 }
