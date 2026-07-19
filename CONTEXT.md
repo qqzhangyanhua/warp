@@ -24,6 +24,36 @@ _Avoid_: Offline mode, logged-out mode, anonymous mode
 A stable UUID-backed identity stored in local preferences for Local-only Mode. It is not an account, token, or Anonymous Session.
 _Avoid_: Anonymous ID, user account, auth token
 
+## Remote Access
+
+**Remote Host Shortcut**:
+An entry saved on the current device for starting an interactive terminal connection to a remote host. It identifies how to reach the host but does not contain authentication secrets.
+_Avoid_: Cloud server login, server account, cloud account
+
+**SSH Center**:
+The account-independent settings area where users create, edit, delete, and connect through Remote Host Shortcuts on the current device.
+_Avoid_: Shortcut bar, cloud account center
+
+**Remembered SSH Password**:
+A password retained locally for a Remote Host Shortcut and kept separate from the shortcut's connection details. It exists only while that shortcut uses password authentication and the operating system provides secure secret storage, and it is never displayed again after storage.
+_Avoid_: Saved password, shortcut password, SSH Center password
+
+**SSH Identity**:
+An existing private key on the current device selected for a Remote Host Shortcut. SSH Center references its file path but does not own, copy, or retain the key or its passphrase.
+_Avoid_: Imported key, SSH Center key, saved key
+
+**SSH Authentication Mode**:
+The single authentication strategy selected by a Remote Host Shortcut: system SSH, a Remembered SSH Password, or an SSH Identity. A shortcut never combines or silently falls back between modes.
+_Avoid_: Authentication priority, credential fallback
+
+**SSH Host Trust**:
+The OpenSSH-managed association between a remote host and its public host key. Saving a Remote Host Shortcut does not establish trust; first use requires confirmation and a later key mismatch blocks connection.
+_Avoid_: Trusted shortcut, automatic host acceptance
+
+**SSH Session**:
+A live terminal connection started from a snapshot of a Remote Host Shortcut. Once started, it is independent of later edits or deletion of that shortcut.
+_Avoid_: Saved connection, active shortcut
+
 ## AI Providers
 
 **OpenAI-compatible Provider**:
