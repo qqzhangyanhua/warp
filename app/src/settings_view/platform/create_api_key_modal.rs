@@ -164,7 +164,7 @@ impl CreateApiKeyModal {
                 ..Default::default()
             };
             let mut editor = EditorView::single_line(options, ctx);
-            editor.set_placeholder_text("ZYH API Key", ctx);
+            editor.set_placeholder_text(tr_cached(Message::WarpApiKey), ctx);
             editor
         });
 
@@ -341,7 +341,7 @@ impl CreateApiKeyModal {
         let name = self.name_editor.as_ref(ctx).buffer_text(ctx);
 
         let final_name = if name.trim().is_empty() {
-            "ZYH API Key".to_string()
+            tr_cached(Message::WarpApiKey).to_string()
         } else {
             name.trim().to_string()
         };
@@ -365,7 +365,7 @@ impl CreateApiKeyModal {
                 None => {
                     self.request_state = RequestState::Idle;
                     ctx.emit(CreateApiKeyModalEvent::Error {
-                        message: "Please select an agent.".to_string(),
+                        message: tr_cached(Message::PleaseSelectAnAgent).to_string(),
                     });
                     ctx.notify();
                     return;
@@ -383,7 +383,7 @@ impl CreateApiKeyModal {
                     self.request_state = RequestState::Idle;
                     ctx.emit(CreateApiKeyModalEvent::Error {
                         message:
-                            "Unable to create a team API key because there is no current team."
+                            tr_cached(Message::UnableCreateTeamApiKey)
                                 .to_string(),
                     });
                     ctx.notify();

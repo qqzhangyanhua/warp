@@ -11,6 +11,7 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 use super::execution_context::WarpAiExecutionContext;
 use super::utils::{markdown_segments_from_text, FormattedTranscriptMessage, TranscriptPart};
 use crate::ai::{RequestLimitInfo, RequestUsageInfo};
+use crate::i18n::{tr_cached, Message};
 use crate::ai_assistant::utils::{AssistantTranscriptPart, TranscriptPartSubType};
 use crate::auth::AuthStateProvider;
 use crate::send_telemetry_from_ctx;
@@ -252,17 +253,17 @@ impl Requests {
                                 if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
                                     if has_admin_permissions {
                                         let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
-                                        format!("It seems you're out of credits. Please try again {next_time}.\n\n[Upgrade]({upgrade_url}) for more credits.")
+                                        tr_cached(Message::AiAssistantOutOfCreditsUpgrade).replacen("{}", &next_time, 1).replacen("{}", &upgrade_url, 1)
                                     } else {
-                                        format!("It seems you're out of credits. Please try again {next_time}.\n\nContact a team admin to upgrade for more credits.")
+                                        tr_cached(Message::AiAssistantOutOfCreditsContactAdmin).replace("{}", &next_time)
                                     }
                                 } else {
-                                    format!("It seems you're out of credits. Please try again {next_time}.")
+                                    tr_cached(Message::AiAssistantOutOfCreditsRetry).replace("{}", &next_time)
                                 }
                             } else {
                                 let user_id = auth_state.user_id().unwrap_or_default();
                                 let upgrade_url = UserWorkspaces::upgrade_link(user_id);
-                                format!("It seems you're out of credits. Please try again {next_time}.\n\n[Upgrade]({upgrade_url}) for more credits.")
+                                tr_cached(Message::AiAssistantOutOfCreditsUpgrade).replacen("{}", &next_time, 1).replacen("{}", &upgrade_url, 1)
                             };
                             let response_in_markdown = markdown_segments_from_text(
                                 transcript_part_index,
@@ -287,7 +288,7 @@ impl Requests {
                             );
                         }
                         _ => {
-                            let response = "We're experiencing technical difficulties right now. Please try again later.".to_owned();
+                            let response = tr_cached(Message::AiAssistantTechnicalDifficulties).to_owned();
                             let response_in_markdown = markdown_segments_from_text(
                                 transcript_part_index,
                                 TranscriptPartSubType::Answer,

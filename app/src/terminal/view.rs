@@ -776,7 +776,7 @@ const MOVE_LINE_END_BINDING_NAME: &str = "editor_view:move_to_line_end";
 
 const DEFAULT_AI_BLOCK_HEIGHT: f32 = 96.;
 
-pub const DEFAULT_ASK_AI_AUTOSUGGESTION_TEXT: &str = "What happened here?";
+pub fn default_ask_ai_autosuggestion_text() -> &'static str { tr_cached(Message::WhatHappenedHere) }
 
 const WARP_MD_PATH: &str = "WARP.md";
 
@@ -19573,11 +19573,11 @@ impl TerminalView {
 
             AskAIType::FromBlock { block_index, .. } => {
                 context_block_indices.insert(*block_index);
-                (None, Some(DEFAULT_ASK_AI_AUTOSUGGESTION_TEXT))
+                (None, Some(default_ask_ai_autosuggestion_text()))
             }
             AskAIType::FromBlocks { block_indices } => {
                 context_block_indices.extend(block_indices);
-                (None, Some(DEFAULT_ASK_AI_AUTOSUGGESTION_TEXT))
+                (None, Some(default_ask_ai_autosuggestion_text()))
             }
 
             AskAIType::FromAICommandSearch { query } => {

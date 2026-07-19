@@ -33,6 +33,7 @@ use super::warp_ai::WarpAIDataSource;
 use super::workflows::{cloud_workflows_data_source, WorkflowsDataSource};
 use super::zero_state::{CommandSearchZeroStateEvent, CommandSearchZeroStateView};
 use crate::ai_assistant::execution_context::WarpAiExecutionContext;
+use crate::i18n::{tr_cached, Message};
 use crate::ai_assistant::GenerateCommandsFromNaturalLanguageError;
 use crate::appearance::Appearance;
 use crate::auth::auth_manager::AuthManager;
@@ -57,7 +58,7 @@ use crate::terminal::resizable_data::{ModalType, ResizableData, DEFAULT_UNIVERSA
 use crate::terminal::{History, HistoryEvent};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
-const DEFAULT_PLACEHOLDER_TEXT: &str = "Search your history, workflows, and more";
+fn default_placeholder_text() -> &'static str { tr_cached(Message::CommandSearchPlaceholder) }
 const PANEL_POSITION_ID: &str = "CommandSearchViewPanel";
 const DETAILS_PANEL_MARGIN: f32 = 4.;
 const MIN_WIDTH_RATIO: f32 = 0.25;
@@ -146,7 +147,7 @@ impl CommandSearchView {
             SearchBar::new(
                 mixer.clone(),
                 search_bar_state.clone(),
-                DEFAULT_PLACEHOLDER_TEXT,
+                default_placeholder_text(),
                 |result_index, result| {
                     QueryResultRenderer::new(
                         result,
@@ -509,13 +510,13 @@ impl CommandSearchView {
 
             let (a11y_content, a11y_help_content) = if was_immediately_executed {
                 (
-                    "Result executed".to_owned(),
-                    "Press Cmd-Up to navigate to the command's output.".to_owned(),
+                    tr_cached(Message::ResultExecuted).to_owned(),
+                    tr_cached(Message::PressCmdUpNavigateOutput).to_owned(),
                 )
             } else {
                 (
-                    "Result accepted.".to_owned(),
-                    "You can edit the command here before pressing Enter to execute it.".to_owned(),
+                    tr_cached(Message::ResultAccepted).to_owned(),
+                    tr_cached(Message::EditCommandBeforeExecute).to_owned(),
                 )
             };
             ctx.emit_a11y_content(AccessibilityContent::new(
@@ -569,7 +570,7 @@ impl CommandSearchView {
         let muted_color: ColorU = appearance.theme().nonactive_ui_text_color().into();
         let text = appearance
             .ui_builder()
-            .span("Loading...")
+            .span(tr_cached(Message::CommonLoadingDots))
             .with_style(UiComponentStyles {
                 font_size: Some(appearance.monospace_font_size()),
                 font_family_id: Some(appearance.ui_font_family()),
@@ -610,7 +611,7 @@ impl CommandSearchView {
                             current_user_id,
                         )
                     } else {
-                        self.render_error_header_text("Looks like you're out of credits. Contact a team admin to upgrade for more credits.".to_string(), appearance)
+                        self.render_error_header_text(tr_cached(Message::OutOfCreditsContactAdmin).to_string(), appearance)
                     }
                 } else {
                     self.render_error_header_text(message, appearance)
@@ -668,7 +669,7 @@ impl CommandSearchView {
             row.add_child(
                 appearance
                     .ui_builder()
-                    .span("Looks like you're out of credits.")
+                    .span(tr_cached(Message::LooksLikeOutOfCredits))
                     .with_style(UiComponentStyles {
                         font_size: Some(appearance.monospace_font_size()),
                         font_family_id: Some(appearance.ui_font_family()),
@@ -719,7 +720,7 @@ impl CommandSearchView {
         row.add_child(
             appearance
                 .ui_builder()
-                .span("Looks like you're out of credits. ")
+                .span(tr_cached(Message::LooksLikeOutOfCredits))
                 .with_style(UiComponentStyles {
                     font_size: Some(appearance.monospace_font_size()),
                     font_family_id: Some(appearance.ui_font_family()),
@@ -768,7 +769,7 @@ impl CommandSearchView {
                 // There are no results to display, so notify the user of that fact.
                 let text = appearance
                     .ui_builder()
-                    .span("No results found.")
+                    .span(tr_cached(Message::NoResultsFound))
                     .with_style(UiComponentStyles {
                         font_size: Some(appearance.monospace_font_size()),
                         font_family_id: Some(appearance.ui_font_family()),

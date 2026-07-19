@@ -50,9 +50,9 @@ pub(super) enum VoiceInputState {
 impl fmt::Debug for VoiceInputState {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
-            Self::Stopped => "Stopped",
-            Self::Listening { .. } => "Listening",
-            Self::Transcribing { .. } => "Transcribing",
+            Self::Stopped => tr_cached(Message::VoiceStopped),
+            Self::Listening { .. } => tr_cached(Message::VoiceListening),
+            Self::Transcribing { .. } => tr_cached(Message::VoiceTranscribing),
         })
     }
 }
@@ -84,7 +84,7 @@ impl EditorView {
     ) -> ViewHandle<FeaturePopup> {
         let voice_new_feature_popup = ctx.add_typed_action_view(|_| {
             FeaturePopup::new_feature(NewFeaturePopupLabel::FromString(
-                "Try Voice Input".to_string(),
+                tr_cached(Message::VoiceTryVoiceInput).to_string(),
             ))
         });
 
@@ -550,13 +550,13 @@ impl EditorView {
 
         let modifier_key = AISettings::handle(app).as_ref(app).voice_input_toggle_key;
         let tooltip_text = if mic_access_denied {
-            "Voice transcription is disabled because Microphone access was not granted.".to_string()
+            tr_cached(Message::VoiceTranscriptionDisabledMic).to_string()
         } else if modifier_key == VoiceInputToggleKey::None {
-            "Voice transcription".to_string()
+            tr_cached(Message::VoiceTranscription).to_string()
         } else {
-            format!(
-                "Voice transcription (hold `{}` key)",
-                modifier_key.display_name().to_lowercase()
+            tr_cached(Message::VoiceTranscriptionHoldKey).replace(
+                "{}",
+                &modifier_key.display_name().to_lowercase(),
             )
         };
 

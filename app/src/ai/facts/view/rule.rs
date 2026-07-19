@@ -48,17 +48,17 @@ use crate::workspace::ToastStack;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 pub const HEADER_TEXT: &str = "Rules";
-const DESCRIPTION_TEXT: &str = "Rules enhance the agent by providing structured guidelines that help maintain consistency, enforce best practices, and adapt to specific workflows, including codebases or broader tasks.";
+fn description_text() -> &'static str { tr_cached(Message::RulesEnhanceAgent) }
 
-const SEARCH_PLACEHOLDER_TEXT: &str = "Search rules";
+fn search_placeholder_text() -> &'static str { tr_cached(Message::SearchRules) }
 const ZERO_STATE_TEXT: &str =
     "Add a rule above, or drop one at ~/.agents/AGENTS.md to apply it across every project.";
-const ZERO_STATE_TEXT_PROJECT: &str =
-    "Once you generate a WARP.md rules file for a project, it will appear here.";
+fn zero_state_text_project() -> &'static str {
+    tr_cached(Message::RulesEmptyGenerateWarpMd)
+}
 
-const DISABLED_BANNER_TEXT: &str =
-    "Your rules are disabled and won't be used as context in sessions. You can ";
-const DISABLED_BANNER_LINK_TEXT: &str = "turn it back on";
+fn disabled_banner_text() -> &'static str { tr_cached(Message::YourRulesAreDisabled) }
+fn disabled_banner_link_text() -> &'static str { tr_cached(Message::TurnItBackOn) }
 const DISABLED_BANNER_TEXT_2: &str = " anytime.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -292,7 +292,7 @@ impl RuleView {
 
         search_editor.update(ctx, |editor, ctx| {
             editor.clear_buffer_and_reset_undo_stack(ctx);
-            editor.set_placeholder_text(SEARCH_PLACEHOLDER_TEXT, ctx);
+            editor.set_placeholder_text(search_placeholder_text(), ctx);
         });
         let search_bar = ctx.add_typed_action_view(|_| SearchBar::new(search_editor.clone()));
 
@@ -498,7 +498,7 @@ impl RuleView {
         Container::new(
             appearance
                 .ui_builder()
-                .wrappable_text(DESCRIPTION_TEXT, true)
+                .wrappable_text(description_text(), true)
                 .with_style(style::description_text(appearance))
                 .build()
                 .finish(),
@@ -605,12 +605,12 @@ impl RuleView {
     }
 
     fn render_disabled_banner(&self, appearance: &Appearance) -> Box<dyn Element> {
-        let mut link = FormattedTextFragment::hyperlink(DISABLED_BANNER_LINK_TEXT, "Settings > AI");
+        let mut link = FormattedTextFragment::hyperlink(disabled_banner_link_text(), "Settings > AI");
         link.styles.weight = Some(CustomWeight::Bold);
 
         let formatted_text = FormattedTextElement::new(
             FormattedText::new([FormattedTextLine::Line(vec![
-                FormattedTextFragment::bold(DISABLED_BANNER_TEXT),
+                FormattedTextFragment::bold(disabled_banner_text()),
                 link,
                 FormattedTextFragment::bold(DISABLED_BANNER_TEXT_2),
             ])]),
@@ -892,7 +892,7 @@ impl RuleView {
     fn render_zero_state(&self, appearance: &Appearance) -> Box<dyn Element> {
         let text = match self.current_scope {
             RuleScope::Global => ZERO_STATE_TEXT,
-            RuleScope::ProjectBased => ZERO_STATE_TEXT_PROJECT,
+            RuleScope::ProjectBased => zero_state_text_project(),
         };
 
         let centered_text = appearance

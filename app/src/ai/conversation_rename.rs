@@ -9,14 +9,24 @@ use crate::workspace::ToastStack;
 
 const CONVERSATION_TITLE_MAX_CHARS: usize = 500;
 
-const EMPTY_TITLE_MESSAGE: &str = "Please provide a conversation title";
-const EMPTY_CONVERSATION_MESSAGE: &str = "You can't rename an empty conversation";
-const CONVERSATION_NOT_FOUND_MESSAGE: &str = "Conversation not found";
-const NOT_SYNCED_MESSAGE: &str =
-    "Your conversation hasn't synced to the cloud yet. Try sending another message, then rename it again.";
-const RENAME_IN_PROGRESS_MESSAGE: &str = "A rename is already in progress for this conversation";
-const CONVERSATION_NOT_READY_MESSAGE: &str =
-    "Your conversation is still syncing. Try renaming it again in a moment.";
+fn empty_title_message() -> &'static str {
+    tr_cached(Message::RenameProvideConversationTitle)
+}
+fn empty_conversation_message() -> &'static str {
+    tr_cached(Message::RenameEmptyConversation)
+}
+fn conversation_not_found_message() -> &'static str {
+    tr_cached(Message::RenameConversationNotFound)
+}
+fn not_synced_message() -> &'static str {
+    tr_cached(Message::RenameConversationNotSynced)
+}
+fn rename_in_progress_message() -> &'static str {
+    tr_cached(Message::RenameInProgress)
+}
+fn conversation_not_ready_message() -> &'static str {
+    tr_cached(Message::RenameConversationStillSyncing)
+}
 
 /// Renames a conversation locally and triggers a conversation rename on the server.
 ///
@@ -44,7 +54,7 @@ pub(crate) fn rename_conversation<T: View>(
         let window_id = ctx.window_id();
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
             toast_stack.add_ephemeral_toast(
-                DismissibleToast::error(EMPTY_CONVERSATION_MESSAGE.to_owned()),
+                DismissibleToast::error(empty_conversation_message().to_owned()),
                 window_id,
                 ctx,
             );
@@ -62,13 +72,13 @@ pub(crate) fn rename_conversation<T: View>(
         Ok(server_conversation_id) => server_conversation_id,
         Err(err) => {
             let message = match err {
-                BeginConversationRenameError::MissingServerConversationToken => NOT_SYNCED_MESSAGE,
-                BeginConversationRenameError::RenameInProgress => RENAME_IN_PROGRESS_MESSAGE,
+                BeginConversationRenameError::MissingServerConversationToken => not_synced_message(),
+                BeginConversationRenameError::RenameInProgress => rename_in_progress_message(),
                 BeginConversationRenameError::ConversationNotFound => {
-                    CONVERSATION_NOT_FOUND_MESSAGE
+                    conversation_not_found_message()
                 }
                 BeginConversationRenameError::ConversationNotReady => {
-                    CONVERSATION_NOT_READY_MESSAGE
+                    conversation_not_ready_message()
                 }
             };
             let window_id = ctx.window_id();
@@ -141,7 +151,7 @@ fn conversation_already_has_title<T: View>(
 fn validate_conversation_title(title: String) -> Result<String, String> {
     let title = title.trim();
     if title.is_empty() {
-        return Err(EMPTY_TITLE_MESSAGE.to_owned());
+        return Err(empty_title_message().to_owned());
     }
 
     if title.chars().count() > CONVERSATION_TITLE_MAX_CHARS {

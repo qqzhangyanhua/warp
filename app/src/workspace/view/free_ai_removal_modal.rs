@@ -19,6 +19,7 @@ use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
 use crate::auth::AuthStateProvider;
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::SettingsSection;
 use crate::ui_components::blended_colors;
 use crate::workspace::WorkspaceAction;
@@ -29,16 +30,12 @@ const CORNER_RADIUS: f32 = 12.;
 const PANEL_PADDING: f32 = 24.;
 const CLOSE_BUTTON_DIAMETER: f32 = 20.;
 
-const NOTICE_TITLE_TEXT: &str = "ZYH is no longer providing inference on the free plan.";
-const NOTICE_BODY_TEXT: &str = "To keep using Warp's AI features, please upgrade to a paid plan, \
-     bring your own API key or endpoint, or log in with your Grok subscription.";
-const NOTICE_BONUS_CREDITS_TEXT: &str = "If you have any unused bonus credits, AI will keep \
-     working until these run out.";
+fn notice_title_text() -> &'static str { tr_cached(Message::FreePlanNoInference) }
+fn notice_body_text() -> &'static str { tr_cached(Message::FreePlanKeepUsingAi) }
+fn notice_bonus_credits_text() -> &'static str { tr_cached(Message::FreePlanBonusCredits) }
 
-const PROMPT_SUGGESTIONS_TITLE_TEXT: &str = "How to use AI features in ZYH";
-const PROMPT_SUGGESTIONS_BODY_TEXT: &str = "To use AI features in Warp, subscribe to a paid plan, \
-     add an API key (OpenAI, Anthropic, or Google), add a custom inference endpoint (OpenRouter, \
-     LiteLLM), or log in using your SuperGrok subscription.";
+fn prompt_suggestions_title_text() -> &'static str { tr_cached(Message::HowToUseAiInWarp) }
+fn prompt_suggestions_body_text() -> &'static str { tr_cached(Message::PromptSuggestionsNeedPlan) }
 
 /// Which surface opened the modal. Selects the copy and disambiguates telemetry;
 /// the layout and CTAs are identical across variants.
@@ -53,15 +50,15 @@ pub enum FreeAiRemovalModalVariant {
 impl FreeAiRemovalModalVariant {
     fn title(self) -> &'static str {
         match self {
-            Self::Notice => NOTICE_TITLE_TEXT,
-            Self::PromptSuggestions => PROMPT_SUGGESTIONS_TITLE_TEXT,
+            Self::Notice => notice_title_text(),
+            Self::PromptSuggestions => prompt_suggestions_title_text(),
         }
     }
 
     fn body(self) -> &'static str {
         match self {
-            Self::Notice => NOTICE_BODY_TEXT,
-            Self::PromptSuggestions => PROMPT_SUGGESTIONS_BODY_TEXT,
+            Self::Notice => notice_body_text(),
+            Self::PromptSuggestions => prompt_suggestions_body_text(),
         }
     }
 
@@ -70,7 +67,7 @@ impl FreeAiRemovalModalVariant {
     /// bonus-credits note doesn't apply there.
     fn secondary(self) -> Option<&'static str> {
         match self {
-            Self::Notice => Some(NOTICE_BONUS_CREDITS_TEXT),
+            Self::Notice => Some(notice_bonus_credits_text()),
             Self::PromptSuggestions => None,
         }
     }
@@ -152,7 +149,7 @@ impl FreeAiRemovalModal {
                 height: Some(32.),
                 ..Default::default()
             })
-            .with_centered_text_label("Bring your own AI".to_string())
+            .with_centered_text_label(tr_cached(Message::BringYourOwnAi).to_string())
             .build()
             .with_cursor(Cursor::PointingHand)
             .on_click(|ctx, _, _| {
@@ -171,7 +168,7 @@ impl FreeAiRemovalModal {
                 height: Some(32.),
                 ..Default::default()
             })
-            .with_centered_text_label("View pricing".to_string())
+            .with_centered_text_label(tr_cached(Message::ViewPricing).to_string())
             .build()
             .with_cursor(Cursor::PointingHand)
             .on_click(|ctx, _, _| {

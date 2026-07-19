@@ -23,6 +23,7 @@ use super::{
 use crate::drive::workflows::workflow_arg_selector::{
     WorkflowArgSelector, WorkflowArgSelectorStyles,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::drive::workflows::workflow_arg_type_helpers::{self, ArgumentTypeEditor};
 use crate::editor::{
     EditOrigin, EditorView, Event as EditorEvent, InteractionState,
@@ -38,9 +39,9 @@ const ARGUMENT_INPUT_HEIGHT: f32 = 30.;
 const ARGUMENT_LABEL_TEXT: &str = "Arguments";
 const ARGUMENT_LABEL_HEIGHT: f32 = 20.;
 const ARGUMENT_LABEL_MARGIN_BOTTOM: f32 = 5.;
-const ARGUMENT_DESCRIPTION_PLACEHOLDER_TEXT: &str = "Description";
-const ARGUMENT_ALIAS_DESCRIPTION_PLACEHOLDER_TEXT: &str = "Value (optional)";
-const ARGUMENT_DEFAULT_VALUE_PLACEHOLDER_TEXT: &str = "Default value (optional)";
+fn argument_description_placeholder_text() -> &'static str { tr_cached(Message::CommonDescription) }
+fn argument_alias_description_placeholder_text() -> &'static str { tr_cached(Message::ValueOptional) }
+fn argument_default_value_placeholder_text() -> &'static str { tr_cached(Message::DefaultValueOptional) }
 pub const DEFAULT_ARGUMENT_PREFIX: &str = "argument";
 
 /// Width of the argument editor in alias mode.
@@ -120,7 +121,7 @@ impl WorkflowView {
                                 ctx,
                                 Some(EDITOR_FONT_SIZE),
                                 Some(ui_font_family),
-                                Some(ARGUMENT_DESCRIPTION_PLACEHOLDER_TEXT),
+                                Some(argument_description_placeholder_text()),
                                 false, /* vim_keybindings */
                                 true,
                                 false,
@@ -137,7 +138,7 @@ impl WorkflowView {
                                 ctx,
                                 Some(EDITOR_FONT_SIZE),
                                 Some(ui_font_family),
-                                Some(ARGUMENT_DEFAULT_VALUE_PLACEHOLDER_TEXT),
+                                Some(argument_default_value_placeholder_text()),
                                 false, /* vim_keybindings */
                                 true,
                                 false,
@@ -582,7 +583,7 @@ impl WorkflowView {
                 )
                 .with_tooltip(move || {
                     ui_builder
-                        .tool_tip("Add a workflow argument".to_string())
+                        .tool_tip(tr_cached(Message::AddWorkflowArgument).to_string())
                         .build()
                         .finish()
                 })
@@ -771,7 +772,7 @@ impl WorkflowView {
 
             // If the description is empty, show a placeholder text.
             if current_description.is_empty() {
-                current_description.push_str(ARGUMENT_ALIAS_DESCRIPTION_PLACEHOLDER_TEXT);
+                current_description.push_str(argument_alias_description_placeholder_text());
                 styles.font_color = Some(theme.sub_text_color(theme.background()).into_solid());
             }
 
@@ -820,7 +821,7 @@ impl WorkflowView {
                         .add_environment_variables_mouse_state
                         .clone(),
                 )
-                .with_centered_text_label("Add environment variables".to_string())
+                .with_centered_text_label(tr_cached(Message::AddEnvironmentVariables).to_string())
                 .build()
                 .on_click(|ctx, _, _| {
                     ctx.dispatch_typed_action(WorkspaceAction::CreatePersonalEnvVarCollection);

@@ -56,13 +56,11 @@ use crate::view_components::action_button::{ActionButton, ButtonSize, NakedTheme
 const MAX_PROMPT_LINES: f32 = 5.;
 /// Max characters shown in a row's single-line preview before truncation.
 const PROMPT_PREVIEW_MAX_CHARS: usize = 500;
-const INITIAL_CLOUD_MODE_PROMPT_TOOLTIP: &str = "The first cloud-mode prompt cannot be changed.";
-const SEND_NOW_DURING_CLOUD_SETUP_TOOLTIP: &str =
-    "Prompts cannot be sent until environment setup is complete.";
-const SEND_NOW_PENDING_LRC_TOOLTIP: &str =
-    "Prompts cannot be sent until the full terminal use agent is initialized.";
-const SEND_NOW_TO_FULL_TERMINAL_USE_AGENT_TOOLTIP: &str = "Send to full terminal use agent";
-const SEND_NOW_AS_READ_ONLY_VIEWER_TOOLTIP: &str = "Read-only viewers cannot send prompts.";
+fn initial_cloud_mode_prompt_tooltip() -> &'static str { tr_cached(Message::FirstCloudPromptCannotChange) }
+fn send_now_during_cloud_setup_tooltip() -> &'static str { tr_cached(Message::PromptsWaitEnvironmentSetup) }
+fn send_now_pending_lrc_tooltip() -> &'static str { tr_cached(Message::PromptsWaitFullTerminalAgent) }
+fn send_now_to_full_terminal_use_agent_tooltip() -> &'static str { tr_cached(Message::SendToFullTerminalAgent) }
+fn send_now_as_read_only_viewer_tooltip() -> &'static str { tr_cached(Message::ReadOnlyViewersCannotSendPrompts) }
 /// Suffix on rows auto-queued during an agent-requested long-running command, which fire
 /// when that command completes rather than at the end of the full response.
 const LRC_AUTO_QUEUE_ROW_SUFFIX: &str = "(queued until the command finishes)";
@@ -83,7 +81,7 @@ fn build_row_state(
     // The send-now tooltip is owned by `update_send_now_availability`, which swaps in a
     // "wait for the cloud agent" message while send-now is disabled; "Send now" is the default.
     let edit_tooltip = if is_initial_cloud_mode_prompt {
-        INITIAL_CLOUD_MODE_PROMPT_TOOLTIP
+        initial_cloud_mode_prompt_tooltip()
     } else {
         "Edit"
     };
@@ -441,13 +439,13 @@ impl QueuedPromptsPanelView {
             let disabled =
                 disabled_for_pending_lrc || disabled_for_cloud_setup || !self.can_send_prompt;
             let tooltip = if disabled_for_pending_lrc {
-                SEND_NOW_PENDING_LRC_TOOLTIP
+                send_now_pending_lrc_tooltip()
             } else if disabled_for_cloud_setup {
-                SEND_NOW_DURING_CLOUD_SETUP_TOOLTIP
+                send_now_during_cloud_setup_tooltip()
             } else if !self.can_send_prompt {
-                SEND_NOW_AS_READ_ONLY_VIEWER_TOOLTIP
+                send_now_as_read_only_viewer_tooltip()
             } else if lrc_subagent_in_progress {
-                SEND_NOW_TO_FULL_TERMINAL_USE_AGENT_TOOLTIP
+                send_now_to_full_terminal_use_agent_tooltip()
             } else {
                 "Send now"
             };
@@ -1268,7 +1266,7 @@ fn render_row(props: RenderRowProps<'_>, app: &AppContext) -> Box<dyn Element> {
                 if drag_state.is_hovered() {
                     stack.add_positioned_overlay_child(
                         ui_builder
-                            .tool_tip(INITIAL_CLOUD_MODE_PROMPT_TOOLTIP.to_owned())
+                            .tool_tip(initial_cloud_mode_prompt_tooltip().to_owned())
                             .build()
                             .finish(),
                         OffsetPositioning::offset_from_parent(

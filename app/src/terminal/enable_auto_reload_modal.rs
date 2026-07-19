@@ -100,7 +100,7 @@ impl EnableAutoReloadModalBody {
                             );
 
                             ctx.emit(EnableAutoReloadModalBodyEvent::ShowToast {
-                                message: "Auto-reload settings updated".to_string(),
+                                message: tr_cached(Message::AutoReloadSettingsUpdated).to_string(),
                                 flavor: ToastFlavor::Success,
                             });
                             ctx.emit(EnableAutoReloadModalBodyEvent::Close);
@@ -392,7 +392,7 @@ impl warpui::TypedActionView for EnableAutoReloadModalBody {
                 let workspaces = UserWorkspaces::as_ref(ctx);
                 let Some(team_uid) = workspaces.current_team_uid() else {
                     ctx.emit(EnableAutoReloadModalBodyEvent::ShowToast {
-                        message: "Oops, something went wrong; your team's data could not be found."
+                        message: tr_cached(Message::TeamDataNotFound)
                             .to_string(),
                         flavor: ToastFlavor::Error,
                     });

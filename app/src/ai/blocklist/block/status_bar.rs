@@ -26,7 +26,7 @@ use super::model::{AIBlockModel, AIBlockModelImpl, AIBlockOutputStatus};
 use super::view_impl::common::{
     render_switch_control_to_user_button, render_warping_indicator, render_warping_indicator_base,
     AutoExecuteButtonProps, ButtonProps, ForceRefreshButtonProps, MaybeShimmeringText,
-    WarpingIndicatorProps, WarpingProps, LOAD_OUTPUT_MESSAGE, WAITING_FOR_USER_INPUT_MESSAGE,
+    WarpingIndicatorProps, WarpingProps, load_output_message, waiting_for_user_input_message,
 };
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{
@@ -830,7 +830,7 @@ impl BlocklistAIStatusBar {
         );
         let default_warping_text = fallback_warping_text
             .as_deref()
-            .unwrap_or(LOAD_OUTPUT_MESSAGE)
+            .unwrap_or(load_output_message())
             .to_owned();
         let secondary_element = if fallback_warping_text.is_some() {
             Some(render_fallback_explanation(model.as_ref(), app))
@@ -1216,7 +1216,7 @@ impl View for BlocklistAIStatusBar {
                     WarpingIndicatorProps {
                         icon: Some(icons::gray_clock_icon(appearance).finish()),
                         warping_indicator_text: MaybeShimmeringText::Static(
-                            WAITING_FOR_USER_INPUT_MESSAGE.into(),
+                            waiting_for_user_input_message().into(),
                         ),
                         non_shimmering_text: None,
                         non_shimmering_suffix: None,

@@ -14,7 +14,7 @@ fn claude_is_disabled_for_missing_cli() {
     assert_eq!(
         local_harness_setup_state_with_cli_resolver(Harness::Claude, |_| false),
         LocalHarnessSetupState::MissingHarness {
-            tooltip: LOCAL_HARNESS_INSTALLATION_REQUIRED_TOOLTIP,
+            tooltip: local_harness_installation_required_tooltip(),
         }
     );
 }
@@ -36,7 +36,7 @@ fn codex_requires_cli_when_flag_is_on() {
     assert_eq!(
         local_harness_setup_state_with_cli_resolver(Harness::Codex, |_| false),
         LocalHarnessSetupState::MissingHarness {
-            tooltip: LOCAL_CODEX_HARNESS_INSTALLATION_REQUIRED_TOOLTIP,
+            tooltip: local_codex_harness_installation_required_tooltip(),
         }
     );
 }
@@ -46,7 +46,7 @@ fn codex_remains_product_disabled() {
     assert_eq!(
         local_harness_setup_state_with_cli_resolver(Harness::Codex, |_| true),
         LocalHarnessSetupState::ProductDisabled {
-            message: LOCAL_CODEX_HARNESS_DISABLED_MESSAGE,
+            message: local_codex_harness_disabled_message(),
         }
     );
 }

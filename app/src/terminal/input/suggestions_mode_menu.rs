@@ -15,9 +15,9 @@ use warpui::presenter::ChildView;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 
 use super::{
-    DynamicEnumSuggestionStatus, Input, InputAction, MenuPositioning, DYNAMIC_ENUM_FAILURE_MESSAGE,
-    DYNAMIC_ENUM_GENERATE_MESSAGE, DYNAMIC_ENUM_HORIZONTAL_TEXT_PADDING,
-    DYNAMIC_ENUM_MENU_HEIGHT_OFFSET, DYNAMIC_ENUM_MENU_PADDING, DYNAMIC_ENUM_NO_RESULTS_MESSAGE,
+    dynamic_enum_failure_message, dynamic_enum_no_results_message, DynamicEnumSuggestionStatus,
+    Input, InputAction, MenuPositioning, DYNAMIC_ENUM_GENERATE_MESSAGE,
+    DYNAMIC_ENUM_HORIZONTAL_TEXT_PADDING, DYNAMIC_ENUM_MENU_HEIGHT_OFFSET, DYNAMIC_ENUM_MENU_PADDING,
     DYNAMIC_ENUM_PENDING_MESSAGE, DYNAMIC_ENUM_RUN_MESSAGE, HISTORY_DETAILS_VIEW_WIDTH_REQUIREMENT,
     RUN_DYNAMIC_ENUM_COMMAND_KEYSTROKE, TERMINAL_VIEW_PADDING_LEFT,
 };
@@ -157,12 +157,12 @@ impl Input {
                 SuggestionsResizeConfig::WidthAndHeight,
             ),
             DynamicEnumSuggestionStatus::Failure => (
-                self.render_dynamic_enum_status_message(DYNAMIC_ENUM_FAILURE_MESSAGE, appearance),
+                self.render_dynamic_enum_status_message(dynamic_enum_failure_message(), appearance),
                 SuggestionsResizeConfig::WidthAndHeight,
             ),
             DynamicEnumSuggestionStatus::Success if suggestions.is_empty() => (
                 self.render_dynamic_enum_status_message(
-                    DYNAMIC_ENUM_NO_RESULTS_MESSAGE,
+                    dynamic_enum_no_results_message(),
                     appearance,
                 ),
                 SuggestionsResizeConfig::WidthAndHeight,

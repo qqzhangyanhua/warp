@@ -23,6 +23,7 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
+use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::inline_action::create_environment_modal::{
     CreateEnvironmentModal, CreateEnvironmentModalEvent,
 };
@@ -65,10 +66,15 @@ fn host_presence(execution_mode: &RunAgentsExecutionMode) -> bool {
     )
 }
 
-const CONFIG_BLOCK_HEADER: &str = "Use orchestration";
-const CONFIG_BLOCK_DESCRIPTION: &str =
-    "Break this work into coordinated streams with multiple agents.";
-const BASE_MODEL_HELPER: &str = "The primary model all agents will use.";
+fn config_block_header() -> &'static str {
+    tr_cached(Message::UseOrchestration)
+}
+fn config_block_description() -> &'static str {
+    tr_cached(Message::OrchestrationBreakIntoStreams)
+}
+fn base_model_helper() -> &'static str {
+    tr_cached(Message::OrchestrationPrimaryModel)
+}
 
 // ── Action type ─────────────────────────────────────────────────────
 
@@ -566,7 +572,7 @@ impl View for OrchestrationConfigBlockView {
 
         // Header row: "Use orchestration" + pill toggle switch
         let header_label = Text::new(
-            CONFIG_BLOCK_HEADER.to_string(),
+            config_block_header().to_string(),
             appearance.ui_font_family(),
             16.,
         )
@@ -595,7 +601,7 @@ impl View for OrchestrationConfigBlockView {
 
         // Description
         let description = Text::new(
-            CONFIG_BLOCK_DESCRIPTION.to_string(),
+            config_block_description().to_string(),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),
         )
@@ -683,7 +689,7 @@ impl View for OrchestrationConfigBlockView {
 
                 // Helper text
                 let helper = Text::new(
-                    BASE_MODEL_HELPER.to_string(),
+                    base_model_helper().to_string(),
                     appearance.ui_font_family(),
                     appearance.monospace_font_size() - 1.,
                 )

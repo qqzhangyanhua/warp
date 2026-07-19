@@ -104,43 +104,88 @@ use crate::workspaces::workspace::CustomerType;
 
 pub const STATUS_ICON_SIZE_DELTA: f32 = 4.;
 pub const STATUS_FOOTER_VERTICAL_PADDING: f32 = 4.;
-pub const WAITING_FOR_USER_INPUT_MESSAGE: &str = "Agent waiting for instructions...";
+pub fn waiting_for_user_input_message() -> &'static str {
+    tr_cached(Message::AgentStatusWaitingForInstructions)
+}
 const IMAGE_SOURCE_LINK_LINE_INDEX: usize = 1;
 
-const ERROR_APOLOGY_TEXT: &str = "I'm sorry, I couldn't complete that request.";
-const INTERNAL_WARP_ERROR: &str = "Internal ZYH error.";
+fn error_apology_text() -> &'static str {
+    tr_cached(Message::AgentStatusErrorApology)
+}
+fn internal_warp_error() -> &'static str {
+    tr_cached(Message::AgentStatusInternalError)
+}
 
-pub const LOAD_OUTPUT_MESSAGE: &str = "Working...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_ADJUSTING: &str = "Adjusting tasks...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_PASSIVE_CODE_GEN: &str = "Generating fix...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_CREATING_DIFF: &str = "Creating diff...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_PREPARING_QUESTION: &str = "Preparing question...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_GENERATING_PLAN: &str = "Generating plan...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_UPDATING_PLAN: &str = "Updating plan...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_SUMMARIZING_CONVERSATION: &str = "Summarizing conversation...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_SUMMARIZING_TOOL_CALL_RESULT: &str =
-    "Summarizing command output...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_SEARCH_CODEBASE: &str = "Searching codebase...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_READING_FILES: &str = "Reading files...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_GREP: &str = "Grepping...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_FILE_GLOB: &str = "Finding files...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_RUNNING_COMMAND: &str = "Executing command...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_WRITING_TO_COMMAND: &str = "Writing command input...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_WAITING_FOR_COMMAND_COMPLETION: &str =
-    "Waiting for command to exit...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_WEB_SEARCH: &str = "Searching the web...";
-pub const LOAD_OUTPUT_MESSAGE_FOR_FETCHING_REVIEW_COMMENTS: &str = "Fetching PR comments...";
+pub fn load_output_message() -> &'static str {
+    tr_cached(Message::AgentStatusWorking)
+}
+pub fn load_output_message_for_adjusting() -> &'static str {
+    tr_cached(Message::AgentStatusAdjustingTasks)
+}
+pub fn load_output_message_for_passive_code_gen() -> &'static str {
+    tr_cached(Message::AgentStatusGeneratingFix)
+}
+pub fn load_output_message_for_creating_diff() -> &'static str {
+    tr_cached(Message::AgentStatusCreatingDiff)
+}
+pub fn load_output_message_for_preparing_question() -> &'static str {
+    tr_cached(Message::AgentStatusPreparingQuestion)
+}
+pub fn load_output_message_for_generating_plan() -> &'static str {
+    tr_cached(Message::AgentStatusGeneratingPlan)
+}
+pub fn load_output_message_for_updating_plan() -> &'static str {
+    tr_cached(Message::AgentStatusUpdatingPlan)
+}
+pub fn load_output_message_for_summarizing_conversation() -> &'static str {
+    tr_cached(Message::AgentStatusSummarizingConversation)
+}
+pub fn load_output_message_for_summarizing_tool_call_result() -> &'static str {
+    tr_cached(Message::AgentStatusSummarizingCommandOutput)
+}
+pub fn load_output_message_for_search_codebase() -> &'static str {
+    tr_cached(Message::AgentStatusSearchingCodebase)
+}
+pub fn load_output_message_for_reading_files() -> &'static str {
+    tr_cached(Message::AgentStatusReadingFiles)
+}
+pub fn load_output_message_for_grep() -> &'static str {
+    tr_cached(Message::AgentStatusGrepping)
+}
+pub fn load_output_message_for_file_glob() -> &'static str {
+    tr_cached(Message::AgentStatusFindingFiles)
+}
+pub fn load_output_message_for_running_command() -> &'static str {
+    tr_cached(Message::AgentStatusExecutingCommand)
+}
+pub fn load_output_message_for_writing_to_command() -> &'static str {
+    tr_cached(Message::AgentStatusWritingCommandInput)
+}
+pub fn load_output_message_for_waiting_for_command_completion() -> &'static str {
+    tr_cached(Message::AgentStatusWaitingCommandExit)
+}
+pub fn load_output_message_for_web_search() -> &'static str {
+    tr_cached(Message::AgentStatusSearchingWeb)
+}
+pub fn load_output_message_for_fetching_review_comments() -> &'static str {
+    tr_cached(Message::AgentStatusFetchingPrComments)
+}
 
 #[cfg(feature = "local_fs")]
 pub(crate) type ResolvedBlocklistImageSources = HashMap<String, Option<AssetSource>>;
 
-pub const BLOCKED_ACTION_MESSAGE_FOR_WRITE_TO_LONG_RUNNING_SHELL_COMMAND: &str =
-    "Can I write the following to this running command?";
-pub const BLOCKED_ACTION_MESSAGE_FOR_READING_FILES: &str = "Grant access to the following files?";
-pub const BLOCKED_ACTION_MESSAGE_FOR_SEARCHING_CODEBASE: &str =
-    "Grant access to the following repository?";
-pub const BLOCKED_ACTION_MESSAGE_FOR_GREP_OR_FILE_GLOB: &str =
-    "OK if I search the files in this directory?";
+pub fn blocked_action_message_for_write_to_long_running_shell_command() -> &'static str {
+    tr_cached(Message::AgentBlockedWriteToCommand)
+}
+pub fn blocked_action_message_for_reading_files() -> &'static str {
+    tr_cached(Message::AgentBlockedReadingFiles)
+}
+pub fn blocked_action_message_for_searching_codebase() -> &'static str {
+    tr_cached(Message::AgentBlockedSearchingCodebase)
+}
+pub fn blocked_action_message_for_grep_or_file_glob() -> &'static str {
+    tr_cached(Message::AgentBlockedSearchFiles)
+}
 
 const BLOCKLIST_VISUAL_SECTION_HEIGHT_LINE_MULTIPLIER: f32 = 10.0;
 const BLOCKLIST_MERMAID_MAX_HEIGHT_LINE_MULTIPLIER: f32 = 40.0;
@@ -293,10 +338,10 @@ pub fn render_warping_indicator<V: View>(
         // Choose the appropriate message based on summarization type
         let base_message = match summarization_type {
             SummarizationType::ConversationSummary => {
-                LOAD_OUTPUT_MESSAGE_FOR_SUMMARIZING_CONVERSATION
+                load_output_message_for_summarizing_conversation()
             }
             SummarizationType::ToolCallResultSummary => {
-                LOAD_OUTPUT_MESSAGE_FOR_SUMMARIZING_TOOL_CALL_RESULT
+                load_output_message_for_summarizing_tool_call_result()
             }
         };
 
@@ -317,26 +362,26 @@ pub fn render_warping_indicator<V: View>(
             base_message.to_string()
         }
     } else if props.model.contains_update_document_action(app) {
-        LOAD_OUTPUT_MESSAGE_FOR_UPDATING_PLAN.to_string()
+        load_output_message_for_updating_plan().to_string()
     } else if props.model.contains_create_document_action(app) {
-        LOAD_OUTPUT_MESSAGE_FOR_GENERATING_PLAN.to_string()
+        load_output_message_for_generating_plan().to_string()
     } else if props.model.request_type(app).is_passive_code_diff() {
-        LOAD_OUTPUT_MESSAGE_FOR_PASSIVE_CODE_GEN.to_string()
+        load_output_message_for_passive_code_gen().to_string()
     } else if is_last_message_requesting_file_edits {
-        LOAD_OUTPUT_MESSAGE_FOR_CREATING_DIFF.to_string()
+        load_output_message_for_creating_diff().to_string()
     } else if is_last_message_asking_user_question {
-        LOAD_OUTPUT_MESSAGE_FOR_PREPARING_QUESTION.to_string()
+        load_output_message_for_preparing_question().to_string()
     } else if is_searching_web {
-        LOAD_OUTPUT_MESSAGE_FOR_WEB_SEARCH.to_string()
+        load_output_message_for_web_search().to_string()
     } else if is_fetching_review_comments {
-        LOAD_OUTPUT_MESSAGE_FOR_FETCHING_REVIEW_COMMENTS.to_string()
+        load_output_message_for_fetching_review_comments().to_string()
     } else if is_interrupt_query_for_same_conversation
         && output_to_render
             .as_ref()
             .is_none_or(|output| output.get().messages.is_empty())
     {
         // Only "Adjusting..." if nothing from the current exchange has streamed yet.
-        LOAD_OUTPUT_MESSAGE_FOR_ADJUSTING.to_string()
+        load_output_message_for_adjusting().to_string()
     } else {
         match props
             .action_model
@@ -344,21 +389,21 @@ pub fn render_warping_indicator<V: View>(
             .map(|action| &action.action)
         {
             Some(AIAgentActionType::SearchCodebase(..)) => {
-                LOAD_OUTPUT_MESSAGE_FOR_SEARCH_CODEBASE.to_owned()
+                load_output_message_for_search_codebase().to_owned()
             }
-            Some(AIAgentActionType::Grep { .. }) => LOAD_OUTPUT_MESSAGE_FOR_GREP.to_owned(),
+            Some(AIAgentActionType::Grep { .. }) => load_output_message_for_grep().to_owned(),
             Some(AIAgentActionType::CallMCPTool { name, .. }) => {
-                format!("Calling \"{name}\" MCP tool...")
+                tr_cached(Message::AgentStatusCallingMcpTool).replace("{}", name)
             }
             Some(AIAgentActionType::ReadMCPResource { name, .. }) => {
-                format!("Reading \"{name}\" MCP resource...")
+                tr_cached(Message::AgentStatusReadingMcpResource).replace("{}", name)
             }
             Some(AIAgentActionType::FileGlob { .. })
             | Some(AIAgentActionType::FileGlobV2 { .. }) => {
-                LOAD_OUTPUT_MESSAGE_FOR_FILE_GLOB.to_owned()
+                load_output_message_for_file_glob().to_owned()
             }
             Some(AIAgentActionType::WriteToLongRunningShellCommand { .. }) => {
-                LOAD_OUTPUT_MESSAGE_FOR_WRITING_TO_COMMAND.to_owned()
+                load_output_message_for_writing_to_command().to_owned()
             }
             action => {
                 let active_block = props.terminal_model.block_list().active_block();
@@ -368,7 +413,7 @@ pub fn render_warping_indicator<V: View>(
                 {
                     if action.is_none() {
                         should_render_waiting_icon = true;
-                        WAITING_FOR_USER_INPUT_MESSAGE.to_owned()
+                        waiting_for_user_input_message().to_owned()
                     } else {
                         // Choose the base message depending on whether the agent is waiting
                         // for the command to exit or polling at a fixed interval.
@@ -376,8 +421,8 @@ pub fn render_warping_indicator<V: View>(
                             Some(AIAgentActionType::ReadShellCommandOutput {
                                 delay: Some(ShellCommandDelay::OnCompletion),
                                 ..
-                            }) => LOAD_OUTPUT_MESSAGE_FOR_WAITING_FOR_COMMAND_COMPLETION,
-                            _ => LOAD_OUTPUT_MESSAGE_FOR_RUNNING_COMMAND,
+                            }) => load_output_message_for_waiting_for_command_completion(),
+                            _ => load_output_message_for_running_command(),
                         };
                         // Compute "Next check in {time}" for fixed-interval polls. Only
                         // `ReadShellCommandOutput { delay: Duration(_) }` has a meaningful
@@ -3063,6 +3108,7 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
         return Empty::new().finish();
     }
 
+    let apology = error_apology_text();
     let error_text = match props.error {
         RenderableAIError::QuotaLimit {
             user_display_message,
@@ -3077,7 +3123,7 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
                         app,
                     );
                 }
-                format!("{ERROR_APOLOGY_TEXT}\n\n{message}")
+                format!("{apology}\n\n{message}")
             } else {
                 let ai_request_usage_model = AIRequestUsageModel::as_ref(app);
                 let formatted_next_refresh_time = ai_request_usage_model
@@ -3086,24 +3132,26 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
                     .to_string();
 
                 format!(
-                    "{ERROR_APOLOGY_TEXT}\n\nYou've reached your credit limit. Your credit limit resets on {formatted_next_refresh_time}.",
+                    "{apology}\n\n{}",
+                    tr_cached(Message::CreditLimitResetsOn).replace("{}", &formatted_next_refresh_time),
                 )
             }
         }
         RenderableAIError::ServerOverloaded => {
-            "ZYH is currently overloaded. Please try again later.".to_string()
+            tr_cached(Message::ServerOverloadedRetryLater).to_string()
         }
         RenderableAIError::InternalWarpError => {
-            format!("{ERROR_APOLOGY_TEXT}\n\n{INTERNAL_WARP_ERROR}")
+            let internal = internal_warp_error();
+            format!("{apology}\n\n{internal}")
         }
         RenderableAIError::Other { error_message, .. } => {
             // A still-recovering `Other` error is handled by the early return above; once we
             // reach here recovery has failed, so surface the error directly.
-            format!("{ERROR_APOLOGY_TEXT}\n\n{error_message}")
+            format!("{apology}\n\n{error_message}")
         }
         RenderableAIError::AgentRuntimeUnavailable { .. } => props.error.to_string(),
         RenderableAIError::AgentExitedShell => {
-            format!("{ERROR_APOLOGY_TEXT}\n\n{}", props.error)
+            format!("{apology}\n\n{}", props.error)
         }
         RenderableAIError::TransientNetworkError { .. } => {
             // Recovering transient errors are handled by the early return above; once we
@@ -3136,8 +3184,8 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
             }
             // Fallback for contexts that don't have the stateful view (e.g. CLI subagent)
             format!(
-                "{ERROR_APOLOGY_TEXT}\n\nAWS credentials expired or missing for {model_name}. \
-                 Please refresh your AWS credentials."
+                "{apology}\n\n{}",
+                tr_cached(Message::AwsCredentialsExpiredRefresh).replace("{}", model_name),
             )
         }
     };
@@ -3251,8 +3299,9 @@ fn render_out_of_credits_error(
     .with_margin_right(icon_right_margin)
     .finish();
 
+    let apology = error_apology_text();
     let text = Text::new(
-        format!("{ERROR_APOLOGY_TEXT}\n\n{message}"),
+        format!("{apology}\n\n{message}"),
         appearance.monospace_font_family(),
         appearance.monospace_font_size(),
     )

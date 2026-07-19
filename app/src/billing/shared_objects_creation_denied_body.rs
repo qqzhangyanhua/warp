@@ -18,13 +18,13 @@ const BUTTON_PADDING: f32 = 12.;
 const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_BORDER_RADIUS: f32 = 4.;
 
-const DEFAULT_DELINQUENT_ADMIN_MODAL_SUBHEADER: &str = "Shared drive objects have been restricted due to a subscription payment issue.\n\nPlease update your payment information to restore access.";
-const DEFAULT_DELINQUENT_ADMIN_ENTERPRISE_MODAL_SUBHEADER: &str = "Shared drive objects have been restricted due to a subscription payment issue.\n\nPlease contact support@warp.dev to restore access.";
-const DEFAULT_DELINQUENT_MODAL_SUBHEADER: &str = "Shared drive objects have been restricted due to a subscription payment issue.\n\nPlease contact a team admin to restore access.";
-const DEFAULT_ADMIN_PROSUMER_MODAL_SUBHEADER: &str = "ZYH's Pro plan comes with a limited number of shared drive objects.\n\nFor access to unlimited shared drive objects, upgrade to the Turbo plan.";
-const DEFAULT_PROSUMER_MODAL_SUBHEADER: &str = "ZYH's Pro plan comes with a limited number of shared drive objects.\n\nFor access to unlimited shared drive objects, contact a team admin to upgrade to the Turbo plan.";
-const DEFAULT_ADMIN_MODAL_SUBHEADER: &str = "ZYH's free plan comes with a limited number of shared drive objects.\n\nFor access to unlimited shared drive objects, upgrade to a paid plan.";
-const DEFAULT_MODAL_SUBHEADER: &str = "ZYH's free plan comes with a limited number of shared drive objects.\n\nFor access to unlimited shared drive objects, contact a team admin to upgrade to a paid plan.";
+fn default_delinquent_admin_modal_subheader() -> &'static str { tr_cached(Message::BillingSharedRestrictedUpdatePayment) }
+fn default_delinquent_admin_enterprise_modal_subheader() -> &'static str { tr_cached(Message::BillingSharedRestrictedContactSupport) }
+fn default_delinquent_modal_subheader() -> &'static str { tr_cached(Message::BillingSharedRestrictedContactAdmin) }
+fn default_admin_prosumer_modal_subheader() -> &'static str { tr_cached(Message::BillingProSharedLimitUpgradeTurbo) }
+fn default_prosumer_modal_subheader() -> &'static str { tr_cached(Message::BillingProSharedLimitContactAdmin) }
+fn default_admin_modal_subheader() -> &'static str { tr_cached(Message::BillingFreeSharedLimitUpgrade) }
+fn default_modal_subheader() -> &'static str { tr_cached(Message::BillingFreeSharedLimitContactAdmin) }
 
 #[derive(Default)]
 struct MouseStateHandles {
@@ -118,18 +118,18 @@ impl View for SharedObjectsCreationDeniedBody {
             ) {
                 (true, true, _) => {
                     if is_stripe_paid_plan {
-                        DEFAULT_DELINQUENT_ADMIN_MODAL_SUBHEADER.into()
+                        default_delinquent_admin_modal_subheader().into()
                     } else {
-                        DEFAULT_DELINQUENT_ADMIN_ENTERPRISE_MODAL_SUBHEADER.into()
+                        default_delinquent_admin_enterprise_modal_subheader().into()
                     }
                 }
-                (true, false, _) => DEFAULT_DELINQUENT_MODAL_SUBHEADER.into(),
+                (true, false, _) => default_delinquent_modal_subheader().into(),
                 (false, true, CustomerType::Prosumer) => {
-                    DEFAULT_ADMIN_PROSUMER_MODAL_SUBHEADER.into()
+                    default_admin_prosumer_modal_subheader().into()
                 }
-                (false, false, CustomerType::Prosumer) => DEFAULT_PROSUMER_MODAL_SUBHEADER.into(),
-                (false, true, _) => DEFAULT_ADMIN_MODAL_SUBHEADER.into(),
-                (false, false, _) => DEFAULT_MODAL_SUBHEADER.into(),
+                (false, false, CustomerType::Prosumer) => default_prosumer_modal_subheader().into(),
+                (false, true, _) => default_admin_modal_subheader().into(),
+                (false, false, _) => default_modal_subheader().into(),
             },
         };
 

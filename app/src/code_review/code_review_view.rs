@@ -266,10 +266,10 @@ const CODE_REVIEW_EDITOR_LINE_HEIGHT_RATIO: f32 = 1.4;
 /// Extra scroll buffer (in pixels) added when scrolling to a line that has a comment editor below it.
 const COMMENT_EDITOR_SCROLL_BUFFER: f32 = 200.0;
 
-pub const CODE_REVIEW_TOOLTIP_TEXT: &str = "View changes";
-const REMOTE_TEXT: &str = "Diffs only work for local workspaces.";
-const DISABLED_TEXT: &str = "Diffs only work for git repositories.";
-const WSL_TEXT: &str = "Diffs don't currently work in WSL.";
+pub fn code_review_tooltip_text() -> &'static str { tr_cached(Message::ViewChanges) }
+fn remote_text() -> &'static str { tr_cached(Message::DiffsLocalWorkspacesOnly) }
+fn disabled_text() -> &'static str { tr_cached(Message::DiffsGitReposOnly) }
+fn wsl_text() -> &'static str { tr_cached(Message::DiffsNotInWsl) }
 
 pub fn get_discard_button_disabled_tooltip(git_operation_blocked: bool) -> String {
     if git_operation_blocked {
@@ -3989,21 +3989,21 @@ impl CodeReviewView {
         appearance: &Appearance,
         open_repo_button: Option<Box<dyn Element>>,
     ) -> Box<dyn Element> {
-        Self::render_no_repo_found_state(appearance, REMOTE_TEXT, open_repo_button)
+        Self::render_no_repo_found_state(appearance, remote_text(), open_repo_button)
     }
 
     pub fn render_wsl_state(
         appearance: &Appearance,
         open_repo_button: Option<Box<dyn Element>>,
     ) -> Box<dyn Element> {
-        Self::render_no_repo_found_state(appearance, WSL_TEXT, open_repo_button)
+        Self::render_no_repo_found_state(appearance, wsl_text(), open_repo_button)
     }
 
     pub fn render_not_repo_state(
         appearance: &Appearance,
         open_repo_button: Option<Box<dyn Element>>,
     ) -> Box<dyn Element> {
-        Self::render_no_repo_found_state(appearance, DISABLED_TEXT, open_repo_button)
+        Self::render_no_repo_found_state(appearance, disabled_text(), open_repo_button)
     }
 
     fn render_loaded_state(
@@ -6544,14 +6544,14 @@ impl CodeReviewView {
             PrimaryGitActionMode::Commit => {
                 let disabled = !self.has_uncommitted_changes(ctx);
                 self.git_primary_action_button.update(ctx, |button, ctx| {
-                    button.set_label("Commit", ctx);
+                    button.set_label(tr_cached(Message::Commit), ctx);
                     button.set_icon(Some(Icon::GitCommit), ctx);
                     button.set_disabled(disabled, ctx);
                     button.set_tooltip(
                         Some(if disabled {
                             "No changes to commit"
                         } else {
-                            "Commit changes locally"
+                            tr_cached(Message::CommitChangesLocally)
                         }),
                         ctx,
                     );

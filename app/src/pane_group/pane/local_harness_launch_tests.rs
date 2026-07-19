@@ -14,7 +14,7 @@ use super::{
 };
 use crate::ai::agent_sdk::driver::OZ_MESSAGE_LISTENER_MANAGED_EXTERNALLY_ENV;
 use crate::ai::ambient_agents::task::{normalize_orchestrator_agent_name, HarnessConfig};
-use crate::ai::local_harness_setup::LOCAL_CODEX_HARNESS_DISABLED_MESSAGE;
+use crate::ai::local_harness_setup::local_codex_harness_disabled_message;
 use crate::server::server_api::ai::MockAIClient;
 use crate::terminal::shell::ShellType;
 
@@ -264,7 +264,7 @@ async fn prepare_local_codex_child_launch_rejects_without_rewriting_global_codex
 
     match result {
         Ok(_) => panic!("disabled local codex should be rejected"),
-        Err(err) => assert_eq!(err, LOCAL_CODEX_HARNESS_DISABLED_MESSAGE),
+        Err(err) => assert_eq!(err, local_codex_harness_disabled_message()),
     }
     assert!(!fake_home.path().join(".codex").exists());
 }
@@ -420,6 +420,6 @@ async fn prepare_local_harness_child_launch_rejects_disabled_codex_before_shell_
 
     match result {
         Ok(_) => panic!("disabled local codex should be rejected"),
-        Err(err) => assert_eq!(err, LOCAL_CODEX_HARNESS_DISABLED_MESSAGE),
+        Err(err) => assert_eq!(err, local_codex_harness_disabled_message()),
     }
 }

@@ -9,6 +9,7 @@ use warpui::{AppContext, Element, EventContext};
 
 use super::{TerminalAction, TerminalView};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::links::directly_open_link_keybinding_string;
 use crate::terminal::model::{ObfuscateSecrets, Secret};
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
@@ -130,7 +131,7 @@ impl TerminalView {
 
                         if is_redacted {
                             links.push(GridTooltipLink {
-                                text: "Reveal secret".to_string(),
+                                text: tr_cached(Message::RevealSecret).to_string(),
                                 action: TerminalAction::ToggleGridSecret {
                                     handle,
                                     show_secret: true,
@@ -140,7 +141,7 @@ impl TerminalView {
                             });
                         } else {
                             links.push(GridTooltipLink {
-                                text: "Hide secret".to_string(),
+                                text: tr_cached(Message::HideSecret).to_string(),
                                 action: TerminalAction::ToggleGridSecret {
                                     handle,
                                     show_secret: false,
@@ -152,7 +153,7 @@ impl TerminalView {
                     }
 
                     links.push(GridTooltipLink {
-                        text: "Copy secret".to_string(),
+                        text: tr_cached(Message::CopySecret).to_string(),
                         action: TerminalAction::CopyGridSecret(handle),
                         mouse_state: self.mouse_states.copy_secrets_tooltip.clone(),
                         detail: None,
@@ -172,7 +173,7 @@ impl TerminalView {
 
                         if is_obfuscated {
                             links.push(GridTooltipLink {
-                                text: "Reveal secret".to_string(),
+                                text: tr_cached(Message::RevealSecret).to_string(),
                                 action: TerminalAction::ToggleRichContentSecret {
                                     rich_content_tooltip_info: tooltip_info.clone(),
                                     show_secret: true,
@@ -182,7 +183,7 @@ impl TerminalView {
                             });
                         } else {
                             links.push(GridTooltipLink {
-                                text: "Hide secret".to_string(),
+                                text: tr_cached(Message::HideSecret).to_string(),
                                 action: TerminalAction::ToggleRichContentSecret {
                                     rich_content_tooltip_info: tooltip_info.clone(),
                                     show_secret: false,
@@ -194,7 +195,7 @@ impl TerminalView {
                     }
 
                     links.push(GridTooltipLink {
-                        text: "Copy secret".to_string(),
+                        text: tr_cached(Message::CopySecret).to_string(),
                         action: TerminalAction::CopyRichContentSecret(tooltip_info.clone()),
                         mouse_state: self.mouse_states.copy_secrets_tooltip.clone(),
                         detail: None,

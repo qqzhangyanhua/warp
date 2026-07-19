@@ -28,8 +28,8 @@ use crate::appearance::Appearance;
 use crate::editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions};
 use crate::ui_components::icons::Icon;
 use crate::view_components::find::{
-    CASE_SENSITIVE_LABEL, CASE_SENSITIVE_TOOLTIP, FIND_BAR_WIDTH, REGEX_TOGGLE_LABEL,
-    REGEX_TOGGLE_TOOLTIP,
+    case_sensitive_tooltip, regex_toggle_tooltip, CASE_SENSITIVE_LABEL, FIND_BAR_WIDTH,
+    REGEX_TOGGLE_LABEL,
 };
 
 /// View for the find bar within a notebook.
@@ -411,7 +411,7 @@ impl View for FindBar {
                 ),
                 self.render_toggle_button(
                     REGEX_TOGGLE_LABEL,
-                    REGEX_TOGGLE_TOOLTIP,
+                    regex_toggle_tooltip(),
                     FindBarAction::ToggleRegex,
                     searcher.is_regex(),
                     self.button_handles.regex_toggle.clone(),
@@ -420,7 +420,7 @@ impl View for FindBar {
                 ),
                 self.render_toggle_button(
                     CASE_SENSITIVE_LABEL,
-                    CASE_SENSITIVE_TOOLTIP,
+                    case_sensitive_tooltip(),
                     FindBarAction::ToggleCaseSensitive,
                     searcher.is_case_sensitive(),
                     self.button_handles.case_sensitive_toggle.clone(),

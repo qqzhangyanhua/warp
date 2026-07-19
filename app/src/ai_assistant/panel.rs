@@ -34,6 +34,7 @@ use super::{
     ASK_AI_ASSISTANT_TEXT, PROMPT_CHARACTER_LIMIT,
 };
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, TextOptions,
 };
@@ -69,15 +70,15 @@ const BODY_FONT_SIZE: f32 = 13.;
 const TITLE_FONT_SIZE: f32 = 16.;
 const ZERO_STATE_HELP_TEXT_FONT_SIZE: f32 = 12.;
 
-const ZERO_STATE_HELP_TEXT: &str = "Shift + ctrl + space a block or text selection to ask ZYH AI.";
+fn zero_state_help_text() -> &'static str { tr_cached(Message::AiAssistantHintShiftCtrlSpace) }
 const SCRIPT_ZERO_STATE_PROMPT: &str = "Write a script to connect to an AWS EC2 instance.";
 const GIT_ZERO_STATE_PROMPT: &str = "How do I undo the most recent commits in git?";
 const FILES_ZERO_STATE_PROMPT: &str = "How do I find all files containing specific text?";
 
 // The placeholder texts are prepended with a space to give them cushion from the cursor.
-const INIT_PLACEHOLDER_TEXT: &str = " Ask a question...";
-const FOLLOWUP_PLACEHOLDER_TEXT: &str = " Type a response or click one above...";
-const RESTART_BUTTON_TEXT: &str = "Restart";
+fn init_placeholder_text() -> &'static str { tr_cached(Message::AiAssistantAskQuestion) }
+fn followup_placeholder_text() -> &'static str { tr_cached(Message::AiAssistantTypeResponse) }
+fn restart_button_text() -> &'static str { tr_cached(Message::AiAssistantRestart) }
 
 const ASK_AI_BLOCK_INPUT_LIMIT: usize = 100;
 
@@ -145,7 +146,7 @@ pub fn init(app: &mut AppContext) {
     app.register_fixed_bindings([FixedBinding::custom(
         CustomAction::CloseCurrentSession,
         AIAssistantAction::ClosePanel,
-        "Close ZYH AI",
+        tr_cached(Message::AiAssistantClose),
         id!("AIAssistantPanel"),
     )]);
 
@@ -159,14 +160,14 @@ pub fn init(app: &mut AppContext) {
         .with_key_binding(cmd_or_ctrl_shift("l")),
         EditableBinding::new(
             "ai_assistant_panel:reset_context",
-            "Restart ZYH AI",
+            tr_cached(Message::AiAssistantRestartFull),
             AIAssistantAction::ResetContext,
         )
         .with_context_predicate(id!("AIAssistantPanel"))
         .with_key_binding("ctrl-l"),
         EditableBinding::new(
             "ai_assistant_panel:reset_context",
-            "Restart ZYH AI",
+            tr_cached(Message::AiAssistantRestartFull),
             AIAssistantAction::ResetContext,
         )
         .with_context_predicate(id!("AIAssistantPanel"))
@@ -197,7 +198,7 @@ impl AIAssistantPanelView {
             })
         };
         editor.update(ctx, |editor, ctx| {
-            editor.set_placeholder_text(INIT_PLACEHOLDER_TEXT, ctx)
+            editor.set_placeholder_text(init_placeholder_text(), ctx)
         });
         ctx.subscribe_to_view(&editor, |me, _, event, ctx| {
             me.handle_editor_event(event, ctx);
@@ -564,7 +565,7 @@ impl AIAssistantPanelView {
             RequestsEvent::RequestFinished { .. } => {
                 self.editor.update(ctx, |editor, ctx| {
                     editor.clear_buffer_and_reset_undo_stack(ctx);
-                    editor.set_placeholder_text(FOLLOWUP_PLACEHOLDER_TEXT, ctx);
+                    editor.set_placeholder_text(followup_placeholder_text(), ctx);
                 });
                 self.transcript_view.update(ctx, |transcript_view, ctx| {
                     transcript_view.scroll_to_bottom_of_transcript(ctx);
@@ -632,7 +633,7 @@ impl AIAssistantPanelView {
         }
 
         self.editor.update(ctx, |editor, ctx| {
-            editor.set_placeholder_text(INIT_PLACEHOLDER_TEXT, ctx);
+            editor.set_placeholder_text(init_placeholder_text(), ctx);
         });
 
         self.requests_model.update(ctx, |requests_model, ctx| {
@@ -782,7 +783,7 @@ impl AIAssistantPanelView {
                 ..Default::default()
             };
             ui_builder
-                .tool_tip("Copy transcript to clipboard".to_owned())
+                .tool_tip(tr_cached(Message::AiAssistantCopyTranscript).to_owned())
                 .with_style(tool_tip_style)
                 .build()
                 .finish()
@@ -824,7 +825,7 @@ impl AIAssistantPanelView {
                 Some(hover_style),
                 Some(hover_style),
             )
-            .with_text_label(RESTART_BUTTON_TEXT.to_owned())
+            .with_text_label(restart_button_text().to_owned())
             .build()
             .on_click(move |ctx, _, _| ctx.dispatch_typed_action(AIAssistantAction::ResetContext))
             .with_cursor(Cursor::PointingHand)
@@ -840,7 +841,7 @@ impl AIAssistantPanelView {
             .with_children([
                 Container::new(
                     Text::new_inline(
-                        "Character limit exceeded.",
+                        tr_cached(Message::AiAssistantCharacterLimit),
                         appearance.ui_font_family(),
                         BODY_FONT_SIZE,
                     )
@@ -967,7 +968,7 @@ impl AIAssistantPanelView {
                             1.,
                             appearance
                                 .ui_builder()
-                                .wrappable_text(ZERO_STATE_HELP_TEXT.to_string(), true)
+                                .wrappable_text(zero_state_help_text().to_string(), true)
                                 .with_style(UiComponentStyles {
                                     font_family_id: Some(appearance.ui_font_family()),
                                     font_size: Some(ZERO_STATE_HELP_TEXT_FONT_SIZE),

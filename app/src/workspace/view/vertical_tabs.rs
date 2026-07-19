@@ -1528,7 +1528,7 @@ fn render_settings_button(
 
             if hover_state.is_hovered() && !is_popup_open {
                 let tooltip = ui_builder
-                    .tool_tip("View options".to_string())
+                    .tool_tip(tr_cached(Message::ViewOptions).to_string())
                     .build()
                     .finish();
                 let mut stack = Stack::new().with_child(button_container);
@@ -5994,7 +5994,7 @@ pub(super) fn render_settings_popup(
             let pr_link_info_tooltip = if show_pr_link && pr_validation_suppressed {
                 Some(ShowToggleInfoTooltip {
                     mouse_state: state.show_pr_link_info_tooltip_mouse_state.clone(),
-                    tooltip_text: "Requires the GitHub CLI to be installed and authenticated",
+                    tooltip_text: tr_cached(Message::RequiresGithubCli),
                 })
             } else {
                 None

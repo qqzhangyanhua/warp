@@ -18,6 +18,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
@@ -40,13 +41,21 @@ pub(crate) const FIND_EDITOR_BORDER_WIDTH: f32 = 1.;
 const FIND_EDITOR_FONT_SIZE: f32 = 12.;
 
 pub const REGEX_TOGGLE_LABEL: &str = ". *";
-pub const REGEX_TOGGLE_TOOLTIP: &str = "Regex toggle";
+pub fn regex_toggle_tooltip() -> &'static str {
+    tr_cached(Message::TerminalRegexToggle)
+}
 
 pub const CASE_SENSITIVE_LABEL: &str = "Aa";
-pub const CASE_SENSITIVE_TOOLTIP: &str = "Case sensitive search";
+pub fn case_sensitive_tooltip() -> &'static str {
+    tr_cached(Message::TerminalCaseSensitiveSearch)
+}
 
-pub const FIND_WITHIN_BLOCK_TOOLTIP: &str = "Find in selected block";
-pub const FIND_PLACEHOLDER_TEXT: &str = "Find";
+pub fn find_within_block_tooltip() -> &'static str {
+    tr_cached(Message::FindWithinSelectedBlock)
+}
+pub fn find_placeholder_text() -> &'static str {
+    tr_cached(Message::FindPlaceholder)
+}
 
 // Moving FindEvent, FindModel implementations away from terminal/.
 pub enum FindEvent {
@@ -168,7 +177,7 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
                 },
                 ctx,
             );
-            editor.set_placeholder_text(FIND_PLACEHOLDER_TEXT, ctx);
+            editor.set_placeholder_text(find_placeholder_text(), ctx);
             editor
         });
 
@@ -520,8 +529,8 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> View for Find<T> {
 
     fn accessibility_contents(&self, _: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
-            "Type searched phrase.",
-            "Press escape to quit, use enter and shift-enter to navigate between matches",
+            tr_cached(Message::FindTypeSearchedPhrase),
+            tr_cached(Message::FindA11yNavigateMatches),
             WarpA11yRole::TextareaRole,
         ))
     }
@@ -552,7 +561,7 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> View for Find<T> {
             self.button_mouse_states.toggle_regex_search.clone(),
             FindAction::ToggleRegexSearch,
             editor_height,
-            Some(REGEX_TOGGLE_TOOLTIP),
+            Some(regex_toggle_tooltip()),
             ICON_PADDING,
         );
         let case_sensitive_icon = Container::new(
@@ -564,7 +573,7 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> View for Find<T> {
                     self.button_mouse_states.toggle_case_sensitivity.clone(),
                     FindAction::ToggleCaseSensitivity,
                     editor_height,
-                    Some(CASE_SENSITIVE_TOOLTIP),
+                    Some(case_sensitive_tooltip()),
                     ICON_PADDING,
                 ),
                 "case_sensitive_button",
@@ -581,7 +590,7 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> View for Find<T> {
                     self.button_mouse_states.toggle_find_in_block.clone(),
                     FindAction::ToggleFindInBlock,
                     editor_height,
-                    Some(FIND_WITHIN_BLOCK_TOOLTIP),
+                    Some(find_within_block_tooltip()),
                     0.,
                 ),
                 "find_in_block_button",

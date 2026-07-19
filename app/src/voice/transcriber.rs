@@ -5,6 +5,8 @@ use async_trait::async_trait;
 use warpui::{AppContext, Entity, SingletonEntity};
 
 use crate::server::server_api::TranscribeError;
+#[cfg(feature = "voice_input")]
+use crate::i18n::{tr_cached, Message};
 use crate::voice::chat_completions_audio::ChatCompletionsAudioTranscriber;
 
 /// Interface for transcribing voice input.
@@ -100,18 +102,18 @@ impl SingletonEntity for VoiceTranscriber {}
 pub fn provider_error_message(error: &TranscribeError) -> Option<&'static str> {
     match error {
         TranscribeError::ProviderAuthentication => {
-            Some("Voice Provider authentication failed. Check its API Key.")
+            Some(tr_cached(Message::VoiceProviderAuthFailed))
         }
         TranscribeError::ProviderModelNotFound => {
-            Some("Voice model not found. Check Settings > AI > Voice.")
+            Some(tr_cached(Message::VoiceModelNotFound))
         }
-        TranscribeError::ProviderRateLimit => Some("Voice Provider rate limit reached."),
-        TranscribeError::ProviderServer => Some("Voice Provider is unavailable."),
+        TranscribeError::ProviderRateLimit => Some(tr_cached(Message::VoiceProviderRateLimit)),
+        TranscribeError::ProviderServer => Some(tr_cached(Message::VoiceProviderUnavailable)),
         TranscribeError::ProviderRejected => {
-            Some("Voice Provider rejected the request. Check Settings > AI > Voice.")
+            Some(tr_cached(Message::VoiceProviderRejected))
         }
-        TranscribeError::ProviderTransport(_) => Some("Could not reach the Voice Provider."),
-        TranscribeError::RecordingTooLong => Some("Voice recording is too long for this Provider."),
+        TranscribeError::ProviderTransport(_) => Some(tr_cached(Message::VoiceProviderUnreachable)),
+        TranscribeError::RecordingTooLong => Some(tr_cached(Message::VoiceRecordingTooLong)),
         _ => None,
     }
 }

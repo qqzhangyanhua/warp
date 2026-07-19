@@ -63,7 +63,7 @@ const DEFAULT_HOST_ENV_VAR: &str = "WARP_CLOUD_MODE_DEFAULT_HOST";
 // ── Shared constants ────────────────────────────────────────────────
 
 pub const ORCHESTRATION_WARP_WORKER_HOST: &str = WARP_WORKER_HOST;
-pub const ORCHESTRATION_ENV_NONE_LABEL: &str = "Empty environment";
+pub fn orchestration_env_none_label() -> &'static str { tr_cached(Message::EmptyEnvironment) }
 
 pub const ORCHESTRATION_PICKER_HEIGHT: f32 = 36.;
 pub const ORCHESTRATION_PICKER_BORDER_WIDTH: f32 = 1.;
@@ -71,16 +71,16 @@ pub const ORCHESTRATION_PICKER_FONT_SIZE: f32 = 14.;
 pub const ORCHESTRATION_PICKER_RADIUS: f32 = 4.;
 pub const ORCHESTRATION_PICKER_MAX_WIDTH: f32 = 205.;
 
-const DEFAULT_MODEL_LABEL: &str = "Default model";
+fn default_model_label() -> &'static str { tr_cached(Message::DefaultModel) }
 const ORCHESTRATION_SEGMENTED_CONTROL_PADDING: f32 = 4.;
 const ORCHESTRATION_SEGMENT_VERTICAL_PADDING: f32 = 4.;
 
 /// Label shown in the auth secret picker when no secret is selected
 /// (the child agent will inherit credentials from its environment).
-const AUTH_SECRET_INHERIT_LABEL: &str = "Skip (advanced)";
+fn auth_secret_inherit_label() -> &'static str { tr_cached(Message::SkipAdvanced) }
 /// Label for the auth secret column.
 pub const AUTH_SECRET_COLUMN_LABEL: &str = "API key";
-const AUTH_SECRET_CREATE_NEW_LABEL: &str = "New API key…";
+fn auth_secret_create_new_label() -> &'static str { tr_cached(Message::NewApiKeyEllipsis) }
 
 // ── Action trait ────────────────────────────────────────────────────
 
@@ -546,7 +546,7 @@ pub fn populate_model_picker_for_harness<A: OrchestrationControlAction, V: View>
                 // Local Codex: only "Default model" entry.
                 let items = vec![default_model_menu_item::<A>()];
                 dropdown.set_rich_items(items, ctx_dropdown);
-                dropdown.set_selected_by_name(DEFAULT_MODEL_LABEL, ctx_dropdown);
+                dropdown.set_selected_by_name(default_model_label(), ctx_dropdown);
             }
             Some(harness) => {
                 // Non-Oz harness: "Default model" at top, then server-provided
@@ -565,7 +565,7 @@ pub fn populate_model_picker_for_harness<A: OrchestrationControlAction, V: View>
                 }
                 // Find display name before set_rich_items borrows ctx_dropdown mutably.
                 let selected_display_name = if initial_model_id.is_empty() {
-                    Some(DEFAULT_MODEL_LABEL.to_string())
+                    Some(default_model_label().to_string())
                 } else {
                     availability
                         .models_for(harness)
@@ -575,7 +575,7 @@ pub fn populate_model_picker_for_harness<A: OrchestrationControlAction, V: View>
                                 .find(|m| m.id == initial_model_id)
                                 .map(|m| m.display_name.clone())
                         })
-                        .or_else(|| Some(DEFAULT_MODEL_LABEL.to_string()))
+                        .or_else(|| Some(default_model_label().to_string()))
                 };
                 dropdown.set_rich_items(items, ctx_dropdown);
                 if let Some(name) = &selected_display_name {
@@ -589,7 +589,7 @@ pub fn populate_model_picker_for_harness<A: OrchestrationControlAction, V: View>
 /// Creates a "Default model" menu item that emits an empty model_id.
 fn default_model_menu_item<A: OrchestrationControlAction>() -> MenuItem<DropdownAction> {
     MenuItem::Item(
-        MenuItemFields::new(DEFAULT_MODEL_LABEL).with_on_select_action(
+        MenuItemFields::new(default_model_label()).with_on_select_action(
             DropdownAction::select_action_and_close(A::model_changed(String::new())),
         ),
     )
@@ -792,12 +792,12 @@ pub fn create_environment_picker<A: OrchestrationControlAction, V: View>(
         let mut items: Vec<MenuItem<DropdownAction>> = Vec::new();
         let mut selected_name: Option<String> = None;
         items.push(MenuItem::Item(
-            MenuItemFields::new(ORCHESTRATION_ENV_NONE_LABEL).with_on_select_action(
+            MenuItemFields::new(orchestration_env_none_label()).with_on_select_action(
                 DropdownAction::select_action_and_close(A::environment_changed(String::new())),
             ),
         ));
         if initial_env.is_empty() {
-            selected_name = Some(ORCHESTRATION_ENV_NONE_LABEL.to_string());
+            selected_name = Some(orchestration_env_none_label().to_string());
         }
         for (env_id, env_name) in &sorted_envs {
             if env_id == &initial_env {
@@ -837,12 +837,12 @@ pub fn populate_environment_picker<A: OrchestrationControlAction, V: View>(
         let mut items: Vec<MenuItem<DropdownAction>> = Vec::new();
         let mut selected_name: Option<String> = None;
         items.push(MenuItem::Item(
-            MenuItemFields::new(ORCHESTRATION_ENV_NONE_LABEL).with_on_select_action(
+            MenuItemFields::new(orchestration_env_none_label()).with_on_select_action(
                 DropdownAction::select_action_and_close(A::environment_changed(String::new())),
             ),
         ));
         if initial_env.is_empty() {
-            selected_name = Some(ORCHESTRATION_ENV_NONE_LABEL.to_string());
+            selected_name = Some(orchestration_env_none_label().to_string());
         }
         for (env_id, env_name) in &sorted_envs {
             if env_id == &initial_env {
@@ -1210,7 +1210,7 @@ pub fn populate_auth_secret_picker_for_harness<A: OrchestrationControlAction, V:
         let mut items: Vec<MenuItem<DropdownAction>> = Vec::new();
 
         items.push(MenuItem::Item(
-            MenuItemFields::new(AUTH_SECRET_INHERIT_LABEL).with_on_select_action(
+            MenuItemFields::new(auth_secret_inherit_label()).with_on_select_action(
                 DropdownAction::select_action_and_close(A::auth_secret_changed(None)),
             ),
         ));
@@ -1247,7 +1247,7 @@ pub fn populate_auth_secret_picker_for_harness<A: OrchestrationControlAction, V:
         if supports_create_new {
             items.push(MenuItem::Separator);
             items.push(MenuItem::Item(
-                MenuItemFields::new(AUTH_SECRET_CREATE_NEW_LABEL).with_on_select_action(
+                MenuItemFields::new(auth_secret_create_new_label()).with_on_select_action(
                     DropdownAction::select_action_and_close(A::create_new_auth_secret_requested()),
                 ),
             ));
@@ -1258,12 +1258,12 @@ pub fn populate_auth_secret_picker_for_harness<A: OrchestrationControlAction, V:
         // loaded key.
         let final_selection = match &selection {
             AuthSecretSelection::Named(name) => name.clone(),
-            AuthSecretSelection::Inherit => AUTH_SECRET_INHERIT_LABEL.to_string(),
-            AuthSecretSelection::CreatingNew => AUTH_SECRET_CREATE_NEW_LABEL.to_string(),
+            AuthSecretSelection::Inherit => auth_secret_inherit_label().to_string(),
+            AuthSecretSelection::CreatingNew => auth_secret_create_new_label().to_string(),
             AuthSecretSelection::Unset if supports_create_new => {
-                AUTH_SECRET_CREATE_NEW_LABEL.to_string()
+                auth_secret_create_new_label().to_string()
             }
-            AuthSecretSelection::Unset => AUTH_SECRET_INHERIT_LABEL.to_string(),
+            AuthSecretSelection::Unset => auth_secret_inherit_label().to_string(),
         };
         let _ = selected_display_name;
         let _ = &availability;
@@ -1580,7 +1580,7 @@ pub fn sync_picker_selections<A: OrchestrationControlAction, V: View>(
                 }
                 Some(harness) => {
                     if target_model_id.is_empty() {
-                        Some(DEFAULT_MODEL_LABEL.to_string())
+                        Some(default_model_label().to_string())
                     } else {
                         let availability = HarnessAvailabilityModel::as_ref(ctx_dropdown);
                         availability.models_for(harness).and_then(|models| {
@@ -1622,7 +1622,7 @@ pub fn sync_picker_selections<A: OrchestrationControlAction, V: View>(
         };
         environment_picker.update(ctx, |dropdown, ctx_dropdown| {
             if env_id.is_empty() {
-                dropdown.set_selected_by_name(ORCHESTRATION_ENV_NONE_LABEL, ctx_dropdown);
+                dropdown.set_selected_by_name(orchestration_env_none_label(), ctx_dropdown);
                 return;
             }
             let all_envs = CloudAmbientAgentEnvironment::get_all(ctx_dropdown);
@@ -1649,12 +1649,12 @@ pub fn sync_picker_selections<A: OrchestrationControlAction, V: View>(
         auth_secret_picker.update(ctx, |dropdown, ctx_dropdown| {
             let label = match &selection {
                 AuthSecretSelection::Named(name) => name.clone(),
-                AuthSecretSelection::Inherit => AUTH_SECRET_INHERIT_LABEL.to_string(),
-                AuthSecretSelection::CreatingNew => AUTH_SECRET_CREATE_NEW_LABEL.to_string(),
+                AuthSecretSelection::Inherit => auth_secret_inherit_label().to_string(),
+                AuthSecretSelection::CreatingNew => auth_secret_create_new_label().to_string(),
                 AuthSecretSelection::Unset if supports_create_new => {
-                    AUTH_SECRET_CREATE_NEW_LABEL.to_string()
+                    auth_secret_create_new_label().to_string()
                 }
-                AuthSecretSelection::Unset => AUTH_SECRET_INHERIT_LABEL.to_string(),
+                AuthSecretSelection::Unset => auth_secret_inherit_label().to_string(),
             };
             dropdown.set_selected_by_name(&label, ctx_dropdown);
         });

@@ -110,14 +110,14 @@ pub fn init(app: &mut AppContext) {
     use warpui::keymap::macros::id;
     app.register_editable_bindings([EditableBinding::new(
         "workflowview:save",
-        "Save workflow",
+        tr_cached(Message::SaveWorkflow),
         WorkflowAction::Save,
     )
     .with_context_predicate(id!("WorkflowView"))
     .with_key_binding("cmdorctrl-s")]);
 
     app.register_editable_bindings([EditableBinding::new(
-        "Close Workflow",
+        tr_cached(Message::CloseWorkflow),
         "Close",
         WorkflowAction::Close,
     )
@@ -132,8 +132,8 @@ const WORKFLOW_PARAMETER_HIGHLIGHT_COLOR: u32 = 0x42C0FA4D;
 const MAX_ELEMENT_WIDTH: f32 = 800.;
 
 const SCROLLBAR_WIDTH: ScrollbarWidth = ScrollbarWidth::Auto;
-const TITLE_PLACEHOLDER_TEXT: &str = "Add a title";
-const DESCRIPTION_PLACEHOLDER_TEXT: &str = "Add a description";
+fn title_placeholder_text() -> &'static str { tr_cached(Message::AddATitle) }
+fn description_placeholder_text() -> &'static str { tr_cached(Message::AddADescription) }
 const COMMAND_PLACEHOLDER_TEXT: &str = "echo \"Hello {{your_name}}\" # insert arguments with curly braces\n# enter a single-line command or an entire shell script";
 const AGENT_MODE_QUERY_PLACEHOLDER_TEXT: &str = "Enter your prompt here... (e.g., 'Create a function to sort an array of objects by date' or 'Help me debug this React component').";
 const DESCRIPTION_MARGIN_TOP: f32 = 10.;
@@ -157,26 +157,26 @@ const HORIZONTAL_TEXT_INPUT_PADDING: f32 = 10.;
 
 const EDITOR_FONT_SIZE: f32 = 14.;
 
-const CREATE_BUTTON_TEXT: &str = "Create";
-const SAVE_BUTTON_TEXT: &str = "Update";
-const CANCEL_BUTTON_TEXT: &str = "Cancel";
+fn create_button_text() -> &'static str { tr_cached(Message::CommonCreate) }
+fn save_button_text() -> &'static str { tr_cached(Message::CommonUpdate) }
+fn cancel_button_text() -> &'static str { tr_cached(Message::CommonCancel) }
 const BUTTON_PADDING: f32 = 12.;
 const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_BORDER_RADIUS: f32 = 4.;
 const BUTTON_HEIGHT: f32 = 32.;
 
 const AI_ASSIST_BUTTON_SIZE: f32 = 92.;
-const AI_ASSIST_BUTTON_TEXT: &str = "Autofill";
-const AI_ASSIST_LOADING_TEXT: &str = "Loading";
+fn ai_assist_button_text() -> &'static str { tr_cached(Message::Autofill) }
+fn ai_assist_loading_text() -> &'static str { tr_cached(Message::CommonLoadingEllipsis) }
 
 const ALIAS_HELP_TEXT: &str = "Aliases allow you to create short strings to execute workflows. Each alias can have different argument values and environment variables, and aliases are personal to you.";
 
-const RUN_ON_DESKTOP_BUTTON_TEXT: &str = "Run in ZYH";
+fn run_on_desktop_button_text() -> &'static str { tr_cached(Message::RunInWarp) }
 const RUN_ON_DESKTOP_BUTTON_WIDTH: f32 = 108.;
 
-const UNSAVED_CHANGES_TEXT: &str = "You have unsaved changes.";
-const KEEP_EDITING_TEXT: &str = "Keep editing";
-const DISCARD_CHANGES_TEXT: &str = "Discard changes";
+fn unsaved_changes_text() -> &'static str { tr_cached(Message::UnsavedChanges) }
+fn keep_editing_text() -> &'static str { tr_cached(Message::KeepEditing) }
+fn discard_changes_text() -> &'static str { tr_cached(Message::DiscardChanges) }
 const DIALOG_WIDTH: f32 = 460.;
 const MODAL_HORIZONTAL_MARGIN: f32 = 28.;
 
@@ -359,7 +359,7 @@ impl WorkflowView {
             ctx,
             Some(header_font_size),
             Some(ui_font_family),
-            Some(TITLE_PLACEHOLDER_TEXT),
+            Some(title_placeholder_text()),
             false,
             true,
             true,
@@ -369,7 +369,7 @@ impl WorkflowView {
             ctx,
             Some(EDITOR_FONT_SIZE),
             Some(ui_font_family),
-            Some(DESCRIPTION_PLACEHOLDER_TEXT),
+            Some(description_placeholder_text()),
             false,
             false,
             true,
@@ -1963,7 +1963,7 @@ impl WorkflowView {
                 let ui_builder = appearance.ui_builder().clone();
                 edit_button = edit_button.with_tooltip(move || {
                     ui_builder
-                        .tool_tip("Sign in to edit".to_string())
+                        .tool_tip(tr_cached(Message::SignInToEdit).to_string())
                         .build()
                         .finish()
                 });
@@ -2277,7 +2277,7 @@ impl WorkflowView {
                 padding: Some(Coords::uniform(BUTTON_PADDING)),
                 ..Default::default()
             })
-            .with_text_label(KEEP_EDITING_TEXT.into())
+            .with_text_label(keep_editing_text().into())
             .build()
             .with_cursor(Cursor::PointingHand)
             .on_click(move |ctx, _, _| {
@@ -2297,7 +2297,7 @@ impl WorkflowView {
                 padding: Some(Coords::uniform(BUTTON_PADDING)),
                 ..Default::default()
             })
-            .with_text_label(DISCARD_CHANGES_TEXT.into())
+            .with_text_label(discard_changes_text().into())
             .build()
             .with_cursor(Cursor::PointingHand)
             .on_click(move |ctx, _, _| {
@@ -2307,7 +2307,7 @@ impl WorkflowView {
 
         Container::new(
             Dialog::new(
-                UNSAVED_CHANGES_TEXT.to_string(),
+                unsaved_changes_text().to_string(),
                 None,
                 dialog_styles(appearance),
             )
@@ -2375,8 +2375,8 @@ impl WorkflowView {
         let mut save_button = self.build_footer_button(
             ButtonVariant::Accent,
             match self.workflow_view_mode {
-                WorkflowViewMode::Create => CREATE_BUTTON_TEXT.into(),
-                WorkflowViewMode::Edit | WorkflowViewMode::View => SAVE_BUTTON_TEXT.into(),
+                WorkflowViewMode::Create => create_button_text().into(),
+                WorkflowViewMode::Edit | WorkflowViewMode::View => save_button_text().into(),
             },
             None,
             self.ui_state_handles.save_workflow_state.clone(),
@@ -2395,7 +2395,7 @@ impl WorkflowView {
 
         let mut cancel_button = self.build_footer_button(
             ButtonVariant::Secondary,
-            CANCEL_BUTTON_TEXT.into(),
+            cancel_button_text().into(),
             None,
             self.ui_state_handles.cancel_mouse_state.clone(),
             appearance,
@@ -2420,8 +2420,8 @@ impl WorkflowView {
         let mut button_row = Flex::row();
 
         let label_and_icon = match self.ai_metadata_assist_state {
-            AiAssistState::PreRequest => Some((AI_ASSIST_BUTTON_TEXT, Icon::AiAssistant)),
-            AiAssistState::RequestInFlight => Some((AI_ASSIST_LOADING_TEXT, Icon::Refresh)),
+            AiAssistState::PreRequest => Some((ai_assist_button_text(), Icon::AiAssistant)),
+            AiAssistState::RequestInFlight => Some((ai_assist_loading_text(), Icon::Refresh)),
             AiAssistState::Generated => None,
         };
 
@@ -2495,7 +2495,7 @@ impl WorkflowView {
                 let run_on_desktop_button = self
                     .build_footer_button(
                         ButtonVariant::Accent,
-                        RUN_ON_DESKTOP_BUTTON_TEXT.to_string(),
+                        run_on_desktop_button_text().to_string(),
                         Some((Icon::Laptop, TextAndIconAlignment::IconFirst)),
                         // Reuse the execute button's handle since it's only shown if running workflows is
                         // supported.
@@ -2877,7 +2877,7 @@ impl WorkflowView {
                         )
                         .with_tooltip(move || {
                             ui_builder
-                                .tool_tip("Restore workflow from trash".to_string())
+                                .tool_tip(tr_cached(Message::RestoreWorkflowFromTrash).to_string())
                                 .build()
                                 .finish()
                         })

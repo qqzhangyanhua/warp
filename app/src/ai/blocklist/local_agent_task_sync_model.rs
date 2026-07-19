@@ -12,6 +12,7 @@ use super::history_model::{
     BlocklistAIHistoryEvent, BlocklistAIHistoryModel, ConversationStatusUpdate,
 };
 use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
+use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::{AIAgentOutputStatus, FinishedAIAgentOutput, RenderableAIError};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::server::server_api::ai::{AIClient, TaskStatusUpdate};
@@ -417,13 +418,13 @@ fn map_conversation_status(
         }
         ConversationStatus::Cancelled => (
             AgentTaskState::Cancelled,
-            Some(TaskStatusUpdate::message("Cancelled by user")),
+            Some(TaskStatusUpdate::message(tr_cached(Message::CancelledByUser))),
         ),
         ConversationStatus::Blocked { blocked_action } => (
             AgentTaskState::Blocked,
-            Some(TaskStatusUpdate::message(format!(
-                "The agent got stuck waiting for user confirmation on the action: {blocked_action}"
-            ))),
+            Some(TaskStatusUpdate::message(
+                tr_cached(Message::AgentStuckWaitingConfirmation).replace("{}", blocked_action),
+            )),
         ),
     }
 }
@@ -443,7 +444,7 @@ fn task_update_for_conversation_error(
         None => (
             AgentTaskState::Error,
             Some(TaskStatusUpdate::message(
-                "Agent encountered an error".to_string(),
+                tr_cached(Message::AgentEncounteredError).to_string(),
             )),
         ),
     }
@@ -460,44 +461,44 @@ pub(crate) fn classify_renderable_error(
         } => (
             AgentTaskState::Failed,
             Some(TaskStatusUpdate::with_error_code(
-                user_display_message.as_deref().unwrap_or(
-                    "Your team has run out of credits. Purchase more credits to continue.",
-                ),
+                user_display_message.as_deref().unwrap_or_else(|| {
+                    tr_cached(Message::TeamOutOfCreditsPurchase)
+                }),
                 PlatformErrorCode::InsufficientCredits,
             )),
         ),
         RenderableAIError::ServerOverloaded => (
             AgentTaskState::Error,
             Some(TaskStatusUpdate::with_error_code(
-                "ZYH is temporarily overloaded. Please try again shortly.",
+                tr_cached(Message::WarpTemporarilyOverloaded),
                 PlatformErrorCode::ResourceUnavailable,
             )),
         ),
         RenderableAIError::InternalWarpError => (
             AgentTaskState::Error,
             Some(TaskStatusUpdate::with_error_code(
-                "An internal error occurred during the conversation. Please try again.",
+                tr_cached(Message::InternalConversationError),
                 PlatformErrorCode::InternalError,
             )),
         ),
         RenderableAIError::ContextWindowExceeded(msg) => (
             AgentTaskState::Failed,
             Some(TaskStatusUpdate::with_error_code(
-                format!("Context window exceeded: {msg}"),
+                tr_cached(Message::ContextWindowExceeded).replace("{}", msg),
                 PlatformErrorCode::InternalError,
             )),
         ),
         RenderableAIError::InvalidApiKey { provider, .. } => (
             AgentTaskState::Failed,
             Some(TaskStatusUpdate::with_error_code(
-                format!("Invalid API key for {provider}. Update your API key in settings."),
+                tr_cached(Message::InvalidApiKeyUpdateSettings).replace("{}", provider),
                 PlatformErrorCode::AuthenticationRequired,
             )),
         ),
         RenderableAIError::AwsBedrockCredentialsExpiredOrInvalid { model_name } => (
             AgentTaskState::Failed,
             Some(TaskStatusUpdate::with_error_code(
-                format!("AWS Bedrock credentials expired or invalid for {model_name}."),
+                tr_cached(Message::AwsBedrockCredentialsExpired).replace("{}", model_name),
                 PlatformErrorCode::AuthenticationRequired,
             )),
         ),

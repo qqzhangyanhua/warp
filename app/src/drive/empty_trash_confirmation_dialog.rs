@@ -6,13 +6,14 @@ use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::dialog::{dialog_styles, Dialog};
 
-const CANCEL_TEXT: &str = "Cancel";
+fn cancel_text() -> &'static str { tr_cached(Message::CommonCancel) }
 
-const EMPTY_TRASH_TITLE_TEXT: &str = "Are you sure you want to empty the trash?";
-const EMPTY_TRASH_BODY_TEXT: &str = "This action cannot be undone.";
-const EMPTY_TRASH_CONFIRM_TEXT: &str = "Yes, empty trash";
+fn empty_trash_title_text() -> &'static str { tr_cached(Message::EmptyTrashTitle) }
+fn empty_trash_body_text() -> &'static str { tr_cached(Message::EmptyTrashBody) }
+fn empty_trash_confirm_text() -> &'static str { tr_cached(Message::EmptyTrashConfirm) }
 
 // This follows our new design standard for confirmation dialogs (e.g. used in the session sharing dialog)
 // Design team has discouraged us from continuing to use CloudActionConfirmationDialog's current design
@@ -65,7 +66,7 @@ impl View for EmptyTrashConfirmationDialog {
         let confirm_button = appearance
             .ui_builder()
             .button(ButtonVariant::Accent, self.confirm_mouse_state.clone())
-            .with_centered_text_label(EMPTY_TRASH_CONFIRM_TEXT.into())
+            .with_centered_text_label(empty_trash_confirm_text().into())
             .with_style(button_style)
             .build()
             .with_cursor(Cursor::PointingHand)
@@ -77,7 +78,7 @@ impl View for EmptyTrashConfirmationDialog {
         let cancel_button = appearance
             .ui_builder()
             .button(ButtonVariant::Basic, self.cancel_mouse_state.clone())
-            .with_centered_text_label(CANCEL_TEXT.into())
+            .with_centered_text_label(cancel_text().into())
             .with_style(button_style)
             .build()
             .with_cursor(Cursor::PointingHand)
@@ -87,8 +88,8 @@ impl View for EmptyTrashConfirmationDialog {
             .finish();
 
         Dialog::new(
-            EMPTY_TRASH_TITLE_TEXT.into(),
-            Some(EMPTY_TRASH_BODY_TEXT.into()),
+            empty_trash_title_text().into(),
+            Some(empty_trash_body_text().into()),
             UiComponentStyles {
                 width: Some(460.),
                 padding: Some(Coords::uniform(24.)),

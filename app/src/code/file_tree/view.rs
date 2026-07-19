@@ -43,7 +43,7 @@ use crate::code::active_file::{ActiveFileEvent, ActiveFileModel};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::editor::{EditorOptions, EditorView, TextOptions};
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{Menu, MenuItem, MenuItemFields};
 #[cfg(feature = "local_fs")]
 use crate::server::telemetry::CodePanelsFileOpenEntrypoint;
@@ -67,9 +67,9 @@ mod render;
 
 use crate::settings::{CodeSettings, CodeSettingsChangedEvent};
 
-const REMOTE_TEXT: &str = "The Project Explorer requires access to your local workspace, which isn’t supported in remote sessions.";
+fn remote_text() -> &'static str { tr_cached(Message::ProjectExplorerNeedsLocalWorkspace) }
 const DISABLED_TEXT: &str = "The Project Explorer requires access to your local workspace. Open a new session or navigate to an active session to view.";
-const WSL_TEXT: &str = "The Project Explorer doesn't currently work in WSL.";
+fn wsl_text() -> &'static str { tr_cached(Message::ProjectExplorerNotInWsl) }
 
 /// Stable identifier for an item in the file tree.
 /// Includes both the root directory and the index within that root's flattened list.
@@ -2952,7 +2952,7 @@ impl View for FileTreeView {
 
     #[cfg(not(feature = "local_fs"))]
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
-        self.render_error_state(REMOTE_TEXT.to_string(), app)
+        self.render_error_state(remote_text().to_string(), app)
     }
 
     #[cfg(feature = "local_fs")]
@@ -2979,7 +2979,7 @@ impl View for FileTreeView {
                 return if has_remote_server {
                     self.render_loading_state(app)
                 } else {
-                    self.render_error_state(REMOTE_TEXT.to_string(), app)
+                    self.render_error_state(remote_text().to_string(), app)
                 };
             }
 
@@ -2987,7 +2987,7 @@ impl View for FileTreeView {
                 self.enablement,
                 CodingPanelEnablementState::UnsupportedSession
             ) {
-                return self.render_error_state(WSL_TEXT.to_string(), app);
+                return self.render_error_state(wsl_text().to_string(), app);
             }
 
             return self.render_loading_state(app);

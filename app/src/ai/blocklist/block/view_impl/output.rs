@@ -52,6 +52,7 @@ use super::{
     render_citation_chips, WithContentItemSpacing, CONTENT_HORIZONTAL_PADDING,
     CONTENT_ITEM_VERTICAL_MARGIN,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::comment::ReviewComment;
 use crate::ai::agent::conversation::{RecordingSpanInfo, RecordingSpanStatus};
@@ -71,8 +72,8 @@ use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::action_model::AIActionStatus;
 use crate::ai::blocklist::block::model::{AIBlockModel, AIBlockModelHelper, AIBlockOutputStatus};
 use crate::ai::blocklist::block::view_impl::common::{
-    MaybeShimmeringText, BLOCKED_ACTION_MESSAGE_FOR_GREP_OR_FILE_GLOB,
-    BLOCKED_ACTION_MESSAGE_FOR_READING_FILES, BLOCKED_ACTION_MESSAGE_FOR_SEARCHING_CODEBASE,
+    MaybeShimmeringText, blocked_action_message_for_grep_or_file_glob,
+    blocked_action_message_for_reading_files, blocked_action_message_for_searching_codebase,
 };
 use crate::ai::blocklist::block::{
     AIBlock, AIBlockAction, AIBlockStateHandles, ActionButtons, AutonomySettingSpeedbump,
@@ -129,7 +130,7 @@ use crate::view_components::compactible_action_button::{
 use crate::workspace::WorkspaceAction;
 use crate::{AIAgentTodoList, FeatureFlag};
 
-const BLOCKED_ACTION_MESSAGE_FOR_UPLOADING_ARTIFACT: &str = "Grant access to upload this artifact?";
+fn blocked_action_message_for_uploading_artifact() -> &'static str { tr_cached(Message::AgentBlockedUploadArtifact) }
 
 /// Data required to render the AI block output component.
 #[derive(Copy, Clone)]
@@ -1546,7 +1547,7 @@ fn render_search_codebase(
                 )
                 .with_header(blocked_action_header(
                     id.clone(),
-                    BLOCKED_ACTION_MESSAGE_FOR_SEARCHING_CODEBASE,
+                    blocked_action_message_for_searching_codebase(),
                     buttons.run_button.clone(),
                     buttons.cancel_button.clone(),
                     props.action_model,
@@ -1938,7 +1939,7 @@ fn render_read_files(
         renderable_action = renderable_action
             .with_header(blocked_action_header(
                 id.clone(),
-                BLOCKED_ACTION_MESSAGE_FOR_READING_FILES,
+                blocked_action_message_for_reading_files(),
                 buttons.run_button.clone(),
                 buttons.cancel_button.clone(),
                 props.action_model,
@@ -2237,7 +2238,7 @@ fn render_stopped_output(props: Props, app: &AppContext) -> Box<dyn Element> {
         .with_custom_label(button_content)
         .with_tooltip(move || {
             ui_builder
-                .tool_tip("Resume conversation".to_string())
+                .tool_tip(tr_cached(Message::AgentFeedbackResumeConversation).to_string())
                 .build()
                 .finish()
         })
@@ -2715,7 +2716,7 @@ fn render_file_retrieval_tool(
         config = config
             .with_header(blocked_action_header(
                 action_id.clone(),
-                BLOCKED_ACTION_MESSAGE_FOR_GREP_OR_FILE_GLOB,
+                blocked_action_message_for_grep_or_file_glob(),
                 buttons.run_button.clone(),
                 buttons.cancel_button.clone(),
                 props.action_model,
@@ -2918,7 +2919,7 @@ fn render_upload_artifact(
         renderable_action = renderable_action
             .with_header(blocked_action_header(
                 action_id.clone(),
-                BLOCKED_ACTION_MESSAGE_FOR_UPLOADING_ARTIFACT,
+                blocked_action_message_for_uploading_artifact(),
                 buttons.run_button.clone(),
                 buttons.cancel_button.clone(),
                 props.action_model,
@@ -3456,7 +3457,7 @@ fn render_response_footer(props: Props, app: &AppContext) -> Option<Box<dyn Elem
         )
         .with_tooltip(move || {
             ui_builder
-                .tool_tip("Good response".to_string())
+                .tool_tip(tr_cached(Message::AgentFeedbackGoodResponse).to_string())
                 .build()
                 .finish()
         })
@@ -3477,7 +3478,7 @@ fn render_response_footer(props: Props, app: &AppContext) -> Option<Box<dyn Elem
         .with_tooltip(move || {
             ui_builder
                 .clone()
-                .tool_tip("Bad response".to_string())
+                .tool_tip(tr_cached(Message::AgentFeedbackBadResponse).to_string())
                 .build()
                 .finish()
         })

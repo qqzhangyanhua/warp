@@ -16,6 +16,7 @@ use warpui::{AppContext, Element, SingletonEntity};
 use crate::ai::blocklist::agent_view::{
     ENTER_AGENT_VIEW_NEW_CONVERSATION_KEYSTROKE, ENTER_CLOUD_AGENT_VIEW_NEW_CONVERSATION_KEYSTROKE,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::cmd_or_ctrl_shift;
 use crate::terminal::{self, TOGGLE_AUTOEXECUTE_MODE_KEYBINDING};
 use crate::ui_components::blended_colors;
@@ -122,7 +123,7 @@ pub fn render_agent_shortcuts_view(
                     key: "!".to_owned(),
                     ..Default::default()
                 },
-                text: "input shell command".into(),
+                text: tr_cached(Message::AgentShortcutInputShell).into(),
                 ..Default::default()
             },
             app,
@@ -135,7 +136,7 @@ pub fn render_agent_shortcuts_view(
                 key: "/".to_owned(),
                 ..Default::default()
             },
-            text: "for slash commands".into(),
+            text: tr_cached(Message::AgentShortcutSlashCommands).into(),
             ..Default::default()
         },
         app,
@@ -147,7 +148,7 @@ pub fn render_agent_shortcuts_view(
                 key: "@".to_owned(),
                 ..Default::default()
             },
-            text: "for file paths and attaching other context".into(),
+            text: tr_cached(Message::AgentShortcutFilePaths).into(),
             ..Default::default()
         },
         app,
@@ -160,7 +161,7 @@ pub fn render_agent_shortcuts_view(
             shortcuts.push(render_shortcut(
                 ShortcutProps {
                     keystroke,
-                    text: "open code review".into(),
+                    text: tr_cached(Message::AgentShortcutOpenCodeReview).into(),
                     ..Default::default()
                 },
                 app,
@@ -175,7 +176,7 @@ pub fn render_agent_shortcuts_view(
             shortcuts.push(render_shortcut(
                 ShortcutProps {
                     keystroke,
-                    text: "toggle conversation list".into(),
+                    text: tr_cached(Message::AgentShortcutToggleConversationList).into(),
                     ..Default::default()
                 },
                 app,
@@ -186,7 +187,7 @@ pub fn render_agent_shortcuts_view(
     shortcuts.push(render_shortcut(
         ShortcutProps {
             keystroke: Keystroke::parse(cmd_or_ctrl_shift("y")).expect("is valid keystroke"),
-            text: "search and continue conversations".into(),
+            text: tr_cached(Message::AgentShortcutSearchContinueConversations).into(),
             ..Default::default()
         },
         app,
@@ -202,7 +203,7 @@ pub fn render_agent_shortcuts_view(
     shortcuts.push(render_shortcut(
         ShortcutProps {
             keystroke: new_conversation_keystroke.clone(),
-            text: "start a new conversation".into(),
+            text: tr_cached(Message::AgentShortcutStartNewConversation).into(),
             ..Default::default()
         },
         app,
@@ -215,7 +216,7 @@ pub fn render_agent_shortcuts_view(
             shortcuts.push(render_shortcut(
                 ShortcutProps {
                     keystroke,
-                    text: "toggle auto-accept".into(),
+                    text: tr_cached(Message::AgentShortcutToggleAutoAccept).into(),
                     ..Default::default()
                 },
                 app,
@@ -230,7 +231,7 @@ pub fn render_agent_shortcuts_view(
                 ctrl: true,
                 ..Default::default()
             },
-            text: "pause agent".into(),
+            text: tr_cached(Message::AgentShortcutPauseAgent).into(),
             ..Default::default()
         },
         app,
@@ -242,7 +243,7 @@ pub fn render_agent_shortcuts_view(
                 key: "escape".to_owned(),
                 ..Default::default()
             },
-            text: "go back to terminal".into(),
+            text: tr_cached(Message::AgentShortcutGoBackToTerminal).into(),
             ..Default::default()
         },
         app,

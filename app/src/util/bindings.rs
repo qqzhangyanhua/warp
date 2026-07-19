@@ -783,10 +783,23 @@ impl CommandBinding {
 }
 
 fn materialize_description(desc: &BindingDescription, ctx: &AppContext) -> BindingDescription {
-    if desc.has_dynamic_override() {
+    let desc = if desc.has_dynamic_override() {
         desc.materialized(ctx)
     } else {
         desc.clone()
+    };
+
+    // Localize command-palette / keybinding labels after dynamic overrides resolve.
+    // English identity strings stay on `EditableBinding::new` call sites; Chinese is
+    // applied only at materialization so list/search caches observe locale correctly.
+    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+        return desc;
+    }
+
+    let en = desc.in_context(DescriptionContext::Default);
+    match crate::i18n::binding_description_zh_cn(en) {
+        Some(zh) => BindingDescription::new_preserve_case(zh),
+        None => desc,
     }
 }
 

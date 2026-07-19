@@ -10,21 +10,22 @@ use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::Element;
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::view::{InlineBannerId, TerminalAction};
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
 
-const SPEEDBUMP_HEADER: &str = "Index Codebase?";
-const SPEEDBUMP_TEXT: &str = "Indexing helps agents quickly understand context and provide targeted solutions. Code is never stored on the server.";
+fn speedbump_header() -> &'static str { tr_cached(Message::IndexCodebaseQuestion) }
+fn speedbump_text() -> &'static str { tr_cached(Message::IndexCodebaseHelp) }
 /// Uniform padding around the banner
 const PADDING: f32 = 12.;
 /// Text for the button that allows execution
-const ALLOW_BUTTON_TEXT: &str = "Index codebase";
-const ALLOW_SETTINGS_TEXT: &str = "Allow automatic indexing";
-const DISMISS_FOREVER_BUTTON_TEXT: &str = "Don't show again";
+fn allow_button_text() -> &'static str { tr_cached(Message::IndexCodebase) }
+fn allow_settings_text() -> &'static str { tr_cached(Message::AllowAutomaticIndexing) }
+fn dismiss_forever_button_text() -> &'static str { tr_cached(Message::DontShowAgain) }
 
-const INDEXING_HEADER: &str = "Indexing codebase";
-const VIEW_STATUS_BUTTON_TEXT: &str = "View status";
+fn indexing_header() -> &'static str { tr_cached(Message::IndexingCodebase) }
+fn view_status_button_text() -> &'static str { tr_cached(Message::ViewStatus) }
 
 #[derive(PartialEq, Clone)]
 pub enum VisibilityState {
@@ -99,9 +100,9 @@ impl CodebaseIndexSpeedbumpBannerState {
 
         let title = ui_builder
             .span(if self.visibility_state == VisibilityState::Speedbump {
-                SPEEDBUMP_HEADER
+                speedbump_header()
             } else {
-                INDEXING_HEADER
+                indexing_header()
             })
             .with_style(UiComponentStyles {
                 font_color: Some(appearance.theme().foreground().into_solid()),
@@ -114,7 +115,7 @@ impl CodebaseIndexSpeedbumpBannerState {
         col.add_child(title);
 
         let body = ui_builder
-            .span(SPEEDBUMP_TEXT)
+            .span(speedbump_text())
             .with_style(UiComponentStyles {
                 font_color: Some(blended_colors::text_sub(theme, theme.surface_1())),
                 font_size: Some(appearance.ui_font_size()),
@@ -191,7 +192,7 @@ impl CodebaseIndexSpeedbumpBannerState {
                 .finish();
 
             let checkbox_text = ui_builder
-                .span(ALLOW_SETTINGS_TEXT)
+                .span(allow_settings_text())
                 .with_style(UiComponentStyles {
                     font_color: Some(blended_colors::text_disabled(theme, theme.surface_1())),
                     font_size: Some(appearance.ui_font_size()),
@@ -226,7 +227,7 @@ impl CodebaseIndexSpeedbumpBannerState {
                                     ButtonVariant::Outlined,
                                     self.dont_show_again_mouse_state.clone(),
                                 )
-                                .with_text_label(DISMISS_FOREVER_BUTTON_TEXT.to_string())
+                                .with_text_label(dismiss_forever_button_text().to_string())
                                 .with_style(UiComponentStyles {
                                     font_color: Some(appearance.theme().foreground().into_solid()),
                                     font_size: Some(appearance.ui_font_size()),
@@ -261,7 +262,7 @@ impl CodebaseIndexSpeedbumpBannerState {
                                     ButtonVariant::Outlined,
                                     self.allow_button_mouse_state.clone(),
                                 )
-                                .with_text_label(ALLOW_BUTTON_TEXT.to_string())
+                                .with_text_label(allow_button_text().to_string())
                                 .with_style(UiComponentStyles {
                                     font_color: Some(appearance.theme().foreground().into_solid()),
                                     font_size: Some(appearance.ui_font_size()),
@@ -298,7 +299,7 @@ impl CodebaseIndexSpeedbumpBannerState {
                                     ButtonVariant::Outlined,
                                     self.view_status_button_mouse_state.clone(),
                                 )
-                                .with_text_label(VIEW_STATUS_BUTTON_TEXT.to_string())
+                                .with_text_label(view_status_button_text().to_string())
                                 .with_style(UiComponentStyles {
                                     font_color: Some(appearance.theme().foreground().into_solid()),
                                     font_size: Some(appearance.ui_font_size()),

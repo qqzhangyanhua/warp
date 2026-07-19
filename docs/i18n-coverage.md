@@ -8,9 +8,9 @@ Status of Chinese/English localization for ZYH GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **2108** |
-| English table (`en_text`) | **2108** complete |
-| Chinese table (`zh_cn_text`) | **2108** complete |
+| `Message` variants | **2397** |
+| English table (`en_text`) | **2397** complete |
+| Chinese table (`zh_cn_text`) | **2397** complete |
 | Call sites | ~1300+ across 120+ files |
 | Guard test | `all_messages_have_non_empty_text` in `table.rs` |
 
@@ -35,6 +35,23 @@ Status of Chinese/English localization for ZYH GUI copy.
 | Resource center sections + tips | Done |
 | High-frequency toasts (clipboard, voice, images, export, MCP, skills, …) | Done |
 | Privacy Safe Mode description | Done |
+| Agent warping/status strings (Working… / Reading files… / etc.) | Done |
+| Agent zero-state shortcuts (`/`, `@`, pause agent, …) | Done |
+| Find bar tooltips/placeholders (shared + notebook + code editor) | Done |
+| Conversation rename error toasts | Done |
+| Prompt alert chrome (offline / credits / overages CTAs) | Done |
+| Agent feedback tooltips (Good/Bad response, Resume) | Done |
+| Voice provider errors + transcription chrome | Done |
+| Unsaved-changes dialogs (env vars / workflows / Drive modal) | Done |
+| Requested command + code-diff action labels | Done |
+| Local agent task sync error messages | Done |
+| Drive index chrome + payment banners | Done |
+| Onboarding prompt-setup block | Done |
+| Command search empty/credits/placeholders | Done |
+| Legacy AI assistant panel / transcript / limit copy | Done |
+| Command-palette / keybinding descriptions (central dual-track map) | Done |
+| Secrets / empty trash / index speedbump / agent header / billing denied | Done |
+| Free-AI modal / queued prompts / commit dialog / naming dialog / code review diffs | Done |
 
 ### Intentionally not translated
 
@@ -58,6 +75,8 @@ Status of Chinese/English localization for ZYH GUI copy.
 | Agent tips | Dual-track `localized_tip_description` in `agent_tips.rs` |
 | Rare empty states / marketing modals | Spot-check remaining hardcodes as features ship |
 | Agent mode rotating hint examples | Prefix localized; example English kept |
+| EditableBinding English identity strings on call sites | Intentional; Chinese applied at materialization |
+| Long-tail marketing / rare empty states | Spot-check as features ship |
 
 **Rough completion (user-visible GUI):** high for Chinese daily use; residual dual-track maps above still work but should move to `Message` when touched.
 
@@ -108,4 +127,4 @@ User-facing app name is **ZYH**:
 
 ---
 
-_Last updated: 2026-07-18. WarpOss display → ZYH; app menus + context categories → Message; onboarding brand ZYH; residual dual-track listed. Catalog **2108** variants._
+_Last updated: 2026-07-19. Residual GUI long-tail scan batch. Catalog **2397** variants; binding map 354 entries._

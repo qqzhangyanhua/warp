@@ -22336,7 +22336,7 @@ impl Workspace {
                                 .to_string(),
                             secondary_button: None,
                             button: Some(WorkspaceBannerButtonDetails {
-                                text: "Update now".to_string(),
+                                text: tr_cached(Message::UpdateNow).to_string(),
                                 action: WorkspaceAction::ApplyUpdate,
                                 variant: BannerButtonVariant::Outlined,
                                 icon: None,
@@ -22356,7 +22356,7 @@ impl Workspace {
                                     .to_string(),
                                     secondary_button: None,
                                     button: Some(WorkspaceBannerButtonDetails {
-                                        text: "Restart app and update now".to_string(),
+                                        text: tr_cached(Message::RestartAppAndUpdateNow).to_string(),
                                         action: WorkspaceAction::ApplyUpdate,
                                         variant: BannerButtonVariant::Outlined,
                                         icon: None,

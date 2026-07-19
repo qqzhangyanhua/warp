@@ -1974,7 +1974,7 @@ impl NotebookView {
                             )
                             .with_tooltip(move || {
                                 ui_builder
-                                    .tool_tip("Restore notebook from trash".to_string())
+                                    .tool_tip(tr_cached(Message::RestoreNotebookFromTrash).to_string())
                                     .build()
                                     .finish()
                             })
@@ -2005,7 +2005,7 @@ impl NotebookView {
                                 .with_tooltip(move || {
                                     ui_builder
                                         .tool_tip(
-                                            "Copy notebook contents into your personal workspace"
+                                            tr_cached(Message::CopyNotebookToPersonal)
                                                 .to_string(),
                                         )
                                         .build()
@@ -2089,7 +2089,7 @@ impl NotebookView {
                         )
                         .with_tooltip(move || {
                             ui_builder
-                                .tool_tip("Copy notebook contents to your clipboard".to_string())
+                                .tool_tip(tr_cached(Message::CopyNotebookToClipboard).to_string())
                                 .build()
                                 .finish()
                         })
@@ -2123,7 +2123,7 @@ impl NotebookView {
                             )
                             .with_tooltip(move || {
                                 ui_builder
-                                    .tool_tip("Refresh notebook".to_string())
+                                    .tool_tip(tr_cached(Message::RefreshNotebook).to_string())
                                     .build()
                                     .finish()
                             })

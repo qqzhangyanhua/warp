@@ -108,16 +108,16 @@ use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
 use crate::{cmd_or_ctrl_shift, send_telemetry_from_ctx, TelemetryEvent};
 
-const REQUESTED_EDIT_CANCEL_LABEL: &str = "Cancel";
-const REQUESTED_EDIT_REFINE_LABEL: &str = "Refine";
-const REQUESTED_EDIT_ACCEPT_LABEL: &str = "Accept";
-const REQUESTED_EDIT_ACCEPT_AND_AUTOEXECUTE_LABEL: &str = "Auto-approve";
-const REQUESTED_EDIT_EDIT_LABEL: &str = "Edit";
-const REQUESTED_EDIT_MINIMIZE_LABEL: &str = "Done";
-const SUGGESTED_EDIT_ACCEPT_LABEL: &str = "Accept";
-const SUGGESTED_EDIT_ACCEPT_AND_CONTINUE_LABEL: &str = "Accept and continue with agent";
-const SUGGESTED_EDIT_ITERATE_WITH_AGENT_LABEL: &str = "Iterate with agent";
-const SUGGESTED_EDIT_DISMISS_LABEL: &str = "Dismiss";
+fn requested_edit_cancel_label() -> &'static str { tr_cached(Message::CommonCancel) }
+fn requested_edit_refine_label() -> &'static str { tr_cached(Message::RequestedEditRefine) }
+fn requested_edit_accept_label() -> &'static str { tr_cached(Message::BlockAccept) }
+fn requested_edit_accept_and_autoexecute_label() -> &'static str { tr_cached(Message::BlockAutoApprove) }
+fn requested_edit_edit_label() -> &'static str { tr_cached(Message::RequestedCommandEdit) }
+fn requested_edit_minimize_label() -> &'static str { tr_cached(Message::RequestedCommandDone) }
+fn suggested_edit_accept_label() -> &'static str { tr_cached(Message::BlockAccept) }
+fn suggested_edit_accept_and_continue_label() -> &'static str { tr_cached(Message::AcceptAndContinueWithAgent) }
+fn suggested_edit_iterate_with_agent_label() -> &'static str { tr_cached(Message::IterateWithAgent) }
+fn suggested_edit_dismiss_label() -> &'static str { tr_cached(Message::Dismiss) }
 const MAX_EDITOR_HEIGHT: f32 = 500.;
 const INLINE_EDITOR_HEIGHT: f32 = 94.;
 const INLINE_EDITOR_HEIGHT_EXPANDED: f32 = 400.;
@@ -429,7 +429,7 @@ impl CodeDiffView {
             self.accept_split_button_menu.update(ctx, |menu, ctx| {
                 menu.set_items(
                     vec![MenuItemFields::new_multiline(
-                        SUGGESTED_EDIT_ACCEPT_AND_CONTINUE_LABEL,
+                        suggested_edit_accept_and_continue_label(),
                         2,
                     )
                     .with_on_select_action(
@@ -451,14 +451,14 @@ impl CodeDiffView {
             .unwrap_or_default();
 
             let accept_item = MenuItemFields::new_with_label(
-                REQUESTED_EDIT_ACCEPT_LABEL,
+                requested_edit_accept_label(),
                 accept_keystroke.as_str(),
             )
             .with_on_select_action(CodeDiffViewAction::TryAccept)
             .into_item();
 
             let auto_item = MenuItemFields::new_with_label(
-                REQUESTED_EDIT_ACCEPT_AND_AUTOEXECUTE_LABEL,
+                requested_edit_accept_and_autoexecute_label(),
                 auto_keystroke.as_str(),
             )
             .with_on_select_action(CodeDiffViewAction::AcceptAndAutoExecute)
@@ -699,9 +699,9 @@ impl CodeDiffView {
             .collect();
 
         let cancel_button_label = if is_passive {
-            SUGGESTED_EDIT_DISMISS_LABEL
+            suggested_edit_dismiss_label()
         } else {
-            REQUESTED_EDIT_REFINE_LABEL
+            requested_edit_refine_label()
         };
         let cancel_button = CompactibleActionButton::new(
             cancel_button_label.to_string(),
@@ -716,7 +716,7 @@ impl CodeDiffView {
         );
 
         let edit_button = CompactibleActionButton::new(
-            REQUESTED_EDIT_EDIT_LABEL.to_string(),
+            requested_edit_edit_label().to_string(),
             Some(KeystrokeSource::Binding(EDIT_REQUESTED_EDIT_NAME)),
             ButtonSize::Small,
             CodeDiffViewAction::Edit,
@@ -726,7 +726,7 @@ impl CodeDiffView {
         );
 
         let minimize_button = CompactibleActionButton::new(
-            REQUESTED_EDIT_MINIMIZE_LABEL.to_string(),
+            requested_edit_minimize_label().to_string(),
             Some(KeystrokeSource::Fixed(
                 MINIMIZE_REQUESTED_EDIT_KEYSTROKE.clone(),
             )),
@@ -738,7 +738,7 @@ impl CodeDiffView {
         );
 
         let iterate_with_agent_button = CompactibleActionButton::new(
-            SUGGESTED_EDIT_ITERATE_WITH_AGENT_LABEL.to_string(),
+            suggested_edit_iterate_with_agent_label().to_string(),
             Some(KeystrokeSource::Binding(SET_INPUT_MODE_AGENT_ACTION_NAME)),
             ButtonSize::Small,
             CodeDiffViewAction::IterateOnPassiveDiffWithAgent,
@@ -749,9 +749,9 @@ impl CodeDiffView {
 
         let accept_and_autoexecute_split_button = CompactibleSplitActionButton::new(
             if is_passive {
-                SUGGESTED_EDIT_ACCEPT_LABEL.to_string()
+                suggested_edit_accept_label().to_string()
             } else {
-                REQUESTED_EDIT_ACCEPT_LABEL.to_string()
+                requested_edit_accept_label().to_string()
             },
             Some(accept_keystroke_source(is_passive)),
             ButtonSize::Small,
@@ -2086,9 +2086,9 @@ impl CodeDiffView {
 
         if self.display_mode.is_embedded() {
             let label = if self.is_passive {
-                SUGGESTED_EDIT_DISMISS_LABEL
+                suggested_edit_dismiss_label()
             } else {
-                REQUESTED_EDIT_CANCEL_LABEL
+                requested_edit_cancel_label()
             };
             self.cancel_button.set_label(label.to_string(), ctx);
         }

@@ -84,9 +84,12 @@ const HARNESS_CIRCLE_SIZE: f32 = 16.0;
 const HARNESS_ICON_IN_CIRCLE: f32 = 9.0;
 const LABEL_VALUE_GAP: f32 = 4.0;
 const SECTION_HEADER_GAP: f32 = 8.0;
-const RUN_METADATA_ACCESS_DENIED_TITLE: &str = "Run metadata is not available";
-const RUN_METADATA_ACCESS_DENIED_DESCRIPTION: &str =
-    "You can view this shared session, but run metadata is only visible to users with access to this run.";
+fn run_metadata_access_denied_title() -> &'static str {
+    tr_cached(Message::RunMetadataNotAvailable)
+}
+fn run_metadata_access_denied_description() -> &'static str {
+    tr_cached(Message::RunMetadataAccessRestricted)
+}
 
 /// Panel rendering mode.
 #[derive(Debug, Clone, PartialEq)]
@@ -1200,7 +1203,7 @@ impl ConversationDetailsPanel {
                     .finish();
 
             let title = Text::new(
-                RUN_METADATA_ACCESS_DENIED_TITLE,
+                run_metadata_access_denied_title(),
                 appearance.ui_font_family(),
                 ui_font_size,
             )
@@ -1209,7 +1212,7 @@ impl ConversationDetailsPanel {
             .with_selectable(true)
             .finish();
             let description = Text::new(
-                RUN_METADATA_ACCESS_DENIED_DESCRIPTION,
+                run_metadata_access_denied_description(),
                 appearance.ui_font_family(),
                 ui_font_size - 1.,
             )
@@ -1337,7 +1340,7 @@ impl ConversationDetailsPanel {
                 let mut stack = Stack::new().with_child(status_badge);
                 if state.is_hovered() {
                     let tooltip = ui_builder
-                        .tool_tip("View run in Oz web".to_string())
+                        .tool_tip(tr_cached(Message::ViewRunInOzWeb).to_string())
                         .build()
                         .finish();
                     stack.add_positioned_overlay_child(

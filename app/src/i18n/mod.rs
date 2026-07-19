@@ -1,8 +1,10 @@
+mod binding_descriptions;
 mod message;
 mod table;
 
 use std::sync::atomic::{AtomicU8, Ordering};
 
+pub use binding_descriptions::binding_description_zh_cn;
 pub use message::Message;
 use settings::Setting as _;
 use warpui::{AppContext, SingletonEntity};

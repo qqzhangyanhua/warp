@@ -147,7 +147,7 @@ const HOVER_PREVIEW_Y_OFFSET: f32 = 0.;
 
 const CREATE_TEAM_ICON_WIDTH: f32 = 16.;
 const CREATE_TEAM_ICON_HEIGHT: f32 = 16.;
-const CREATE_TEAM_TEXT: &str = "Share commands & knowledge with your teammates.";
+fn create_team_text() -> &'static str { tr_cached(Message::DriveShareWithTeammates) }
 
 const LOADING_ICON_WIDTH: f32 = 16.;
 const LOADING_ICON_HEIGHT: f32 = 16.;
@@ -158,20 +158,20 @@ const OFFLINE_BANNER_ICON_SPACING: f32 = 8.;
 const OFFLINE_BANNER_PADDING_HORIZONTAL: f32 = 16.;
 const OFFLINE_BANNER_PADDING_VERTICAL: f32 = 4.;
 
-const FOLDER_LABEL: &str = "Folder";
-const NOTEBOOK_LABEL: &str = "Notebook";
-const WORKFLOW_LABEL: &str = "Workflow";
-const AGENT_MODE_WORKFLOW_LABEL: &str = "Prompt";
-const ENV_VAR_COLLECTION_LABEL: &str = "Environment variables";
-const INDEX_FOLDER_LABEL: &str = "New folder";
-const INDEX_NOTEBOOK_LABEL: &str = "New notebook";
-const INDEX_WORKFLOW_LABEL: &str = "New workflow";
-const INDEX_AGENT_MODE_WORKFLOW_LABEL: &str = "New prompt";
-const INDEX_ENV_VAR_COLLECTION_LABEL: &str = "New environment variables";
+fn folder_label() -> &'static str { tr_cached(Message::DriveFolder) }
+fn notebook_label() -> &'static str { tr_cached(Message::DriveNotebook) }
+fn workflow_label() -> &'static str { tr_cached(Message::DriveWorkflow) }
+fn agent_mode_workflow_label() -> &'static str { tr_cached(Message::DrivePrompt) }
+fn env_var_collection_label() -> &'static str { tr_cached(Message::DriveEnvironmentVariables) }
+fn index_folder_label() -> &'static str { tr_cached(Message::DriveNewFolder) }
+fn index_notebook_label() -> &'static str { tr_cached(Message::DriveNewNotebook) }
+fn index_workflow_label() -> &'static str { tr_cached(Message::DriveNewWorkflow) }
+fn index_agent_mode_workflow_label() -> &'static str { tr_cached(Message::DriveNewPrompt) }
+fn index_env_var_collection_label() -> &'static str { tr_cached(Message::DriveNewEnvVars) }
 
-const IMPORT_LABEL: &str = "Import";
-const REMOVE_LABEL: &str = "Remove";
-const OFFLINE_BANNER_TEXT: &str = "You are offline. Some files will be read only.";
+fn import_label() -> &'static str { tr_cached(Message::DriveImport) }
+fn remove_label() -> &'static str { tr_cached(Message::CommonRemove) }
+fn offline_banner_text() -> &'static str { tr_cached(Message::DriveOfflineReadonly) }
 
 pub const DRIVE_INDEX_VIEW_POSITION_ID: &str = "drive_index_view_id";
 
@@ -180,26 +180,32 @@ pub const AUTOSCROLL_SPEED_MULTIPLIER: f32 = 10.;
 // Sets the distance from a border at which scroll events start to occur.
 pub const AUTOSCROLL_DETECTION_DISTANCE: f32 = 30.0;
 
-const ZERO_STATE_WORKFLOW_LABEL: &str = "Workflow";
-const ZERO_STATE_NOTEBOOK_LABEL: &str = "Notebook";
+fn zero_state_workflow_label() -> &'static str { tr_cached(Message::DriveWorkflow) }
+fn zero_state_notebook_label() -> &'static str { tr_cached(Message::DriveNotebook) }
 
-const SORTING_BUTTON_TOOLTIP_LABEL: &str = "Sort by";
+fn sorting_button_tooltip_label() -> &'static str { tr_cached(Message::DriveSortBy) }
 
-const RETRY_BUTTON_TOOLTIP_LABEL: &str = "Retry sync";
+fn retry_button_tooltip_label() -> &'static str { tr_cached(Message::DriveRetrySync) }
 
-const SHARED_OBJECT_LIMIT_HIT_BANNER_LINE: &str =
-    "Upgrade for access to more notebooks, workflows, shared sessions, and AI credits.";
+fn shared_object_limit_hit_banner_line() -> &'static str {
+    tr_cached(Message::DriveUpgradeForAccess)
+}
 
-const PAYMENT_ISSUE_BANNER_LINE_1: &str =
-    "Shared objects have been restricted due to a subscription payment issue.";
+fn payment_issue_banner_line_1() -> &'static str {
+    tr_cached(Message::DriveSharedObjectsRestricted)
+}
 
-const PAYMENT_ISSUE_BANNER_LINE_2_ADMIN: &str =
-    "Please update your payment information to restore access.";
+fn payment_issue_banner_line_2_admin() -> &'static str {
+    tr_cached(Message::DrivePaymentUpdateInfo)
+}
 
-const PAYMENT_ISSUE_BANNER_LINE_2_ADMIN_ENTERPRISE: &str =
-    "Please contact support@warp.dev to restore access.";
+fn payment_issue_banner_line_2_admin_enterprise() -> &'static str {
+    tr_cached(Message::DrivePaymentContactSupport)
+}
 
-const PAYMENT_ISSUE_BANNER_LINE_2_NONADMIN: &str = "Please contact a team admin to restore access.";
+fn payment_issue_banner_line_2_nonadmin() -> &'static str {
+    tr_cached(Message::DrivePaymentContactAdmin)
+}
 
 /// Struct to hold different state-related information on per-space basis.
 /// Currently, we only have 1 space (1 Team), but as we're working on personal space, and add
@@ -1716,7 +1722,7 @@ impl DriveIndex {
             }
             (DriveIndexVariant::MainIndex, DriveIndexSection::CreateATeam) => {
                 if self.is_online(app) {
-                    Some(self.render_team_section_header(CREATE_TEAM_TEXT.to_owned(), appearance))
+                    Some(self.render_team_section_header(create_team_text().to_owned(), appearance))
                 } else {
                     None
                 }
@@ -2099,10 +2105,10 @@ impl DriveIndex {
 
         let zero_state_contents = Flex::column().with_children([
             zero_state_info,
-            self.render_team_zero_state_hint(Icon::Workflow, ZERO_STATE_WORKFLOW_LABEL, appearance),
-            self.render_team_zero_state_hint(Icon::Workflow, ZERO_STATE_WORKFLOW_LABEL, appearance),
-            self.render_team_zero_state_hint(Icon::Notebook, ZERO_STATE_NOTEBOOK_LABEL, appearance),
-            self.render_team_zero_state_hint(Icon::Notebook, ZERO_STATE_NOTEBOOK_LABEL, appearance),
+            self.render_team_zero_state_hint(Icon::Workflow, zero_state_workflow_label(), appearance),
+            self.render_team_zero_state_hint(Icon::Workflow, zero_state_workflow_label(), appearance),
+            self.render_team_zero_state_hint(Icon::Notebook, zero_state_notebook_label(), appearance),
+            self.render_team_zero_state_hint(Icon::Notebook, zero_state_notebook_label(), appearance),
         ]);
 
         Container::new(zero_state_contents.finish())
@@ -2398,7 +2404,7 @@ impl DriveIndex {
                     Shrinkable::new(
                         1.,
                         Text::new_inline(
-                            OFFLINE_BANNER_TEXT,
+                            offline_banner_text(),
                             appearance.ui_font_family(),
                             appearance.ui_font_size(),
                         )
@@ -3010,7 +3016,7 @@ impl DriveIndex {
                 if mouse_state.is_hovered() {
                     let tooltip = appearance
                         .ui_builder()
-                        .tool_tip(SORTING_BUTTON_TOOLTIP_LABEL.to_string());
+                        .tool_tip(sorting_button_tooltip_label().to_string());
 
                     button.add_positioned_overlay_child(
                         tooltip.build().finish(),
@@ -3040,7 +3046,7 @@ impl DriveIndex {
         )
         .with_tooltip(move || {
             ui_builder
-                .tool_tip(RETRY_BUTTON_TOOLTIP_LABEL.to_string())
+                .tool_tip(retry_button_tooltip_label().to_string())
                 .build()
                 .finish()
         })
@@ -3692,7 +3698,7 @@ impl DriveIndex {
 
             if is_online {
                 menu_items.push(
-                    MenuItemFields::new(FOLDER_LABEL)
+                    MenuItemFields::new(folder_label())
                         .with_on_select_action(DriveIndexAction::create_object(
                             DriveObjectType::Folder,
                             *space,
@@ -3704,7 +3710,7 @@ impl DriveIndex {
             }
 
             menu_items.push(
-                MenuItemFields::new(WORKFLOW_LABEL)
+                MenuItemFields::new(workflow_label())
                     .with_on_select_action(DriveIndexAction::create_object(
                         DriveObjectType::Workflow,
                         *space,
@@ -3716,7 +3722,7 @@ impl DriveIndex {
 
             if FeatureFlag::AgentModeWorkflows.is_enabled() {
                 menu_items.push(
-                    MenuItemFields::new(AGENT_MODE_WORKFLOW_LABEL)
+                    MenuItemFields::new(agent_mode_workflow_label())
                         .with_on_select_action(DriveIndexAction::create_object(
                             DriveObjectType::AgentModeWorkflow,
                             *space,
@@ -3728,7 +3734,7 @@ impl DriveIndex {
             }
 
             menu_items.push(
-                MenuItemFields::new(NOTEBOOK_LABEL)
+                MenuItemFields::new(notebook_label())
                     .with_on_select_action(DriveIndexAction::create_object(
                         DriveObjectType::Notebook {
                             is_ai_document: false,
@@ -3741,7 +3747,7 @@ impl DriveIndex {
             );
 
             menu_items.push(
-                MenuItemFields::new(ENV_VAR_COLLECTION_LABEL)
+                MenuItemFields::new(env_var_collection_label())
                     .with_on_select_action(DriveIndexAction::create_object(
                         DriveObjectType::EnvVarCollection,
                         *space,
@@ -3752,7 +3758,7 @@ impl DriveIndex {
             );
 
             menu_items.push(
-                MenuItemFields::new(IMPORT_LABEL)
+                MenuItemFields::new(import_label())
                     .with_on_select_action(DriveIndexAction::OpenImportModal {
                         space: *space,
                         initial_folder_id: None,
@@ -4172,12 +4178,14 @@ impl DriveIndex {
         let highlight =
             Highlight::new().with_properties(Properties::default().weight(Weight::Bold));
 
-        let banner_line_1 = format!("You've run out of {object_type}s on your plan.");
+        let banner_line_1 =
+            tr_cached(Message::DriveRunOutOfObjects).replace("{}", &object_type.to_string());
+        let banner_line_2 = shared_object_limit_hit_banner_line();
         let body = Container::new(
             appearance
                 .ui_builder()
                 .wrappable_text(
-                    format!("{banner_line_1} {SHARED_OBJECT_LIMIT_HIT_BANNER_LINE}"),
+                    format!("{banner_line_1} {banner_line_2}"),
                     true,
                 )
                 .with_highlights((0..banner_line_1.len()).collect::<Vec<_>>(), highlight)
@@ -4256,23 +4264,24 @@ impl DriveIndex {
             Highlight::new().with_properties(Properties::default().weight(Weight::Bold));
 
         let banner_line_2 = if has_admin_permissions && is_on_stripe_paid_plan {
-            PAYMENT_ISSUE_BANNER_LINE_2_ADMIN
+            payment_issue_banner_line_2_admin()
         } else if has_admin_permissions && !is_on_stripe_paid_plan {
-            PAYMENT_ISSUE_BANNER_LINE_2_ADMIN_ENTERPRISE
+            payment_issue_banner_line_2_admin_enterprise()
         } else {
-            PAYMENT_ISSUE_BANNER_LINE_2_NONADMIN
+            payment_issue_banner_line_2_nonadmin()
         };
 
+        let payment_line_1 = payment_issue_banner_line_1();
         body.add_child(
             Container::new(
                 appearance
                     .ui_builder()
                     .wrappable_text(
-                        format!("{PAYMENT_ISSUE_BANNER_LINE_1} {banner_line_2}").to_string(),
+                        format!("{payment_line_1} {banner_line_2}").to_string(),
                         true,
                     )
                     .with_highlights(
-                        (0..PAYMENT_ISSUE_BANNER_LINE_1.len()).collect::<Vec<_>>(),
+                        (0..payment_line_1.len()).collect::<Vec<_>>(),
                         highlight,
                     )
                     .with_style(UiComponentStyles {
@@ -4365,7 +4374,7 @@ impl DriveIndex {
                 if self.is_online(app) {
                     if !FeatureFlag::SharedWithMe.is_enabled() || editability.can_edit() {
                         menu_items.push(
-                            MenuItemFields::new(INDEX_FOLDER_LABEL)
+                            MenuItemFields::new(index_folder_label())
                                 .with_on_select_action(DriveIndexAction::create_object(
                                     DriveObjectType::Folder,
                                     *space,
@@ -4375,7 +4384,7 @@ impl DriveIndex {
                                 .into_item(),
                         );
                         menu_items.push(
-                            MenuItemFields::new(INDEX_WORKFLOW_LABEL)
+                            MenuItemFields::new(index_workflow_label())
                                 .with_on_select_action(DriveIndexAction::create_object(
                                     DriveObjectType::Workflow,
                                     *space,
@@ -4387,7 +4396,7 @@ impl DriveIndex {
 
                         if FeatureFlag::AgentModeWorkflows.is_enabled() {
                             menu_items.push(
-                                MenuItemFields::new(INDEX_AGENT_MODE_WORKFLOW_LABEL)
+                                MenuItemFields::new(index_agent_mode_workflow_label())
                                     .with_on_select_action(DriveIndexAction::create_object(
                                         DriveObjectType::AgentModeWorkflow,
                                         *space,
@@ -4399,7 +4408,7 @@ impl DriveIndex {
                         }
 
                         menu_items.push(
-                            MenuItemFields::new(INDEX_NOTEBOOK_LABEL)
+                            MenuItemFields::new(index_notebook_label())
                                 .with_on_select_action(DriveIndexAction::create_object(
                                     DriveObjectType::Notebook {
                                         is_ai_document: false,
@@ -4412,7 +4421,7 @@ impl DriveIndex {
                         );
 
                         menu_items.push(
-                            MenuItemFields::new(INDEX_ENV_VAR_COLLECTION_LABEL)
+                            MenuItemFields::new(index_env_var_collection_label())
                                 .with_on_select_action(DriveIndexAction::create_object(
                                     DriveObjectType::EnvVarCollection,
                                     *space,
@@ -4466,7 +4475,7 @@ impl DriveIndex {
 
                 if !FeatureFlag::SharedWithMe.is_enabled() || editability.can_edit() {
                     menu_items.push(
-                        MenuItemFields::new(IMPORT_LABEL)
+                        MenuItemFields::new(import_label())
                             .with_on_select_action(DriveIndexAction::OpenImportModal {
                                 space: *space,
                                 initial_folder_id: Some(*folder_id),
@@ -4487,7 +4496,7 @@ impl DriveIndex {
                 if let Some(object) = object {
                     if FeatureFlag::SharedWithMe.is_enabled() && object.can_leave(app) {
                         menu_items.push(
-                            MenuItemFields::new(REMOVE_LABEL)
+                            MenuItemFields::new(remove_label())
                                 .with_on_select_action(DriveIndexAction::LeaveSharedObject {
                                     cloud_object_type_and_id: *cloud_object_type_and_id,
                                 })
@@ -4741,7 +4750,7 @@ impl DriveIndex {
 
                 if FeatureFlag::SharedWithMe.is_enabled() && object.can_leave(app) {
                     menu_items.push(
-                        MenuItemFields::new(REMOVE_LABEL)
+                        MenuItemFields::new(remove_label())
                             .with_on_select_action(DriveIndexAction::LeaveSharedObject {
                                 cloud_object_type_and_id: *cloud_object_type_and_id,
                             })

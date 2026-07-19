@@ -28,7 +28,7 @@ use crate::editor::{
     SingleLineEditorOptions, TextOptions,
 };
 use crate::features::FeatureFlag;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::{FindOption, TelemetryEvent};
 use crate::settings::AppEditorSettings;
@@ -49,10 +49,16 @@ const FIND_EDITOR_BORDER_WIDTH: f32 = 1.;
 const FIND_EDITOR_FONT_SIZE: f32 = 12.;
 const FIND_EDITOR_ROW_SPACING: f32 = 4.;
 
-pub const REGEX_TOGGLE_TOOLTIP: &str = "Regex toggle";
-pub const CASE_SENSITIVE_TOOLTIP: &str = "Case sensitive search";
+pub fn regex_toggle_tooltip() -> &'static str {
+    tr_cached(Message::TerminalRegexToggle)
+}
+pub fn case_sensitive_tooltip() -> &'static str {
+    tr_cached(Message::TerminalCaseSensitiveSearch)
+}
 pub const PRESERVE_CASE_TOOLTIP: &str = "Preserve case";
-pub const FIND_PLACEHOLDER_TEXT: &str = "Find";
+pub fn find_placeholder_text() -> &'static str {
+    tr_cached(Message::FindPlaceholder)
+}
 pub const REPLACE_PLACEHOLDER_TEXT: &str = "Replace";
 
 #[derive(Default)]
@@ -143,7 +149,7 @@ impl CodeEditorFind {
                 },
                 ctx,
             );
-            editor.set_placeholder_text(FIND_PLACEHOLDER_TEXT, ctx);
+            editor.set_placeholder_text(find_placeholder_text(), ctx);
             editor
         });
 
@@ -745,7 +751,7 @@ impl CodeEditorFind {
             self.button_mouse_states.toggle_regex_search.clone(),
             FindAction::ToggleRegexSearch,
             editor_height,
-            Some(REGEX_TOGGLE_TOOLTIP),
+            Some(regex_toggle_tooltip()),
             ICON_PADDING,
         );
         let case_sensitive_icon = Container::new(
@@ -757,7 +763,7 @@ impl CodeEditorFind {
                     self.button_mouse_states.toggle_case_sensitivity.clone(),
                     FindAction::ToggleCaseSensitivity,
                     editor_height,
-                    Some(CASE_SENSITIVE_TOOLTIP),
+                    Some(case_sensitive_tooltip()),
                     ICON_PADDING,
                 ),
                 "case_sensitive_button",
