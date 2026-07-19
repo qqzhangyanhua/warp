@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$REPO_ROOT"
+
+cargo() {
+  printf '[CARGO_STUB]'
+  printf ' <%s>' "$@"
+  printf '\n'
+}
+
+hdiutil() {
+  :
+}
+
+export -f cargo hdiutil
+
+output="$(
+  ./script/macos/bundle \
+    --channel oss \
+    --features local_only_custom_provider_mode \
+    --selfsign \
+    --nouniversal \
+    --check-only 2>&1
+)"
+
+if [[ "$output" != *"[CARGO_STUB]"*"local_only_custom_provider_mode"* ]]; then
+  printf '%s\n' "$output" >&2
+  echo "OSS bundle dropped local_only_custom_provider_mode before invoking cargo" >&2
+  exit 1
+fi
+
+if [[ "$output" == *"[CARGO_STUB]"*"cocoa_sentry"* ]]; then
+  printf '%s\n' "$output" >&2
+  echo "OSS bundle unexpectedly enabled cocoa_sentry" >&2
+  exit 1
+fi
