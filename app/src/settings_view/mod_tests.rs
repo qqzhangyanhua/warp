@@ -124,6 +124,128 @@ fn non_subpage_sections_map_to_themselves() {
     );
 }
 
+// ── Product mode visibility ────────────────────────────────────────────────
+
+#[test]
+#[serial_test::serial]
+fn local_only_mode_hides_account_and_cloud_settings_sections() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for section in [
+        SettingsSection::Account,
+        SettingsSection::BillingAndUsage,
+        SettingsSection::Teams,
+        SettingsSection::Referrals,
+        SettingsSection::SharedBlocks,
+        SettingsSection::WarpDrive,
+        SettingsSection::CloudEnvironments,
+        SettingsSection::OzCloudAPIKeys,
+    ] {
+        assert!(
+            section.hidden_in_current_mode(),
+            "{section:?} should be hidden in Local-only Mode"
+        );
+    }
+
+    for section in [
+        SettingsSection::WarpAgent,
+        SettingsSection::AgentProfiles,
+        SettingsSection::AgentMCPServers,
+        SettingsSection::Knowledge,
+        SettingsSection::ThirdPartyCLIAgents,
+        SettingsSection::CodeIndexing,
+        SettingsSection::EditorAndCodeReview,
+        SettingsSection::Appearance,
+        SettingsSection::Features,
+        SettingsSection::Keybindings,
+        SettingsSection::Privacy,
+        SettingsSection::About,
+    ] {
+        assert!(
+            !section.hidden_in_current_mode(),
+            "{section:?} should remain visible in Local-only Mode"
+        );
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn standard_mode_does_not_hide_account_and_cloud_settings_sections_by_mode() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for section in [
+        SettingsSection::Account,
+        SettingsSection::BillingAndUsage,
+        SettingsSection::Teams,
+        SettingsSection::Referrals,
+        SettingsSection::SharedBlocks,
+        SettingsSection::WarpDrive,
+        SettingsSection::CloudEnvironments,
+        SettingsSection::OzCloudAPIKeys,
+    ] {
+        assert!(
+            !section.hidden_in_current_mode(),
+            "{section:?} should remain visible in standard mode"
+        );
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_mode_defaults_to_visible_settings_section() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    assert_eq!(
+        SettingsSection::default_for_current_mode(),
+        SettingsSection::WarpAgent
+    );
+}
+
+#[test]
+#[serial_test::serial]
+fn standard_mode_defaults_to_account_settings() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    assert_eq!(
+        SettingsSection::default_for_current_mode(),
+        SettingsSection::Account
+    );
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_mode_disabled_scripting_initial_page_uses_visible_default() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+    let _scripting = FeatureFlag::WarpControlCli.override_enabled(false);
+
+    assert_eq!(
+        SettingsSection::initial_page_for_current_mode(Some(SettingsSection::Scripting)),
+        SettingsSection::WarpAgent
+    );
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_mode_hidden_cloud_subpage_initial_page_uses_visible_default() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for section in [
+        SettingsSection::CloudEnvironments,
+        SettingsSection::OzCloudAPIKeys,
+    ] {
+        assert_eq!(
+            SettingsSection::initial_page_for_current_mode(Some(section)),
+            SettingsSection::WarpAgent
+        );
+    }
+}
+
 // ── ai_subpages list ────────────────────────────────────────────────────────
 
 #[test]

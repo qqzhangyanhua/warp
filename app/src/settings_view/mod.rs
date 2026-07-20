@@ -57,6 +57,7 @@ use crate::editor::{
     TextColors, TextOptions,
 };
 use crate::i18n::{tr, Message};
+use crate::local_mode;
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::view;
@@ -316,19 +317,46 @@ impl Display for SettingsSection {
 }
 
 impl SettingsSection {
-    fn hidden_in_anonymous_only_mode(self) -> bool {
-        FeatureFlag::AnonymousOnlyMode.is_enabled()
-            && matches!(
-                self,
-                Self::Account
-                    | Self::BillingAndUsage
-                    | Self::Referrals
-                    | Self::SharedBlocks
-                    | Self::Teams
-                    | Self::WarpDrive
-                    | Self::CloudEnvironments
-                    | Self::OzCloudAPIKeys
-            )
+    fn hidden_without_account_and_cloud_services(self) -> bool {
+        matches!(
+            self,
+            Self::Account
+                | Self::BillingAndUsage
+                | Self::Referrals
+                | Self::SharedBlocks
+                | Self::Teams
+                | Self::WarpDrive
+                | Self::CloudEnvironments
+                | Self::OzCloudAPIKeys
+        )
+    }
+
+    fn hidden_in_current_mode(self) -> bool {
+        let account_and_cloud_services_unavailable = FeatureFlag::AnonymousOnlyMode.is_enabled()
+            || local_mode::is_local_only_custom_provider_mode();
+
+        account_and_cloud_services_unavailable && self.hidden_without_account_and_cloud_services()
+    }
+
+    fn default_for_current_mode() -> Self {
+        if Self::Account.hidden_in_current_mode() {
+            Self::WarpAgent
+        } else {
+            Self::default()
+        }
+    }
+
+    fn initial_page_for_current_mode(page: Option<Self>) -> Self {
+        match page {
+            Some(Self::AI) => Self::WarpAgent,
+            Some(Self::Code) => Self::CodeIndexing,
+            Some(section) if section.hidden_in_current_mode() => Self::WarpAgent,
+            Some(Self::Scripting) if !FeatureFlag::WarpControlCli.is_enabled() => {
+                Self::default_for_current_mode()
+            }
+            Some(section) if section.is_subpage() => section,
+            other => other.unwrap_or_else(Self::default_for_current_mode),
+        }
     }
 
     /// Returns true if this section is a subpage under any umbrella.
@@ -1556,12 +1584,13 @@ impl SettingsView {
             SettingsNavItem::Page(SettingsSection::About),
         ];
 
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-            nav_items.retain(|item| match item {
-                SettingsNavItem::Page(section) => !section.hidden_in_anonymous_only_mode(),
-                SettingsNavItem::Umbrella(umbrella) => umbrella.label != "Cloud platform",
-            });
-        }
+        nav_items.retain(|item| match item {
+            SettingsNavItem::Page(section) => !section.hidden_in_current_mode(),
+            SettingsNavItem::Umbrella(umbrella) => umbrella
+                .subpages
+                .iter()
+                .any(|section| !section.hidden_in_current_mode()),
+        });
 
         if FeatureFlag::WarpControlCli.is_enabled() {
             let shared_blocks_index = nav_items
@@ -1577,22 +1606,7 @@ impl SettingsView {
         }
 
         // Resolve the initial page: map internal backing-page sections to their default subpage.
-        let initial_page = match page {
-            Some(SettingsSection::AI) => SettingsSection::WarpAgent,
-            Some(SettingsSection::Code) => SettingsSection::CodeIndexing,
-            Some(SettingsSection::Scripting) if !FeatureFlag::WarpControlCli.is_enabled() => {
-                SettingsSection::Account
-            }
-            Some(section) if section.is_subpage() => section,
-            Some(section) if section.hidden_in_anonymous_only_mode() => SettingsSection::WarpAgent,
-            other => other.unwrap_or_else(|| {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    SettingsSection::WarpAgent
-                } else {
-                    SettingsSection::default()
-                }
-            }),
-        };
+        let initial_page = SettingsSection::initial_page_for_current_mode(page);
 
         // Auto-expand the umbrella if the initial page is one of its subpages.
         if initial_page.is_subpage() {
@@ -2234,7 +2248,7 @@ impl SettingsView {
         let section = match section {
             SettingsSection::AI => SettingsSection::WarpAgent,
             SettingsSection::Code => SettingsSection::CodeIndexing,
-            hidden if hidden.hidden_in_anonymous_only_mode() => SettingsSection::WarpAgent,
+            hidden if hidden.hidden_in_current_mode() => SettingsSection::WarpAgent,
             other => other,
         };
 
@@ -2328,7 +2342,7 @@ impl SettingsView {
     }
 
     fn should_render_page(&self, settings_page: &SettingsPage, app: &AppContext) -> bool {
-        if settings_page.section.hidden_in_anonymous_only_mode() {
+        if settings_page.section.hidden_in_current_mode() {
             return false;
         }
         match &settings_page.view_handle {
@@ -2921,7 +2935,7 @@ impl TypedActionView for SettingsView {
                 }
             }
             SettingsAction::MainPageToggle(main_page_action) => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+                if SettingsSection::Account.hidden_in_current_mode() {
                     return;
                 }
                 if let Some(main_page) = self.settings_page(SettingsSection::Account) {
