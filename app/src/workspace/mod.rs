@@ -1530,6 +1530,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             "Open Settings: Account",
             WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
         )
+        .with_enabled(|| SettingsSection::Account.command_entrypoint_enabled_in_current_mode())
         .with_context_predicate(id!("Workspace"))
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_custom_action(CustomAction::ShowAccount),
@@ -1555,6 +1556,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "View Shared Blocks..."),
             WorkspaceAction::ShowSettingsPage(SettingsSection::SharedBlocks),
         )
+        .with_enabled(|| SettingsSection::SharedBlocks.command_entrypoint_enabled_in_current_mode())
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::ViewSharedBlocks),
@@ -1584,7 +1586,10 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open Team Settings"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
         )
-        .with_enabled(|| !FeatureFlag::AnonymousOnlyMode.is_enabled())
+        .with_enabled(|| {
+            !FeatureFlag::AnonymousOnlyMode.is_enabled()
+                && SettingsSection::Teams.command_entrypoint_enabled_in_current_mode()
+        })
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_custom_action(CustomAction::OpenTeamSettings)
         .with_context_predicate(id!("Workspace")),
@@ -1616,7 +1621,10 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             BindingDescription::new("Open Settings: Billing and usage"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::BillingAndUsage),
         )
-        .with_enabled(|| !FeatureFlag::AnonymousOnlyMode.is_enabled())
+        .with_enabled(|| {
+            !FeatureFlag::AnonymousOnlyMode.is_enabled()
+                && SettingsSection::BillingAndUsage.command_entrypoint_enabled_in_current_mode()
+        })
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
@@ -1631,7 +1639,10 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             BindingDescription::new("Open Settings: Referrals"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::Referrals),
         )
-        .with_enabled(|| !FeatureFlag::AnonymousOnlyMode.is_enabled())
+        .with_enabled(|| {
+            !FeatureFlag::AnonymousOnlyMode.is_enabled()
+                && SettingsSection::Referrals.command_entrypoint_enabled_in_current_mode()
+        })
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
@@ -1639,6 +1650,9 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             BindingDescription::new("Open Settings: Environments"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::CloudEnvironments),
         )
+        .with_enabled(|| {
+            SettingsSection::CloudEnvironments.command_entrypoint_enabled_in_current_mode()
+        })
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
@@ -1669,7 +1683,10 @@ fn add_overflow_menu_items_as_editable_binding(app: &mut AppContext) {
             "Invite People...",
             WorkspaceAction::ShowReferralSettingsPage,
         )
-        .with_enabled(|| !FeatureFlag::AnonymousOnlyMode.is_enabled())
+        .with_enabled(|| {
+            !FeatureFlag::AnonymousOnlyMode.is_enabled()
+                && SettingsSection::Referrals.command_entrypoint_enabled_in_current_mode()
+        })
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::ReferAFriend),
         EditableBinding::new(

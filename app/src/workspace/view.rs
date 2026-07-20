@@ -1266,6 +1266,10 @@ pub struct Workspace {
     create_auth_secret_modal: Option<ViewHandle<Modal<AuthSecretFtuxView>>>,
 }
 
+fn settings_section_for_workspace_action(section: SettingsSection) -> SettingsSection {
+    section.redirect_for_local_only_mode()
+}
+
 impl Workspace {
     pub fn is_tab_drag_preview(&self) -> bool {
         self.is_tab_drag_preview
@@ -8461,6 +8465,8 @@ impl Workspace {
         search_query: Option<&str>,
         ctx: &mut ViewContext<Self>,
     ) {
+        let page = page.map(settings_section_for_workspace_action);
+
         // Ensure there is only one settings pane per window
         let settings_pane_manager = SettingsPaneManager::handle(ctx);
         if let Some(locator) = settings_pane_manager.as_ref(ctx).find_pane(ctx.window_id()) {
@@ -25540,7 +25546,8 @@ impl TypedActionView for Workspace {
             ScrollToSettingsWidget { page, widget_id } => {
                 self.open_settings_pane(Some(*page), None, ctx);
                 self.settings_pane.update(ctx, |settings, ctx| {
-                    settings.scroll_to_settings_widget(*page, widget_id, ctx);
+                    let page = settings_section_for_workspace_action(*page);
+                    settings.scroll_to_settings_widget(page, widget_id, ctx);
                 });
                 ctx.notify();
             }

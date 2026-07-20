@@ -89,6 +89,83 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{
     experiments, workspace, AgentNotificationsModel, GlobalResourceHandlesProvider, ObjectActions,
 };
+
+#[test]
+#[serial_test::serial]
+fn local_only_workspace_settings_actions_redirect_forbidden_sections_to_warp_agent() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for section in [
+        SettingsSection::Account,
+        SettingsSection::BillingAndUsage,
+        SettingsSection::Referrals,
+        SettingsSection::CloudEnvironments,
+        SettingsSection::OzCloudAPIKeys,
+    ] {
+        assert_eq!(
+            settings_section_for_workspace_action(section),
+            SettingsSection::WarpAgent
+        );
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_workspace_settings_action_handlers_open_warp_agent_for_forbidden_sections() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+        let workspace = mock_workspace(&mut app);
+
+        for action in [
+            WorkspaceAction::ShowSettingsPage(SettingsSection::BillingAndUsage),
+            WorkspaceAction::ShowReferralSettingsPage,
+        ] {
+            workspace.update(&mut app, |workspace, ctx| {
+                workspace.handle_action(&action, ctx);
+            });
+
+            workspace.read(&app, |workspace, ctx| {
+                let current_section = workspace
+                    .settings_pane
+                    .as_ref(ctx)
+                    .current_settings_section();
+                assert_eq!(current_section.parent_page_section(), SettingsSection::AI);
+                assert!(
+                    !matches!(
+                        current_section,
+                        SettingsSection::Account
+                            | SettingsSection::BillingAndUsage
+                            | SettingsSection::Referrals
+                            | SettingsSection::CloudEnvironments
+                            | SettingsSection::OzCloudAPIKeys
+                    ),
+                    "{current_section:?} should not be directly openable in Local-only Mode"
+                );
+            });
+        }
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn standard_workspace_settings_actions_keep_section_targets() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    assert_eq!(
+        settings_section_for_workspace_action(SettingsSection::BillingAndUsage),
+        SettingsSection::BillingAndUsage
+    );
+    assert_eq!(
+        settings_section_for_workspace_action(SettingsSection::CloudEnvironments),
+        SettingsSection::CloudEnvironments
+    );
+}
+
 #[test]
 fn query_for_rewind_prefill_uses_custom_display_query_inputs() {
     let context: std::sync::Arc<[crate::ai::agent::AIAgentContext]> = Vec::new().into();
@@ -158,6 +235,7 @@ pub(crate) fn initialize_app(app: &mut App) {
         )
     });
     app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+    app.add_singleton_model(|_| crate::ai::agent::runtime::AgentRuntimeService::new());
     // QueuedQueryModel subscribes to history events; register after the
     // history model is in place.
     app.add_singleton_model(crate::ai::blocklist::QueuedQueryModel::new);
@@ -4441,7 +4519,6 @@ fn local_only_tools_panel_does_not_initialize_warp_drive() {
 
     App::test((), |mut app| async move {
         initialize_app(&mut app);
-        app.add_singleton_model(|_| crate::ai::agent::runtime::AgentRuntimeService::new());
         let workspace = mock_workspace(&mut app);
 
         workspace.read(&app, |workspace, ctx| {

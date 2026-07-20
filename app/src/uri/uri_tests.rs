@@ -37,6 +37,22 @@ fn test_find_matching_config() {
 }
 
 #[test]
+#[serial_test::serial]
+fn local_only_settings_deeplink_targets_redirect_forbidden_pages_to_warp_agent() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for subpage in ["billing_and_usage", "platform"] {
+        let section = settings_section_for_simple_subpage(subpage)
+            .expect("settings deeplink subpage should resolve");
+        assert_eq!(
+            section.redirect_for_local_only_mode(),
+            SettingsSection::WarpAgent
+        );
+    }
+}
+
+#[test]
 fn test_find_matching_config_with_spaces() {
     let mut configs: Vec<LaunchConfig> = vec![];
     for i in 0..3 {

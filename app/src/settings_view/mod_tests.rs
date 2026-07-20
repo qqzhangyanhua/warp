@@ -2,6 +2,30 @@ use settings_page::MatchData;
 
 use super::*;
 
+struct TestRootView;
+
+impl Entity for TestRootView {
+    type Event = ();
+}
+
+impl View for TestRootView {
+    fn ui_name() -> &'static str {
+        "TestRootView"
+    }
+
+    fn render(&self, _app: &AppContext) -> Box<dyn Element> {
+        Empty::new().finish()
+    }
+}
+
+impl TypedActionView for TestRootView {
+    type Action = ();
+}
+
+fn initialize_settings_view_test_models(app: &mut warpui::App) {
+    crate::workspace::view::tests::initialize_app(app);
+}
+
 // ── SettingsSection classification ──────────────────────────────────────────
 
 #[test]
@@ -244,6 +268,188 @@ fn local_only_mode_hidden_cloud_subpage_initial_page_uses_visible_default() {
             SettingsSection::WarpAgent
         );
     }
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_mode_redirects_forbidden_settings_requests_to_warp_agent() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for section in [
+        SettingsSection::Account,
+        SettingsSection::BillingAndUsage,
+        SettingsSection::Teams,
+        SettingsSection::Referrals,
+        SettingsSection::SharedBlocks,
+        SettingsSection::WarpDrive,
+        SettingsSection::CloudEnvironments,
+        SettingsSection::OzCloudAPIKeys,
+    ] {
+        assert_eq!(
+            section.redirect_for_local_only_mode(),
+            SettingsSection::WarpAgent,
+            "{section:?} should redirect to WarpAgent in Local-only Mode"
+        );
+    }
+
+    for section in [
+        SettingsSection::WarpAgent,
+        SettingsSection::CodeIndexing,
+        SettingsSection::Appearance,
+        SettingsSection::Keybindings,
+        SettingsSection::Privacy,
+    ] {
+        assert_eq!(
+            section.redirect_for_local_only_mode(),
+            section,
+            "{section:?} should remain directly openable in Local-only Mode"
+        );
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn standard_mode_keeps_settings_request_targets_unchanged() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for section in [
+        SettingsSection::Account,
+        SettingsSection::BillingAndUsage,
+        SettingsSection::CloudEnvironments,
+        SettingsSection::OzCloudAPIKeys,
+    ] {
+        assert_eq!(section.redirect_for_local_only_mode(), section);
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_mode_does_not_instantiate_forbidden_settings_pages() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    for section in [
+        SettingsSection::Account,
+        SettingsSection::BillingAndUsage,
+        SettingsSection::Teams,
+        SettingsSection::Referrals,
+        SettingsSection::SharedBlocks,
+        SettingsSection::WarpDrive,
+        SettingsSection::CloudEnvironments,
+        SettingsSection::OzCloudAPIKeys,
+    ] {
+        assert!(
+            !section.should_instantiate_in_current_mode(),
+            "{section:?} should not be instantiated in Local-only Mode"
+        );
+    }
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_settings_view_omits_forbidden_settings_pages() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    warpui::App::test((), |mut app| async move {
+        initialize_settings_view_test_models(&mut app);
+        let (window_id, _root_view) =
+            app.add_window(warpui::platform::WindowStyle::NotStealFocus, |_| TestRootView);
+
+        let settings_view = app.update(|ctx| {
+            ctx.add_typed_action_view(window_id, |ctx| {
+                SettingsView::new(Some(SettingsSection::BillingAndUsage), ctx)
+            })
+        });
+        settings_view.read(&app, |settings_view, _ctx| {
+            let sections: Vec<_> = settings_view
+                .settings_pages
+                .iter()
+                .map(|page| page.section)
+                .collect();
+
+            for section in [
+                SettingsSection::Account,
+                SettingsSection::BillingAndUsage,
+                SettingsSection::Teams,
+                SettingsSection::Referrals,
+                SettingsSection::SharedBlocks,
+                SettingsSection::WarpDrive,
+                SettingsSection::CloudEnvironments,
+                SettingsSection::OzCloudAPIKeys,
+            ] {
+                assert!(
+                    !sections.contains(&section),
+                    "{section:?} should not be instantiated in Local-only Mode"
+                );
+            }
+            assert_eq!(
+                settings_view.current_settings_page,
+                SettingsSection::WarpAgent
+            );
+        });
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn standard_settings_view_keeps_account_and_cloud_settings_pages() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    warpui::App::test((), |mut app| async move {
+        initialize_settings_view_test_models(&mut app);
+        let (window_id, _root_view) =
+            app.add_window(warpui::platform::WindowStyle::NotStealFocus, |_| TestRootView);
+
+        let settings_view = app.update(|ctx| {
+            ctx.add_typed_action_view(window_id, |ctx| {
+                SettingsView::new(Some(SettingsSection::BillingAndUsage), ctx)
+            })
+        });
+        settings_view.read(&app, |settings_view, _ctx| {
+            let sections: Vec<_> = settings_view
+                .settings_pages
+                .iter()
+                .map(|page| page.section)
+                .collect();
+
+            for section in [
+                SettingsSection::Account,
+                SettingsSection::BillingAndUsage,
+                SettingsSection::Teams,
+                SettingsSection::Referrals,
+                SettingsSection::SharedBlocks,
+                SettingsSection::WarpDrive,
+                SettingsSection::CloudEnvironments,
+                SettingsSection::OzCloudAPIKeys,
+            ] {
+                assert!(
+                    sections.contains(&section),
+                    "{section:?} should be instantiated in standard mode"
+                );
+            }
+            assert_eq!(
+                settings_view.current_settings_page,
+                SettingsSection::BillingAndUsage
+            );
+        });
+    });
+}
+
+#[test]
+#[serial_test::serial]
+fn local_only_mode_disables_forbidden_settings_command_entrypoints() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+    assert!(!SettingsSection::Account.command_entrypoint_enabled_in_current_mode());
+    assert!(!SettingsSection::BillingAndUsage.command_entrypoint_enabled_in_current_mode());
+    assert!(!SettingsSection::CloudEnvironments.command_entrypoint_enabled_in_current_mode());
+    assert!(SettingsSection::WarpAgent.command_entrypoint_enabled_in_current_mode());
+    assert!(SettingsSection::Keybindings.command_entrypoint_enabled_in_current_mode());
 }
 
 // ── ai_subpages list ────────────────────────────────────────────────────────
