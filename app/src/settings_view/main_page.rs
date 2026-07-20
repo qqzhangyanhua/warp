@@ -29,7 +29,7 @@ use warpui::{
 };
 
 use super::settings_page::{
-    render_body_item, render_customer_type_badge, AdditionalInfo, LocalOnlyIconState, MatchData,
+    render_body_item, render_customer_type_badge, LocalOnlyIconState, MatchData,
     PageType, SettingsPageMeta, SettingsPageViewHandle, SettingsWidget, ToggleState,
     HEADER_PADDING,
 };
@@ -689,7 +689,6 @@ impl SettingsWidget for DividerWidget {
 
 #[derive(Default)]
 struct SettingsSyncWidget {
-    tooltip_state: MouseStateHandle,
     switch_state: SwitchStateHandle,
 }
 
@@ -714,18 +713,9 @@ impl SettingsWidget for SettingsSyncWidget {
     ) -> Box<dyn Element> {
         let preferences_settings = CloudPreferencesSettings::as_ref(app);
 
-        let label_info = AdditionalInfo {
-            mouse_state: self.tooltip_state.clone(),
-            on_click_action: Some(MainPageAction::OpenUrl(
-                "https://docs.warp.dev/terminal/more-features/settings-sync".into(),
-            )),
-            secondary_text: None,
-            tooltip_override_text: None,
-        };
-
         Container::new(render_body_item::<MainPageAction>(
             tr_cached(Message::AccountSettingsSync).to_string(),
-            Some(label_info),
+            None,
             // Cloud prefs are always synced, so no need to show the local-only icon.
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,

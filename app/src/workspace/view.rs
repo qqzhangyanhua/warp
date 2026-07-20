@@ -20824,7 +20824,7 @@ impl Workspace {
                 .with_main_axis_size(MainAxisSize::Max);
             let bg_color = blended_colors::neutral_1(appearance.theme());
 
-            // Left: Warp logo - clickable to link to warp.dev
+            // Left: app logo (no external site jump)
             let warp_logo = Hoverable::new(self.mouse_states.warp_logo.clone(), |_state| {
                 ConstrainedBox::new(
                     warp_core::ui::Icon::Warp
@@ -20835,10 +20835,6 @@ impl Workspace {
                 .with_width(24.)
                 .finish()
             })
-            .on_click(|ctx, _, _| {
-                ctx.dispatch_typed_action(WorkspaceAction::OpenLink("https://warp.dev".to_owned()));
-            })
-            .with_cursor(Cursor::PointingHand)
             .finish();
             tab_bar.add_child(warp_logo);
 

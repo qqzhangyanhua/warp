@@ -1711,11 +1711,16 @@ pub(crate) fn initialize_app(
     });
 
     // Rewrite recognized Warp web URLs (sessions, Drive, settings, home) into local
-    // intent URLs when possible so they open directly in the desktop app.
+    // intent URLs when possible so they open directly in the desktop app. Block any
+    // remaining *.warp.dev browser navigations so the GUI never jumps to Warp sites.
     ctx.set_before_open_url(|url_str, _ctx| {
         if let Ok(url) = Url::parse(url_str) {
             if let Some(intent) = maybe_rewrite_web_url_to_intent(&url) {
                 return intent.to_string();
+            }
+            if util::links::is_warp_dev_url(&url) {
+                log::debug!("Blocked GUI open of warp.dev URL: {url_str}");
+                return String::new();
             }
         }
         url_str.to_owned()

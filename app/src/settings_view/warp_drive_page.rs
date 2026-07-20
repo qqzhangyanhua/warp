@@ -14,7 +14,7 @@ use warpui::{
 };
 
 use super::settings_page::{
-    render_body_item, AdditionalInfo, MatchData, PageType, SettingsPageMeta,
+    render_body_item, MatchData, PageType, SettingsPageMeta,
     SettingsPageViewHandle, SettingsWidget,
 };
 use super::{
@@ -228,7 +228,6 @@ impl SettingsWidget for WarpDriveHeaderWidget {
 #[derive(Default)]
 struct WarpDriveToggleWidget {
     switch_state: SwitchStateHandle,
-    info_icon_mouse_state: MouseStateHandle,
 }
 
 impl SettingsWidget for WarpDriveToggleWidget {
@@ -252,14 +251,7 @@ impl SettingsWidget for WarpDriveToggleWidget {
 
         render_body_item::<WarpDriveSettingsPageAction>(
             "ZYH Drive".into(),
-            Some(AdditionalInfo {
-                mouse_state: self.info_icon_mouse_state.clone(),
-                on_click_action: Some(WarpDriveSettingsPageAction::OpenUrl(
-                    "https://docs.warp.dev/knowledge-and-collaboration/warp-drive".to_string(),
-                )),
-                secondary_text: None,
-                tooltip_override_text: None,
-            }),
+            None,
             LocalOnlyIconState::Hidden,
             if is_anonymous_or_logged_out {
                 ToggleState::Disabled

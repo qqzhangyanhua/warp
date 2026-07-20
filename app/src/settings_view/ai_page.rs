@@ -173,9 +173,6 @@ const AI_SETTINGS_DROPDOWN_MAX_HEIGHT: f32 = 250.;
 const CONTEXT_WINDOW_SLIDER_WIDTH: f32 = 220.;
 const CONTEXT_WINDOW_INPUT_BOX_WIDTH: f32 = 120.;
 
-const CUSTOM_INFERENCE_LEARN_MORE_URL: &str =
-    "https://docs.warp.dev/agent-platform/inference/custom-inference-endpoint/";
-const CUSTOM_INFERENCE_TERMS_URL: &str = "https://www.warp.dev/legal/terms-of-service";
 const CUSTOM_INFERENCE_INFO_TOOLTIP_MAX_WIDTH: f32 = 320.;
 const CUSTOM_ENDPOINT_MODAL_MAX_HEIGHT_PERCENTAGE: f32 = 0.8;
 
@@ -6431,15 +6428,9 @@ impl AgentsWidget {
             app,
         );
 
-        let codebase_context_description = vec![
-            FormattedTextFragment::plain_text(
-                "Allow the ZYH Agent to generate an outline of your codebase that can be used for context. No code is ever stored on our servers. ",
-            ),
-            FormattedTextFragment::hyperlink(
-                tr_cached(Message::AiLearnMore),
-                "https://docs.warp.dev/agent-platform/capabilities/codebase-context",
-            ),
-        ];
+        let codebase_context_description = vec![FormattedTextFragment::plain_text(
+            "Allow the ZYH Agent to generate an outline of your codebase that can be used for context. No code is ever stored on our servers.",
+        )];
         let description = Container::new(
             FormattedTextElement::new(
                 FormattedText::new([FormattedTextLine::Line(codebase_context_description)]),
@@ -6512,11 +6503,7 @@ impl AgentsWidget {
                     tr_cached(Message::AiAddAServer),
                     AISettingsPageAction::OpenMCPServerCollection,
                 ),
-                FormattedTextFragment::plain_text(" or "),
-                FormattedTextFragment::hyperlink(
-                    "learn more about MCPs.",
-                    "https://docs.warp.dev/agent-platform/capabilities/mcp",
-                ),
+                FormattedTextFragment::plain_text("."),
             ];
 
             Container::new(
@@ -7027,11 +7014,7 @@ impl SettingsWidget for MCPServersWidget {
         let mcp_description = vec![
             FormattedTextFragment::plain_text(
                 "Add MCP servers to extend the ZYH Agent's capabilities. \
-            MCP servers expose data sources or tools to agents through a standardized interface, essentially acting like plugins. ",
-            ),
-            FormattedTextFragment::hyperlink(
-                tr_cached(Message::AiLearnMore),
-                "https://docs.warp.dev/agent-platform/capabilities/mcp",
+            MCP servers expose data sources or tools to agents through a standardized interface, essentially acting like plugins.",
             ),
         ];
 
@@ -7071,15 +7054,9 @@ impl SettingsWidget for MCPServersWidget {
                         static FILE_BASED_MCP_DESCRIPTION_FRAGMENTS: LazyLock<
                             Vec<FormattedTextFragment>,
                         > = LazyLock::new(|| {
-                            vec![
-                                FormattedTextFragment::plain_text(
-                                    "Automatically detect and spawn MCP servers from globally-scoped third-party AI agent configuration files (e.g. in your home directory). Servers detected inside a repository are never spawned automatically and must be enabled individually from the MCP settings page. ",
-                                ),
-                                FormattedTextFragment::hyperlink(
-                                    tr_cached(Message::AiSeeSupportedProviders),
-                                    "https://docs.warp.dev/agent-platform/capabilities/mcp#file-based-mcp-servers",
-                                ),
-                            ]
+                            vec![FormattedTextFragment::plain_text(
+                                "Automatically detect and spawn MCP servers from globally-scoped third-party AI agent configuration files (e.g. in your home directory). Servers detected inside a repository are never spawned automatically and must be enabled individually from the MCP settings page.",
+                            )]
                         });
                         Container::new(
                             FormattedTextElement::new(
@@ -7156,13 +7133,9 @@ impl AIFactWidget {
             app,
         );
 
-        let rules_description = vec![
-            FormattedTextFragment::plain_text(tr_cached(Message::AiRulesHelpDescription)),
-            FormattedTextFragment::hyperlink(
-                tr_cached(Message::AiLearnMore),
-                "https://docs.warp.dev/agent-platform/capabilities/rules",
-            ),
-        ];
+        let rules_description = vec![FormattedTextFragment::plain_text(tr_cached(
+            Message::AiRulesHelpDescription,
+        ))];
         let description = Container::new(
             FormattedTextElement::new(
                 FormattedText::new([FormattedTextLine::Line(rules_description)]),
@@ -8854,10 +8827,6 @@ impl ApiKeysWidget {
             add_paragraph(vec![FormattedTextFragment::plain_text(tr_cached(
                 Message::AiApiKeysStoredOnlyOnDevice,
             ))]);
-            add_paragraph(vec![FormattedTextFragment::hyperlink(
-                tr_cached(Message::AiLearnMore),
-                CUSTOM_INFERENCE_LEARN_MORE_URL,
-            )]);
         }
         let description = FormattedTextElement::new(
             FormattedText::new(lines),
@@ -8904,10 +8873,7 @@ impl ApiKeysWidget {
         } else {
             FormattedText::new([FormattedTextLine::Line(vec![
                 FormattedTextFragment::plain_text(tr_cached(Message::AiByokAgreePrefix)),
-                FormattedTextFragment::hyperlink(
-                    tr_cached(Message::AiWarpsTermsOfService),
-                    CUSTOM_INFERENCE_TERMS_URL,
-                ),
+                FormattedTextFragment::plain_text(tr_cached(Message::AiWarpsTermsOfService)),
                 FormattedTextFragment::plain_text(tr_cached(
                     Message::AiByokCustomEndpointsTermsSuffix,
                 )),

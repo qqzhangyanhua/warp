@@ -27,7 +27,6 @@ use crate::ui_components::icons;
 #[derive(Default)]
 struct ChangelogMouseStateHandles {
     top_bar_mouse_state: MouseStateHandle,
-    view_changelogs_mouse_state: MouseStateHandle,
 }
 
 const CHANGELOG_FETCH_ERROR_MSG: &str = "Unable to fetch the latest changelog.";
@@ -362,27 +361,9 @@ impl SectionView for ChangelogSectionView {
     }
 
     fn section_link(&self, appearance: &Appearance) -> Option<Box<dyn Element>> {
-        Some(
-            appearance
-                .ui_builder()
-                .link(
-                    "Read all changelogs".into(),
-                    Some("https://docs.warp.dev/changelog".into()),
-                    None,
-                    self.changelog_button_mouse_states
-                        .view_changelogs_mouse_state
-                        .clone(),
-                )
-                .soft_wrap(false)
-                .with_style(UiComponentStyles {
-                    border_width: Some(2.),
-                    font_size: Some(14.0),
-                    font_weight: Some(Weight::Normal),
-                    ..Default::default()
-                })
-                .build()
-                .finish(),
-        )
+        // External docs.warp.dev changelogs are no longer opened from the GUI.
+        let _ = appearance;
+        None
     }
 }
 

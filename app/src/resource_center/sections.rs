@@ -3,8 +3,8 @@ use warp_core::features::FeatureFlag;
 use warpui::ViewContext;
 
 use super::{
-    ContentItem, ContentSectionData, FeatureItem, FeatureSection, FeatureSectionData,
-    ResourceCenterMainView, Section, Tip, TipAction, TipHint,
+    FeatureItem, FeatureSection, FeatureSectionData, ResourceCenterMainView, Section, Tip,
+    TipAction, TipHint,
 };
 use crate::i18n::{tr, Message};
 
@@ -58,30 +58,8 @@ pub fn sections(ctx: &mut ViewContext<ResourceCenterMainView>) -> Vec<Section> {
     };
     sections.push(Section::Feature(maximize_warp));
 
-    let advanced_setup = ContentSectionData {
-        section_name: FeatureSection::AdvancedSetup,
-        items: vec![
-            ContentItem {
-                title: tr(ctx, Message::ResourceUseCustomPrompt),
-                description: tr(ctx, Message::ResourceUseCustomPromptDesc),
-                url: "https://docs.warp.dev/terminal/appearance/prompt",
-                button_label: tr(ctx, Message::ResourceViewDocumentation),
-            },
-            ContentItem {
-                title: tr(ctx, Message::ResourceIntegrateIde),
-                description: tr(ctx, Message::ResourceIntegrateIdeDesc),
-                url: "https://docs.warp.dev/terminal/integrations-and-plugins",
-                button_label: tr(ctx, Message::ResourceViewDocumentation),
-            },
-            ContentItem {
-                title: tr(ctx, Message::ResourceHowWarpUsesWarp),
-                description: tr(ctx, Message::ResourceHowWarpUsesWarpDesc),
-                url: "https://www.warp.dev/blog/how-warp-uses-warp",
-                button_label: tr(ctx, Message::ResourceReadArticle),
-            },
-        ],
-    };
-    sections.push(Section::Content(advanced_setup));
+    // Advanced setup previously linked out to docs.warp.dev / www.warp.dev; those
+    // external Warp hosts are no longer used from the GUI.
 
     sections
 }

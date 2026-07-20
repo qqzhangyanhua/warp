@@ -77,7 +77,6 @@ const CLAIMED_REFERRAL_COUNT_LEFT_MARGIN: f32 = 40.;
 
 const CLAIMED_REFERRAL_CLIP: usize = 999;
 
-const TERMS_URL: &str = "https://docs.warp.dev/support-and-community/community/refer-a-friend#referral-program-terms-and-conditions";
 
 enum ApiState {
     Loading,
@@ -762,10 +761,9 @@ impl ReferralsWidget {
                     FormattedTextElement::new(
                         FormattedText::new([FormattedTextLine::Line(vec![
                             FormattedTextFragment::plain_text("*"),
-                            FormattedTextFragment::hyperlink(
-                                tr_cached(Message::ReferralsRestrictionsApply),
-                                TERMS_URL,
-                            ),
+                            FormattedTextFragment::plain_text(tr_cached(
+                                Message::ReferralsRestrictionsApply,
+                            )),
                             FormattedTextFragment::plain_text(tr_cached(Message::ReferralsContact)),
                         ])]),
                         12.,
@@ -777,10 +775,6 @@ impl ReferralsWidget {
                         ),
                         self.term_docs_highlighted_hyperlink.clone(),
                     )
-                    .with_hyperlink_font_color(appearance.theme().accent().into_solid())
-                    .register_default_click_handlers(|url, _, ctx| {
-                        ctx.open_url(&url.url);
-                    })
                     .finish(),
                 )
                 .left()

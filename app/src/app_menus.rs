@@ -259,13 +259,6 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         menu_items.push(MenuItem::Services);
     }
 
-    menu_items.push(MenuItem::Separator);
-    menu_items.push(link_menu_item(
-        ctx,
-        "Privacy Policy...",
-        links::PRIVACY_POLICY_URL.into(),
-    ));
-
     let debug_menu_items = debug_menu_items(ctx);
     if !debug_menu_items.is_empty() {
         menu_items.push(MenuItem::Custom(CustomMenuItem::new_with_submenu(
@@ -1009,9 +1002,7 @@ fn make_new_help_menu(ctx: &AppContext) -> Menu {
         app_menu_text(ctx, "Help").into_owned(),
         vec![
             feedback_menu_item(),
-            link_menu_item(ctx, "ZYH Documentation...", links::USER_DOCS_URL.into()),
             link_menu_item(ctx, "GitHub Issues...", links::GITHUB_ISSUES_URL.into()),
-            link_menu_item(ctx, "Join our Slack community...", links::SLACK_URL.into()),
         ],
     )
 }

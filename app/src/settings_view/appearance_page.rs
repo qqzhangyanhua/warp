@@ -1398,10 +1398,7 @@ impl AppearanceSettingsPageView {
 
         categories.push(Category::localized(
             Message::SettingsThemesCategory,
-            vec![
-                Box::new(CreateCustomThemeWidget::default()),
-                Box::new(ThemeSelectWidget::default()),
-            ],
+            vec![Box::new(ThemeSelectWidget::default())],
         ));
 
         if AppIconSettings::as_ref(ctx).is_supported_on_current_platform() {
@@ -2879,43 +2876,6 @@ fn render_group(
 }
 
 #[derive(Default)]
-struct CreateCustomThemeWidget {
-    mouse_state: MouseStateHandle,
-}
-
-impl SettingsWidget for CreateCustomThemeWidget {
-    type View = AppearanceSettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "create theme create custom theme 创建 自定义 主题"
-    }
-
-    fn render(
-        &self,
-        _view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        Align::new(
-            appearance
-                .ui_builder()
-                .link(
-                    tr(app, Message::AppearanceCreateCustomTheme).to_string(),
-                    Some("https://docs.warp.dev/terminal/appearance/custom-themes".to_string()),
-                    None,
-                    self.mouse_state.clone(),
-                )
-                .soft_wrap(false)
-                .build()
-                .with_margin_bottom(10.)
-                .finish(),
-        )
-        .left()
-        .finish()
-    }
-}
-
-#[derive(Default)]
 struct ThemeSelectWidget {
     sync_os_switch_state: SwitchStateHandle,
     open_theme_chooser_button_mouse_state: MouseStateHandle,
@@ -3464,7 +3424,6 @@ impl SettingsWidget for WindowOpacityWidget {
 #[derive(Default)]
 struct WindowBlurWidget {
     slider_state: SliderStateHandle,
-    info_button: MouseStateHandle,
 }
 
 impl SettingsWidget for WindowBlurWidget {
@@ -3482,14 +3441,6 @@ impl SettingsWidget for WindowBlurWidget {
     ) -> Box<dyn Element> {
         let window_settings = WindowSettings::as_ref(app);
         let blur_value = *window_settings.background_blur_radius;
-        let label_info = AdditionalInfo {
-            mouse_state: self.info_button.clone(),
-            on_click_action: Some(AppearancePageAction::OpenUrl(
-                "https://docs.warp.dev/terminal/appearance/size-opacity-blurring".into(),
-            )),
-            secondary_text: None,
-            tooltip_override_text: None,
-        };
 
         Flex::column()
             .with_child(render_body_item::<AppearancePageAction>(
@@ -3497,7 +3448,7 @@ impl SettingsWidget for WindowBlurWidget {
                     "{}: {blur_value}",
                     tr(app, Message::AppearanceWindowBlurRadiusLabel)
                 ),
-                Some(label_info),
+                None,
                 LocalOnlyIconState::for_setting(
                     BackgroundBlurRadius::storage_key(),
                     BackgroundBlurRadius::sync_to_cloud(),
@@ -5597,7 +5548,6 @@ impl SettingsWidget for ZenModeWidget {
 #[derive(Default)]
 struct AltScreenPaddingWidget {
     switch_state: SwitchStateHandle,
-    additional_info_mouse_state: MouseStateHandle,
 }
 
 impl SettingsWidget for AltScreenPaddingWidget {
@@ -5617,14 +5567,7 @@ impl SettingsWidget for AltScreenPaddingWidget {
         let theme = appearance.theme();
         let mut column = Flex::column().with_child(render_body_item::<AppearancePageAction>(
             tr(app, Message::SettingsUseCustomPaddingInAltscreen).into(),
-            Some(AdditionalInfo {
-                mouse_state: self.additional_info_mouse_state.clone(),
-                on_click_action: Some(AppearancePageAction::OpenUrl(
-                    "https://docs.warp.dev/terminal/more-features/full-screen-apps#padding".into(),
-                )),
-                secondary_text: None,
-                tooltip_override_text: None,
-            }),
+            None,
             LocalOnlyIconState::for_setting(
                 AltScreenPadding::storage_key(),
                 AltScreenPadding::sync_to_cloud(),

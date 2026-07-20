@@ -21,7 +21,6 @@ use crate::view_components::action_button::{ActionButton, ActionButtonTheme, But
 const MODAL_WIDTH: f32 = 420.;
 const HERO_HEIGHT: f32 = 92.;
 const HERO_IMAGE_PATH: &str = "async/png/onboarding/orchestration_launch_banner.png";
-const LEARN_MORE_URL: &str = "https://www.warp.dev/blog/multi-harness-cloud-agent-orchestration";
 fn modal_background(appearance: &Appearance) -> Fill {
     appearance.theme().surface_3()
 }
@@ -42,10 +41,6 @@ fn modal_text_sub(appearance: &Appearance) -> ColorU {
 
 fn modal_overlay_1(appearance: &Appearance) -> Fill {
     appearance.theme().surface_overlay_1()
-}
-
-fn modal_overlay_2(appearance: &Appearance) -> Fill {
-    appearance.theme().surface_overlay_2()
 }
 
 fn modal_terminal_magenta(appearance: &Appearance) -> ColorU {
@@ -100,7 +95,6 @@ pub fn init(app: &mut AppContext) {
 #[derive(Clone, Debug)]
 pub enum OrchestrationLaunchModalAction {
     Close,
-    LearnMore,
 }
 
 #[derive(Clone, Debug)]
@@ -129,31 +123,6 @@ impl ActionButtonTheme for CloseButtonTheme {
     }
 }
 
-struct LearnMoreButtonTheme;
-
-impl ActionButtonTheme for LearnMoreButtonTheme {
-    fn background(&self, hovered: bool, appearance: &Appearance) -> Option<Fill> {
-        if hovered {
-            Some(modal_overlay_2(appearance))
-        } else {
-            None
-        }
-    }
-
-    fn text_color(
-        &self,
-        _hovered: bool,
-        _background: Option<Fill>,
-        appearance: &Appearance,
-    ) -> ColorU {
-        modal_text_main(appearance)
-    }
-
-    fn border(&self, appearance: &Appearance) -> Option<ColorU> {
-        Some(appearance.theme().outline().into_solid())
-    }
-}
-
 struct CtaButtonTheme;
 
 impl ActionButtonTheme for CtaButtonTheme {
@@ -173,7 +142,6 @@ impl ActionButtonTheme for CtaButtonTheme {
 
 pub struct OrchestrationLaunchModal {
     close_button: ViewHandle<ActionButton>,
-    learn_more_button: ViewHandle<ActionButton>,
     go_to_warp_button: ViewHandle<ActionButton>,
 }
 
@@ -186,15 +154,6 @@ impl OrchestrationLaunchModal {
                 .on_click(|ctx| ctx.dispatch_typed_action(OrchestrationLaunchModalAction::Close))
         });
 
-        let learn_more_button = ctx.add_view(|_ctx| {
-            ActionButton::new(tr_cached(Message::AuthLearnMore), LearnMoreButtonTheme)
-                .with_icon(Icon::LinkExternal)
-                .with_full_width(true)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(OrchestrationLaunchModalAction::LearnMore)
-                })
-        });
-
         let go_to_warp_button = ctx.add_view(|_ctx| {
             ActionButton::new(tr_cached(Message::CommonClose), CtaButtonTheme)
                 .with_full_width(true)
@@ -203,7 +162,6 @@ impl OrchestrationLaunchModal {
 
         Self {
             close_button,
-            learn_more_button,
             go_to_warp_button,
         }
     }
@@ -359,9 +317,6 @@ impl OrchestrationLaunchModal {
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_spacing(8.)
             .with_child(
-                Expanded::new(1., ChildView::new(&self.learn_more_button).finish()).finish(),
-            )
-            .with_child(
                 Expanded::new(1., ChildView::new(&self.go_to_warp_button).finish()).finish(),
             )
             .finish();
@@ -439,9 +394,6 @@ impl TypedActionView for OrchestrationLaunchModal {
         match action {
             OrchestrationLaunchModalAction::Close => {
                 ctx.emit(OrchestrationLaunchModalEvent::Close);
-            }
-            OrchestrationLaunchModalAction::LearnMore => {
-                ctx.open_url(LEARN_MORE_URL);
             }
         }
     }

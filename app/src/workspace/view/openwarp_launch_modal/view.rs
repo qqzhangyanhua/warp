@@ -28,7 +28,6 @@ const HERO_HEIGHT: f32 = 92.;
 const HERO_IMAGE_PATH: &str = "async/png/onboarding/openwarp_launch_banner.png";
 const REPO_URL: &str = "https://github.com/warpdotdev/warp";
 const CONTRIBUTING_URL: &str = "https://github.com/warpdotdev/warp/blob/master/CONTRIBUTING.md";
-const OZ_URL: &str = "https://oz.warp.dev";
 
 struct InlineLink {
     text: &'static str,
@@ -59,10 +58,7 @@ fn feature_items() -> [FeatureItem; 3] {
             icon: Icon::Oz,
             title: tr_cached(Message::OpenWarpOpenAutomatedDev),
             description: tr_cached(Message::OpenWarpOpenAutomatedDevDesc),
-            inline_link: Some(InlineLink {
-                text: "Oz",
-                url: OZ_URL,
-            }),
+            inline_link: None,
         },
         FeatureItem {
             icon: Icon::MessageChatSquare,

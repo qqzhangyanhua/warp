@@ -490,13 +490,10 @@ struct TitleWidget {
 
 impl TitleWidget {
     fn render_top_of_page(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
-        let warpify_description = vec![
-            FormattedTextFragment::plain_text(tr(app, Message::WarpifyDescription)),
-            FormattedTextFragment::hyperlink(
-                tr(app, Message::AiLearnMore),
-                "https://docs.warp.dev/terminal/warpify/subshells",
-            ),
-        ];
+        let warpify_description = vec![FormattedTextFragment::plain_text(tr(
+            app,
+            Message::WarpifyDescription,
+        ))];
 
         let warpify_description = FormattedTextElement::new(
             FormattedText::new([FormattedTextLine::Line(warpify_description)]),

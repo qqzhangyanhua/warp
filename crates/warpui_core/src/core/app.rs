@@ -4731,8 +4731,14 @@ impl AppContext {
     }
 
     /// Opens the given URL in the default application configured to handle the URL.
+    ///
+    /// If the before-open-url callback returns an empty string, the open is skipped.
+    /// App policy uses this to suppress external `*.warp.dev` navigation.
     pub fn open_url(&self, url: &str) {
         let effective_url = (self.before_open_url_callback)(url, self);
+        if effective_url.is_empty() {
+            return;
+        }
         self.platform_delegate.open_url(&effective_url);
     }
 

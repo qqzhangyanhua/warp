@@ -1125,11 +1125,7 @@ impl MCPServersListPageView {
         > = std::sync::LazyLock::new(|| {
             vec![
                 FormattedTextFragment::plain_text(
-                    "Automatically detect and spawn MCP servers from globally-scoped third-party AI agent configuration files (e.g. in your home directory). Servers detected inside a repository are never spawned automatically and must be enabled individually in the \"Detected from\" sections below. ",
-                ),
-                FormattedTextFragment::hyperlink(
-                    "See supported providers.",
-                    "https://docs.warp.dev/agent-platform/capabilities/mcp#file-based-mcp-servers",
+                    "Automatically detect and spawn MCP servers from globally-scoped third-party AI agent configuration files (e.g. in your home directory). Servers detected inside a repository are never spawned automatically and must be enabled individually in the \"Detected from\" sections below.",
                 ),
             ]
         });
@@ -1163,13 +1159,8 @@ impl MCPServersListPageView {
     }
 
     fn render_page_body(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
-        let description_fragments = vec![
-            FormattedTextFragment::plain_text(tr(app, Message::McpServersDescription)),
-            FormattedTextFragment::hyperlink(
-                tr(app, Message::McpServersLearnMore),
-                "https://docs.warp.dev/agent-platform/capabilities/mcp",
-            ),
-        ];
+        let description_fragments =
+            vec![FormattedTextFragment::plain_text(tr(app, Message::McpServersDescription))];
 
         let description = FormattedTextElement::new(
             FormattedText::new([FormattedTextLine::Line(description_fragments)]),

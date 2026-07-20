@@ -53,7 +53,6 @@ use crate::terminal::safe_mode_settings::{
 };
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;
-use crate::util::links::PRIVACY_POLICY_URL;
 use crate::view_components::{Dropdown, DropdownItem};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::{
@@ -75,9 +74,6 @@ const TELEMETRY_DESCRIPTION_OLD: &str =
 const TELEMETRY_DESCRIPTION: &str =
     "App analytics help us make the product better for you. We may collect \
     certain console interactions to improve ZYH's AI capabilities.";
-const TELEMETRY_DOCS_URL: &str =
-    "https://docs.warp.dev/support-and-community/privacy-and-security/privacy#what-telemetry-data-does-warp-collect-and-why";
-
 const DATA_MANAGEMENT_DESCRIPTION: &str =
     "At any time, you may choose to delete your ZYH account permanently. \
     You will no longer be able to use ZYH.";
@@ -227,7 +223,6 @@ impl PrivacyPageView {
             widgets.push(Box::new(NetworkLogWidget::default()));
         }
         widgets.push(Box::new(DataManagementWidget::default()));
-        widgets.push(Box::new(PrivacyPolicyWidget::default()));
         PageType::new_uncategorized(widgets, Some(tr_cached(Message::PrivacyPageTitle)))
     }
 
@@ -1374,7 +1369,6 @@ impl SettingsWidget for SecretRedactionWidget {
 #[derive(Default)]
 struct AppAnalyticsWidget {
     switch_state: SwitchStateHandle,
-    docs_link_mouse_state: MouseStateHandle,
     zdr_badge_mouse_state: MouseStateHandle,
 }
 
@@ -1542,24 +1536,6 @@ impl SettingsWidget for AppAnalyticsWidget {
                 })
                 .build()
                 .finish(),
-        );
-
-        column.add_child(
-            Align::new(
-                ui_builder
-                    .link(
-                        tr_cached(Message::PrivacyReadMoreAboutData).into(),
-                        Some(TELEMETRY_DOCS_URL.into()),
-                        None,
-                        self.docs_link_mouse_state.clone(),
-                    )
-                    .soft_wrap(false)
-                    .build()
-                    .with_margin_bottom(styles::DESCRIPTION_MARGIN_BOTTOM)
-                    .finish(),
-            )
-            .left()
-            .finish(),
         );
 
         column.finish()
@@ -1897,57 +1873,6 @@ impl SettingsWidget for DataManagementWidget {
                                     PrivacyPageAction::OpenDataManagementWebpage,
                                 );
                             })),
-                            self.link_mouse_state.clone(),
-                        )
-                        .soft_wrap(false)
-                        .build()
-                        .with_margin_bottom(styles::DESCRIPTION_MARGIN_BOTTOM)
-                        .finish(),
-                )
-                .left()
-                .finish(),
-            )
-            .finish()
-    }
-}
-
-#[derive(Default)]
-struct PrivacyPolicyWidget {
-    link_mouse_state: MouseStateHandle,
-}
-
-impl SettingsWidget for PrivacyPolicyWidget {
-    type View = PrivacyPageView;
-
-    fn search_terms(&self) -> &str {
-        "privacy policy terms"
-    }
-
-    fn render(
-        &self,
-        _view: &Self::View,
-        appearance: &Appearance,
-        _app: &AppContext,
-    ) -> Box<dyn Element> {
-        Flex::column()
-            .with_child(render_body_item::<PrivacyPageAction>(
-                tr_cached(Message::PrivacyPolicyTitle).into(),
-                None,
-                // Not rendering a setting, so no need to show local only icon state.
-                LocalOnlyIconState::Hidden,
-                ToggleState::Enabled,
-                appearance,
-                Empty::new().finish(),
-                None,
-            ))
-            .with_child(
-                Align::new(
-                    appearance
-                        .ui_builder()
-                        .link(
-                            tr_cached(Message::PrivacyReadWarpsPrivacyPolicy).into(),
-                            Some(PRIVACY_POLICY_URL.into()),
-                            None,
                             self.link_mouse_state.clone(),
                         )
                         .soft_wrap(false)
