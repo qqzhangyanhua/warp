@@ -8,9 +8,9 @@ Status of Chinese/English localization for ZYH GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **2571** |
-| English table (`en_text`) | **2571** complete |
-| Chinese table (`zh_cn_text`) | **2571** complete |
+| `Message` variants | **2662** |
+| English table (`en_text`) | **2662** complete |
+| Chinese table (`zh_cn_text`) | **2662** complete |
 | Call sites | ~1300+ across 120+ files |
 | Guard test | `all_messages_have_non_empty_text` in `table.rs` |
 
@@ -71,7 +71,7 @@ Status of Chinese/English localization for ZYH GUI copy.
 |------|-------|
 | `SettingsSection` `Display` / `FromStr` | Still English for parse identity; deferred |
 | Slash command descriptions/hints | **Migrated** to `Message` (`SlashDesc*` / `SlashHint*`) via identity-key map |
-| Settings toggle binding descriptions | Dual-track map in `settings_view/mod.rs` `localized_toggle_binding_description` |
+| Settings toggle binding descriptions | **Migrated** to `Message` (`ToggleEnablePrefix` / `ToggleDisablePrefix` / `ToggleSuffix*`) |
 | Agent tips | **Migrated** to `Message` (`AgentTip*`) via identity-key map |
 | Settings schema `description:` fields | TOML/settings metadata; many still English (lower user impact) |
 | Rare empty states / marketing modals | Spot-check remaining hardcodes as features ship |
@@ -103,7 +103,13 @@ Wired through `Message` + `tr` / `tr_cached`:
 - Agent tips: dual-track Chinese removed; identity keys map to `Message::AgentTip*`
 - Search / empty-state chrome: command palette, global search, context chips, workflows, secrets, notebook embed, agent management filters, command search a11y, environments search, find-bar no-results, conversation “New/Fork” items
 
-**Rough completion (user-visible GUI):** high for Chinese daily use. Remaining dual-track: settings toggle binding descriptions.
+### 2026-07-20 residual batch 3
+
+- Settings toggle binding descriptions: dual-track Chinese removed from `settings_view/mod.rs`
+- Identity English suffixes map to `Message::ToggleSuffix*`; enable/disable prefixes use `ToggleEnablePrefix` / `ToggleDisablePrefix`
+- Dynamic override composes prefix+suffix via `tr` for both locales
+
+**Rough completion (user-visible GUI):** high for Chinese daily use. Residual dual-track maps from the earlier plan are largely cleared.
 
 ---
 
@@ -152,4 +158,4 @@ User-facing app name is **ZYH**:
 
 ---
 
-_Last updated: 2026-07-20. Residual batch 2 (dual-track migrate + search/empty). Catalog **2571** variants; binding map 354 entries._
+_Last updated: 2026-07-20. Residual batch 3 (settings toggle dual-track). Catalog **2662** variants; binding map 354 entries._

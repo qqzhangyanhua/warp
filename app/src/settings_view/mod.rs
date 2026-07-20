@@ -850,119 +850,116 @@ fn localized_toggle_binding_description(
     let description_suffix = description_suffix.to_owned();
 
     BindingDescription::new_preserve_case(fallback).with_dynamic_override(move |ctx| {
-        if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
+        let Some(suffix_message) = toggle_description_suffix_message(&description_suffix) else {
             return None;
-        }
-
-        toggle_description_suffix_zh_cn(&description_suffix).map(|suffix| {
-            let prefix = if enable { "启用" } else { "禁用" };
-            format!("{prefix}{suffix}")
-        })
+        };
+        use crate::i18n::{tr, Message};
+        let prefix = if enable {
+            tr(ctx, Message::ToggleEnablePrefix)
+        } else {
+            tr(ctx, Message::ToggleDisablePrefix)
+        };
+        let suffix = tr(ctx, suffix_message);
+        Some(format!("{prefix}{suffix}"))
     })
 }
 
-fn toggle_description_suffix_zh_cn(description_suffix: &str) -> Option<&'static str> {
+fn toggle_description_suffix_message(description_suffix: &str) -> Option<crate::i18n::Message> {
+    use crate::i18n::Message;
     match description_suffix {
-        "recording mode" => Some("录制模式"),
-        "in-band generators for new sessions" => Some("新会话的带内生成器"),
-        "debug network status" => Some("网络状态调试"),
-        "memory statistics" => Some("内存统计"),
-        "codebase index" => Some("代码库索引"),
-        "auto-indexing" => Some("自动索引"),
-        "auto open code review panel" => Some("自动打开 Code Review 面板"),
-        "code review button" => Some("Code Review 按钮"),
-        "diff stats on code review button" => Some("Code Review 按钮上的 diff 统计"),
-        "project explorer" => Some("项目浏览器"),
-        "global file search" => Some("全局文件搜索"),
-        "show hidden files in project explorer" => Some("项目浏览器中的隐藏文件"),
-        "AI" => Some("AI"),
-        "agent prompt autodetection in terminal input" => Some("终端输入中的 Agent 提示词自动检测"),
-        "prompt suggestions" => Some("提示词建议"),
-        "code suggestions" => Some("代码建议"),
-        "natural language autosuggestions" => Some("自然语言自动建议"),
-        "shared block title generation" => Some("共享块标题生成"),
-        "commit and pull request generation" => Some("提交和拉取请求生成"),
-        "voice input" => Some("语音输入"),
-        "include agent-executed commands in history" => Some("历史记录中的 Agent 执行命令"),
-        "conversation history in tools panel" => Some("工具面板中的对话历史"),
-        "model picker in prompt" => Some("提示词中的模型选择器"),
-        "coding agent toolbar" => Some("编码 Agent 工具栏"),
-        "auto show or hide Rich Input based on agent status" => {
-            Some("根据 Agent 状态自动显示或隐藏富输入")
-        }
-        "auto open Rich Input when a coding agent session starts" => {
-            Some("编码 Agent 会话开始时自动打开富输入")
-        }
-        "auto dismiss Rich Input after prompt submission" => Some("提交提示词后自动关闭富输入"),
-        "settings sync" => Some("设置同步"),
-        "compact mode" => Some("紧凑模式"),
-        "themes: sync with OS" => Some("主题跟随系统"),
-        "cursor blink" => Some("光标闪烁"),
-        "jump to bottom of block button" => Some("跳到底部块按钮"),
-        "block dividers" => Some("块分隔线"),
-        "dim inactive panes" => Some("非活动面板变暗"),
-        "open new windows with custom size" => Some("以自定义大小打开新窗口"),
-        "window blur acrylic texture" => Some("窗口模糊亚克力纹理"),
-        "tools panel visibility across tabs" => Some("跨标签页的工具面板可见性"),
-        "agent font matching terminal font" => Some("Agent 字体匹配终端字体"),
-        "notebook font size matching terminal font size" => Some("笔记本字体大小匹配终端字体大小"),
-        "tab indicators" => Some("标签页指示器"),
-        "focus follows mouse" => Some("焦点跟随鼠标"),
-        "zen mode" => Some("禅模式"),
-        "vertical tab layout" => Some("垂直标签页布局"),
-        "show vertical tabs panel in restored windows" => Some("恢复窗口中的垂直标签页面板"),
-        "latest user prompt as conversation title in tab names" => {
-            Some("标签页名称中使用最新用户提示词作为对话标题")
-        }
-        "ligature rendering" => Some("连字渲染"),
-        "preserve active tab color for new tabs" => Some("为新标签页保留活动标签页颜色"),
-        "custom padding in alt-screen" => Some("备用屏幕中的自定义内边距"),
-        "copy on select within the terminal" => Some("终端中选择即复制"),
-        "linux selection clipboard" => Some("Linux 选择剪贴板"),
-        "autocomplete quotes, parentheses, and brackets" => Some("引号、括号和方括号自动补全"),
-        "restore windows, tabs, and panes on startup" => Some("启动时恢复窗口、标签页和面板"),
-        "scroll reporting" => Some("滚动事件报告"),
-        "completions while typing" => Some("输入时补全"),
-        "command corrections" => Some("命令纠错"),
-        "error underlining" => Some("错误下划线"),
-        "syntax highlighting" => Some("语法高亮"),
-        "audible terminal bell" => Some("终端响铃"),
-        "autosuggestions" => Some("自动建议"),
-        "autosuggestion keybinding hint" => Some("自动建议快捷键提示"),
-        "autosuggestion ignore button" => Some("忽略自动建议按钮"),
-        "reuse existing SSH ControlMaster in the ZYH SSH wrapper" => {
-            Some("ZYH SSH 包装器中复用现有 SSH ControlMaster")
-        }
-        "show tooltip on click on links" => Some("点击链接时显示工具提示"),
-        "long-running command notifications" => Some("长时间运行命令通知"),
-        "agent task completion notifications" => Some("Agent 任务完成通知"),
-        "needs-attention notifications" => Some("需要关注通知"),
-        "notification sounds" => Some("通知声音"),
-        "in-app agent notifications" => Some("应用内 Agent 通知"),
-        "quit warning modal" => Some("退出警告弹窗"),
-        "mouse reporting" => Some("鼠标事件报告"),
-        "alias expansion" => Some("别名展开"),
-        "middle-click paste" => Some("中键粘贴"),
-        "code as default editor" => Some("将 Code 设为默认编辑器"),
-        "input hint text" => Some("输入提示文本"),
-        "editing commands with Vim keybindings" => Some("使用 Vim 快捷键编辑命令"),
-        "focus reporting" => Some("焦点事件报告"),
-        "smart select" => Some("智能选择"),
-        "help block in new sessions" => Some("新会话中的帮助块"),
-        "terminal input message line" => Some("终端输入消息行"),
-        "'@' context menu in terminal mode" => Some("终端模式下的 '@' 上下文菜单"),
-        "preserve input focus on block selection" => Some("选择块时保留输入焦点"),
-        "slash commands in terminal mode" => Some("终端模式下的斜杠命令"),
-        "codebase symbols in the '@' context menu" => Some("'@' 上下文菜单中的代码库符号"),
-        "global workflows in Command Search" => Some("命令搜索中的全局工作流"),
-        "integrated GPU rendering (low power)" => Some("集成 GPU 渲染（低功耗）"),
-        "app analytics" => Some("应用分析"),
-        "crash reporting" => Some("崩溃报告"),
-        "secret redaction" => Some("密钥遮盖"),
-        "cloud AI conversation storage" => Some("云端 AI 对话存储"),
+        "recording mode" => Some(Message::ToggleSuffixRecordingMode),
+        "in-band generators for new sessions" => Some(Message::ToggleSuffixInBandGenerators),
+        "debug network status" => Some(Message::ToggleSuffixDebugNetworkStatus),
+        "memory statistics" => Some(Message::ToggleSuffixMemoryStatistics),
+        "codebase index" => Some(Message::ToggleSuffixCodebaseIndex),
+        "auto-indexing" => Some(Message::ToggleSuffixAutoIndexing),
+        "auto open code review panel" => Some(Message::ToggleSuffixAutoOpenCodeReview),
+        "code review button" => Some(Message::ToggleSuffixCodeReviewButton),
+        "diff stats on code review button" => Some(Message::ToggleSuffixDiffStatsOnCodeReview),
+        "project explorer" => Some(Message::ToggleSuffixProjectExplorer),
+        "global file search" => Some(Message::ToggleSuffixGlobalFileSearch),
+        "show hidden files in project explorer" => Some(Message::ToggleSuffixShowHiddenFiles),
+        "AI" => Some(Message::ToggleSuffixAi),
+        "agent prompt autodetection in terminal input" => Some(Message::ToggleSuffixAgentPromptAutodetection),
+        "prompt suggestions" => Some(Message::ToggleSuffixPromptSuggestions),
+        "code suggestions" => Some(Message::ToggleSuffixCodeSuggestions),
+        "natural language autosuggestions" => Some(Message::ToggleSuffixNaturalLanguageAutosuggestions),
+        "shared block title generation" => Some(Message::ToggleSuffixSharedBlockTitleGeneration),
+        "commit and pull request generation" => Some(Message::ToggleSuffixCommitAndPrGeneration),
+        "voice input" => Some(Message::ToggleSuffixVoiceInput),
+        "include agent-executed commands in history" => Some(Message::ToggleSuffixIncludeAgentCommandsInHistory),
+        "conversation history in tools panel" => Some(Message::ToggleSuffixConversationHistoryInTools),
+        "model picker in prompt" => Some(Message::ToggleSuffixModelPickerInPrompt),
+        "coding agent toolbar" => Some(Message::ToggleSuffixCodingAgentToolbar),
+        "auto show or hide Rich Input based on agent status" => Some(Message::ToggleSuffixAutoShowHideRichInput),
+        "auto open Rich Input when a coding agent session starts" => Some(Message::ToggleSuffixAutoOpenRichInput),
+        "auto dismiss Rich Input after prompt submission" => Some(Message::ToggleSuffixAutoDismissRichInput),
+        "settings sync" => Some(Message::ToggleSuffixSettingsSync),
+        "compact mode" => Some(Message::ToggleSuffixCompactMode),
+        "themes: sync with OS" => Some(Message::ToggleSuffixThemesSyncOs),
+        "cursor blink" => Some(Message::ToggleSuffixCursorBlink),
+        "jump to bottom of block button" => Some(Message::ToggleSuffixJumpToBottomBlock),
+        "block dividers" => Some(Message::ToggleSuffixBlockDividers),
+        "dim inactive panes" => Some(Message::ToggleSuffixDimInactivePanes),
+        "open new windows with custom size" => Some(Message::ToggleSuffixOpenWindowsCustomSize),
+        "window blur acrylic texture" => Some(Message::ToggleSuffixWindowBlurAcrylic),
+        "tools panel visibility across tabs" => Some(Message::ToggleSuffixToolsPanelVisibility),
+        "agent font matching terminal font" => Some(Message::ToggleSuffixAgentFontMatchTerminal),
+        "notebook font size matching terminal font size" => Some(Message::ToggleSuffixNotebookFontMatchTerminal),
+        "tab indicators" => Some(Message::ToggleSuffixTabIndicators),
+        "focus follows mouse" => Some(Message::ToggleSuffixFocusFollowsMouse),
+        "zen mode" => Some(Message::ToggleSuffixZenMode),
+        "vertical tab layout" => Some(Message::ToggleSuffixVerticalTabLayout),
+        "show vertical tabs panel in restored windows" => Some(Message::ToggleSuffixShowVerticalTabsRestored),
+        "latest user prompt as conversation title in tab names" => Some(Message::ToggleSuffixLatestPromptAsTabTitle),
+        "ligature rendering" => Some(Message::ToggleSuffixLigatureRendering),
+        "preserve active tab color for new tabs" => Some(Message::ToggleSuffixPreserveActiveTabColor),
+        "custom padding in alt-screen" => Some(Message::ToggleSuffixCustomPaddingAltScreen),
+        "copy on select within the terminal" => Some(Message::ToggleSuffixCopyOnSelect),
+        "linux selection clipboard" => Some(Message::ToggleSuffixLinuxSelectionClipboard),
+        "autocomplete quotes, parentheses, and brackets" => Some(Message::ToggleSuffixAutocompleteQuotesBrackets),
+        "restore windows, tabs, and panes on startup" => Some(Message::ToggleSuffixRestoreWindowsOnStartup),
+        "scroll reporting" => Some(Message::ToggleSuffixScrollReporting),
+        "completions while typing" => Some(Message::ToggleSuffixCompletionsWhileTyping),
+        "command corrections" => Some(Message::ToggleSuffixCommandCorrections),
+        "error underlining" => Some(Message::ToggleSuffixErrorUnderlining),
+        "syntax highlighting" => Some(Message::ToggleSuffixSyntaxHighlighting),
+        "audible terminal bell" => Some(Message::ToggleSuffixAudibleTerminalBell),
+        "autosuggestions" => Some(Message::ToggleSuffixAutosuggestions),
+        "autosuggestion keybinding hint" => Some(Message::ToggleSuffixAutosuggestionKeybindingHint),
+        "autosuggestion ignore button" => Some(Message::ToggleSuffixAutosuggestionIgnoreButton),
+        "reuse existing SSH ControlMaster in the ZYH SSH wrapper" => Some(Message::ToggleSuffixReuseSshControlMaster),
+        "show tooltip on click on links" => Some(Message::ToggleSuffixShowTooltipOnLinkClick),
+        "long-running command notifications" => Some(Message::ToggleSuffixLongRunningCommandNotifications),
+        "agent task completion notifications" => Some(Message::ToggleSuffixAgentTaskCompletionNotifications),
+        "needs-attention notifications" => Some(Message::ToggleSuffixNeedsAttentionNotifications),
+        "notification sounds" => Some(Message::ToggleSuffixNotificationSounds),
+        "in-app agent notifications" => Some(Message::ToggleSuffixInAppAgentNotifications),
+        "quit warning modal" => Some(Message::ToggleSuffixQuitWarningModal),
+        "mouse reporting" => Some(Message::ToggleSuffixMouseReporting),
+        "alias expansion" => Some(Message::ToggleSuffixAliasExpansion),
+        "middle-click paste" => Some(Message::ToggleSuffixMiddleClickPaste),
+        "code as default editor" => Some(Message::ToggleSuffixCodeAsDefaultEditor),
+        "input hint text" => Some(Message::ToggleSuffixInputHintText),
+        "editing commands with Vim keybindings" => Some(Message::ToggleSuffixVimKeybindings),
+        "focus reporting" => Some(Message::ToggleSuffixFocusReporting),
+        "smart select" => Some(Message::ToggleSuffixSmartSelect),
+        "help block in new sessions" => Some(Message::ToggleSuffixHelpBlockNewSessions),
+        "terminal input message line" => Some(Message::ToggleSuffixTerminalInputMessageLine),
+        "'@' context menu in terminal mode" => Some(Message::ToggleSuffixAtContextMenuTerminal),
+        "preserve input focus on block selection" => Some(Message::ToggleSuffixPreserveInputFocusOnBlock),
+        "slash commands in terminal mode" => Some(Message::ToggleSuffixSlashCommandsTerminal),
+        "codebase symbols in the '@' context menu" => Some(Message::ToggleSuffixCodebaseSymbolsInAtMenu),
+        "global workflows in Command Search" => Some(Message::ToggleSuffixGlobalWorkflowsCommandSearch),
+        "integrated GPU rendering (low power)" => Some(Message::ToggleSuffixIntegratedGpuRendering),
+        "app analytics" => Some(Message::ToggleSuffixAppAnalytics),
+        "crash reporting" => Some(Message::ToggleSuffixCrashReporting),
+        "secret redaction" => Some(Message::ToggleSuffixSecretRedaction),
+        "cloud AI conversation storage" => Some(Message::ToggleSuffixCloudAiConversationStorage),
         _ => None,
     }
 }
+
 
 impl<T: Action + Clone> ToggleSettingActionPair<T> {
     /// `description_suffix` will be visible to the user,
