@@ -18,6 +18,7 @@ use warpui::{AppContext, Element, Gradient, SingletonEntity};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::history_model::BlocklistAIHistoryModel;
 use crate::appearance::Appearance;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::search::command_palette::conversations::search::MatchedConversation;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::command_palette::render_util::render_search_item_icon;
@@ -68,7 +69,7 @@ impl ConversationSearchItem {
         Flex::row()
             .with_child(
                 Text::new_inline(
-                    "New conversation",
+                    tr(app, Message::WorkspaceNewConversation),
                     appearance.ui_font_family(),
                     appearance.monospace_font_size(),
                 )
@@ -89,7 +90,7 @@ impl ConversationSearchItem {
         let appearance = Appearance::as_ref(app);
 
         let action_title = Text::new_inline(
-            "Fork current conversation",
+            tr(app, Message::ForkCurrentConversation),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),
         )
@@ -416,28 +417,32 @@ impl SearchItem for ConversationSearchItem {
     fn accessibility_label(&self) -> String {
         match &self.action_info {
             ConversationAction::Resume(matched_conversation) => {
-                format!(
-                    "Conversation: {}",
-                    matched_conversation.as_ref().conversation.title()
+                tr_cached(Message::A11yConversationLabel).replace(
+                    "{}",
+                    matched_conversation.as_ref().conversation.title(),
                 )
             }
             ConversationAction::Fork { title, .. } => {
-                format!("Fork current conversation ({title})")
+                tr_cached(Message::A11yForkConversationTitle).replace("{}", title)
             }
-            ConversationAction::New => "New conversation".to_string(),
+            ConversationAction::New => tr_cached(Message::WorkspaceNewConversation).to_string(),
         }
     }
 
     fn accessibility_help_message(&self) -> Option<String> {
         match &self.action_info {
-            ConversationAction::Resume(matched_conversation) => Some(format!(
-                "Press enter to navigate to conversation \"{}\".",
-                matched_conversation.as_ref().conversation.title()
-            )),
+            ConversationAction::Resume(matched_conversation) => Some(
+                tr_cached(Message::A11yPressEnterNavigateConversation).replace(
+                    "{}",
+                    matched_conversation.as_ref().conversation.title(),
+                ),
+            ),
             ConversationAction::Fork { .. } => {
-                Some("Press enter to fork the current conversation into a new conversation.".into())
+                Some(tr_cached(Message::A11yPressEnterForkConversation).into())
             }
-            ConversationAction::New => Some("Press enter to create a new conversation.".into()),
+            ConversationAction::New => {
+                Some(tr_cached(Message::A11yPressEnterCreateConversation).into())
+            }
         }
     }
 }

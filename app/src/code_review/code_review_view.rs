@@ -206,9 +206,9 @@ where
     .with_tooltip(move || {
         ui_builder
             .tool_tip(if is_sidebar_expanded {
-                "Hide file navigation".to_owned()
+                tr_cached(Message::CodeReviewHideFileNavigation).to_owned()
             } else {
-                "Show file navigation".to_owned()
+                tr_cached(Message::CodeReviewShowFileNavigation).to_owned()
             })
             .build()
             .finish()
@@ -273,10 +273,9 @@ fn wsl_text() -> &'static str { tr_cached(Message::DiffsNotInWsl) }
 
 pub fn get_discard_button_disabled_tooltip(git_operation_blocked: bool) -> String {
     if git_operation_blocked {
-        "Cannot discard changes while a git operation (merge, rebase, etc.) is in progress"
-            .to_string()
+        tr_cached(Message::CodeReviewCannotDiscardDuringGitOp).to_string()
     } else {
-        "No changes to discard".to_string()
+        tr_cached(Message::CodeReviewNoChangesToDiscard).to_string()
     }
 }
 
@@ -284,9 +283,9 @@ pub fn get_discard_button_disabled_tooltip(git_operation_blocked: bool) -> Strin
 /// live shortcut for `code_review:toggle_file_navigation` when one is bound.
 fn file_nav_button_tooltip(is_sidebar_expanded: bool, app: &AppContext) -> String {
     let label = if is_sidebar_expanded {
-        "Hide file navigation"
+        tr(app, Message::CodeReviewHideFileNavigation)
     } else {
-        "Show file navigation"
+        tr(app, Message::CodeReviewShowFileNavigation)
     };
     match keybinding_name_to_display_string("code_review:toggle_file_navigation", app) {
         Some(shortcut) => format!("{label} ({shortcut})"),

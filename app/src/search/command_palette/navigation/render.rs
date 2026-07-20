@@ -9,6 +9,7 @@ use warpui::units::IntoPixels;
 use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::context_chips::display_chip::{
     chip_container, render_git_diff_stats_content, render_udi_chip, udi_font_size, GitLineChanges,
     UdiChipConfig,
@@ -338,7 +339,7 @@ impl CommandRenderInfo {
         match command_context {
             CommandContext::RunningCommand { running_command } => CommandRenderInfo {
                 command_text: Some(running_command),
-                hint_text: "Running...".to_string(),
+                hint_text: tr_cached(Message::NavRunning).to_string(),
                 row_spacing: styles::NAVIGATION_PALETTE_COMMAND_ROW_SPACING,
                 hint_margin: styles::NAVIGATION_PALETTE_COMMAND_HINT_MARGIN,
             },
@@ -356,27 +357,31 @@ impl CommandRenderInfo {
                 },
                 command_text: Some(last_run_command),
                 hint_text: match mins_since_completion {
-                    Some(mins) if mins >= 60 => "Completed over 1 hour ago".to_string(),
-                    Some(mins) if mins == 1 => format!("Completed {mins} minute ago"),
-                    Some(mins) => format!("Completed {mins} minutes ago"),
-                    None => "No timestamp found".to_string(),
+                    Some(mins) if mins >= 60 => {
+                        tr_cached(Message::NavCompletedOverOneHour).to_string()
+                    }
+                    Some(mins) if mins == 1 => tr_cached(Message::NavCompletedOneMinuteAgo)
+                        .replace("{}", &mins.to_string()),
+                    Some(mins) => tr_cached(Message::NavCompletedMinutesAgo)
+                        .replace("{}", &mins.to_string()),
+                    None => tr_cached(Message::NavNoTimestampFound).to_string(),
                 },
             },
             CommandContext::RunningAIBlock { prompt } => CommandRenderInfo {
                 command_text: Some(prompt),
-                hint_text: "Running...".to_string(),
+                hint_text: tr_cached(Message::NavRunning).to_string(),
                 row_spacing: styles::NAVIGATION_PALETTE_COMMAND_ROW_SPACING,
                 hint_margin: styles::NAVIGATION_PALETTE_COMMAND_HINT_MARGIN,
             },
             CommandContext::LastRunAIBlock { prompt } => CommandRenderInfo {
                 command_text: Some(prompt),
-                hint_text: "Completed".to_string(),
+                hint_text: tr_cached(Message::NavCompleted).to_string(),
                 row_spacing: styles::NAVIGATION_PALETTE_COMMAND_ROW_SPACING,
                 hint_margin: styles::NAVIGATION_PALETTE_COMMAND_HINT_MARGIN,
             },
             CommandContext::None => CommandRenderInfo {
                 command_text: Some(String::new()),
-                hint_text: "Empty Session".to_string(),
+                hint_text: tr_cached(Message::NavEmptySession).to_string(),
                 row_spacing: 0.,
                 hint_margin: 0.,
             },

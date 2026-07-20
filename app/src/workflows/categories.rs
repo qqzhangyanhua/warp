@@ -39,6 +39,7 @@ use crate::util::bindings::CustomAction;
 use crate::voltron::{VoltronFeatureViewMeta, VoltronMetadata};
 use crate::workflows::WorkflowType;
 use crate::workspaces::user_workspaces::UserWorkspaces;
+use crate::i18n::{tr_cached, Message};
 
 const SCROLLBAR_WIDTH: ScrollbarWidth = ScrollbarWidth::Auto;
 const DESCRIPTION_MARGIN: f32 = 24.;
@@ -752,7 +753,7 @@ impl CategoriesView {
 
     fn render_empty_list_placeholder(&self, appearance: &Appearance) -> Box<dyn Element> {
         let no_workflows_text =
-            CategoriesView::text_label("No matching workflows found.", appearance);
+            CategoriesView::text_label(tr_cached(Message::NoMatchingWorkflowsFound), appearance);
 
         let mut workflow_documentation_link_text =
             Flex::row().with_child(CategoriesView::text_label("Try ", appearance));
@@ -1208,7 +1209,7 @@ impl View for CategoriesView {
     fn accessibility_contents(&self, _: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
             "Workflows",
-            "Search or use arrow up and arrow down keys to navigate and find a workflow. Use enter to confirm the workflow and esc to quit.",
+            tr_cached(Message::WorkflowSearchA11yHelp),
             WarpA11yRole::MenuRole,
         ))
     }
@@ -1244,7 +1245,7 @@ impl View for CategoriesView {
 
 impl VoltronFeatureViewMeta for CategoriesView {
     fn editor_placeholder_text(&self) -> &'static str {
-        "Search workflows"
+        tr_cached(Message::SearchWorkflows)
     }
 
     fn custom_action() -> Option<CustomAction> {

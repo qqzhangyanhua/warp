@@ -388,7 +388,7 @@ impl CodeEditorFind {
                 WarpA11yRole::UserAction,
             )
         } else {
-            AccessibilityContent::new_without_help("No results.", WarpA11yRole::UserAction)
+            AccessibilityContent::new_without_help(tr_cached(Message::NoResultsFound), WarpA11yRole::UserAction)
         };
         ctx.emit_a11y_content(content);
     }

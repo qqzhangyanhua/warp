@@ -8,9 +8,9 @@ Status of Chinese/English localization for ZYH GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **2397** |
-| English table (`en_text`) | **2397** complete |
-| Chinese table (`zh_cn_text`) | **2397** complete |
+| `Message` variants | **2571** |
+| English table (`en_text`) | **2571** complete |
+| Chinese table (`zh_cn_text`) | **2571** complete |
 | Call sites | ~1300+ across 120+ files |
 | Guard test | `all_messages_have_non_empty_text` in `table.rs` |
 
@@ -70,15 +70,40 @@ Status of Chinese/English localization for ZYH GUI copy.
 | Item | Notes |
 |------|-------|
 | `SettingsSection` `Display` / `FromStr` | Still English for parse identity; deferred |
-| Slash command descriptions/hints | Dual-track `match` in `static_commands/mod.rs` — migrate to `Message` |
+| Slash command descriptions/hints | **Migrated** to `Message` (`SlashDesc*` / `SlashHint*`) via identity-key map |
 | Settings toggle binding descriptions | Dual-track map in `settings_view/mod.rs` `localized_toggle_binding_description` |
-| Agent tips | Dual-track `localized_tip_description` in `agent_tips.rs` |
+| Agent tips | **Migrated** to `Message` (`AgentTip*`) via identity-key map |
+| Settings schema `description:` fields | TOML/settings metadata; many still English (lower user impact) |
 | Rare empty states / marketing modals | Spot-check remaining hardcodes as features ship |
 | Agent mode rotating hint examples | Prefix localized; example English kept |
 | EditableBinding English identity strings on call sites | Intentional; Chinese applied at materialization |
-| Long-tail marketing / rare empty states | Spot-check as features ship |
+| Teams / Billing long-tail | Lower priority for anonymous-only builds |
+| HOA / feature-intro marketing copy | Long-form marketing strings |
 
-**Rough completion (user-visible GUI):** high for Chinese daily use; residual dual-track maps above still work but should move to `Message` when touched.
+### 2026-07-20 residual batch 1
+
+Wired through `Message` + `tr` / `tr_cached`:
+
+- Welcome tips (`tip_view`) titles/descriptions + Close Welcome Tips
+- Project entry buttons + tooltips
+- Notifications discovery / error banners (buttons + titles + trigger copy)
+- Alias expansion / Vim / AWS CLI / Open-in-ZYH banner chrome
+- Code review file-nav tooltips + discard-disabled tooltips
+- Command-palette navigation session hints (Running / Completed / Empty Session…)
+- Left panel Drive + Agent conversations tooltips
+- Vertical tabs “New session”
+- Settings About update status (checking / downloading)
+- Workspace reauth + autoupdate banner buttons/headings
+- Agent status “Setting up environment”
+- Terminal grid “Open in ZYH” tooltip
+
+### 2026-07-20 residual batch 2
+
+- Slash command descriptions/hints: dual-track Chinese removed; English identity keys map to `Message::SlashDesc*` / `SlashHint*`
+- Agent tips: dual-track Chinese removed; identity keys map to `Message::AgentTip*`
+- Search / empty-state chrome: command palette, global search, context chips, workflows, secrets, notebook embed, agent management filters, command search a11y, environments search, find-bar no-results, conversation “New/Fork” items
+
+**Rough completion (user-visible GUI):** high for Chinese daily use. Remaining dual-track: settings toggle binding descriptions.
 
 ---
 
@@ -127,4 +152,4 @@ User-facing app name is **ZYH**:
 
 ---
 
-_Last updated: 2026-07-19. Residual GUI long-tail scan batch. Catalog **2397** variants; binding map 354 entries._
+_Last updated: 2026-07-20. Residual batch 2 (dual-track migrate + search/empty). Catalog **2571** variants; binding map 354 entries._

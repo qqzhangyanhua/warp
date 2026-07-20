@@ -4075,7 +4075,7 @@ fn terminal_primary_line_data(
     }
 
     TerminalPrimaryLineData::Text {
-        text: "New session".to_string(),
+        text: tr_cached(Message::NotebookNewSession).to_string(),
         font: TerminalPrimaryLineFont::Ui,
     }
 }

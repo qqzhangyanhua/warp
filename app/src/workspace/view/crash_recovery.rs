@@ -3,6 +3,7 @@ use warpui::{AppContext, SingletonEntity as _, ViewContext};
 
 use super::{Workspace, WorkspaceBannerFields};
 use crate::crash_recovery::CrashRecovery;
+use crate::i18n::{tr, Message};
 
 pub fn banner_metadata(ctx: &AppContext) -> Option<WorkspaceBannerFields> {
     let crash_recovery = CrashRecovery::as_ref(ctx);
@@ -21,7 +22,7 @@ pub fn banner_metadata(ctx: &AppContext) -> Option<WorkspaceBannerFields> {
                 .to_owned(),
             secondary_button: None,
             button: Some(super::WorkspaceBannerButtonDetails {
-                text: "Learn More".to_owned(),
+                text: tr(ctx, Message::AiLearnMore).to_owned(),
                 action: super::WorkspaceAction::DismissWaylandCrashRecoveryBannerAndOpenLink,
                 variant: super::BannerButtonVariant::Outlined,
                 icon: None,

@@ -22,8 +22,9 @@ use crate::search::notebook_embedding::notebooks::CloudNotebooksDataSource;
 use crate::search::notebook_embedding::workflows::CloudWorkflowsDataSource;
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
 use crate::search::search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering};
+use crate::i18n::{tr_cached, Message};
 
-const DEFAULT_PLACEHOLDER_TEXT: &str = "Search for a reference";
+fn default_placeholder_text() -> &'static str { tr_cached(Message::SearchForAReference) }
 
 lazy_static! {
     static ref QUERY_RESULT_RENDERER_STYLES: QueryResultRendererStyles =
@@ -83,7 +84,7 @@ impl EmbeddingSearchMenu {
             SearchBar::new(
                 mixer.clone(),
                 search_bar_state.clone(),
-                DEFAULT_PLACEHOLDER_TEXT,
+                default_placeholder_text(),
                 |result_index, result| {
                     QueryResultRenderer::new(
                         result,
@@ -200,7 +201,7 @@ impl EmbeddingSearchMenu {
                 // There are no results to display, so notify the user of that fact.
                 let text = appearance
                     .ui_builder()
-                    .span("No results found.")
+                    .span(tr_cached(Message::NoResultsFound))
                     .with_style(UiComponentStyles {
                         font_size: Some(appearance.monospace_font_size()),
                         font_family_id: Some(appearance.ui_font_family()),

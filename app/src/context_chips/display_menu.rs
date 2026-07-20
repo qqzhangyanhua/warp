@@ -40,6 +40,7 @@ use crate::editor::{
 };
 use crate::server::ids::{ClientId, HashableId, ServerId, SyncId};
 use crate::ui_components::icons::Icon;
+use crate::i18n::{tr_cached, Message};
 use crate::view_components::copyable_text_field::{
     render_copyable_text_field, CopyButtonPlacement, CopyableTextFieldConfig,
     COPY_FEEDBACK_DURATION,
@@ -316,9 +317,9 @@ impl DisplayChipMenu {
                     };
                     let mut editor = EditorView::new(options, ctx);
                     let placeholder_text = match chip_menu_type {
-                        ChipMenuType::Directories => "Search directories...",
-                        ChipMenuType::Branches => "Search branches...",
-                        ChipMenuType::Environments => "Search environments...",
+                        ChipMenuType::Directories => tr_cached(Message::SearchDirectoriesEllipsis),
+                        ChipMenuType::Branches => tr_cached(Message::SearchBranchesEllipsis),
+                        ChipMenuType::Environments => tr_cached(Message::SearchEnvironmentsEllipsis),
                         ChipMenuType::CodeReview => {
                             unreachable!("search input should not be constructed")
                         }
@@ -1075,7 +1076,7 @@ impl DisplayChipMenu {
                 let (label, font_size, horizontal_padding, vertical_padding, text_color) =
                     match self.chip_menu_type {
                         ChipMenuType::Environments => (
-                            "No results",
+                            tr_cached(Message::NoResults),
                             ENV_MENU_ITEM_FONT_SIZE,
                             ENV_MENU_ITEM_HORIZONTAL_PADDING,
                             ENV_MENU_ITEM_VERTICAL_PADDING,
@@ -1084,7 +1085,7 @@ impl DisplayChipMenu {
                         ChipMenuType::Directories
                         | ChipMenuType::Branches
                         | ChipMenuType::CodeReview => (
-                            "No results found",
+                            tr_cached(Message::NoResultsFound),
                             appearance.ui_font_size(),
                             LABEL_HORIZONTAL_PADDING,
                             LABEL_VERTICAL_PADDING * 2.0,

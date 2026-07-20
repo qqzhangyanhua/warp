@@ -19,6 +19,7 @@ use crate::search::search_bar::{
     CreateQueryResultRendererFn, SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering,
 };
 use crate::search::QueryFilter;
+use crate::i18n::{tr_cached, Message};
 
 const HEADER_HORIZONTAL_PADDING: f32 = 16.;
 const HEADER_VERTICAL_PADDING: f32 = 4.;
@@ -191,7 +192,7 @@ impl<T: Action + Clone> SearchResultsMenuView<T> {
         let theme = appearance.theme();
         Container::new(
             Text::new(
-                "No results found",
+                tr_cached(Message::NoResultsFound),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size(),
             )

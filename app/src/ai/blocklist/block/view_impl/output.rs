@@ -2410,7 +2410,7 @@ fn render_suggest_new_conversation(
         };
         let (label, status_icon) = match result {
             SuggestNewConversationResult::Accepted { .. } => (
-                "New conversation started",
+                tr_cached(Message::NewConversationStarted),
                 inline_action_icons::green_check_icon(appearance).finish(),
             ),
             SuggestNewConversationResult::Rejected => (
@@ -2422,7 +2422,7 @@ fn render_suggest_new_conversation(
                 .finish(),
             ),
             SuggestNewConversationResult::Cancelled => (
-                "New conversation suggestion cancelled",
+                tr_cached(Message::NewConversationSuggestionCancelled),
                 inline_action_icons::cancelled_icon(appearance).finish(),
             ),
         };

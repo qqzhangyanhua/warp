@@ -126,33 +126,32 @@ impl TipsView {
 
         let tip_items = vec![
             TipItem::new(
-                "Command Palette".to_string(),
-                "Easily discover everything you can do in ZYH without your hands leaving the keyboard.".to_string(),
+                tr_cached(Message::TipsCommandPalette).to_string(),
+                tr_cached(Message::TipsCommandPaletteDesc).to_string(),
                 TipAction::CommandPalette,
                 ctx,
             ),
             TipItem::new(
-                "Split Pane".to_string(),
-                "Split tabs into multiple panes to make your ideal layout."
-                    .to_string(),
+                tr_cached(Message::AiSplitPane).to_string(),
+                tr_cached(Message::TipsSplitPaneDesc).to_string(),
                 TipAction::SplitPane,
                 ctx,
             ),
             TipItem::new(
-                "History Search".to_string(),
-                "Find, edit and re-run previously executed commands.".to_string(),
+                tr_cached(Message::TipsHistorySearch).to_string(),
+                tr_cached(Message::TipsHistorySearchDesc).to_string(),
                 TipAction::HistorySearch,
                 ctx,
             ),
             TipItem::new(
-                "AI Command Search".to_string(),
-                "Generate shell commands with natural language.".to_string(),
+                tr_cached(Message::TipsAiCommandSearch).to_string(),
+                tr_cached(Message::TipsAiCommandSearchDesc).to_string(),
                 TipAction::AiCommandSearch,
                 ctx,
             ),
             TipItem::new(
-                "Theme Picker".to_string(),
-                "Make ZYH your own by choosing a built-in theme. Or create your own.".to_string(),
+                tr_cached(Message::TipsThemePicker).to_string(),
+                tr_cached(Message::TipsThemePickerDesc).to_string(),
                 TipAction::ThemePicker,
                 ctx,
             ),
@@ -481,7 +480,7 @@ impl TipsView {
                     .set_width(152.)
                     .set_height(34.),
             )
-            .with_centered_text_label("Close Welcome Tips".to_string())
+            .with_centered_text_label(tr_cached(Message::CloseWelcomeTips).to_string())
             .build()
             .on_click(|ctx, _, _| ctx.dispatch_typed_action(TipsAction::DismissTips))
             .finish();

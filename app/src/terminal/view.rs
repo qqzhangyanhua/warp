@@ -864,18 +864,19 @@ pub enum NotificationsTrigger {
 
 impl NotificationsTrigger {
     pub fn discovery_banner_copy(&self) -> &'static str {
+        use crate::i18n::{tr_cached, Message};
         match self {
             NotificationsTrigger::LongRunningCommand(..) => {
-                "ZYH can notify you when long-running commands finish."
+                tr_cached(Message::BannerNotifyLongRunningCommand)
             }
             NotificationsTrigger::AgentTaskCompleted(..) => {
-                "ZYH can notify you when an agent finishes responding."
+                tr_cached(Message::BannerNotifyAgentFinished)
             }
             NotificationsTrigger::NeedsAttention => {
-                "ZYH can notify you when a command or agent needs your attention."
+                tr_cached(Message::BannerNotifyNeedsAttention)
             }
             NotificationsTrigger::PasswordPrompt => {
-                "ZYH can notify you when you're prompted to enter a password."
+                tr_cached(Message::BannerNotifyPasswordPrompt)
             }
         }
     }

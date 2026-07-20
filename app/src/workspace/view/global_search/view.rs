@@ -658,7 +658,7 @@ impl GlobalSearchView {
             };
 
             let mut editor = EditorView::new(options, ctx);
-            editor.set_placeholder_text("Search in files", ctx);
+            editor.set_placeholder_text(tr_cached(Message::SearchInFiles), ctx);
             editor
         });
 
@@ -2152,7 +2152,7 @@ impl View for GlobalSearchView {
         } else if self.is_search_in_progress && self.total_match_count == 0 {
             "Searching…".to_string()
         } else if !self.is_search_in_progress && self.total_match_count == 0 {
-            "No results found. Review your gitignore files.".to_string()
+            tr_cached(Message::NoResultsReviewGitignore).to_string()
         } else {
             match self.total_match_count {
                 1 => format!("1 result in {files} {file_word}"),
@@ -2330,7 +2330,7 @@ impl GlobalSearchView {
         self.render_zero_state(
             Icon::Search,
             "Global search",
-            "Search in files across your current directories.",
+            tr_cached(Message::SearchInFilesAcrossDirectories),
             app,
         )
     }

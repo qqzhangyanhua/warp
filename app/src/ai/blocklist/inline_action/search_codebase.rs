@@ -31,6 +31,7 @@ use crate::ai::blocklist::TextLocation;
 use crate::terminal::find::TerminalFindModel;
 use crate::terminal::view::RichContentLink;
 use crate::terminal::ShellLaunchData;
+use crate::i18n::{tr_cached, Message};
 use crate::util::link_detection::{
     detect_links, DetectedLinkType, DetectedLinksState, LinkLocation,
 };
@@ -229,7 +230,7 @@ impl SearchCodebaseView {
                 font_size: Some(appearance.monospace_font_size()),
                 ..Default::default()
             };
-            self.render_formatted_text("No results found".to_string(), no_results_style, appearance)
+            self.render_formatted_text(tr_cached(Message::NoResultsFound).to_string(), no_results_style, appearance)
         } else {
             render_read_files_text(
                 render_read_file_args,

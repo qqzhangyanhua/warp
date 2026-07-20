@@ -102,103 +102,98 @@ pub struct StaticCommand {
 }
 
 pub fn localized_command_description(ctx: &AppContext, description: &'static str) -> &'static str {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-        return description;
+    if let Some(message) = slash_command_description_message(description) {
+        crate::i18n::tr(ctx, message)
+    } else {
+        description
     }
+}
 
+fn slash_command_description_message(description: &str) -> Option<crate::i18n::Message> {
+    use crate::i18n::Message;
     match description {
-        "Start a new conversation" => "开始新对话",
-        "Start a new cloud agent conversation" => "开始新的云 Agent 对话",
-        "Add a new MCP server via the MCP settings page" => "通过 MCP 设置页面添加新的 MCP 服务器",
-        "Pull GitHub PR review comments" => "拉取 GitHub PR 审查评论",
-        "Create an Oz environment (Docker image + repos) via guided setup" => {
-            "通过引导式设置创建 Oz 环境（Docker 镜像 + 仓库）"
-        }
-        "Create a new docker sandbox terminal session" => "创建新的 Docker 沙盒终端会话",
-        "Have Oz walk you through creating a new coding project" => "让 Oz 引导你创建新的代码项目",
-        "Open a skill's markdown file in ZYH's built-in editor" => {
-            "在 ZYH 内置编辑器中打开技能的 Markdown 文件"
-        }
-        "Invoke a skill" => "调用技能",
-        "Add new Agent prompt" => "添加新的 Agent 提示词",
-        "Add a new global rule for the agent" => "为 Agent 添加新的全局规则",
-        "Open a file in ZYH's code editor" => "在 ZYH 代码编辑器中打开文件",
-        "Rename the current tab" => "重命名当前标签页",
-        "Rename the current conversation" => "重命名当前对话",
-        "Set the color of the current tab" => "设置当前标签页颜色",
-        "Fork the current conversation in a new pane or a new tab" => {
-            "在新面板或新标签页中分叉当前对话"
-        }
-        "Hand off this conversation to a cloud agent" => "将此对话移交给云 Agent",
-        "Open code review" => "打开 Code Review",
-        "Index this codebase" => "索引此代码库",
-        "Index this codebase and generate an AGENTS.md file" => "索引此代码库并生成 AGENTS.md 文件",
-        "Open the project rules file (AGENTS.md)" => "打开项目规则文件 (AGENTS.md)",
-        "Open MCP servers" => "打开 MCP 服务器",
-        "Open settings file (TOML)" => "打开设置文件 (TOML)",
-        "Open the latest changelog" => "打开最新变更日志",
-        "Send feedback" => "发送反馈",
-        "Switch to another indexed repository" => "切换到另一个已索引仓库",
-        "View all of your global and project rules" => "查看所有全局规则和项目规则",
-        "Start a new conversation (alias for /agent)" => "开始新对话（/agent 的别名）",
-        "Switch the base agent model" => "切换基础 Agent 模型",
-        "Switch the cloud agent execution host" => "切换云 Agent 执行主机",
-        "Switch the cloud agent harness" => "切换云 Agent harness",
-        "Switch the cloud agent environment" => "切换云 Agent 环境",
-        "Switch the active execution profile" => "切换当前执行配置",
-        "Prompt the agent to do some research and create a plan for a task" => {
-            "提示 Agent 调研并为任务制定计划"
-        }
-        "Break a task into subtasks and run them in parallel with multiple agents" => {
-            "将任务拆分为子任务并用多个 Agent 并行运行"
-        }
-        "Free up context by summarizing convo history" => "通过总结对话历史释放上下文",
-        "Compact conversation and then send a follow-up prompt" => "压缩对话后发送后续提示词",
-        "Queue a prompt to send after the agent finishes responding" => {
-            "排队一个在 Agent 回复完成后发送的提示词"
-        }
-        "Fork current conversation and compact it in the forked copy" => {
-            "分叉当前对话并在分叉副本中压缩"
-        }
-        "Fork conversation from a specific query" => "从指定查询分叉对话",
-        "Continue this cloud conversation locally" => "在本地继续此云对话",
-        "Open billing and usage settings" => "打开账单和用量设置",
-        "Start remote control for this session" => "为此会话启动远程控制",
-        "Toggle credit usage details" => "切换点数用量详情",
-        "Open conversation history" => "打开对话历史",
-        "Search saved prompts" => "搜索已保存提示词",
-        "Rewind to a previous point in the conversation" => "回退到对话中的之前位置",
-        "Export current conversation to clipboard in markdown format" => {
-            "将当前对话以 Markdown 格式导出到剪贴板"
-        }
-        "Export current conversation to a markdown file" => "将当前对话导出为 Markdown 文件",
-        _ => description,
+        "Start a new conversation" => Some(Message::SlashDescStartNewConversation),
+        "Start a new cloud agent conversation" => Some(Message::SlashDescStartCloudAgentConversation),
+        "Add a new MCP server via the MCP settings page" => Some(Message::SlashDescAddMcpServer),
+        "Pull GitHub PR review comments" => Some(Message::SlashDescPullPrReviewComments),
+        "Create an Oz environment (Docker image + repos) via guided setup" => Some(Message::SlashDescCreateOzEnvironment),
+        "Create a new docker sandbox terminal session" => Some(Message::SlashDescCreateDockerSandbox),
+        "Have Oz walk you through creating a new coding project" => Some(Message::SlashDescCreateCodingProject),
+        "Open a skill's markdown file in ZYH's built-in editor" => Some(Message::SlashDescOpenSkillMarkdown),
+        "Invoke a skill" => Some(Message::SlashDescInvokeSkill),
+        "Add new Agent prompt" => Some(Message::SlashDescAddAgentPrompt),
+        "Add a new global rule for the agent" => Some(Message::SlashDescAddGlobalRule),
+        "Open a file in ZYH's code editor" => Some(Message::SlashDescOpenFileInEditor),
+        "Rename the current tab" => Some(Message::SlashDescRenameCurrentTab),
+        "Rename the current conversation" => Some(Message::SlashDescRenameCurrentConversation),
+        "Set the color of the current tab" => Some(Message::SlashDescSetTabColor),
+        "Fork the current conversation in a new pane or a new tab" => Some(Message::SlashDescForkConversation),
+        "Hand off this conversation to a cloud agent" => Some(Message::SlashDescHandoffCloudAgent),
+        "Open code review" => Some(Message::SlashDescOpenCodeReview),
+        "Index this codebase" => Some(Message::SlashDescIndexCodebase),
+        "Index this codebase and generate an AGENTS.md file" => Some(Message::SlashDescIndexCodebaseAgentsMd),
+        "Open the project rules file (AGENTS.md)" => Some(Message::SlashDescOpenProjectRules),
+        "Open MCP servers" => Some(Message::SlashDescOpenMcpServers),
+        "Open settings file (TOML)" => Some(Message::SlashDescOpenSettingsToml),
+        "Open the latest changelog" => Some(Message::SlashDescOpenChangelog),
+        "Send feedback" => Some(Message::SlashDescSendFeedback),
+        "Switch to another indexed repository" => Some(Message::SlashDescSwitchIndexedRepo),
+        "View all of your global and project rules" => Some(Message::SlashDescViewAllRules),
+        "Start a new conversation (alias for /agent)" => Some(Message::SlashDescStartConversationAlias),
+        "Switch the base agent model" => Some(Message::SlashDescSwitchBaseModel),
+        "Switch the cloud agent execution host" => Some(Message::SlashDescSwitchCloudHost),
+        "Switch the cloud agent harness" => Some(Message::SlashDescSwitchCloudHarness),
+        "Switch the cloud agent environment" => Some(Message::SlashDescSwitchCloudEnvironment),
+        "Switch the active execution profile" => Some(Message::SlashDescSwitchExecutionProfile),
+        "Prompt the agent to do some research and create a plan for a task" => Some(Message::SlashDescResearchAndPlan),
+        "Break a task into subtasks and run them in parallel with multiple agents" => Some(Message::SlashDescParallelSubtasks),
+        "Free up context by summarizing convo history" => Some(Message::SlashDescFreeContextSummarize),
+        "Compact conversation and then send a follow-up prompt" => Some(Message::SlashDescCompactThenFollowUp),
+        "Queue a prompt to send after the agent finishes responding" => Some(Message::SlashDescQueuePrompt),
+        "Fork current conversation and compact it in the forked copy" => Some(Message::SlashDescForkAndCompact),
+        "Fork conversation from a specific query" => Some(Message::SlashDescForkFromQuery),
+        "Continue this cloud conversation locally" => Some(Message::SlashDescContinueCloudLocally),
+        "Open billing and usage settings" => Some(Message::SlashDescOpenBillingUsage),
+        "Start remote control for this session" => Some(Message::SlashDescStartRemoteControl),
+        "Toggle credit usage details" => Some(Message::SlashDescToggleCreditUsage),
+        "Open conversation history" => Some(Message::SlashDescOpenConversationHistory),
+        "Search saved prompts" => Some(Message::SlashDescSearchSavedPrompts),
+        "Rewind to a previous point in the conversation" => Some(Message::SlashDescRewindConversation),
+        "Export current conversation to clipboard in markdown format" => Some(Message::SlashDescExportConversationClipboard),
+        "Export current conversation to a markdown file" => Some(Message::SlashDescExportConversationFile),
+        _ => None,
     }
 }
 
 pub fn localized_hint_text(ctx: &AppContext, hint_text: &'static str) -> &'static str {
-    if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-        return hint_text;
-    }
-
-    match hint_text {
-        "<optional repo paths or GitHub URLs>" => "<可选仓库路径或 GitHub URL>",
-        "<describe what you want to build>" => "<描述你想构建的内容>",
-        "<path/to/file[:line[:col]]> or \"@\" to search" => "<文件/路径[:行[:列]]> 或 \"@\" 搜索",
-        "<tab name>" => "<标签页名称>",
-        "<new title>" => "<新标题>",
-        "<optional prompt to send in forked conversation>" => "<发送到分叉对话的可选提示词>",
-        "<optional follow-up prompt>" => "<可选后续提示词>",
-        "<describe your task>" => "<描述你的任务>",
-        "<optional custom summarization instructions>" => "<可选自定义总结指令>",
-        "<prompt to send after compaction>" => "<压缩后发送的提示词>",
-        "<prompt to send when agent is done>" => "<Agent 完成后发送的提示词>",
-        "<optional prompt to send after compaction>" => "<压缩后发送的可选提示词>",
-        "<optional prompt to send in local conversation>" => "<发送到本地对话的可选提示词>",
-        "<optional filename>" => "<可选文件名>",
-        _ => hint_text,
+    if let Some(message) = slash_hint_message(hint_text) {
+        crate::i18n::tr(ctx, message)
+    } else {
+        hint_text
     }
 }
+
+fn slash_hint_message(hint_text: &str) -> Option<crate::i18n::Message> {
+    use crate::i18n::Message;
+    match hint_text {
+        "<optional repo paths or GitHub URLs>" => Some(Message::SlashHintOptionalRepoPaths),
+        "<describe what you want to build>" => Some(Message::SlashHintDescribeWhatToBuild),
+        "<path/to/file[:line[:col]]> or \"@\" to search" => Some(Message::SlashHintPathOrAtSearch),
+        "<tab name>" => Some(Message::SlashHintTabName),
+        "<new title>" => Some(Message::SlashHintNewTitle),
+        "<optional prompt to send in forked conversation>" => Some(Message::SlashHintOptionalForkPrompt),
+        "<optional follow-up prompt>" => Some(Message::SlashHintOptionalFollowUp),
+        "<describe your task>" => Some(Message::SlashHintDescribeTask),
+        "<optional custom summarization instructions>" => Some(Message::SlashHintOptionalSummarizeInstructions),
+        "<prompt to send after compaction>" => Some(Message::SlashHintPromptAfterCompaction),
+        "<prompt to send when agent is done>" => Some(Message::SlashHintPromptWhenAgentDone),
+        "<optional prompt to send after compaction>" => Some(Message::SlashHintOptionalPromptAfterCompaction),
+        "<optional prompt to send in local conversation>" => Some(Message::SlashHintOptionalLocalPrompt),
+        "<optional filename>" => Some(Message::SlashHintOptionalFilename),
+        _ => None,
+    }
+}
+
 
 impl StaticCommand {
     pub fn localized_description(&self, ctx: &AppContext) -> &'static str {

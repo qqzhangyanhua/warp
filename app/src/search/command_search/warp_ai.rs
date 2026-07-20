@@ -28,6 +28,7 @@ use crate::themes::theme::Blend;
 use crate::ui_components::icons::Icon as UIIcon;
 use crate::util::color::{ContrastingColor, MinimumAllowedContrast};
 use crate::workflows::{AIWorkflowOrigin, WorkflowSource, WorkflowType};
+use crate::i18n::{tr_cached, Message};
 
 const OPEN_WARP_AI_ITEM_BODY_TEXT: &str = "Ask ZYH AI for command suggestions";
 const TRANSLATE_WITH_WARP_AI_ITEM_BODY_TEXT: &str = "Translate into shell command using ZYH AI";
@@ -235,7 +236,7 @@ impl AsyncDataSource for WarpAIDataSource {
 impl DataSourceRunError for GenerateCommandsFromNaturalLanguageError {
     fn user_facing_error(&self) -> String {
         match self {
-            Self::BadPrompt => "No results found. Please try again with a more specific query.",
+            Self::BadPrompt => tr_cached(Message::NoResultsTryMoreSpecific),
             Self::AiProviderError => "Something went wrong. Please try again.",
             Self::RateLimited => "Looks like you're out of AI credits. Please try again later.",
             Self::Other => "Something went wrong. Please try again.",

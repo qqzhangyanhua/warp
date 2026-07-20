@@ -744,7 +744,7 @@ impl ThemeChooser {
                 .with_child(
                     appearance
                         .ui_builder()
-                        .span("No matching themes!".to_string())
+                        .span(tr_cached(Message::NoMatchingThemes).to_string())
                         .build()
                         .finish(),
                 )

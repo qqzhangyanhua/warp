@@ -858,14 +858,14 @@ impl VersionInfoWidget {
                     ),
                     AutoupdateStage::CheckingForUpdate => (
                         Some(StatusContent {
-                            text: "checking for update...",
+                            text: tr_cached(Message::CheckingForUpdate),
                             color: faded_text_color,
                         }),
                         None,
                     ),
                     AutoupdateStage::DownloadingUpdate => (
                         Some(StatusContent {
-                            text: "downloading update...",
+                            text: tr_cached(Message::DownloadingUpdate),
                             color: faded_text_color,
                         }),
                         None,

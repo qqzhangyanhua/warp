@@ -47,7 +47,7 @@ pub fn render_aws_cli_not_installed_banner(
 ) -> Box<dyn Element> {
     let active_ui_text_color = appearance.theme().active_ui_text_color().into_solid();
     let buttons = vec![InlineBannerTextButton {
-        text: "Learn More".to_owned(),
+        text: tr_cached(Message::AiLearnMore).to_owned(),
         text_color: active_ui_text_color,
         button_state: InlineBannerButtonState {
             on_click_event: TerminalAction::AwsCliNotInstalledBanner(
@@ -68,7 +68,7 @@ pub fn render_aws_cli_not_installed_banner(
     });
 
     let description_text = warpui::elements::Text::new(
-        "The AWS CLI is required to authenticate with your organization's AWS Bedrock. Install it to continue.",
+        tr_cached(Message::BannerAwsCliBedrockRequired),
         appearance.ui_font_family(),
         appearance.monospace_font_size() - 2.,
     )

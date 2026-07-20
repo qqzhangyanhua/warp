@@ -8146,7 +8146,7 @@ impl EditorView {
             button
                 .with_tooltip_position(ButtonTooltipPosition::Above)
                 .with_tooltip(self.render_menu_button_tooltip(
-                    "Search files and directories".to_string(),
+                    tr_cached(Message::SearchFilesAndDirectories).to_string(),
                     appearance,
                 ))
                 .build()
