@@ -1,0 +1,108 @@
+app/src/terminal/view/inline_banner/notifications_discovery.rs
+  2f4926be3f369cae 11,49,62,77,81,89,109,113,117,122,132
+app/src/themes/theme_chooser.rs
+  2f4926be3f369cae 747
+app/src/search/command_search/view.rs
+  2f4926be3f369cae 1016
+app/src/terminal/view/inline_banner/aws_cli_not_installed.rs
+  2f4926be3f369cae 50,71
+app/src/ai/blocklist/block/view_impl/output.rs
+  2f4926be3f369cae 2413,2425
+app/src/context_chips/display_menu.rs
+  2f4926be3f369cae 43,320-322,1079,1088
+app/src/search/command_palette/navigation/render.rs
+  2f4926be3f369cae 12,342,360-367,372,378,384
+app/src/terminal/view/tooltips.rs
+  2f4926be3f369cae 63
+docs/i18n-coverage.md
+  2f4926be3f369cae 11-13,73,75-76,80-81,83,85-106,155
+app/src/search/slash_command_menu/static_commands/mod.rs
+  2f4926be3f369cae 105-108,110,112-113,115-164,169-172,174,176-177,179-193
+app/src/terminal/view.rs
+  2f4926be3f369cae 867,870,873,876,879
+app/src/ai/agent_tips.rs
+  2f4926be3f369cae 363-407
+app/src/editor/view/mod.rs
+  2f4926be3f369cae 8149
+app/src/terminal/view/inline_banner/notifications_error.rs
+  2f4926be3f369cae 11,47,62
+app/src/tips/tip_view.rs
+  2f4926be3f369cae 129-130,135-136,141-142,147-148,153-154,483
+app/src/workspace/view.rs
+  2f4926be3f369cae 22257,22261,22280,22290,22315,22462
+app/src/search/external_secrets/view.rs
+  2f4926be3f369cae 26,42,89,184
+app/src/code_review/code_review_view.rs
+  2f4926be3f369cae 209,211,276,278,286,288
+app/src/search/command_palette/conversations/search_item.rs
+  2f4926be3f369cae 21,72,93,420-422,426,428,434-439,441-444
+app/src/code/editor/find/view.rs
+  2f4926be3f369cae 391
+app/src/view_components/find.rs
+  2f4926be3f369cae 277
+app/src/settings_view/environments_page.rs
+  2f4926be3f369cae 377
+app/src/search/command_search/warp_ai.rs
+  2f4926be3f369cae 31,239
+app/src/search/search_results_menu/view.rs
+  2f4926be3f369cae 22,195
+app/src/terminal/view/inline_banner/vim_mode.rs
+  2f4926be3f369cae 9,31,51
+app/src/i18n/table.rs
+  2f4926be3f369cae 2642-2816,5326-5500,7921-8094
+app/src/terminal/view/inline_banner/alias_expansion.rs
+  2f4926be3f369cae 43
+app/src/coding_entrypoints/project_buttons.rs
+  2f4926be3f369cae 24,228,232,244,248,260,264,276,280
+app/src/terminal/view/inline_banner/open_in_warp.rs
+  2f4926be3f369cae 13,102
+app/src/ai/agent_management/view.rs
+  2f4926be3f369cae 2128
+app/src/i18n/message.rs
+  2f4926be3f369cae 2455-2632
+app/src/workspace/view/vertical_tabs.rs
+  2f4926be3f369cae 4078
+app/src/search/command_palette/view.rs
+  2f4926be3f369cae 283,295
+app/src/ai/blocklist/inline_action/search_codebase.rs
+  2f4926be3f369cae 34,233
+app/src/search/notebook_embedding/view.rs
+  2f4926be3f369cae 25,27,87,204
+app/src/code_review/diff_menu.rs
+  2f4926be3f369cae 30,116
+app/src/workspace/hoa_onboarding/hoa_onboarding_flow.rs
+  2f4926be3f369cae 472
+app/src/ai/blocklist/block/status_bar.rs
+  2f4926be3f369cae 1192
+app/src/workspace/view/global_search/view.rs
+  2f4926be3f369cae 661,2155,2333
+app/src/workspace/view/left_panel.rs
+  2f4926be3f369cae 457,473
+app/src/workflows/categories.rs
+  2f4926be3f369cae 42,756,1212,1248
+app/src/settings_view/main_page.rs
+  2f4926be3f369cae 861,868
+app/src/workspace/view/crash_recovery.rs
+  2f4926be3f369cae 6,25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "4cefd236a7ae7de9c28d32be73a2ac9ebe71aa17",
+  "prompts": {
+    "2f4926be3f369cae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f7ed3-8c30-7283-9167-0a12b409eda4",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 1000,
+      "total_deletions": 291,
+      "accepted_lines": 1000,
+      "overriden_lines": 0,
+      "messages_url": "https://gitai.tongbaninfo.com/cas/e8d1ddd0679205e74da10751da4dbd94d56beba16999e4b6e78846f846431295"
+    }
+  }
+}
