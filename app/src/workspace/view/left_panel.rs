@@ -866,12 +866,15 @@ impl LeftPanelView {
 
         let tooltip = if let Some(keybinding) = tooltip_keybinding {
             ui_builder
-                .tool_tip_with_sublabel("Close panel".to_string(), keybinding)
+                .tool_tip_with_sublabel(
+                    tr_cached(Message::TooltipClosePanel).to_string(),
+                    keybinding,
+                )
                 .build()
                 .finish()
         } else {
             ui_builder
-                .tool_tip("Close panel".to_string())
+                .tool_tip(tr_cached(Message::TooltipClosePanel).to_string())
                 .build()
                 .finish()
         };

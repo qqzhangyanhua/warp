@@ -276,6 +276,7 @@ fn en_text(message: Message) -> &'static str {
         Message::SettingsNoFoldersInitialized => "No folders have been initialized yet.",
         Message::SettingsRestartServer => "Restart server",
         Message::SettingsViewLogs => "View logs",
+        Message::SettingsSearchPlaceholder => "Search",
 
         Message::AiPermissionAgentDecides => "Agent decides",
         Message::AiPermissionAlwaysAllow => "Always allow",
@@ -500,6 +501,9 @@ fn en_text(message: Message) -> &'static str {
         Message::AiConnect => "Connect",
         Message::AiConnecting => "Connecting",
         Message::AiDisconnect => "Disconnect",
+        Message::AiTestVoiceModel => "Test voice model",
+        Message::AiToGetMoreUsageSuffix => " to get more AI usage.",
+        Message::AiForMoreUsageSuffix => " for more AI usage.",
         Message::AiOpenaiApiKey => "OpenAI API key",
         Message::AiAnthropicApiKey => "Anthropic API key",
         Message::AiGoogleApiKey => "Google API key",
@@ -611,6 +615,7 @@ fn en_text(message: Message) -> &'static str {
         Message::PrivacyPolicyTitle => "Privacy policy",
         Message::PrivacyReadWarpsPrivacyPolicy => "Read ZYH's privacy policy",
         Message::PrivacyAddRegexPattern => "Add regex pattern",
+        Message::PrivacyRegexNamePlaceholder => "e.g. \"Google API Key\"",
         Message::PrivacyPageTitle => "Privacy",
         Message::PrivacyInvalidRegexPattern => "Invalid regex pattern",
         Message::PrivacyPersonal => "Personal",
@@ -1399,6 +1404,10 @@ fn en_text(message: Message) -> &'static str {
         Message::AppearanceWindowBlurTextureUnsupported => {
             "The selected hardware may not support rendering transparent windows."
         },
+        Message::AppearanceMatchTerminal => "Match terminal",
+        Message::AppearanceViewAllAvailableSystemFonts => "View all available system fonts",
+        Message::AppearanceNotebookFontSize => "Notebook font size",
+        Message::AppearanceCursorTypeDisabledVimMode => "Cursor type is disabled in Vim mode",
 
         Message::AuthWelcomeToWarp => "Welcome to ZYH!",
         Message::AuthSignUpForWarp => "Sign up for ZYH",
@@ -1755,6 +1764,8 @@ fn en_text(message: Message) -> &'static str {
         Message::CommonUnableToLoadSecrets => "Unable to load secrets",
         Message::CommonNoSecretsFound => "No secrets found",
         Message::CommonCustomEllipsis => "Custom...",
+        Message::McpEditConfig => "Edit config",
+        Message::McpSetUp => "Set up",
         Message::TerminalOpenInWarp => "Open in ZYH",
         Message::TerminalViewAllCloudRuns => "View all cloud runs",
         Message::AiVisitOz => "Visit Oz",
@@ -1879,6 +1890,7 @@ fn en_text(message: Message) -> &'static str {
         Message::TooltipViewAllAgentTasks => "View your agent tasks plus all shared team tasks",
         Message::TooltipViewYourAgentTasks => "View agent tasks you created",
         Message::TooltipDisabledByAdmin => "Disabled by your administrator",
+        Message::TooltipClosePanel => "Close panel",
         Message::ToastLinkCopied => "Link copied",
         Message::ToastLinkCopiedToClipboard => "Link copied to clipboard",
         Message::ToastCopiedToClipboard => "Copied to clipboard",
@@ -2912,8 +2924,8 @@ fn zh_cn_text(message: Message) -> &'static str {
     match message {
         Message::SettingsSectionAbout => "关于",
         Message::SettingsSectionAccount => "账户",
-        Message::SettingsSectionAgents => "Agents",
-        Message::SettingsSectionMcpServers => "MCP Servers",
+        Message::SettingsSectionAgents => "Agent",
+        Message::SettingsSectionMcpServers => "MCP 服务器",
         Message::SettingsSectionBillingAndUsage => "账单与用量",
         Message::SettingsSectionAppearance => "外观",
         Message::SettingsSectionFeatures => "功能",
@@ -2927,15 +2939,15 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::SettingsSectionWarpify => "Warpify",
         Message::SettingsSectionWarpAgent => "ZYH Agent",
         Message::SettingsSectionAgentProfiles => "配置档案",
-        Message::SettingsSectionAgentMcpServers => "MCP servers",
+        Message::SettingsSectionAgentMcpServers => "MCP 服务器",
         Message::SettingsSectionKnowledge => "知识库",
         Message::SettingsSectionThirdPartyCliAgents => "第三方 CLI agents",
-        Message::SettingsSectionCode => "Code",
+        Message::SettingsSectionCode => "代码",
         Message::SettingsSectionCodeIndexing => "索引与项目",
         Message::SettingsSectionEditorAndCodeReview => "编辑器与代码审查",
         Message::SettingsSectionCloudPlatform => "云平台",
         Message::SettingsSectionCloudEnvironments => "环境",
-        Message::SettingsSectionOzCloudApiKeys => "Oz Cloud API Keys",
+        Message::SettingsSectionOzCloudApiKeys => "Oz Cloud API 密钥",
 
         Message::CodeFailedLoadFile => "加载文件失败。",
         Message::CodeFailedSaveFile => "保存文件失败。",
@@ -2990,7 +3002,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::SettingsCodeCodebaseIndexingCategory => "代码库索引",
         Message::SettingsCodeEditorAndReviewCategory => "代码编辑器与审查",
 
-        Message::SettingsWarpifySubshellsCategory => "Subshells",
+        Message::SettingsWarpifySubshellsCategory => "子 Shell",
         Message::SettingsWarpifySSHCategory => "SSH",
 
         Message::SettingsActiveScreen => "当前屏幕",
@@ -3101,7 +3113,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::SettingsAddProfile => "添加配置",
         Message::SettingsWarpifySshSessions => "Warpify SSH 会话",
         Message::SettingsReuseExistingSshControlmaster => "复用现有的 SSH ControlMaster",
-        Message::WarpifySshWarpification => "SSH Warpification",
+        Message::WarpifySshWarpification => "SSH Warpify",
         Message::WarpifySubshellsSupported => "支持的子 shell：bash、zsh 和 fish。",
         Message::WarpifyInteractiveSshSessions => "Warpify 你的交互式 SSH 会话。",
         Message::WarpifyDescription => {
@@ -3175,6 +3187,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::SettingsNoFoldersInitialized => "尚未初始化任何文件夹。",
         Message::SettingsRestartServer => "重启服务器",
         Message::SettingsViewLogs => "查看日志",
+        Message::SettingsSearchPlaceholder => "搜索",
 
         Message::AiPermissionAgentDecides => "由 Agent 决定",
         Message::AiPermissionAlwaysAllow => "始终允许",
@@ -3399,6 +3412,9 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AiConnect => "连接",
         Message::AiConnecting => "连接中",
         Message::AiDisconnect => "断开连接",
+        Message::AiTestVoiceModel => "测试语音模型",
+        Message::AiToGetMoreUsageSuffix => "以获取更多 AI 用量。",
+        Message::AiForMoreUsageSuffix => "以获取更多 AI 用量。",
         Message::AiOpenaiApiKey => "OpenAI API 密钥",
         Message::AiAnthropicApiKey => "Anthropic API 密钥",
         Message::AiGoogleApiKey => "Google API 密钥",
@@ -3514,6 +3530,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::PrivacyPolicyTitle => "隐私政策",
         Message::PrivacyReadWarpsPrivacyPolicy => "阅读 ZYH 隐私政策",
         Message::PrivacyAddRegexPattern => "添加正则表达式",
+        Message::PrivacyRegexNamePlaceholder => "例如 \"Google API Key\"",
         Message::PrivacyPageTitle => "隐私",
         Message::PrivacyInvalidRegexPattern => "无效的正则表达式",
         Message::PrivacyPersonal => "个人",
@@ -4260,6 +4277,10 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::AppearanceWindowBlurRadiusLabel => "窗口模糊半径",
         Message::AppearanceWindowBlurTexture => "使用窗口模糊（亚克力纹理）",
         Message::AppearanceWindowBlurTextureUnsupported => "当前硬件可能不支持渲染透明窗口。",
+        Message::AppearanceMatchTerminal => "匹配终端",
+        Message::AppearanceViewAllAvailableSystemFonts => "查看所有可用系统字体",
+        Message::AppearanceNotebookFontSize => "笔记本字体大小",
+        Message::AppearanceCursorTypeDisabledVimMode => "Vim 模式下已禁用光标类型设置",
 
         Message::AuthWelcomeToWarp => "欢迎使用 ZYH！",
         Message::AuthSignUpForWarp => "注册 ZYH",
@@ -4550,6 +4571,8 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::CommonUnableToLoadSecrets => "无法加载密钥",
         Message::CommonNoSecretsFound => "未找到密钥",
         Message::CommonCustomEllipsis => "自定义…",
+        Message::McpEditConfig => "编辑配置",
+        Message::McpSetUp => "设置",
         Message::TerminalOpenInWarp => "在 ZYH 中打开",
         Message::TerminalViewAllCloudRuns => "查看所有云端运行",
         Message::AiVisitOz => "访问 Oz",
@@ -4674,6 +4697,7 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::TooltipViewAllAgentTasks => "查看你的 Agent 任务及所有共享团队任务",
         Message::TooltipViewYourAgentTasks => "查看你创建的 Agent 任务",
         Message::TooltipDisabledByAdmin => "已被管理员禁用",
+        Message::TooltipClosePanel => "关闭面板",
         Message::ToastLinkCopied => "链接已复制",
         Message::ToastLinkCopiedToClipboard => "链接已复制到剪贴板",
         Message::ToastCopiedToClipboard => "已复制到剪贴板",
@@ -5701,6 +5725,54 @@ mod tests {
         }
     }
 
+    #[test]
+    fn chinese_text_does_not_reuse_english_unless_intentional() {
+        for message in ALL_MESSAGES {
+            if english_text_is_intentional_in_chinese(*message) {
+                continue;
+            }
+            assert_ne!(
+                en_text(*message),
+                zh_cn_text(*message),
+                "Chinese text reuses English for {message:?}"
+            );
+        }
+    }
+
+    fn english_text_is_intentional_in_chinese(message: Message) -> bool {
+        matches!(
+            message,
+            Message::SettingsSectionWarpDrive
+                | Message::SettingsSectionWarpify
+                | Message::SettingsSectionWarpAgent
+                | Message::SettingsWarpifySSHCategory
+                | Message::SettingsLanguageEnglishOption
+                | Message::AiAwsLoginPlaceholder
+                | Message::AiAwsDefaultProfilePlaceholder
+                | Message::AiOpenaiApiKeyPlaceholder
+                | Message::AiAnthropicApiKeyPlaceholder
+                | Message::AiGoogleApiKeyPlaceholder
+                | Message::AiWarpAgent
+                | Message::AiWisprFlow
+                | Message::FeaturesDefaultSessionAgent
+                | Message::ScriptingWarpctrlCli
+                | Message::PlatformAgent
+                | Message::WorkspaceAgent
+                | Message::BillingBucketAi
+                | Message::AgentFilterPullRequest
+                | Message::AgentSourceLinear
+                | Message::AgentSourceApi
+                | Message::AgentSourceSlack
+                | Message::AgentSourceCli
+                | Message::AgentSourceOzWeb
+                | Message::AgentSourceGitHubAction
+                | Message::NvmInstallNode
+                | Message::AppMenuAi
+                | Message::AppMenuGithubIssues
+                | Message::ToggleSuffixAi
+        )
+    }
+
     const ALL_MESSAGES: &[Message] = &[
         Message::SettingsSectionAbout,
         Message::SettingsSectionAccount,
@@ -5951,6 +6023,7 @@ mod tests {
         Message::SettingsNoFoldersInitialized,
         Message::SettingsRestartServer,
         Message::SettingsViewLogs,
+        Message::SettingsSearchPlaceholder,
         Message::AiPermissionAgentDecides,
         Message::AiPermissionAlwaysAllow,
         Message::AiPermissionAlwaysAsk,
@@ -6167,6 +6240,9 @@ mod tests {
         Message::AiConnect,
         Message::AiConnecting,
         Message::AiDisconnect,
+        Message::AiTestVoiceModel,
+        Message::AiToGetMoreUsageSuffix,
+        Message::AiForMoreUsageSuffix,
         Message::AiOpenaiApiKey,
         Message::AiAnthropicApiKey,
         Message::AiGoogleApiKey,
@@ -6276,6 +6352,7 @@ mod tests {
         Message::PrivacyPolicyTitle,
         Message::PrivacyReadWarpsPrivacyPolicy,
         Message::PrivacyAddRegexPattern,
+        Message::PrivacyRegexNamePlaceholder,
         Message::PrivacyPageTitle,
         Message::PrivacyInvalidRegexPattern,
         Message::PrivacyPersonal,
@@ -6980,6 +7057,10 @@ mod tests {
         Message::AppearanceWindowBlurRadiusLabel,
         Message::AppearanceWindowBlurTexture,
         Message::AppearanceWindowBlurTextureUnsupported,
+        Message::AppearanceMatchTerminal,
+        Message::AppearanceViewAllAvailableSystemFonts,
+        Message::AppearanceNotebookFontSize,
+        Message::AppearanceCursorTypeDisabledVimMode,
         Message::AuthWelcomeToWarp,
         Message::AuthSignUpForWarp,
         Message::AuthSignUp,
@@ -7246,6 +7327,8 @@ mod tests {
         Message::CommonUnableToLoadSecrets,
         Message::CommonNoSecretsFound,
         Message::CommonCustomEllipsis,
+        Message::McpEditConfig,
+        Message::McpSetUp,
         Message::TerminalOpenInWarp,
         Message::TerminalViewAllCloudRuns,
         Message::AiVisitOz,
@@ -7370,6 +7453,7 @@ mod tests {
         Message::TooltipViewAllAgentTasks,
         Message::TooltipViewYourAgentTasks,
         Message::TooltipDisabledByAdmin,
+        Message::TooltipClosePanel,
         Message::ToastLinkCopied,
         Message::ToastLinkCopiedToClipboard,
         Message::ToastCopiedToClipboard,

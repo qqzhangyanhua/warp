@@ -4278,7 +4278,7 @@ impl SettingsWidget for AIFontWidget {
         ai_font_row.add_child(
             appearance
                 .ui_builder()
-                .span("Match terminal".to_string())
+                .span(tr_cached(Message::AppearanceMatchTerminal).to_string())
                 .build()
                 .with_margin_left(2.)
                 .with_margin_right(16.)
@@ -4450,7 +4450,10 @@ impl SettingsWidget for TerminalFontWidget {
                             1.,
                             appearance
                                 .ui_builder()
-                                .span("View all available system fonts".to_string())
+                                .span(
+                                    tr_cached(Message::AppearanceViewAllAvailableSystemFonts)
+                                        .to_string(),
+                                )
                                 .build()
                                 .with_margin_left(2.)
                                 .finish(),
@@ -4578,7 +4581,7 @@ impl SettingsWidget for NotebookFontSizeWidget {
                         Align::new(
                             appearance
                                 .ui_builder()
-                                .span("Notebook font size".to_string())
+                                .span(tr_cached(Message::AppearanceNotebookFontSize).to_string())
                                 .build()
                                 .with_margin_right(16.)
                                 .finish(),
@@ -4604,7 +4607,7 @@ impl SettingsWidget for NotebookFontSizeWidget {
                 .with_child(
                     appearance
                         .ui_builder()
-                        .span("Match terminal".to_string())
+                        .span(tr_cached(Message::AppearanceMatchTerminal).to_string())
                         .build()
                         .with_margin_left(2.)
                         .with_margin_right(16.)
@@ -4813,7 +4816,9 @@ impl SettingsWidget for CursorTypeWidget {
                     .with_child(
                         appearance
                             .ui_builder()
-                            .span("Cursor type is disabled in Vim mode".to_string())
+                            .span(
+                                tr_cached(Message::AppearanceCursorTypeDisabledVimMode).to_string(),
+                            )
                             .build()
                             .finish(),
                     )

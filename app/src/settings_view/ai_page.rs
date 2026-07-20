@@ -868,7 +868,7 @@ impl AISettingsPageView {
         });
 
         let voice_test_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new("Test voice model", SecondaryTheme)
+            ActionButton::new(tr_cached(Message::AiTestVoiceModel), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(AISettingsPageAction::TestVoiceProvider);
@@ -5324,7 +5324,7 @@ impl SettingsWidget for UsageWidget {
                                 tr_cached(Message::AiUpgrade),
                                 upgrade_url,
                             ),
-                            FormattedTextFragment::plain_text(" to get more AI usage."),
+                            FormattedTextFragment::plain_text(tr_cached(Message::AiToGetMoreUsageSuffix)),
                         ]
                     } else {
                         // The /upgrade page says to contact their administrator.
@@ -5333,7 +5333,7 @@ impl SettingsWidget for UsageWidget {
                                 tr_cached(Message::AiComparePlans),
                                 upgrade_url,
                             ),
-                            FormattedTextFragment::plain_text(" for more AI usage."),
+                            FormattedTextFragment::plain_text(tr_cached(Message::AiForMoreUsageSuffix)),
                         ]
                     }
                 } else {
@@ -5342,7 +5342,7 @@ impl SettingsWidget for UsageWidget {
                             tr_cached(Message::AiContactSupport),
                             "mailto:support@warp.dev",
                         ),
-                        FormattedTextFragment::plain_text(" for more AI usage."),
+                        FormattedTextFragment::plain_text(tr_cached(Message::AiForMoreUsageSuffix)),
                     ]
                 }
             } else {
@@ -5350,7 +5350,7 @@ impl SettingsWidget for UsageWidget {
                 let upgrade_url = UserWorkspaces::upgrade_link(user_id);
                 vec![
                     FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgrade), upgrade_url),
-                    FormattedTextFragment::plain_text(" to get more AI usage."),
+                    FormattedTextFragment::plain_text(tr_cached(Message::AiToGetMoreUsageSuffix)),
                 ]
             };
 

@@ -441,9 +441,13 @@ where
     let items_vec: Vec<String> = items.into_iter().map(|item| item.to_string()).collect();
     if items_vec.is_empty() {
         return Container::new(
-            Text::new("None", appearance.ui_font_family(), 12.)
-                .with_color(appearance.theme().disabled_ui_text_color().into())
-                .finish(),
+            Text::new(
+                tr_cached(Message::AgentFilterNone),
+                appearance.ui_font_family(),
+                12.,
+            )
+            .with_color(appearance.theme().disabled_ui_text_color().into())
+            .finish(),
         )
         .finish();
     }
