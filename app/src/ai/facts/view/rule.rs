@@ -22,7 +22,6 @@ use warpui::{
 
 use super::{is_edit_allowed, is_syncing, style, AIFact, CloudAIFact, CloudAIFactModel};
 use crate::ai::facts::AIMemory;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{
@@ -33,6 +32,7 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
+use crate::i18n::{tr, tr_cached, Message};
 use crate::local_mode;
 use crate::network::NetworkStatus;
 use crate::search_bar::SearchBar;
@@ -48,17 +48,25 @@ use crate::workspace::ToastStack;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 pub const HEADER_TEXT: &str = "Rules";
-fn description_text() -> &'static str { tr_cached(Message::RulesEnhanceAgent) }
+fn description_text() -> &'static str {
+    tr_cached(Message::RulesEnhanceAgent)
+}
 
-fn search_placeholder_text() -> &'static str { tr_cached(Message::SearchRules) }
+fn search_placeholder_text() -> &'static str {
+    tr_cached(Message::SearchRules)
+}
 const ZERO_STATE_TEXT: &str =
     "Add a rule above, or drop one at ~/.agents/AGENTS.md to apply it across every project.";
 fn zero_state_text_project() -> &'static str {
     tr_cached(Message::RulesEmptyGenerateWarpMd)
 }
 
-fn disabled_banner_text() -> &'static str { tr_cached(Message::YourRulesAreDisabled) }
-fn disabled_banner_link_text() -> &'static str { tr_cached(Message::TurnItBackOn) }
+fn disabled_banner_text() -> &'static str {
+    tr_cached(Message::YourRulesAreDisabled)
+}
+fn disabled_banner_link_text() -> &'static str {
+    tr_cached(Message::TurnItBackOn)
+}
 const DISABLED_BANNER_TEXT_2: &str = " anytime.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -605,7 +613,8 @@ impl RuleView {
     }
 
     fn render_disabled_banner(&self, appearance: &Appearance) -> Box<dyn Element> {
-        let mut link = FormattedTextFragment::hyperlink(disabled_banner_link_text(), "Settings > AI");
+        let mut link =
+            FormattedTextFragment::hyperlink(disabled_banner_link_text(), "Settings > AI");
         link.styles.weight = Some(CustomWeight::Bold);
 
         let formatted_text = FormattedTextElement::new(

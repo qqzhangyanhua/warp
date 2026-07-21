@@ -6,9 +6,9 @@ use super::search_results_common::{
     render_collapsible_search_results, CollapsibleSearchResultsState,
 };
 use crate::ai::agent::icons::{failed_icon, yellow_running_icon};
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::WebSearchStatus;
 use crate::ai::blocklist::block::view_impl::WithContentItemSpacing;
+use crate::i18n::{tr_cached, Message};
 
 pub enum WebSearchViewEvent {}
 

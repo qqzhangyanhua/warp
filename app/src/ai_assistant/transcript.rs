@@ -52,11 +52,21 @@ const COPY_BUTTON_SIZE: f32 = 14.;
 const TERMINAL_INPUT_BUTTON_SIZE: f32 = 20.;
 const SAVE_AS_WORKFLOW_BUTTON_SIZE: f32 = 20.;
 
-fn how_do_i_fix_prompt() -> &'static str { tr_cached(Message::AiAssistantHowFix) }
-fn show_examples_prompt() -> &'static str { tr_cached(Message::AiAssistantShowExamples) }
-fn what_to_do_next_prompt() -> &'static str { tr_cached(Message::AiAssistantWhatNext) }
-fn in_flight_request_text() -> &'static str { tr_cached(Message::AiAssistantGeneratingAnswer) }
-fn accuracy_notice_text() -> &'static str { tr_cached(Message::AiAssistantAccuracyNotice) }
+fn how_do_i_fix_prompt() -> &'static str {
+    tr_cached(Message::AiAssistantHowFix)
+}
+fn show_examples_prompt() -> &'static str {
+    tr_cached(Message::AiAssistantShowExamples)
+}
+fn what_to_do_next_prompt() -> &'static str {
+    tr_cached(Message::AiAssistantWhatNext)
+}
+fn in_flight_request_text() -> &'static str {
+    tr_cached(Message::AiAssistantGeneratingAnswer)
+}
+fn accuracy_notice_text() -> &'static str {
+    tr_cached(Message::AiAssistantAccuracyNotice)
+}
 fn missing_context_notice_text() -> &'static str {
     tr_cached(Message::AiAssistantForgetNotice)
 }

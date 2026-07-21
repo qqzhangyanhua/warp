@@ -181,10 +181,7 @@ impl CloudSetupGuideView {
     }
 
     /// Render a plain step description (external docs links removed).
-    fn render_description(
-        prefix: &'static str,
-        appearance: &Appearance,
-    ) -> Box<dyn Element> {
+    fn render_description(prefix: &'static str, appearance: &Appearance) -> Box<dyn Element> {
         let step_desc_font_size = 14.;
 
         Flex::row()

@@ -35,8 +35,8 @@ use crate::ai::blocklist::agent_view::{
 use crate::ai::blocklist::history_model::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::changelog_model::{self, ChangelogModel};
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::terminal::event::BlockType;
 use crate::terminal::input::message_bar::common::render_standard_message;
@@ -409,8 +409,7 @@ impl View for AgentViewZeroStateBlock {
                 icon: Icon::OzCloud,
             }
         } else {
-            let mut local_description =
-                tr_cached(I18nMessage::AgentSendPromptToStart).to_owned();
+            let mut local_description = tr_cached(I18nMessage::AgentSendPromptToStart).to_owned();
             let active_session = self.active_session(app);
             let location_label = active_session.as_deref().and_then(|session| {
                 format_session_location(session, self.current_working_directory.as_deref())

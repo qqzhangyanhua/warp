@@ -64,11 +64,11 @@ use crate::ai::harness_display;
 use crate::app_state::PersistedAgentManagementFilters;
 use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys,
     PropagateHorizontalNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::notebooks::NotebookId;
 use crate::settings::ai::AISettings;
@@ -600,26 +600,32 @@ impl AgentManagementView {
         Self::setup_filter_menu(&mut dropdown, tr_cached(Message::AgentFilterCreatedOn), ctx);
 
         let items = vec![
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentMgmtAll)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::All),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentMgmtAll)).with_on_select_action(
+                    DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::All),
+                    ),
                 ),
-            )),
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentFilterLast24Hours)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::Last24Hours),
+            ),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentFilterLast24Hours))
+                    .with_on_select_action(DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::Last24Hours),
+                    )),
+            ),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentFilterPast3Days))
+                    .with_on_select_action(DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::Past3Days),
+                    )),
+            ),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentFilterLastWeek)).with_on_select_action(
+                    DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::LastWeek),
+                    ),
                 ),
-            )),
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentFilterPast3Days)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::Past3Days),
-                ),
-            )),
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentFilterLastWeek)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetCreatedOnFilter(CreatedOnFilter::LastWeek),
-                ),
-            )),
+            ),
         ];
 
         dropdown.set_rich_items(items, ctx);
@@ -631,34 +637,46 @@ impl AgentManagementView {
         ctx: &mut ViewContext<Dropdown<AgentManagementViewAction>>,
     ) -> Dropdown<AgentManagementViewAction> {
         let mut dropdown = Dropdown::new(ctx);
-        Self::setup_filter_menu(&mut dropdown, tr_cached(Message::AgentFilterHasArtifact), ctx);
+        Self::setup_filter_menu(
+            &mut dropdown,
+            tr_cached(Message::AgentFilterHasArtifact),
+            ctx,
+        );
 
         let items = vec![
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentMgmtAll)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::All),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentMgmtAll)).with_on_select_action(
+                    DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::All),
+                    ),
                 ),
-            )),
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentFilterPullRequest)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::PullRequest),
+            ),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentFilterPullRequest))
+                    .with_on_select_action(DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::PullRequest),
+                    )),
+            ),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentFilterPlan)).with_on_select_action(
+                    DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::Plan),
+                    ),
                 ),
-            )),
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentFilterPlan)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::Plan),
+            ),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentFilterScreenshot))
+                    .with_on_select_action(DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::Screenshot),
+                    )),
+            ),
+            MenuItem::Item(
+                MenuItemFields::new(tr_cached(Message::AgentFilterFile)).with_on_select_action(
+                    DropdownAction::select_action_and_close(
+                        AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::File),
+                    ),
                 ),
-            )),
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentFilterScreenshot)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::Screenshot),
-                ),
-            )),
-            MenuItem::Item(MenuItemFields::new(tr_cached(Message::AgentFilterFile)).with_on_select_action(
-                DropdownAction::select_action_and_close(
-                    AgentManagementViewAction::SetArtifactFilter(ArtifactFilter::File),
-                ),
-            )),
+            ),
         ];
 
         dropdown.set_rich_items(items, ctx);
@@ -1230,7 +1248,9 @@ impl AgentManagementView {
 
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(tr_cached(Message::ToastCopiedBranchName).to_string());
+                    let toast = DismissibleToast::default(
+                        tr_cached(Message::ToastCopiedBranchName).to_string(),
+                    );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }

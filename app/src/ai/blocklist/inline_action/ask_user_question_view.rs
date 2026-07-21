@@ -26,7 +26,6 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::ai::agent::icons::yellow_stop_icon;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{AIAgentActionId, AIAgentActionResult, AIAgentActionResultType};
@@ -50,6 +49,7 @@ use crate::ai::blocklist::inline_action::requested_action::CTRL_C_KEYSTROKE;
 use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::execution_profiles::AskUserQuestionPermission;
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::terminal::input::message_bar::common::{
     render_standard_message, standard_message_bar_height, styles,
 };

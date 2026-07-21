@@ -15,7 +15,6 @@ use warpui::{
 };
 
 use crate::ai::agent::SuggestedRule;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::facts::{AIFact, AIMemory, CloudAIFactModel};
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
@@ -25,6 +24,7 @@ use crate::editor::{
     EditorOptions, EditorView, EnterAction, EnterSettings, Event as EditorEvent, InteractionState,
     PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::modal::{Modal, ModalEvent};
 use crate::network::NetworkStatus;
 use crate::server::cloud_objects::update_manager::{

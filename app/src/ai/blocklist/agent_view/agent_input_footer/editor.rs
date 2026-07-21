@@ -10,12 +10,12 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View
 
 use super::toolbar_item::AgentToolbarItemKind;
 use crate::appearance::AppearanceEvent;
-use crate::i18n::{tr_cached, Message};
 use crate::chip_configurator::{
     render_chip_editor_modal, render_chip_editor_sections, ChipConfigurator,
     ChipConfiguratorAction, ChipConfiguratorLayout, ChipEditorModalConfig, ChipEditorMouseHandles,
     ChipEditorSectionsConfig,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::session_settings::{
     AgentToolbarChipSelection, CLIAgentToolbarChipSelection, SessionSettings,
     SessionSettingsChangedEvent, ToolbarChipSelection,

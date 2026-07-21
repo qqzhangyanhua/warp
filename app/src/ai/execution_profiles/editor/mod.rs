@@ -20,7 +20,6 @@ use warpui::{
 };
 
 use crate::ai::blocklist::BlocklistAIPermissions;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::execution_profiles::model_menu_items::available_model_menu_items;
 use crate::ai::execution_profiles::profiles::{
     AIExecutionProfilesModel, AIExecutionProfilesModelEvent, ClientProfileId,
@@ -36,6 +35,7 @@ use crate::ai::paths::host_native_absolute_path;
 use crate::editor::{
     EditorView, Event as EditorEvent, InteractionState, SingleLineEditorOptions, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::view;
 use crate::pane_group::{BackingView, PaneConfiguration, PaneEvent};

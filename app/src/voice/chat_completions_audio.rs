@@ -130,8 +130,7 @@ fn provider_error(status: StatusCode) -> TranscribeError {
 fn is_language_code(value: &str) -> bool {
     matches!(
         value,
-        "ar"
-            | "de"
+        "ar" | "de"
             | "en"
             | "es"
             | "fr"

@@ -34,10 +34,10 @@ use super::{
     ASK_AI_ASSISTANT_TEXT, PROMPT_CHARACTER_LIMIT,
 };
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::input_suggestions::{Event as InputSuggestionsEvent, InputSuggestions};
 use crate::send_telemetry_from_ctx;
 use crate::server::server_api::ai::AIClient;
@@ -70,15 +70,23 @@ const BODY_FONT_SIZE: f32 = 13.;
 const TITLE_FONT_SIZE: f32 = 16.;
 const ZERO_STATE_HELP_TEXT_FONT_SIZE: f32 = 12.;
 
-fn zero_state_help_text() -> &'static str { tr_cached(Message::AiAssistantHintShiftCtrlSpace) }
+fn zero_state_help_text() -> &'static str {
+    tr_cached(Message::AiAssistantHintShiftCtrlSpace)
+}
 const SCRIPT_ZERO_STATE_PROMPT: &str = "Write a script to connect to an AWS EC2 instance.";
 const GIT_ZERO_STATE_PROMPT: &str = "How do I undo the most recent commits in git?";
 const FILES_ZERO_STATE_PROMPT: &str = "How do I find all files containing specific text?";
 
 // The placeholder texts are prepended with a space to give them cushion from the cursor.
-fn init_placeholder_text() -> &'static str { tr_cached(Message::AiAssistantAskQuestion) }
-fn followup_placeholder_text() -> &'static str { tr_cached(Message::AiAssistantTypeResponse) }
-fn restart_button_text() -> &'static str { tr_cached(Message::AiAssistantRestart) }
+fn init_placeholder_text() -> &'static str {
+    tr_cached(Message::AiAssistantAskQuestion)
+}
+fn followup_placeholder_text() -> &'static str {
+    tr_cached(Message::AiAssistantTypeResponse)
+}
+fn restart_button_text() -> &'static str {
+    tr_cached(Message::AiAssistantRestart)
+}
 
 const ASK_AI_BLOCK_INPUT_LIMIT: usize = 100;
 

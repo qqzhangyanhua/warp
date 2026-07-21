@@ -52,9 +52,9 @@ use crate::ai::cloud_environments::{AmbientAgentEnvironment, CloudAmbientAgentEn
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::harness_display;
 use crate::appearance::Appearance;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::auth::UserUid;
 use crate::cloud_object::CloudObjectLookup as _;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::notebooks::NotebookId;
 use crate::send_telemetry_from_ctx;
 use crate::server::ids::{ServerId, SyncId};
@@ -831,7 +831,9 @@ impl ConversationDetailsPanel {
 
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(tr_cached(Message::ToastCopiedBranchName).to_string());
+                    let toast = DismissibleToast::default(
+                        tr_cached(Message::ToastCopiedBranchName).to_string(),
+                    );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
             }

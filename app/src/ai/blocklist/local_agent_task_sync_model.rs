@@ -12,9 +12,9 @@ use super::history_model::{
     BlocklistAIHistoryEvent, BlocklistAIHistoryModel, ConversationStatusUpdate,
 };
 use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::{AIAgentOutputStatus, FinishedAIAgentOutput, RenderableAIError};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
+use crate::i18n::{tr_cached, Message};
 use crate::server::server_api::ai::{AIClient, TaskStatusUpdate};
 use crate::server::server_api::ServerApiProvider;
 use crate::terminal::cli_agent_sessions::{
@@ -418,7 +418,9 @@ fn map_conversation_status(
         }
         ConversationStatus::Cancelled => (
             AgentTaskState::Cancelled,
-            Some(TaskStatusUpdate::message(tr_cached(Message::CancelledByUser))),
+            Some(TaskStatusUpdate::message(tr_cached(
+                Message::CancelledByUser,
+            ))),
         ),
         ConversationStatus::Blocked { blocked_action } => (
             AgentTaskState::Blocked,
@@ -461,9 +463,9 @@ pub(crate) fn classify_renderable_error(
         } => (
             AgentTaskState::Failed,
             Some(TaskStatusUpdate::with_error_code(
-                user_display_message.as_deref().unwrap_or_else(|| {
-                    tr_cached(Message::TeamOutOfCreditsPurchase)
-                }),
+                user_display_message
+                    .as_deref()
+                    .unwrap_or_else(|| tr_cached(Message::TeamOutOfCreditsPurchase)),
                 PlatformErrorCode::InsufficientCredits,
             )),
         ),

@@ -47,7 +47,6 @@ use super::view_impl::common::{
 use super::view_impl::output::are_all_text_sections_empty;
 use super::{EmbeddedCodeEditorView, SecretRedactionState, TableSectionHandles};
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::icons::yellow_stop_icon;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{
@@ -55,12 +54,12 @@ use crate::ai::agent::{
     AIAgentText, AIAgentTextSection, CancellationReason, ProgrammingLanguage, WebSearchStatus,
 };
 use crate::ai::blocklist::block::view_impl::common::{
-    render_query_text, UserQueryProps, blocked_action_message_for_grep_or_file_glob,
-    blocked_action_message_for_reading_files, blocked_action_message_for_searching_codebase,
+    blocked_action_message_for_grep_or_file_glob, blocked_action_message_for_reading_files,
+    blocked_action_message_for_searching_codebase,
     blocked_action_message_for_write_to_long_running_shell_command,
     load_output_message_for_file_glob, load_output_message_for_grep,
     load_output_message_for_reading_files, load_output_message_for_search_codebase,
-    load_output_message_for_web_search,
+    load_output_message_for_web_search, render_query_text, UserQueryProps,
 };
 use crate::ai::blocklist::block::TextLocation;
 use crate::ai::blocklist::code_block::CodeSnippetButtonHandles;
@@ -76,6 +75,7 @@ use crate::ai::execution_profiles::profiles::{
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorRenderOptions, CodeEditorView};
 use crate::code::editor_management::CodeSource;
 use crate::editor::InteractionState;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItemFields, MenuVariant};
 use crate::server::telemetry::TelemetryEvent;
 use crate::settings::AISettings;
@@ -1472,7 +1472,10 @@ impl TypedActionView for CLISubagentView {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success(crate::i18n::tr_cached(crate::i18n::Message::ToastCopiedToClipboard).to_string()),
+                        DismissibleToast::success(
+                            crate::i18n::tr_cached(crate::i18n::Message::ToastCopiedToClipboard)
+                                .to_string(),
+                        ),
                         window_id,
                         ctx,
                     );
@@ -1571,9 +1574,13 @@ fn get_action_loading_text(action: AIAgentActionType) -> Option<String> {
         AIAgentActionType::SearchCodebase(_) => {
             Some(load_output_message_for_search_codebase().to_string())
         }
-        AIAgentActionType::ReadFiles(_) => Some(load_output_message_for_reading_files().to_string()),
+        AIAgentActionType::ReadFiles(_) => {
+            Some(load_output_message_for_reading_files().to_string())
+        }
         AIAgentActionType::Grep { .. } => Some(load_output_message_for_grep().to_string()),
-        AIAgentActionType::FileGlobV2 { .. } => Some(load_output_message_for_file_glob().to_string()),
+        AIAgentActionType::FileGlobV2 { .. } => {
+            Some(load_output_message_for_file_glob().to_string())
+        }
         _ => None,
     }
 }

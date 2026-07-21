@@ -25,7 +25,6 @@ use super::{
     TemplatableMCPServerManagerEvent,
 };
 use crate::ai::mcp::file_based_manager::FileBasedMCPManagerEvent;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::mcp::parsing::resolve_json;
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, GalleryData};
 use crate::ai::mcp::templatable_installation::VariableValue;
@@ -42,6 +41,7 @@ use crate::cloud_object::{
     CloudObjectUuidLookup as _, GenericStringObjectFormat, JsonObjectType, Space,
 };
 use crate::drive::CloudObjectTypeAndId;
+use crate::i18n::{tr_cached, Message};
 use crate::persistence::{
     database_file_path_for_current_scope, establish_ro_connection, ModelEvent,
 };
@@ -812,8 +812,7 @@ impl TemplatableMCPServerManager {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                tr_cached(Message::ToastMcpPathRequired)
-                                    .to_string(),
+                                tr_cached(Message::ToastMcpPathRequired).to_string(),
                             ),
                             window_id,
                             ctx,
@@ -936,7 +935,11 @@ impl TemplatableMCPServerManager {
                                     manager.pending_oauth_csrf.insert(csrf_state, uuid);
                                 }
                                 ctx.open_url(&auth_url);
-                                manager.change_server_state(uuid, MCPServerState::Authenticating, ctx);
+                                manager.change_server_state(
+                                    uuid,
+                                    MCPServerState::Authenticating,
+                                    ctx,
+                                );
                             })
                             .await
                             .map_err(|err| {

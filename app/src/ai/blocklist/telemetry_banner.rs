@@ -7,8 +7,8 @@ use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity, View, ViewContext};
 
-use crate::settings_view::SettingsSection;
 use crate::i18n::{tr_cached, Message};
+use crate::settings_view::SettingsSection;
 use crate::terminal::view::TerminalAction;
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;

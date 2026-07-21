@@ -4,9 +4,9 @@ use ai::api_keys::{ApiKeyManager, ApiKeys, VoiceTranscriptionConfigError};
 use async_trait::async_trait;
 use warpui::{AppContext, Entity, SingletonEntity};
 
-use crate::server::server_api::TranscribeError;
 #[cfg(feature = "voice_input")]
 use crate::i18n::{tr_cached, Message};
+use crate::server::server_api::TranscribeError;
 use crate::voice::chat_completions_audio::ChatCompletionsAudioTranscriber;
 
 /// Interface for transcribing voice input.
@@ -104,14 +104,10 @@ pub fn provider_error_message(error: &TranscribeError) -> Option<&'static str> {
         TranscribeError::ProviderAuthentication => {
             Some(tr_cached(Message::VoiceProviderAuthFailed))
         }
-        TranscribeError::ProviderModelNotFound => {
-            Some(tr_cached(Message::VoiceModelNotFound))
-        }
+        TranscribeError::ProviderModelNotFound => Some(tr_cached(Message::VoiceModelNotFound)),
         TranscribeError::ProviderRateLimit => Some(tr_cached(Message::VoiceProviderRateLimit)),
         TranscribeError::ProviderServer => Some(tr_cached(Message::VoiceProviderUnavailable)),
-        TranscribeError::ProviderRejected => {
-            Some(tr_cached(Message::VoiceProviderRejected))
-        }
+        TranscribeError::ProviderRejected => Some(tr_cached(Message::VoiceProviderRejected)),
         TranscribeError::ProviderTransport(_) => Some(tr_cached(Message::VoiceProviderUnreachable)),
         TranscribeError::RecordingTooLong => Some(tr_cached(Message::VoiceRecordingTooLong)),
         _ => None,

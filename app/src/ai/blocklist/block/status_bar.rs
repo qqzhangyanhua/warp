@@ -24,9 +24,9 @@ use warpui::{
 use super::cli_controller::{CLISubagentController, CLISubagentEvent, UserTakeOverReason};
 use super::model::{AIBlockModel, AIBlockModelImpl, AIBlockOutputStatus};
 use super::view_impl::common::{
-    render_switch_control_to_user_button, render_warping_indicator, render_warping_indicator_base,
-    AutoExecuteButtonProps, ButtonProps, ForceRefreshButtonProps, MaybeShimmeringText,
-    WarpingIndicatorProps, WarpingProps, load_output_message, waiting_for_user_input_message,
+    load_output_message, render_switch_control_to_user_button, render_warping_indicator,
+    render_warping_indicator_base, waiting_for_user_input_message, AutoExecuteButtonProps,
+    ButtonProps, ForceRefreshButtonProps, MaybeShimmeringText, WarpingIndicatorProps, WarpingProps,
 };
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{

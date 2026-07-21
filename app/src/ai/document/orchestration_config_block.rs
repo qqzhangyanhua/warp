@@ -23,7 +23,6 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::inline_action::create_environment_modal::{
     CreateEnvironmentModal, CreateEnvironmentModalEvent,
 };
@@ -46,6 +45,7 @@ use crate::ai::harness_availability::{
 };
 use crate::ai::llms::{LLMPreferences, LLMPreferencesEvent};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::blended_colors;
 use crate::workspace::WorkspaceAction;
 use crate::BlocklistAIHistoryModel;

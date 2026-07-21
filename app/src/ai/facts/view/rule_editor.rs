@@ -15,7 +15,6 @@ use warpui::{
 
 use super::{is_delete_allowed, style, AIFact, CloudAIFact, CloudAIFactModel};
 use crate::ai::facts::AIMemory;
-use crate::i18n::{tr, Message};
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObject, Revision};
@@ -23,6 +22,7 @@ use crate::editor::{
     EditorOptions, EditorView, EnterAction, EnterSettings, Event as EditorEvent,
     PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
+use crate::i18n::{tr, Message};
 use crate::network::NetworkStatus;
 use crate::server::ids::SyncId;
 use crate::ui_components::buttons::icon_button;

@@ -78,11 +78,11 @@ use crate::ai::skills::{
     SkillOpenOrigin, SkillReference, SkillTelemetryEvent,
 };
 use crate::code::diff_viewer::{DiffViewer, DisplayMode};
-use crate::i18n::{tr, tr_cached, Message};
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorRenderOptions, CodeEditorView};
 use crate::code::editor::{add_color, remove_color};
 use crate::code::inline_diff::{InlineDiffView, InlineDiffViewEvent};
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItemFields, MenuVariant};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::{view, PaneId};
@@ -108,16 +108,36 @@ use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
 use crate::{cmd_or_ctrl_shift, send_telemetry_from_ctx, TelemetryEvent};
 
-fn requested_edit_cancel_label() -> &'static str { tr_cached(Message::CommonCancel) }
-fn requested_edit_refine_label() -> &'static str { tr_cached(Message::RequestedEditRefine) }
-fn requested_edit_accept_label() -> &'static str { tr_cached(Message::BlockAccept) }
-fn requested_edit_accept_and_autoexecute_label() -> &'static str { tr_cached(Message::BlockAutoApprove) }
-fn requested_edit_edit_label() -> &'static str { tr_cached(Message::RequestedCommandEdit) }
-fn requested_edit_minimize_label() -> &'static str { tr_cached(Message::RequestedCommandDone) }
-fn suggested_edit_accept_label() -> &'static str { tr_cached(Message::BlockAccept) }
-fn suggested_edit_accept_and_continue_label() -> &'static str { tr_cached(Message::AcceptAndContinueWithAgent) }
-fn suggested_edit_iterate_with_agent_label() -> &'static str { tr_cached(Message::IterateWithAgent) }
-fn suggested_edit_dismiss_label() -> &'static str { tr_cached(Message::Dismiss) }
+fn requested_edit_cancel_label() -> &'static str {
+    tr_cached(Message::CommonCancel)
+}
+fn requested_edit_refine_label() -> &'static str {
+    tr_cached(Message::RequestedEditRefine)
+}
+fn requested_edit_accept_label() -> &'static str {
+    tr_cached(Message::BlockAccept)
+}
+fn requested_edit_accept_and_autoexecute_label() -> &'static str {
+    tr_cached(Message::BlockAutoApprove)
+}
+fn requested_edit_edit_label() -> &'static str {
+    tr_cached(Message::RequestedCommandEdit)
+}
+fn requested_edit_minimize_label() -> &'static str {
+    tr_cached(Message::RequestedCommandDone)
+}
+fn suggested_edit_accept_label() -> &'static str {
+    tr_cached(Message::BlockAccept)
+}
+fn suggested_edit_accept_and_continue_label() -> &'static str {
+    tr_cached(Message::AcceptAndContinueWithAgent)
+}
+fn suggested_edit_iterate_with_agent_label() -> &'static str {
+    tr_cached(Message::IterateWithAgent)
+}
+fn suggested_edit_dismiss_label() -> &'static str {
+    tr_cached(Message::Dismiss)
+}
 const MAX_EDITOR_HEIGHT: f32 = 500.;
 const INLINE_EDITOR_HEIGHT: f32 = 94.;
 const INLINE_EDITOR_HEIGHT_EXPANDED: f32 = 400.;
@@ -1053,7 +1073,9 @@ impl CodeDiffView {
                     .unwrap_or_else(|| "file".to_string());
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(tr_cached(Message::ToastFailedRevertChanges).replace("{}", &file_name)),
+                        DismissibleToast::error(
+                            tr_cached(Message::ToastFailedRevertChanges).replace("{}", &file_name),
+                        ),
                         window_id,
                         ctx,
                     );

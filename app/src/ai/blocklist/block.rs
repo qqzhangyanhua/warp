@@ -86,7 +86,6 @@ use super::{
     BlocklistAIHistoryModel, BlocklistAIPermissions, ResponseStreamId,
 };
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::redaction::redact_secrets;
 use crate::ai::agent::telemetry::ForTelemetry as _;
 use crate::ai::agent::{
@@ -164,6 +163,7 @@ use crate::code_review::comments::{
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::code_review::CodeReviewTelemetryEvent;
 use crate::editor::InteractionState;
+use crate::i18n::{tr_cached, Message};
 use crate::notebooks::editor::model::FileLinkResolutionContext;
 use crate::notebooks::editor::view::{EditorViewEvent, RichTextEditorView};
 use crate::server::ids::SyncId;
@@ -1406,20 +1406,26 @@ impl AIBlock {
         });
 
         let dismiss_suggestion_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new(tr_cached(Message::AuthDismiss), SuggestionDismissButtonTheme)
-                .with_icon(Icon::X)
-                .with_size(ButtonSize::Small)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(AIBlockAction::DismissSuggestionsSection);
-                })
+            ActionButton::new(
+                tr_cached(Message::AuthDismiss),
+                SuggestionDismissButtonTheme,
+            )
+            .with_icon(Icon::X)
+            .with_size(ButtonSize::Small)
+            .on_click(|ctx| {
+                ctx.dispatch_typed_action(AIBlockAction::DismissSuggestionsSection);
+            })
         });
 
         let disable_rule_suggestions_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new(tr_cached(Message::BlockDontShowAgain), SuggestionDismissButtonTheme)
-                .with_size(ButtonSize::Small)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(AIBlockAction::DisableRuleSuggestions);
-                })
+            ActionButton::new(
+                tr_cached(Message::BlockDontShowAgain),
+                SuggestionDismissButtonTheme,
+            )
+            .with_size(ButtonSize::Small)
+            .on_click(|ctx| {
+                ctx.dispatch_typed_action(AIBlockAction::DisableRuleSuggestions);
+            })
         });
 
         let ai_block_view_id = ctx.view_id();
@@ -6379,7 +6385,9 @@ impl TypedActionView for AIBlock {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success(tr_cached(Message::ToastCopiedToClipboard).to_string()),
+                        DismissibleToast::success(
+                            tr_cached(Message::ToastCopiedToClipboard).to_string(),
+                        ),
                         window_id,
                         ctx,
                     );
@@ -6685,8 +6693,9 @@ impl TypedActionView for AIBlock {
 
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast =
-                        DismissibleToast::default(tr_cached(Message::ToastThankYouFeedback).to_string());
+                    let toast = DismissibleToast::default(
+                        tr_cached(Message::ToastThankYouFeedback).to_string(),
+                    );
                     toast_stack.add_ephemeral_toast(toast, window_id, ctx);
                 });
 

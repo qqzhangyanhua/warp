@@ -14,11 +14,11 @@ use warpui::{
 };
 
 use crate::ai::blocklist::block::view_impl::common::render_user_avatar;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::block::view_impl::{
     CONTENT_HORIZONTAL_PADDING, CONTENT_ITEM_VERTICAL_MARGIN,
 };
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::block_list_element::BlockListMenuSource;
 use crate::terminal::view::TerminalAction;
 use crate::ui_components::blended_colors;

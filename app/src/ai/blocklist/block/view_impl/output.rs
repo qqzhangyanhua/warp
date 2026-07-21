@@ -52,7 +52,6 @@ use super::{
     render_citation_chips, WithContentItemSpacing, CONTENT_HORIZONTAL_PADDING,
     CONTENT_ITEM_VERTICAL_MARGIN,
 };
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::comment::ReviewComment;
 use crate::ai::agent::conversation::{RecordingSpanInfo, RecordingSpanStatus};
@@ -72,8 +71,8 @@ use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::action_model::AIActionStatus;
 use crate::ai::blocklist::block::model::{AIBlockModel, AIBlockModelHelper, AIBlockOutputStatus};
 use crate::ai::blocklist::block::view_impl::common::{
-    MaybeShimmeringText, blocked_action_message_for_grep_or_file_glob,
-    blocked_action_message_for_reading_files, blocked_action_message_for_searching_codebase,
+    blocked_action_message_for_grep_or_file_glob, blocked_action_message_for_reading_files,
+    blocked_action_message_for_searching_codebase, MaybeShimmeringText,
 };
 use crate::ai::blocklist::block::{
     AIBlock, AIBlockAction, AIBlockStateHandles, ActionButtons, AutonomySettingSpeedbump,
@@ -111,6 +110,7 @@ use crate::ai::skills::{
 use crate::appearance::Appearance;
 use crate::code::diff_viewer::DisplayMode;
 use crate::code::editor_management::CodeSource;
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::SettingsSection;
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::input::slash_commands::fork_button_action;
@@ -130,7 +130,9 @@ use crate::view_components::compactible_action_button::{
 use crate::workspace::WorkspaceAction;
 use crate::{AIAgentTodoList, FeatureFlag};
 
-fn blocked_action_message_for_uploading_artifact() -> &'static str { tr_cached(Message::AgentBlockedUploadArtifact) }
+fn blocked_action_message_for_uploading_artifact() -> &'static str {
+    tr_cached(Message::AgentBlockedUploadArtifact)
+}
 
 /// Data required to render the AI block output component.
 #[derive(Copy, Clone)]

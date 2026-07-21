@@ -16,8 +16,8 @@ use warpui::{AppContext, Element, SingletonEntity};
 use crate::ai::blocklist::agent_view::{
     ENTER_AGENT_VIEW_NEW_CONVERSATION_KEYSTROKE, ENTER_CLOUD_AGENT_VIEW_NEW_CONVERSATION_KEYSTROKE,
 };
-use crate::i18n::{tr_cached, Message};
 use crate::cmd_or_ctrl_shift;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::{self, TOGGLE_AUTOEXECUTE_MODE_KEYBINDING};
 use crate::ui_components::blended_colors;
 use crate::util::bindings::keybinding_name_to_keystroke;

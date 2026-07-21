@@ -11,9 +11,9 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 use super::execution_context::WarpAiExecutionContext;
 use super::utils::{markdown_segments_from_text, FormattedTranscriptMessage, TranscriptPart};
 use crate::ai::{RequestLimitInfo, RequestUsageInfo};
-use crate::i18n::{tr_cached, Message};
 use crate::ai_assistant::utils::{AssistantTranscriptPart, TranscriptPartSubType};
 use crate::auth::AuthStateProvider;
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::server_api::ai::AIClient;
 use crate::server::server_api::ServerApi;
@@ -184,9 +184,12 @@ impl Requests {
         let future_handle = ctx.spawn(
             async move {
                 let start_time = Utc::now();
-                (start_time, server_api
-                    .generate_dialogue_answer(transcript, request_for_api, ai_execution_context)
-                    .await)
+                (
+                    start_time,
+                    server_api
+                        .generate_dialogue_answer(transcript, request_for_api, ai_execution_context)
+                        .await,
+                )
             },
             move |model, (start_time, response), ctx| {
                 let succeeded = response.is_ok();
@@ -215,7 +218,10 @@ impl Requests {
                                 user: request,
                                 assistant: AssistantTranscriptPart {
                                     is_error: false,
-                                    copy_all_tooltip_and_button_mouse_handles: Some((Default::default(), Default::default())),
+                                    copy_all_tooltip_and_button_mouse_handles: Some((
+                                        Default::default(),
+                                        Default::default(),
+                                    )),
                                     formatted_message: FormattedTranscriptMessage {
                                         markdown: response_in_markdown,
                                         raw: trimmed_response.to_string(),
@@ -230,41 +236,62 @@ impl Requests {
                             // it will remain so until it's reset.
                             model.current_transcript_summarized |= transcript_summarized;
 
-
-                            let req_latency = end_time.signed_duration_since(start_time).num_milliseconds();
+                            let req_latency = end_time
+                                .signed_duration_since(start_time)
+                                .num_milliseconds();
                             send_telemetry_from_ctx!(
-                                TelemetryEvent::WarpAIRequestIssued { result: WarpAIRequestResult::Succeeded { latency_ms: req_latency, truncated }},
+                                TelemetryEvent::WarpAIRequestIssued {
+                                    result: WarpAIRequestResult::Succeeded {
+                                        latency_ms: req_latency,
+                                        truncated
+                                    }
+                                },
                                 ctx
                             );
                         }
-                        Ok(GenerateDialogueResult::Failure { request_limit_info }) if request_limit_info.limit <= request_limit_info.num_requests_used_since_refresh => {
+                        Ok(GenerateDialogueResult::Failure { request_limit_info })
+                            if request_limit_info.limit
+                                <= request_limit_info.num_requests_used_since_refresh =>
+                        {
                             cache_request_limit_info(request_limit_info, ctx);
                             model.request_limit_info = request_limit_info;
-                            let next_time = if let Some(next_refresh_time) = model.serialized_time_until_refresh() {
+                            let next_time = if let Some(next_refresh_time) =
+                                model.serialized_time_until_refresh()
+                            {
                                 format!("after {next_refresh_time}")
                             } else {
                                 String::from("later")
                             };
 
                             let auth_state = AuthStateProvider::as_ref(ctx).get();
-                            let response = if let Some(team) = UserWorkspaces::as_ref(ctx).current_team() {
-                                let current_user_email = auth_state.user_email().unwrap_or_default();
-                                let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-                                if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
-                                    if has_admin_permissions {
-                                        let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
-                                        tr_cached(Message::AiAssistantOutOfCreditsUpgrade).replacen("{}", &next_time, 1).replacen("{}", &upgrade_url, 1)
+                            let response =
+                                if let Some(team) = UserWorkspaces::as_ref(ctx).current_team() {
+                                    let current_user_email =
+                                        auth_state.user_email().unwrap_or_default();
+                                    let has_admin_permissions =
+                                        team.has_admin_permissions(&current_user_email);
+                                    if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
+                                        if has_admin_permissions {
+                                            let upgrade_url =
+                                                UserWorkspaces::upgrade_link_for_team(team.uid);
+                                            tr_cached(Message::AiAssistantOutOfCreditsUpgrade)
+                                                .replacen("{}", &next_time, 1)
+                                                .replacen("{}", &upgrade_url, 1)
+                                        } else {
+                                            tr_cached(Message::AiAssistantOutOfCreditsContactAdmin)
+                                                .replace("{}", &next_time)
+                                        }
                                     } else {
-                                        tr_cached(Message::AiAssistantOutOfCreditsContactAdmin).replace("{}", &next_time)
+                                        tr_cached(Message::AiAssistantOutOfCreditsRetry)
+                                            .replace("{}", &next_time)
                                     }
                                 } else {
-                                    tr_cached(Message::AiAssistantOutOfCreditsRetry).replace("{}", &next_time)
-                                }
-                            } else {
-                                let user_id = auth_state.user_id().unwrap_or_default();
-                                let upgrade_url = UserWorkspaces::upgrade_link(user_id);
-                                tr_cached(Message::AiAssistantOutOfCreditsUpgrade).replacen("{}", &next_time, 1).replacen("{}", &upgrade_url, 1)
-                            };
+                                    let user_id = auth_state.user_id().unwrap_or_default();
+                                    let upgrade_url = UserWorkspaces::upgrade_link(user_id);
+                                    tr_cached(Message::AiAssistantOutOfCreditsUpgrade)
+                                        .replacen("{}", &next_time, 1)
+                                        .replacen("{}", &upgrade_url, 1)
+                                };
                             let response_in_markdown = markdown_segments_from_text(
                                 transcript_part_index,
                                 TranscriptPartSubType::Answer,
@@ -283,12 +310,15 @@ impl Requests {
                             });
 
                             send_telemetry_from_ctx!(
-                                TelemetryEvent::WarpAIRequestIssued { result: WarpAIRequestResult::OutOfRequests},
+                                TelemetryEvent::WarpAIRequestIssued {
+                                    result: WarpAIRequestResult::OutOfRequests
+                                },
                                 ctx
                             );
                         }
                         _ => {
-                            let response = tr_cached(Message::AiAssistantTechnicalDifficulties).to_owned();
+                            let response =
+                                tr_cached(Message::AiAssistantTechnicalDifficulties).to_owned();
                             let response_in_markdown = markdown_segments_from_text(
                                 transcript_part_index,
                                 TranscriptPartSubType::Answer,
@@ -307,7 +337,9 @@ impl Requests {
                             });
 
                             send_telemetry_from_ctx!(
-                                TelemetryEvent::WarpAIRequestIssued { result: WarpAIRequestResult::Failed},
+                                TelemetryEvent::WarpAIRequestIssued {
+                                    result: WarpAIRequestResult::Failed
+                                },
                                 ctx
                             );
                         }

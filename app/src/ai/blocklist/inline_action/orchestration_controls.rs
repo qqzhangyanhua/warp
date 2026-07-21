@@ -31,7 +31,6 @@ use warpui::{
 };
 
 use crate::ai::auth_secret_types::auth_secret_types_for_harness;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::inline_action::host_picker::HostPicker;
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
@@ -46,6 +45,7 @@ use crate::ai::local_harness_setup::{
 };
 use crate::appearance::Appearance;
 use crate::cloud_object::CloudObjectLookup as _;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
@@ -63,7 +63,9 @@ const DEFAULT_HOST_ENV_VAR: &str = "WARP_CLOUD_MODE_DEFAULT_HOST";
 // ── Shared constants ────────────────────────────────────────────────
 
 pub const ORCHESTRATION_WARP_WORKER_HOST: &str = WARP_WORKER_HOST;
-pub fn orchestration_env_none_label() -> &'static str { tr_cached(Message::EmptyEnvironment) }
+pub fn orchestration_env_none_label() -> &'static str {
+    tr_cached(Message::EmptyEnvironment)
+}
 
 pub const ORCHESTRATION_PICKER_HEIGHT: f32 = 36.;
 pub const ORCHESTRATION_PICKER_BORDER_WIDTH: f32 = 1.;
@@ -71,16 +73,22 @@ pub const ORCHESTRATION_PICKER_FONT_SIZE: f32 = 14.;
 pub const ORCHESTRATION_PICKER_RADIUS: f32 = 4.;
 pub const ORCHESTRATION_PICKER_MAX_WIDTH: f32 = 205.;
 
-fn default_model_label() -> &'static str { tr_cached(Message::DefaultModel) }
+fn default_model_label() -> &'static str {
+    tr_cached(Message::DefaultModel)
+}
 const ORCHESTRATION_SEGMENTED_CONTROL_PADDING: f32 = 4.;
 const ORCHESTRATION_SEGMENT_VERTICAL_PADDING: f32 = 4.;
 
 /// Label shown in the auth secret picker when no secret is selected
 /// (the child agent will inherit credentials from its environment).
-fn auth_secret_inherit_label() -> &'static str { tr_cached(Message::SkipAdvanced) }
+fn auth_secret_inherit_label() -> &'static str {
+    tr_cached(Message::SkipAdvanced)
+}
 /// Label for the auth secret column.
 pub const AUTH_SECRET_COLUMN_LABEL: &str = "API key";
-fn auth_secret_create_new_label() -> &'static str { tr_cached(Message::NewApiKeyEllipsis) }
+fn auth_secret_create_new_label() -> &'static str {
+    tr_cached(Message::NewApiKeyEllipsis)
+}
 
 // ── Action trait ────────────────────────────────────────────────────
 
@@ -1234,12 +1242,14 @@ pub fn populate_auth_secret_picker_for_harness<A: OrchestrationControlAction, V:
             }
             AuthSecretFetchState::NotFetched | AuthSecretFetchState::Loading => {
                 items.push(MenuItem::Item(
-                    MenuItemFields::new(tr_cached(Message::CommonLoadingEllipsis)).with_disabled(true),
+                    MenuItemFields::new(tr_cached(Message::CommonLoadingEllipsis))
+                        .with_disabled(true),
                 ));
             }
             AuthSecretFetchState::Failed(_) => {
                 items.push(MenuItem::Item(
-                    MenuItemFields::new(tr_cached(Message::CommonUnableToLoadSecrets)).with_disabled(true),
+                    MenuItemFields::new(tr_cached(Message::CommonUnableToLoadSecrets))
+                        .with_disabled(true),
                 ));
             }
         }

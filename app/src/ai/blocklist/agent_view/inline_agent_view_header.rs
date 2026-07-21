@@ -9,23 +9,35 @@ use warpui::{
 };
 
 use crate::ai::agent::icons;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::block::cli_controller::LongRunningCommandControlState;
 use crate::ai::blocklist::inline_action::inline_action_header::HeaderConfig;
 use crate::ai::blocklist::{
     BlocklistAIActionModel, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::model::session::Sessions;
 use crate::terminal::TerminalModel;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
 
-fn agent_prompt_to_interact_message() -> &'static str { tr_cached(Message::AgentPromptToInteract) }
-fn agent_waiting_on_instructions_message() -> &'static str { tr_cached(Message::AgentWaitingOnInstructions) }
-fn agent_waiting_for_command_to_exit_message() -> &'static str { tr_cached(Message::AgentWaitingForCommandExit) }
-fn agent_blocked_message() -> &'static str { tr_cached(Message::AgentNeedsPermissionContinue) }
-fn agent_in_control_message() -> &'static str { tr_cached(Message::AgentIsInControl) }
-fn user_in_control_message() -> &'static str { tr_cached(Message::UserInControl) }
+fn agent_prompt_to_interact_message() -> &'static str {
+    tr_cached(Message::AgentPromptToInteract)
+}
+fn agent_waiting_on_instructions_message() -> &'static str {
+    tr_cached(Message::AgentWaitingOnInstructions)
+}
+fn agent_waiting_for_command_to_exit_message() -> &'static str {
+    tr_cached(Message::AgentWaitingForCommandExit)
+}
+fn agent_blocked_message() -> &'static str {
+    tr_cached(Message::AgentNeedsPermissionContinue)
+}
+fn agent_in_control_message() -> &'static str {
+    tr_cached(Message::AgentIsInControl)
+}
+fn user_in_control_message() -> &'static str {
+    tr_cached(Message::UserInControl)
+}
 
 /// A header rendered as rich content above the active block when Agent View is in inline mode.
 pub struct InlineAgentViewHeader {

@@ -19,9 +19,9 @@ use warpui::{
 
 use super::{AgentViewController, AgentViewEntryOrigin};
 use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::BlocklistAIHistoryEvent;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::BlockListSettings;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icon_with_status::{render_icon_with_status, IconWithStatusVariant};
@@ -487,7 +487,8 @@ impl TypedActionView for AgentViewEntryBlock {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    tr_cached(Message::ToastCouldntNavigateConversation).to_string(),
+                                    tr_cached(Message::ToastCouldntNavigateConversation)
+                                        .to_string(),
                                 ),
                                 window_id,
                                 ctx,

@@ -15,17 +15,31 @@ use crate::terminal::view::{InlineBannerId, TerminalAction};
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
 
-fn speedbump_header() -> &'static str { tr_cached(Message::IndexCodebaseQuestion) }
-fn speedbump_text() -> &'static str { tr_cached(Message::IndexCodebaseHelp) }
+fn speedbump_header() -> &'static str {
+    tr_cached(Message::IndexCodebaseQuestion)
+}
+fn speedbump_text() -> &'static str {
+    tr_cached(Message::IndexCodebaseHelp)
+}
 /// Uniform padding around the banner
 const PADDING: f32 = 12.;
 /// Text for the button that allows execution
-fn allow_button_text() -> &'static str { tr_cached(Message::IndexCodebase) }
-fn allow_settings_text() -> &'static str { tr_cached(Message::AllowAutomaticIndexing) }
-fn dismiss_forever_button_text() -> &'static str { tr_cached(Message::DontShowAgain) }
+fn allow_button_text() -> &'static str {
+    tr_cached(Message::IndexCodebase)
+}
+fn allow_settings_text() -> &'static str {
+    tr_cached(Message::AllowAutomaticIndexing)
+}
+fn dismiss_forever_button_text() -> &'static str {
+    tr_cached(Message::DontShowAgain)
+}
 
-fn indexing_header() -> &'static str { tr_cached(Message::IndexingCodebase) }
-fn view_status_button_text() -> &'static str { tr_cached(Message::ViewStatus) }
+fn indexing_header() -> &'static str {
+    tr_cached(Message::IndexingCodebase)
+}
+fn view_status_button_text() -> &'static str {
+    tr_cached(Message::ViewStatus)
+}
 
 #[derive(PartialEq, Clone)]
 pub enum VisibilityState {

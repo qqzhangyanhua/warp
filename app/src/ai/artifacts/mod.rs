@@ -12,10 +12,10 @@ use warpui::SingletonEntity;
 
 #[cfg(feature = "local_fs")]
 use crate::ai::artifact_download::default_download_filename;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::artifact_download::sanitized_basename;
 #[cfg(feature = "local_fs")]
 use crate::ai::artifact_download::{default_download_directory, download_artifact_bytes};
+use crate::i18n::{tr_cached, Message};
 use crate::notebooks::NotebookId;
 use crate::server::server_api::ai::ArtifactDownloadResponse;
 use crate::server::server_api::ServerApiProvider;
@@ -389,7 +389,9 @@ pub fn download_file_artifact<V: warpui::View>(
                 log::warn!("Failed to load file artifact {artifact_uid}: {error}");
                 show_file_download_toast(
                     &artifact_uid,
-                    DismissibleToast::error(tr_cached(Message::ToastFailedPrepareDownload).to_string()),
+                    DismissibleToast::error(
+                        tr_cached(Message::ToastFailedPrepareDownload).to_string(),
+                    ),
                     ctx,
                 );
             }
@@ -460,7 +462,7 @@ fn open_file_download_picker<V: warpui::View>(
                             &artifact_uid,
                             DismissibleToast::error(
                                 tr_cached(Message::ToastFailedDownloadFile)
-                                    .replace("{}", &toast_filename)
+                                    .replace("{}", &toast_filename),
                             ),
                             ctx,
                         );
@@ -528,7 +530,9 @@ fn file_download_success_toast(
     file_path: &Path,
 ) -> DismissibleToast<WorkspaceAction> {
     let Some(directory) = file_path.parent() else {
-        return DismissibleToast::success(tr_cached(Message::ToastDownloadedFile).replace("{}", filename));
+        return DismissibleToast::success(
+            tr_cached(Message::ToastDownloadedFile).replace("{}", filename),
+        );
     };
     DismissibleToast::success(download_success_message(filename, directory)).with_link(
         ToastLink::new(reveal_in_file_manager_label().to_string()).with_onclick_action(

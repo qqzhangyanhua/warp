@@ -3133,7 +3133,8 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
 
                 format!(
                     "{apology}\n\n{}",
-                    tr_cached(Message::CreditLimitResetsOn).replace("{}", &formatted_next_refresh_time),
+                    tr_cached(Message::CreditLimitResetsOn)
+                        .replace("{}", &formatted_next_refresh_time),
                 )
             }
         }

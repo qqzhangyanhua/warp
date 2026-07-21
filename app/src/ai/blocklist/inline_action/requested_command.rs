@@ -30,7 +30,6 @@ use warpui::{
 
 use super::inline_action_icons::{self, icon_size};
 use crate::ai::agent::conversation::ConversationStatus;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::agent::{
     icons, AIAgentActionId, AIAgentActionResult, AIAgentActionResultType, AIAgentActionType,
     AIAgentCitation, AIAgentOutputMessageType, CallMCPToolResult, RequestCommandOutputResult,
@@ -57,6 +56,7 @@ use crate::ai::blocklist::{
 use crate::cmd_or_ctrl_shift;
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorRenderOptions, CodeEditorView};
 use crate::editor::InteractionState;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuVariant};
 use crate::settings::InputModeSettings;
 use crate::terminal::block_list_viewport::InputMode;
@@ -79,22 +79,52 @@ use crate::view_components::compactible_split_action_button::CompactibleSplitAct
 /// For horizontal padding, use [`INLINE_ACTION_HORIZONTAL_PADDING`] for consistency.
 pub const REQUESTED_COMMAND_BODY_VERTICAL_PADDING: f32 = 16.;
 
-fn requested_command_reject_label() -> &'static str { tr_cached(Message::RequestedCommandReject) }
-fn requested_command_accept_label() -> &'static str { tr_cached(Message::RequestedCommandRun) }
-fn requested_command_edit_label() -> &'static str { tr_cached(Message::RequestedCommandEdit) }
-fn requested_command_minimize_label() -> &'static str { tr_cached(Message::RequestedCommandDone) }
+fn requested_command_reject_label() -> &'static str {
+    tr_cached(Message::RequestedCommandReject)
+}
+fn requested_command_accept_label() -> &'static str {
+    tr_cached(Message::RequestedCommandRun)
+}
+fn requested_command_edit_label() -> &'static str {
+    tr_cached(Message::RequestedCommandEdit)
+}
+fn requested_command_minimize_label() -> &'static str {
+    tr_cached(Message::RequestedCommandDone)
+}
 
-fn loading_message() -> &'static str { tr_cached(Message::GeneratingCommand) }
-fn command_waiting_for_user_message() -> &'static str { tr_cached(Message::OkRunCommandReadOutput) }
-fn mcp_tool_waiting_for_user_message() -> &'static str { tr_cached(Message::OkCallMcpTool) }
-fn monitoring_command_message() -> &'static str { tr_cached(Message::AgentMonitoringCommand) }
-fn agent_needs_input_message() -> &'static str { tr_cached(Message::AgentNeedsYourInput) }
-fn user_took_control_command_message() -> &'static str { tr_cached(Message::UserIsInControl) }
-fn user_stopped_cli_subagent_command_message() -> &'static str { tr_cached(Message::PausedAgentUserInControl) }
-fn agent_requested_user_take_control_command_message() -> &'static str { tr_cached(Message::UserInControl) }
-fn agent_errored_command_message() -> &'static str { tr_cached(Message::AgentErroredTakeControl) }
-pub fn viewing_command_detail_message() -> &'static str { tr_cached(Message::ViewingCommandDetail) }
-fn viewing_mcp_tool_detail_message() -> &'static str { tr_cached(Message::ViewingMcpToolDetail) }
+fn loading_message() -> &'static str {
+    tr_cached(Message::GeneratingCommand)
+}
+fn command_waiting_for_user_message() -> &'static str {
+    tr_cached(Message::OkRunCommandReadOutput)
+}
+fn mcp_tool_waiting_for_user_message() -> &'static str {
+    tr_cached(Message::OkCallMcpTool)
+}
+fn monitoring_command_message() -> &'static str {
+    tr_cached(Message::AgentMonitoringCommand)
+}
+fn agent_needs_input_message() -> &'static str {
+    tr_cached(Message::AgentNeedsYourInput)
+}
+fn user_took_control_command_message() -> &'static str {
+    tr_cached(Message::UserIsInControl)
+}
+fn user_stopped_cli_subagent_command_message() -> &'static str {
+    tr_cached(Message::PausedAgentUserInControl)
+}
+fn agent_requested_user_take_control_command_message() -> &'static str {
+    tr_cached(Message::UserInControl)
+}
+fn agent_errored_command_message() -> &'static str {
+    tr_cached(Message::AgentErroredTakeControl)
+}
+pub fn viewing_command_detail_message() -> &'static str {
+    tr_cached(Message::ViewingCommandDetail)
+}
+fn viewing_mcp_tool_detail_message() -> &'static str {
+    tr_cached(Message::ViewingMcpToolDetail)
+}
 
 const EDIT_COMMAND_ACTION_NAME: &str = "requested_command:edit";
 
@@ -1628,10 +1658,14 @@ impl View for RequestedCommandView {
                     let mut col =
                         Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
                     col.add_child(
-                        Text::new_inline(tr_cached(Message::UiRequest).to_string(), font_family, TREE_FONT_SIZE)
-                            .with_color(colors.annotation)
-                            .soft_wrap(false)
-                            .finish(),
+                        Text::new_inline(
+                            tr_cached(Message::UiRequest).to_string(),
+                            font_family,
+                            TREE_FONT_SIZE,
+                        )
+                        .with_color(colors.annotation)
+                        .soft_wrap(false)
+                        .finish(),
                     );
                     col.add_child(
                         Text::new_inline("(no arguments)".to_string(), font_family, TREE_FONT_SIZE)
@@ -2038,10 +2072,11 @@ impl TypedActionView for RequestedCommandView {
                     .as_deref()
                     .is_some_and(|t| !t.is_empty());
 
-                let copy_item: MenuItem<RequestedCommandViewAction> = MenuItemFields::new(tr_cached(Message::CommonCopy))
-                    .with_on_select_action(RequestedCommandViewAction::CopyMcpSelection)
-                    .with_disabled(!has_selection)
-                    .into_item();
+                let copy_item: MenuItem<RequestedCommandViewAction> =
+                    MenuItemFields::new(tr_cached(Message::CommonCopy))
+                        .with_on_select_action(RequestedCommandViewAction::CopyMcpSelection)
+                        .with_disabled(!has_selection)
+                        .into_item();
 
                 let json_for_menu = json_text.clone();
                 let copy_json_item: MenuItem<RequestedCommandViewAction> =

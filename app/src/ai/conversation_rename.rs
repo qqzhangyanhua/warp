@@ -1,8 +1,8 @@
 use warpui::{SingletonEntity, View, ViewContext};
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::{BeginConversationRenameError, BlocklistAIHistoryModel};
+use crate::i18n::{tr_cached, Message};
 use crate::server::server_api::ServerApiProvider;
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
@@ -72,7 +72,9 @@ pub(crate) fn rename_conversation<T: View>(
         Ok(server_conversation_id) => server_conversation_id,
         Err(err) => {
             let message = match err {
-                BeginConversationRenameError::MissingServerConversationToken => not_synced_message(),
+                BeginConversationRenameError::MissingServerConversationToken => {
+                    not_synced_message()
+                }
                 BeginConversationRenameError::RenameInProgress => rename_in_progress_message(),
                 BeginConversationRenameError::ConversationNotFound => {
                     conversation_not_found_message()
@@ -110,7 +112,9 @@ pub(crate) fn rename_conversation<T: View>(
                     });
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::success(tr_cached(Message::ToastConversationRenamed).replace("{}", &title)),
+                            DismissibleToast::success(
+                                tr_cached(Message::ToastConversationRenamed).replace("{}", &title),
+                            ),
                             window_id,
                             ctx,
                         );
@@ -122,7 +126,10 @@ pub(crate) fn rename_conversation<T: View>(
                     });
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(tr_cached(Message::ToastFailedRenameConversation).replace("{}", &e.to_string())),
+                            DismissibleToast::error(
+                                tr_cached(Message::ToastFailedRenameConversation)
+                                    .replace("{}", &e.to_string()),
+                            ),
                             window_id,
                             ctx,
                         );

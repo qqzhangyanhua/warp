@@ -18,7 +18,6 @@ use warpui::{
 
 use super::{AgentInputButtonTheme, AmbientAgentViewModel};
 use crate::ai::ambient_agents::telemetry::CloudAgentTelemetryEvent;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::appearance::Appearance;
@@ -28,6 +27,7 @@ use crate::cloud_object::CloudObjectLookup as _;
 use crate::context_chips::display_menu::{
     ChipMenuType, DisplayChipMenu, FixedFooter, GenericMenuItem, PromptDisplayMenuEvent,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::server::ids::SyncId;
 use crate::terminal::input::{
     HandoffComposeState, HandoffComposeStateEvent, MenuPositioning, MenuPositioningProvider,
