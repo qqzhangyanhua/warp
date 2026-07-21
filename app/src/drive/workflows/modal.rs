@@ -85,20 +85,42 @@ const DIALOG_WIDTH: f32 = 460.;
 const AI_ASSIST_BUTTON_SIZE: f32 = 96.;
 const SCROLLBAR_WIDTH: ScrollbarWidth = ScrollbarWidth::Auto;
 
-fn title_placeholder_text() -> &'static str { tr_cached(Message::UntitledWorkflow) }
-fn description_placeholder_text() -> &'static str { tr_cached(Message::AddADescription) }
+fn title_placeholder_text() -> &'static str {
+    tr_cached(Message::UntitledWorkflow)
+}
+fn description_placeholder_text() -> &'static str {
+    tr_cached(Message::AddADescription)
+}
 const COMMAND_EDITOR_PLACEHOLDER_TEXT: &str =
     "echo \"Hello {{your_name}}\" # insert arguments with curly braces\n# enter a single-line command or an entire shell script";
-fn argument_button_text() -> &'static str { tr_cached(Message::NewArgument) }
-fn argument_description_placeholder_text() -> &'static str { tr_cached(Message::CommonDescription) }
-fn argument_default_value_placeholder_text() -> &'static str { tr_cached(Message::DefaultValueOptional) }
-fn save_button_text() -> &'static str { tr_cached(Message::SaveWorkflow) }
-fn ai_assist_button_text() -> &'static str { tr_cached(Message::Autofill) }
-fn ai_assist_loading_text() -> &'static str { tr_cached(Message::CommonLoadingEllipsis) }
+fn argument_button_text() -> &'static str {
+    tr_cached(Message::NewArgument)
+}
+fn argument_description_placeholder_text() -> &'static str {
+    tr_cached(Message::CommonDescription)
+}
+fn argument_default_value_placeholder_text() -> &'static str {
+    tr_cached(Message::DefaultValueOptional)
+}
+fn save_button_text() -> &'static str {
+    tr_cached(Message::SaveWorkflow)
+}
+fn ai_assist_button_text() -> &'static str {
+    tr_cached(Message::Autofill)
+}
+fn ai_assist_loading_text() -> &'static str {
+    tr_cached(Message::CommonLoadingEllipsis)
+}
 const DEFAULT_ARGUMENT_PREFIX: &str = "argument";
-fn unsaved_changes_text() -> &'static str { tr_cached(Message::UnsavedChanges) }
-fn keep_editing_text() -> &'static str { tr_cached(Message::KeepEditing) }
-fn discard_changes_text() -> &'static str { tr_cached(Message::DiscardChanges) }
+fn unsaved_changes_text() -> &'static str {
+    tr_cached(Message::UnsavedChanges)
+}
+fn keep_editing_text() -> &'static str {
+    tr_cached(Message::KeepEditing)
+}
+fn discard_changes_text() -> &'static str {
+    tr_cached(Message::DiscardChanges)
+}
 
 #[derive(Default)]
 struct MouseStateHandles {

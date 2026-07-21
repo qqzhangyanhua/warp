@@ -7,12 +7,18 @@ use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::Element;
 
 use super::env_var_collection::{EnvVarCollectionAction, EnvVarCollectionView};
-use crate::ui_components::dialog::{dialog_styles, Dialog};
 use crate::i18n::{tr_cached, Message};
+use crate::ui_components::dialog::{dialog_styles, Dialog};
 
-fn unsaved_changes_text() -> &'static str { tr_cached(Message::UnsavedChanges) }
-fn keep_editing_text() -> &'static str { tr_cached(Message::KeepEditing) }
-fn discard_changes_text() -> &'static str { tr_cached(Message::DiscardChanges) }
+fn unsaved_changes_text() -> &'static str {
+    tr_cached(Message::UnsavedChanges)
+}
+fn keep_editing_text() -> &'static str {
+    tr_cached(Message::KeepEditing)
+}
+fn discard_changes_text() -> &'static str {
+    tr_cached(Message::DiscardChanges)
+}
 const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_PADDING: f32 = 12.;
 const MODAL_HORIZONTAL_MARGIN: f32 = 28.;

@@ -31,7 +31,6 @@ use crate::view_components::dropdown::{DROPDOWN_PADDING, TOP_MENU_BAR_HEIGHT};
 use crate::view_components::{Dropdown as DropdownView, DropdownItem, FilterableDropdown};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
-
 const LABEL_FONT_SIZE: f32 = 14.;
 const INPUT_WIDTH: f32 = 428.; // 460px - (2 * 16px) padding
 const AGENT_DROPDOWN_POSITION_ID: &str = "create_api_key_modal_agent_dropdown";
@@ -379,9 +378,7 @@ impl CreateApiKeyModal {
                 None => {
                     self.request_state = RequestState::Idle;
                     ctx.emit(CreateApiKeyModalEvent::Error {
-                        message:
-                            tr_cached(Message::UnableCreateTeamApiKey)
-                                .to_string(),
+                        message: tr_cached(Message::UnableCreateTeamApiKey).to_string(),
                     });
                     ctx.notify();
                     return;

@@ -374,7 +374,8 @@ impl EnvironmentsPageView {
         }
 
         // Create search editor for list page
-        let search_editor = Self::create_single_line_editor(tr_cached(Message::SearchEnvironmentsEllipsis), ctx);
+        let search_editor =
+            Self::create_single_line_editor(tr_cached(Message::SearchEnvironmentsEllipsis), ctx);
         ctx.subscribe_to_view(&search_editor, |me, _, event, ctx| match event {
             crate::editor::Event::Edited(_) => {
                 me.search_query = me.search_editor.as_ref(ctx).buffer_text(ctx);

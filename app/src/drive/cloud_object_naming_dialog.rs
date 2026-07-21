@@ -12,9 +12,9 @@ use warpui::{AppContext, Element, ViewHandle};
 use super::index::DriveIndexAction;
 use super::DriveObjectType;
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::Space;
 use crate::editor::EditorView;
+use crate::i18n::{tr_cached, Message};
 use crate::server::ids::SyncId;
 use crate::ui_components::blended_colors;
 
@@ -30,12 +30,24 @@ const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_PADDING: f32 = 12.;
 const BUTTON_MARGIN_BETWEEN: f32 = 8.;
 
-fn notebook_title() -> &'static str { tr_cached(Message::NotebookName) }
-fn folder_title() -> &'static str { tr_cached(Message::FolderName) }
-fn env_var_collection_title() -> &'static str { tr_cached(Message::CollectionName) }
-fn create_button_text() -> &'static str { tr_cached(Message::CommonCreate) }
-fn cancel_button_text() -> &'static str { tr_cached(Message::CommonCancel) }
-fn rename_button_text() -> &'static str { tr_cached(Message::UiCommonRename) }
+fn notebook_title() -> &'static str {
+    tr_cached(Message::NotebookName)
+}
+fn folder_title() -> &'static str {
+    tr_cached(Message::FolderName)
+}
+fn env_var_collection_title() -> &'static str {
+    tr_cached(Message::CollectionName)
+}
+fn create_button_text() -> &'static str {
+    tr_cached(Message::CommonCreate)
+}
+fn cancel_button_text() -> &'static str {
+    tr_cached(Message::CommonCancel)
+}
+fn rename_button_text() -> &'static str {
+    tr_cached(Message::UiCommonRename)
+}
 
 /// Struct holding necessary information and states for the dialog
 /// that opens when creating or updating a folder or notebook.

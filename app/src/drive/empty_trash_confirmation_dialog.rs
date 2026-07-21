@@ -9,11 +9,19 @@ use crate::appearance::Appearance;
 use crate::i18n::{tr_cached, Message};
 use crate::ui_components::dialog::{dialog_styles, Dialog};
 
-fn cancel_text() -> &'static str { tr_cached(Message::CommonCancel) }
+fn cancel_text() -> &'static str {
+    tr_cached(Message::CommonCancel)
+}
 
-fn empty_trash_title_text() -> &'static str { tr_cached(Message::EmptyTrashTitle) }
-fn empty_trash_body_text() -> &'static str { tr_cached(Message::EmptyTrashBody) }
-fn empty_trash_confirm_text() -> &'static str { tr_cached(Message::EmptyTrashConfirm) }
+fn empty_trash_title_text() -> &'static str {
+    tr_cached(Message::EmptyTrashTitle)
+}
+fn empty_trash_body_text() -> &'static str {
+    tr_cached(Message::EmptyTrashBody)
+}
+fn empty_trash_confirm_text() -> &'static str {
+    tr_cached(Message::EmptyTrashConfirm)
+}
 
 // This follows our new design standard for confirmation dialogs (e.g. used in the session sharing dialog)
 // Design team has discouraged us from continuing to use CloudActionConfirmationDialog's current design

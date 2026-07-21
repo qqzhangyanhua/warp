@@ -4,8 +4,8 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
-use crate::i18n::{tr_cached, Message};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::dialog::{dialog_styles, Dialog};
 use crate::view_components::action_button::{ActionButton, DangerPrimaryTheme, NakedTheme};
 
@@ -57,24 +57,30 @@ impl From<&DestructiveMCPConfirmationDialogVariant>
 {
     fn from(variant: &DestructiveMCPConfirmationDialogVariant) -> Self {
         match *variant {
-            DestructiveMCPConfirmationDialogVariant::DeleteLocal => DestructiveMCPConfirmationDialogDisplayOptions::new(
-                tr_cached(Message::McpDeleteServerQuestion).to_string(),
-                tr_cached(Message::McpDeleteLocalDescription).to_string(),
-                tr_cached(Message::McpDelete).to_string(),
-                tr_cached(Message::SettingsCancel).to_string(),
-            ),
-            DestructiveMCPConfirmationDialogVariant::DeleteShared => DestructiveMCPConfirmationDialogDisplayOptions::new(
-                tr_cached(Message::McpDeleteSharedServerQuestion).to_string(),
-                tr_cached(Message::McpDeleteSharedDescription).to_string(),
-                tr_cached(Message::McpDelete).to_string(),
-                tr_cached(Message::SettingsCancel).to_string(),
-            ),
-            DestructiveMCPConfirmationDialogVariant::Unshare => DestructiveMCPConfirmationDialogDisplayOptions::new(
-                tr_cached(Message::McpRemoveSharedFromTeamQuestion).to_string(),
-                tr_cached(Message::McpUnshareDescription).to_string(),
-                tr_cached(Message::McpRemoveFromTeam).to_string(),
-                tr_cached(Message::SettingsCancel).to_string(),
-            ),
+            DestructiveMCPConfirmationDialogVariant::DeleteLocal => {
+                DestructiveMCPConfirmationDialogDisplayOptions::new(
+                    tr_cached(Message::McpDeleteServerQuestion).to_string(),
+                    tr_cached(Message::McpDeleteLocalDescription).to_string(),
+                    tr_cached(Message::McpDelete).to_string(),
+                    tr_cached(Message::SettingsCancel).to_string(),
+                )
+            }
+            DestructiveMCPConfirmationDialogVariant::DeleteShared => {
+                DestructiveMCPConfirmationDialogDisplayOptions::new(
+                    tr_cached(Message::McpDeleteSharedServerQuestion).to_string(),
+                    tr_cached(Message::McpDeleteSharedDescription).to_string(),
+                    tr_cached(Message::McpDelete).to_string(),
+                    tr_cached(Message::SettingsCancel).to_string(),
+                )
+            }
+            DestructiveMCPConfirmationDialogVariant::Unshare => {
+                DestructiveMCPConfirmationDialogDisplayOptions::new(
+                    tr_cached(Message::McpRemoveSharedFromTeamQuestion).to_string(),
+                    tr_cached(Message::McpUnshareDescription).to_string(),
+                    tr_cached(Message::McpRemoveFromTeam).to_string(),
+                    tr_cached(Message::SettingsCancel).to_string(),
+                )
+            }
         }
     }
 }

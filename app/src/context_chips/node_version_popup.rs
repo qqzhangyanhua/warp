@@ -13,8 +13,8 @@ use warpui::{
     ViewHandle,
 };
 
-use crate::menu::{self, Event as MenuEvent, Menu, MenuItemFields};
 use crate::i18n::{tr_cached, Message};
+use crate::menu::{self, Event as MenuEvent, Menu, MenuItemFields};
 use crate::terminal::model_events::{ModelEvent, ModelEventDispatcher};
 use crate::ui_components::{blended_colors, icons};
 use crate::view_components::action_button::{ActionButton, SecondaryTheme};
@@ -283,10 +283,14 @@ impl NodeVersionPopupView {
 
         col.add_child(
             Container::new(
-                Text::new(tr_cached(Message::NodeVersionInstalled), styles.ui_font_family, styles.detail_font_size)
-                    .with_style(Properties::default())
-                    .with_color(styles.secondary_text_color)
-                    .finish(),
+                Text::new(
+                    tr_cached(Message::NodeVersionInstalled),
+                    styles.ui_font_family,
+                    styles.detail_font_size,
+                )
+                .with_style(Properties::default())
+                .with_color(styles.secondary_text_color)
+                .finish(),
             )
             .with_horizontal_padding(12.)
             .finish(),

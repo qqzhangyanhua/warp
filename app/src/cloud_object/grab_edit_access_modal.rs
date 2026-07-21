@@ -10,10 +10,18 @@ use crate::i18n::{tr_cached, Message};
 use crate::ui_components::buttons::close_button;
 use crate::ui_components::dialog::{dialog_styles, Dialog};
 
-fn edit_anyway_cta_label() -> &'static str { tr_cached(Message::EditAnyway) }
-fn cancel_cta_label() -> &'static str { tr_cached(Message::CommonCancel) }
-fn edit_anyway_text() -> &'static str { tr_cached(Message::TakeEditControlsForceView) }
-fn currently_edited_label() -> &'static str { tr_cached(Message::NotebookCurrentlyEdited) }
+fn edit_anyway_cta_label() -> &'static str {
+    tr_cached(Message::EditAnyway)
+}
+fn cancel_cta_label() -> &'static str {
+    tr_cached(Message::CommonCancel)
+}
+fn edit_anyway_text() -> &'static str {
+    tr_cached(Message::TakeEditControlsForceView)
+}
+fn currently_edited_label() -> &'static str {
+    tr_cached(Message::NotebookCurrentlyEdited)
+}
 
 #[derive(Default)]
 struct MouseStateHandles {

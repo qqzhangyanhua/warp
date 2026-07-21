@@ -147,7 +147,9 @@ const HOVER_PREVIEW_Y_OFFSET: f32 = 0.;
 
 const CREATE_TEAM_ICON_WIDTH: f32 = 16.;
 const CREATE_TEAM_ICON_HEIGHT: f32 = 16.;
-fn create_team_text() -> &'static str { tr_cached(Message::DriveShareWithTeammates) }
+fn create_team_text() -> &'static str {
+    tr_cached(Message::DriveShareWithTeammates)
+}
 
 const LOADING_ICON_WIDTH: f32 = 16.;
 const LOADING_ICON_HEIGHT: f32 = 16.;
@@ -158,20 +160,46 @@ const OFFLINE_BANNER_ICON_SPACING: f32 = 8.;
 const OFFLINE_BANNER_PADDING_HORIZONTAL: f32 = 16.;
 const OFFLINE_BANNER_PADDING_VERTICAL: f32 = 4.;
 
-fn folder_label() -> &'static str { tr_cached(Message::DriveFolder) }
-fn notebook_label() -> &'static str { tr_cached(Message::DriveNotebook) }
-fn workflow_label() -> &'static str { tr_cached(Message::DriveWorkflow) }
-fn agent_mode_workflow_label() -> &'static str { tr_cached(Message::DrivePrompt) }
-fn env_var_collection_label() -> &'static str { tr_cached(Message::DriveEnvironmentVariables) }
-fn index_folder_label() -> &'static str { tr_cached(Message::DriveNewFolder) }
-fn index_notebook_label() -> &'static str { tr_cached(Message::DriveNewNotebook) }
-fn index_workflow_label() -> &'static str { tr_cached(Message::DriveNewWorkflow) }
-fn index_agent_mode_workflow_label() -> &'static str { tr_cached(Message::DriveNewPrompt) }
-fn index_env_var_collection_label() -> &'static str { tr_cached(Message::DriveNewEnvVars) }
+fn folder_label() -> &'static str {
+    tr_cached(Message::DriveFolder)
+}
+fn notebook_label() -> &'static str {
+    tr_cached(Message::DriveNotebook)
+}
+fn workflow_label() -> &'static str {
+    tr_cached(Message::DriveWorkflow)
+}
+fn agent_mode_workflow_label() -> &'static str {
+    tr_cached(Message::DrivePrompt)
+}
+fn env_var_collection_label() -> &'static str {
+    tr_cached(Message::DriveEnvironmentVariables)
+}
+fn index_folder_label() -> &'static str {
+    tr_cached(Message::DriveNewFolder)
+}
+fn index_notebook_label() -> &'static str {
+    tr_cached(Message::DriveNewNotebook)
+}
+fn index_workflow_label() -> &'static str {
+    tr_cached(Message::DriveNewWorkflow)
+}
+fn index_agent_mode_workflow_label() -> &'static str {
+    tr_cached(Message::DriveNewPrompt)
+}
+fn index_env_var_collection_label() -> &'static str {
+    tr_cached(Message::DriveNewEnvVars)
+}
 
-fn import_label() -> &'static str { tr_cached(Message::DriveImport) }
-fn remove_label() -> &'static str { tr_cached(Message::CommonRemove) }
-fn offline_banner_text() -> &'static str { tr_cached(Message::DriveOfflineReadonly) }
+fn import_label() -> &'static str {
+    tr_cached(Message::DriveImport)
+}
+fn remove_label() -> &'static str {
+    tr_cached(Message::CommonRemove)
+}
+fn offline_banner_text() -> &'static str {
+    tr_cached(Message::DriveOfflineReadonly)
+}
 
 pub const DRIVE_INDEX_VIEW_POSITION_ID: &str = "drive_index_view_id";
 
@@ -180,12 +208,20 @@ pub const AUTOSCROLL_SPEED_MULTIPLIER: f32 = 10.;
 // Sets the distance from a border at which scroll events start to occur.
 pub const AUTOSCROLL_DETECTION_DISTANCE: f32 = 30.0;
 
-fn zero_state_workflow_label() -> &'static str { tr_cached(Message::DriveWorkflow) }
-fn zero_state_notebook_label() -> &'static str { tr_cached(Message::DriveNotebook) }
+fn zero_state_workflow_label() -> &'static str {
+    tr_cached(Message::DriveWorkflow)
+}
+fn zero_state_notebook_label() -> &'static str {
+    tr_cached(Message::DriveNotebook)
+}
 
-fn sorting_button_tooltip_label() -> &'static str { tr_cached(Message::DriveSortBy) }
+fn sorting_button_tooltip_label() -> &'static str {
+    tr_cached(Message::DriveSortBy)
+}
 
-fn retry_button_tooltip_label() -> &'static str { tr_cached(Message::DriveRetrySync) }
+fn retry_button_tooltip_label() -> &'static str {
+    tr_cached(Message::DriveRetrySync)
+}
 
 fn shared_object_limit_hit_banner_line() -> &'static str {
     tr_cached(Message::DriveUpgradeForAccess)
@@ -2105,10 +2141,26 @@ impl DriveIndex {
 
         let zero_state_contents = Flex::column().with_children([
             zero_state_info,
-            self.render_team_zero_state_hint(Icon::Workflow, zero_state_workflow_label(), appearance),
-            self.render_team_zero_state_hint(Icon::Workflow, zero_state_workflow_label(), appearance),
-            self.render_team_zero_state_hint(Icon::Notebook, zero_state_notebook_label(), appearance),
-            self.render_team_zero_state_hint(Icon::Notebook, zero_state_notebook_label(), appearance),
+            self.render_team_zero_state_hint(
+                Icon::Workflow,
+                zero_state_workflow_label(),
+                appearance,
+            ),
+            self.render_team_zero_state_hint(
+                Icon::Workflow,
+                zero_state_workflow_label(),
+                appearance,
+            ),
+            self.render_team_zero_state_hint(
+                Icon::Notebook,
+                zero_state_notebook_label(),
+                appearance,
+            ),
+            self.render_team_zero_state_hint(
+                Icon::Notebook,
+                zero_state_notebook_label(),
+                appearance,
+            ),
         ]);
 
         Container::new(zero_state_contents.finish())
@@ -4184,10 +4236,7 @@ impl DriveIndex {
         let body = Container::new(
             appearance
                 .ui_builder()
-                .wrappable_text(
-                    format!("{banner_line_1} {banner_line_2}"),
-                    true,
-                )
+                .wrappable_text(format!("{banner_line_1} {banner_line_2}"), true)
                 .with_highlights((0..banner_line_1.len()).collect::<Vec<_>>(), highlight)
                 .with_style(UiComponentStyles {
                     font_size: Some(12.),
@@ -4280,10 +4329,7 @@ impl DriveIndex {
                         format!("{payment_line_1} {banner_line_2}").to_string(),
                         true,
                     )
-                    .with_highlights(
-                        (0..payment_line_1.len()).collect::<Vec<_>>(),
-                        highlight,
-                    )
+                    .with_highlights((0..payment_line_1.len()).collect::<Vec<_>>(), highlight)
                     .with_style(UiComponentStyles {
                         font_size: Some(12.),
                         font_color: Some(

@@ -87,8 +87,8 @@ impl View for DeleteEnvironmentConfirmationDialog {
 
         let appearance = Appearance::as_ref(app);
 
-        let description = tr(app, Message::EnvironmentDeleteConfirmDescription)
-            .replace("{}", &self.env_name);
+        let description =
+            tr(app, Message::EnvironmentDeleteConfirmDescription).replace("{}", &self.env_name);
 
         let dialog = Dialog::new(
             tr(app, Message::EnvironmentDeleteQuestion).to_string(),

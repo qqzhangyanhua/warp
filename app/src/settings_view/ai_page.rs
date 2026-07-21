@@ -5312,47 +5312,50 @@ impl SettingsWidget for UsageWidget {
         );
 
         let auth_state = AuthStateProvider::as_ref(app).get();
-        let upgrade_cta_text_fragments =
-            if let Some(team) = UserWorkspaces::as_ref(app).current_team() {
-                let current_user_email = auth_state.user_email().unwrap_or_default();
-                let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-                if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
-                    let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
-                    if has_admin_permissions {
-                        vec![
-                            FormattedTextFragment::hyperlink(
-                                tr_cached(Message::AiUpgrade),
-                                upgrade_url,
-                            ),
-                            FormattedTextFragment::plain_text(tr_cached(Message::AiToGetMoreUsageSuffix)),
-                        ]
-                    } else {
-                        // The /upgrade page says to contact their administrator.
-                        vec![
-                            FormattedTextFragment::hyperlink(
-                                tr_cached(Message::AiComparePlans),
-                                upgrade_url,
-                            ),
-                            FormattedTextFragment::plain_text(tr_cached(Message::AiForMoreUsageSuffix)),
-                        ]
-                    }
-                } else {
+        let upgrade_cta_text_fragments = if let Some(team) =
+            UserWorkspaces::as_ref(app).current_team()
+        {
+            let current_user_email = auth_state.user_email().unwrap_or_default();
+            let has_admin_permissions = team.has_admin_permissions(&current_user_email);
+            if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
+                let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
+                if has_admin_permissions {
                     vec![
                         FormattedTextFragment::hyperlink(
-                            tr_cached(Message::AiContactSupport),
-                            "mailto:support@warp.dev",
+                            tr_cached(Message::AiUpgrade),
+                            upgrade_url,
+                        ),
+                        FormattedTextFragment::plain_text(tr_cached(
+                            Message::AiToGetMoreUsageSuffix,
+                        )),
+                    ]
+                } else {
+                    // The /upgrade page says to contact their administrator.
+                    vec![
+                        FormattedTextFragment::hyperlink(
+                            tr_cached(Message::AiComparePlans),
+                            upgrade_url,
                         ),
                         FormattedTextFragment::plain_text(tr_cached(Message::AiForMoreUsageSuffix)),
                     ]
                 }
             } else {
-                let user_id = auth_state.user_id().unwrap_or_default();
-                let upgrade_url = UserWorkspaces::upgrade_link(user_id);
                 vec![
-                    FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgrade), upgrade_url),
-                    FormattedTextFragment::plain_text(tr_cached(Message::AiToGetMoreUsageSuffix)),
+                    FormattedTextFragment::hyperlink(
+                        tr_cached(Message::AiContactSupport),
+                        "mailto:support@warp.dev",
+                    ),
+                    FormattedTextFragment::plain_text(tr_cached(Message::AiForMoreUsageSuffix)),
                 ]
-            };
+            }
+        } else {
+            let user_id = auth_state.user_id().unwrap_or_default();
+            let upgrade_url = UserWorkspaces::upgrade_link(user_id);
+            vec![
+                FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgrade), upgrade_url),
+                FormattedTextFragment::plain_text(tr_cached(Message::AiToGetMoreUsageSuffix)),
+            ]
+        };
 
         let mut upgrade_cta = FormattedTextElement::new(
             FormattedText::new([FormattedTextLine::Line(upgrade_cta_text_fragments)]),

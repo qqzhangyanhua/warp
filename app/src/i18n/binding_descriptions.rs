@@ -20,12 +20,20 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "[debug] enter onboarding state" => Some("[调试] 进入引导状态"),
         "[debug] generate codebase index" => Some("[调试] 生成代码库索引"),
         "[debug] install opencode zyh plugin" => Some("[调试] 安装 OpenCode ZYH 插件"),
-        "[debug] log review comment send status for active tab" => Some("[调试] 记录当前标签页审查评论发送状态"),
-        "[debug] onboarding callout: modality - no project" => Some("[调试] 引导提示：模式 - 无项目"),
+        "[debug] log review comment send status for active tab" => {
+            Some("[调试] 记录当前标签页审查评论发送状态")
+        }
+        "[debug] onboarding callout: modality - no project" => {
+            Some("[调试] 引导提示：模式 - 无项目")
+        }
         "[debug] onboarding callout: modality - project" => Some("[调试] 引导提示：模式 - 项目"),
         "[debug] onboarding callout: modality - terminal" => Some("[调试] 引导提示：模式 - 终端"),
-        "[debug] onboarding callout: warpinput - no project" => Some("[调试] 引导提示：WarpInput - 无项目"),
-        "[debug] onboarding callout: warpinput - project" => Some("[调试] 引导提示：WarpInput - 项目"),
+        "[debug] onboarding callout: warpinput - no project" => {
+            Some("[调试] 引导提示：WarpInput - 无项目")
+        }
+        "[debug] onboarding callout: warpinput - project" => {
+            Some("[调试] 引导提示：WarpInput - 项目")
+        }
         "[debug] open auto-handoff sleep modal" => Some("[调试] 打开自动移交休眠弹窗"),
         "[debug] open build plan migration modal" => Some("[调试] 打开 Build 方案迁移弹窗"),
         "[debug] open feature intro modal" => Some("[调试] 打开功能介绍弹窗"),
@@ -35,7 +43,9 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "[debug] open oz launch modal" => Some("[调试] 打开 Oz 启动弹窗"),
         "[debug] open session config modal" => Some("[调试] 打开会话配置弹窗"),
         "[debug] reset auto-handoff sleep modal state" => Some("[调试] 重置自动移交休眠弹窗状态"),
-        "[debug] reset build plan migration modal state" => Some("[调试] 重置 Build 方案迁移弹窗状态"),
+        "[debug] reset build plan migration modal state" => {
+            Some("[调试] 重置 Build 方案迁移弹窗状态")
+        }
         "[debug] reset feature intro modal state" => Some("[调试] 重置功能介绍弹窗状态"),
         "[debug] reset free ai removal modal state" => Some("[调试] 重置免费 AI 移除弹窗状态"),
         "[debug] reset openwarp launch modal state" => Some("[调试] 重置 OpenWarp 启动弹窗状态"),
@@ -44,7 +54,9 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "[debug] start hoa onboarding flow" => Some("[调试] 启动 HOA 引导流程"),
         "[debug] trigger auto-handoff to cloud" => Some("[调试] 触发自动移交到云端"),
         "[debug] un-dismiss aws login banner" => Some("[调试] 重新显示 AWS 登录横幅"),
-        "[debug] use local opencode zyh plugin (testing only)" => Some("[调试] 使用本地 OpenCode ZYH 插件（仅测试）"),
+        "[debug] use local opencode zyh plugin (testing only)" => {
+            Some("[调试] 使用本地 OpenCode ZYH 插件（仅测试）")
+        }
         "activate next pane" => Some("激活下一个窗格"),
         "activate next tab" => Some("激活下一个标签页"),
         "activate previous pane" => Some("激活上一个窗格"),
@@ -156,9 +168,13 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "insert newline" => Some("插入换行"),
         "insert non-expanding space" => Some("插入不可扩展空格"),
         "inspect command" => Some("检查命令"),
-        "install oz cli globally for use outside of zyh" => Some("全局安装 Oz CLI 以便在 ZYH 外使用"),
+        "install oz cli globally for use outside of zyh" => {
+            Some("全局安装 Oz CLI 以便在 ZYH 外使用")
+        }
         "install update and relaunch" => Some("安装更新并重新启动"),
-        "install zyh control cli globally for use outside of zyh" => Some("全局安装 ZYH Control CLI 以便在 ZYH 外使用"),
+        "install zyh control cli globally for use outside of zyh" => {
+            Some("全局安装 ZYH Control CLI 以便在 ZYH 外使用")
+        }
         "invite people..." => Some("邀请成员..."),
         "join our slack community (opens external link)" => Some("加入 Slack 社区（打开外部链接）"),
         "jump to latest agent message" => Some("跳到最新 Agent 消息"),
@@ -168,7 +184,9 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "left panel: global search" => Some("左侧面板：全局搜索"),
         "left panel: project explorer" => Some("左侧面板：项目浏览器"),
         "left panel: zyh drive" => Some("左侧面板：ZYH Drive"),
-        "load agent mode conversation (from debug link in clipboard)" => Some("加载 Agent 模式对话（从剪贴板调试链接）"),
+        "load agent mode conversation (from debug link in clipboard)" => {
+            Some("加载 Agent 模式对话（从剪贴板调试链接）")
+        }
         "log editor state" => Some("记录编辑器状态"),
         "log out" => Some("退出登录"),
         "move backward one subword" => Some("向后移动一个子词"),
@@ -177,8 +195,12 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "move cursor end within an executing command" => Some("在执行中的命令内将光标移到末尾"),
         "move cursor home within an executing command" => Some("在执行中的命令内将光标移到开头"),
         "move cursor left" => Some("向左移动光标"),
-        "move cursor one word to the left within an executing command" => Some("在执行中的命令内向左移动一个单词"),
-        "move cursor one word to the right within an executing command" => Some("在执行中的命令内向右移动一个单词"),
+        "move cursor one word to the left within an executing command" => {
+            Some("在执行中的命令内向左移动一个单词")
+        }
+        "move cursor one word to the right within an executing command" => {
+            Some("在执行中的命令内向右移动一个单词")
+        }
         "move cursor right" => Some("向右移动光标"),
         "move cursor to the bottom" => Some("将光标移到底部"),
         "move cursor to the top" => Some("将光标移到顶部"),
@@ -233,7 +255,9 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "pin current tab" => Some("固定当前标签页"),
         "pin current tab group" => Some("固定当前标签页组"),
         "press enter to create a new conversation." => Some("按 Enter 创建新对话。"),
-        "press enter to fork the current conversation into a new conversation." => Some("按 Enter 将当前对话分叉为新对话。"),
+        "press enter to fork the current conversation into a new conversation." => {
+            Some("按 Enter 将当前对话分叉为新对话。")
+        }
         "press enter to launch this session." => Some("按 Enter 启动此会话。"),
         "press enter to navigate to this session." => Some("按 Enter 导航到此会话。"),
         "press enter to use this launch configuration." => Some("按 Enter 使用此启动配置。"),
@@ -352,8 +376,12 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "trigger auto detection" => Some("触发自动检测"),
         "turn notifications off" => Some("关闭通知"),
         "turn notifications on" => Some("打开通知"),
-        "undo global oz cli installation (oz will still work within zyh)" => Some("撤销全局 Oz CLI 安装（ZYH 内仍可使用 oz）"),
-        "undo global zyh control cli installation (warpctrl will still work within zyh)" => Some("撤销全局 ZYH Control CLI 安装（ZYH 内仍可使用 warpctrl）"),
+        "undo global oz cli installation (oz will still work within zyh)" => {
+            Some("撤销全局 Oz CLI 安装（ZYH 内仍可使用 oz）")
+        }
+        "undo global zyh control cli installation (warpctrl will still work within zyh)" => {
+            Some("撤销全局 ZYH Control CLI 安装（ZYH 内仍可使用 warpctrl）")
+        }
         "unfold" => Some("展开"),
         "unpin current tab" => Some("取消固定当前标签页"),
         "unpin current tab group" => Some("取消固定当前标签页组"),
@@ -378,13 +406,25 @@ mod tests {
 
     #[test]
     fn matches_titlecase_and_lowercase() {
-        assert_eq!(binding_description_zh_cn("Close Current Session"), Some("关闭当前会话"));
-        assert_eq!(binding_description_zh_cn("close current session"), Some("关闭当前会话"));
-        assert_eq!(binding_description_zh_cn("Split pane left"), Some("向左拆分窗格"));
+        assert_eq!(
+            binding_description_zh_cn("Close Current Session"),
+            Some("关闭当前会话")
+        );
+        assert_eq!(
+            binding_description_zh_cn("close current session"),
+            Some("关闭当前会话")
+        );
+        assert_eq!(
+            binding_description_zh_cn("Split pane left"),
+            Some("向左拆分窗格")
+        );
     }
 
     #[test]
     fn skips_urls() {
-        assert_eq!(binding_description_zh_cn("https://docs.warp.dev/changelog"), None);
+        assert_eq!(
+            binding_description_zh_cn("https://docs.warp.dev/changelog"),
+            None
+        );
     }
 }

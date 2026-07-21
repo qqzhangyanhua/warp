@@ -366,12 +366,12 @@ impl CodeSettingsPageView {
             ]);
             let categories = vec![
                 Category::localized(
-                Message::SettingsCodeCodebaseIndexingCategory,
-                codebase_indexing_widgets,
+                    Message::SettingsCodeCodebaseIndexingCategory,
+                    codebase_indexing_widgets,
                 ),
                 Category::localized(
-                Message::SettingsCodeEditorAndReviewCategory,
-                code_editor_review_widgets,
+                    Message::SettingsCodeEditorAndReviewCategory,
+                    code_editor_review_widgets,
                 ),
             ];
             PageType::new_categorized(categories, None)
@@ -508,12 +508,12 @@ impl CodeSettingsPageView {
             ]);
             let categories = vec![
                 Category::localized(
-                Message::SettingsCodeCodebaseIndexingCategory,
-                codebase_indexing_widgets,
+                    Message::SettingsCodeCodebaseIndexingCategory,
+                    codebase_indexing_widgets,
                 ),
                 Category::localized(
-                Message::SettingsCodeEditorAndReviewCategory,
-                code_editor_review_widgets,
+                    Message::SettingsCodeEditorAndReviewCategory,
+                    code_editor_review_widgets,
                 ),
             ];
             PageType::new_categorized(categories, None)

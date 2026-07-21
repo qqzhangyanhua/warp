@@ -388,8 +388,10 @@ fn standard_settings_view_keeps_account_and_cloud_settings_pages() {
 
     warpui::App::test((), |mut app| async move {
         initialize_app(&mut app);
-        let (window_id, _root_view) =
-            app.add_window(warpui::platform::WindowStyle::NotStealFocus, |_| TestRootView);
+        let (window_id, _root_view) = app
+            .add_window(warpui::platform::WindowStyle::NotStealFocus, |_| {
+                TestRootView
+            });
 
         let settings_view = app.update(|ctx| {
             ctx.add_typed_action_view(window_id, |ctx| {

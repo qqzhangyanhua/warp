@@ -18,13 +18,27 @@ const BUTTON_PADDING: f32 = 12.;
 const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_BORDER_RADIUS: f32 = 4.;
 
-fn default_delinquent_admin_modal_subheader() -> &'static str { tr_cached(Message::BillingSharedRestrictedUpdatePayment) }
-fn default_delinquent_admin_enterprise_modal_subheader() -> &'static str { tr_cached(Message::BillingSharedRestrictedContactSupport) }
-fn default_delinquent_modal_subheader() -> &'static str { tr_cached(Message::BillingSharedRestrictedContactAdmin) }
-fn default_admin_prosumer_modal_subheader() -> &'static str { tr_cached(Message::BillingProSharedLimitUpgradeTurbo) }
-fn default_prosumer_modal_subheader() -> &'static str { tr_cached(Message::BillingProSharedLimitContactAdmin) }
-fn default_admin_modal_subheader() -> &'static str { tr_cached(Message::BillingFreeSharedLimitUpgrade) }
-fn default_modal_subheader() -> &'static str { tr_cached(Message::BillingFreeSharedLimitContactAdmin) }
+fn default_delinquent_admin_modal_subheader() -> &'static str {
+    tr_cached(Message::BillingSharedRestrictedUpdatePayment)
+}
+fn default_delinquent_admin_enterprise_modal_subheader() -> &'static str {
+    tr_cached(Message::BillingSharedRestrictedContactSupport)
+}
+fn default_delinquent_modal_subheader() -> &'static str {
+    tr_cached(Message::BillingSharedRestrictedContactAdmin)
+}
+fn default_admin_prosumer_modal_subheader() -> &'static str {
+    tr_cached(Message::BillingProSharedLimitUpgradeTurbo)
+}
+fn default_prosumer_modal_subheader() -> &'static str {
+    tr_cached(Message::BillingProSharedLimitContactAdmin)
+}
+fn default_admin_modal_subheader() -> &'static str {
+    tr_cached(Message::BillingFreeSharedLimitUpgrade)
+}
+fn default_modal_subheader() -> &'static str {
+    tr_cached(Message::BillingFreeSharedLimitContactAdmin)
+}
 
 #[derive(Default)]
 struct MouseStateHandles {

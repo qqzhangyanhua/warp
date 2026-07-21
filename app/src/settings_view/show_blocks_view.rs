@@ -36,7 +36,6 @@ use crate::view_components::ToastFlavor;
 
 const SCROLLBAR_WIDTH: ScrollbarWidth = ScrollbarWidth::Auto;
 
-
 #[derive(Clone, Debug)]
 struct UserOwnedBlock {
     id: String,
@@ -304,12 +303,10 @@ impl GetBlocksForUserRequestState {
                 .label(tr_cached(Message::SharedBlocksNoBlocksYet))
                 .build()
                 .finish()),
-            GetBlocksForUserRequestState::InFlight => {
-                pad(ui_builder
-                    .label(tr_cached(Message::SharedBlocksGettingBlocks))
-                    .build()
-                    .finish())
-            }
+            GetBlocksForUserRequestState::InFlight => pad(ui_builder
+                .label(tr_cached(Message::SharedBlocksGettingBlocks))
+                .build()
+                .finish()),
             GetBlocksForUserRequestState::Failed => pad(ui_builder
                 .label(tr_cached(Message::SharedBlocksFailedToLoad))
                 .build()

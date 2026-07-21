@@ -548,9 +548,10 @@ impl AgentAssistedEnvironmentModal {
         let window_id = ctx.window_id();
         let path = home_relative_path(selected_path);
         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast =
-                DismissibleToast::error(tr_cached(Message::ToastSelectedFolderNotGitRepo).replace("{}", &path))
-                    .with_object_id("agent_assisted_env_add_repo_not_git_repo".to_string());
+            let toast = DismissibleToast::error(
+                tr_cached(Message::ToastSelectedFolderNotGitRepo).replace("{}", &path),
+            )
+            .with_object_id("agent_assisted_env_add_repo_not_git_repo".to_string());
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
     }

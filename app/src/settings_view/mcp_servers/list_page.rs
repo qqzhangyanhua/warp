@@ -1159,8 +1159,10 @@ impl MCPServersListPageView {
     }
 
     fn render_page_body(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
-        let description_fragments =
-            vec![FormattedTextFragment::plain_text(tr(app, Message::McpServersDescription))];
+        let description_fragments = vec![FormattedTextFragment::plain_text(tr(
+            app,
+            Message::McpServersDescription,
+        ))];
 
         let description = FormattedTextElement::new(
             FormattedText::new([FormattedTextLine::Line(description_fragments)]),

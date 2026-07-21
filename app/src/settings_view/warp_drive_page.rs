@@ -14,8 +14,7 @@ use warpui::{
 };
 
 use super::settings_page::{
-    render_body_item, MatchData, PageType, SettingsPageMeta,
-    SettingsPageViewHandle, SettingsWidget,
+    render_body_item, MatchData, PageType, SettingsPageMeta, SettingsPageViewHandle, SettingsWidget,
 };
 use super::{
     flags, LocalOnlyIconState, SettingActionPairContexts, SettingActionPairDescriptions,

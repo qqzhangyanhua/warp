@@ -38,9 +38,9 @@ use crate::cloud_object::CloudObjectLookup as _;
 use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::server::ids::{ClientId, HashableId, ServerId, SyncId};
 use crate::ui_components::icons::Icon;
-use crate::i18n::{tr_cached, Message};
 use crate::view_components::copyable_text_field::{
     render_copyable_text_field, CopyButtonPlacement, CopyableTextFieldConfig,
     COPY_FEEDBACK_DURATION,
@@ -319,7 +319,9 @@ impl DisplayChipMenu {
                     let placeholder_text = match chip_menu_type {
                         ChipMenuType::Directories => tr_cached(Message::SearchDirectoriesEllipsis),
                         ChipMenuType::Branches => tr_cached(Message::SearchBranchesEllipsis),
-                        ChipMenuType::Environments => tr_cached(Message::SearchEnvironmentsEllipsis),
+                        ChipMenuType::Environments => {
+                            tr_cached(Message::SearchEnvironmentsEllipsis)
+                        }
                         ChipMenuType::CodeReview => {
                             unreachable!("search input should not be constructed")
                         }

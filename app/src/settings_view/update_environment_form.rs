@@ -484,10 +484,10 @@ impl UpdateEnvironmentForm {
                 tr_cached(Message::EnvironmentFormDeleteEnvironment),
                 DangerSecondaryTheme,
             )
-                .with_icon(Icon::Trash)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(UpdateEnvironmentFormAction::Delete);
-                })
+            .with_icon(Icon::Trash)
+            .on_click(|ctx| {
+                ctx.dispatch_typed_action(UpdateEnvironmentFormAction::Delete);
+            })
         });
 
         let cancel_button = ctx.add_typed_action_view(|_| {
@@ -1676,8 +1676,8 @@ impl UpdateEnvironmentForm {
                         font_family,
                         font_size,
                     )
-                        .with_color(color.into())
-                        .finish()
+                    .with_color(color.into())
+                    .finish()
                 },
             )
             .with_cursor(Cursor::PointingHand)

@@ -927,20 +927,34 @@ fn toggle_description_suffix_message(description_suffix: &str) -> Option<crate::
         "global file search" => Some(Message::ToggleSuffixGlobalFileSearch),
         "show hidden files in project explorer" => Some(Message::ToggleSuffixShowHiddenFiles),
         "AI" => Some(Message::ToggleSuffixAi),
-        "agent prompt autodetection in terminal input" => Some(Message::ToggleSuffixAgentPromptAutodetection),
+        "agent prompt autodetection in terminal input" => {
+            Some(Message::ToggleSuffixAgentPromptAutodetection)
+        }
         "prompt suggestions" => Some(Message::ToggleSuffixPromptSuggestions),
         "code suggestions" => Some(Message::ToggleSuffixCodeSuggestions),
-        "natural language autosuggestions" => Some(Message::ToggleSuffixNaturalLanguageAutosuggestions),
+        "natural language autosuggestions" => {
+            Some(Message::ToggleSuffixNaturalLanguageAutosuggestions)
+        }
         "shared block title generation" => Some(Message::ToggleSuffixSharedBlockTitleGeneration),
         "commit and pull request generation" => Some(Message::ToggleSuffixCommitAndPrGeneration),
         "voice input" => Some(Message::ToggleSuffixVoiceInput),
-        "include agent-executed commands in history" => Some(Message::ToggleSuffixIncludeAgentCommandsInHistory),
-        "conversation history in tools panel" => Some(Message::ToggleSuffixConversationHistoryInTools),
+        "include agent-executed commands in history" => {
+            Some(Message::ToggleSuffixIncludeAgentCommandsInHistory)
+        }
+        "conversation history in tools panel" => {
+            Some(Message::ToggleSuffixConversationHistoryInTools)
+        }
         "model picker in prompt" => Some(Message::ToggleSuffixModelPickerInPrompt),
         "coding agent toolbar" => Some(Message::ToggleSuffixCodingAgentToolbar),
-        "auto show or hide Rich Input based on agent status" => Some(Message::ToggleSuffixAutoShowHideRichInput),
-        "auto open Rich Input when a coding agent session starts" => Some(Message::ToggleSuffixAutoOpenRichInput),
-        "auto dismiss Rich Input after prompt submission" => Some(Message::ToggleSuffixAutoDismissRichInput),
+        "auto show or hide Rich Input based on agent status" => {
+            Some(Message::ToggleSuffixAutoShowHideRichInput)
+        }
+        "auto open Rich Input when a coding agent session starts" => {
+            Some(Message::ToggleSuffixAutoOpenRichInput)
+        }
+        "auto dismiss Rich Input after prompt submission" => {
+            Some(Message::ToggleSuffixAutoDismissRichInput)
+        }
         "settings sync" => Some(Message::ToggleSuffixSettingsSync),
         "compact mode" => Some(Message::ToggleSuffixCompactMode),
         "themes: sync with OS" => Some(Message::ToggleSuffixThemesSyncOs),
@@ -952,20 +966,32 @@ fn toggle_description_suffix_message(description_suffix: &str) -> Option<crate::
         "window blur acrylic texture" => Some(Message::ToggleSuffixWindowBlurAcrylic),
         "tools panel visibility across tabs" => Some(Message::ToggleSuffixToolsPanelVisibility),
         "agent font matching terminal font" => Some(Message::ToggleSuffixAgentFontMatchTerminal),
-        "notebook font size matching terminal font size" => Some(Message::ToggleSuffixNotebookFontMatchTerminal),
+        "notebook font size matching terminal font size" => {
+            Some(Message::ToggleSuffixNotebookFontMatchTerminal)
+        }
         "tab indicators" => Some(Message::ToggleSuffixTabIndicators),
         "focus follows mouse" => Some(Message::ToggleSuffixFocusFollowsMouse),
         "zen mode" => Some(Message::ToggleSuffixZenMode),
         "vertical tab layout" => Some(Message::ToggleSuffixVerticalTabLayout),
-        "show vertical tabs panel in restored windows" => Some(Message::ToggleSuffixShowVerticalTabsRestored),
-        "latest user prompt as conversation title in tab names" => Some(Message::ToggleSuffixLatestPromptAsTabTitle),
+        "show vertical tabs panel in restored windows" => {
+            Some(Message::ToggleSuffixShowVerticalTabsRestored)
+        }
+        "latest user prompt as conversation title in tab names" => {
+            Some(Message::ToggleSuffixLatestPromptAsTabTitle)
+        }
         "ligature rendering" => Some(Message::ToggleSuffixLigatureRendering),
-        "preserve active tab color for new tabs" => Some(Message::ToggleSuffixPreserveActiveTabColor),
+        "preserve active tab color for new tabs" => {
+            Some(Message::ToggleSuffixPreserveActiveTabColor)
+        }
         "custom padding in alt-screen" => Some(Message::ToggleSuffixCustomPaddingAltScreen),
         "copy on select within the terminal" => Some(Message::ToggleSuffixCopyOnSelect),
         "linux selection clipboard" => Some(Message::ToggleSuffixLinuxSelectionClipboard),
-        "autocomplete quotes, parentheses, and brackets" => Some(Message::ToggleSuffixAutocompleteQuotesBrackets),
-        "restore windows, tabs, and panes on startup" => Some(Message::ToggleSuffixRestoreWindowsOnStartup),
+        "autocomplete quotes, parentheses, and brackets" => {
+            Some(Message::ToggleSuffixAutocompleteQuotesBrackets)
+        }
+        "restore windows, tabs, and panes on startup" => {
+            Some(Message::ToggleSuffixRestoreWindowsOnStartup)
+        }
         "scroll reporting" => Some(Message::ToggleSuffixScrollReporting),
         "completions while typing" => Some(Message::ToggleSuffixCompletionsWhileTyping),
         "command corrections" => Some(Message::ToggleSuffixCommandCorrections),
@@ -975,10 +1001,16 @@ fn toggle_description_suffix_message(description_suffix: &str) -> Option<crate::
         "autosuggestions" => Some(Message::ToggleSuffixAutosuggestions),
         "autosuggestion keybinding hint" => Some(Message::ToggleSuffixAutosuggestionKeybindingHint),
         "autosuggestion ignore button" => Some(Message::ToggleSuffixAutosuggestionIgnoreButton),
-        "reuse existing SSH ControlMaster in the ZYH SSH wrapper" => Some(Message::ToggleSuffixReuseSshControlMaster),
+        "reuse existing SSH ControlMaster in the ZYH SSH wrapper" => {
+            Some(Message::ToggleSuffixReuseSshControlMaster)
+        }
         "show tooltip on click on links" => Some(Message::ToggleSuffixShowTooltipOnLinkClick),
-        "long-running command notifications" => Some(Message::ToggleSuffixLongRunningCommandNotifications),
-        "agent task completion notifications" => Some(Message::ToggleSuffixAgentTaskCompletionNotifications),
+        "long-running command notifications" => {
+            Some(Message::ToggleSuffixLongRunningCommandNotifications)
+        }
+        "agent task completion notifications" => {
+            Some(Message::ToggleSuffixAgentTaskCompletionNotifications)
+        }
         "needs-attention notifications" => Some(Message::ToggleSuffixNeedsAttentionNotifications),
         "notification sounds" => Some(Message::ToggleSuffixNotificationSounds),
         "in-app agent notifications" => Some(Message::ToggleSuffixInAppAgentNotifications),
@@ -994,10 +1026,16 @@ fn toggle_description_suffix_message(description_suffix: &str) -> Option<crate::
         "help block in new sessions" => Some(Message::ToggleSuffixHelpBlockNewSessions),
         "terminal input message line" => Some(Message::ToggleSuffixTerminalInputMessageLine),
         "'@' context menu in terminal mode" => Some(Message::ToggleSuffixAtContextMenuTerminal),
-        "preserve input focus on block selection" => Some(Message::ToggleSuffixPreserveInputFocusOnBlock),
+        "preserve input focus on block selection" => {
+            Some(Message::ToggleSuffixPreserveInputFocusOnBlock)
+        }
         "slash commands in terminal mode" => Some(Message::ToggleSuffixSlashCommandsTerminal),
-        "codebase symbols in the '@' context menu" => Some(Message::ToggleSuffixCodebaseSymbolsInAtMenu),
-        "global workflows in Command Search" => Some(Message::ToggleSuffixGlobalWorkflowsCommandSearch),
+        "codebase symbols in the '@' context menu" => {
+            Some(Message::ToggleSuffixCodebaseSymbolsInAtMenu)
+        }
+        "global workflows in Command Search" => {
+            Some(Message::ToggleSuffixGlobalWorkflowsCommandSearch)
+        }
         "integrated GPU rendering (low power)" => Some(Message::ToggleSuffixIntegratedGpuRendering),
         "app analytics" => Some(Message::ToggleSuffixAppAnalytics),
         "crash reporting" => Some(Message::ToggleSuffixCrashReporting),
@@ -1006,7 +1044,6 @@ fn toggle_description_suffix_message(description_suffix: &str) -> Option<crate::
         _ => None,
     }
 }
-
 
 impl<T: Action + Clone> ToggleSettingActionPair<T> {
     /// `description_suffix` will be visible to the user,

@@ -10,10 +10,10 @@ use warpui::ui_components::button::{ButtonVariant, TextAndIcon, TextAndIconAlign
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{Element, ViewContext};
 
-use crate::i18n::{tr_cached, Message};
 use crate::drive::sharing::{ContentEditability, SharingAccessLevel};
 use crate::env_vars::active_env_var_collection_data::TrashStatus;
 use crate::env_vars::view::env_var_collection::{EnvVarCollectionAction, EnvVarCollectionView};
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::breadcrumb::BreadcrumbState;
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;

@@ -29,9 +29,8 @@ use warpui::{
 };
 
 use super::settings_page::{
-    render_body_item, render_customer_type_badge, LocalOnlyIconState, MatchData,
-    PageType, SettingsPageMeta, SettingsPageViewHandle, SettingsWidget, ToggleState,
-    HEADER_PADDING,
+    render_body_item, render_customer_type_badge, LocalOnlyIconState, MatchData, PageType,
+    SettingsPageMeta, SettingsPageViewHandle, SettingsWidget, ToggleState, HEADER_PADDING,
 };
 use super::{flags, SettingsAction, SettingsSection, ToggleSettingActionPair};
 use crate::appearance::Appearance;

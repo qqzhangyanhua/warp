@@ -77,7 +77,6 @@ const CLAIMED_REFERRAL_COUNT_LEFT_MARGIN: f32 = 40.;
 
 const CLAIMED_REFERRAL_CLIP: usize = 999;
 
-
 enum ApiState {
     Loading,
     Ready {
