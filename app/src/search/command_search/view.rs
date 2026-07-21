@@ -33,7 +33,6 @@ use super::warp_ai::WarpAIDataSource;
 use super::workflows::{cloud_workflows_data_source, WorkflowsDataSource};
 use super::zero_state::{CommandSearchZeroStateEvent, CommandSearchZeroStateView};
 use crate::ai_assistant::execution_context::WarpAiExecutionContext;
-use crate::i18n::{tr_cached, Message};
 use crate::ai_assistant::GenerateCommandsFromNaturalLanguageError;
 use crate::appearance::Appearance;
 use crate::auth::auth_manager::AuthManager;
@@ -42,12 +41,12 @@ use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::completer::SessionContext;
 use crate::drive::settings::WarpDriveSettings;
+use crate::i18n::{tr_cached, Message};
 use crate::search::command_search::searcher::{CommandSearchItemAction, CommandSearchMixer};
 use crate::search::mixer::AddAsyncSourceOptions;
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
 use crate::search::search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering};
 use crate::search::QueryFilter;
-use crate::send_telemetry_from_ctx;
 use crate::server::ids::ServerId;
 use crate::server::server_api::ai::AIClient;
 use crate::server::telemetry::TelemetryEvent;
@@ -57,8 +56,17 @@ use crate::terminal::model::session::SessionId;
 use crate::terminal::resizable_data::{ModalType, ResizableData, DEFAULT_UNIVERSAL_SEARCH_WIDTH};
 use crate::terminal::{History, HistoryEvent};
 use crate::workspaces::user_workspaces::UserWorkspaces;
+use crate::{local_mode, send_telemetry_from_ctx};
 
-fn default_placeholder_text() -> &'static str { tr_cached(Message::CommandSearchPlaceholder) }
+fn default_placeholder_text() -> &'static str {
+    tr_cached(Message::CommandSearchPlaceholder)
+}
+
+fn command_search_drive_sources_available(ctx: &AppContext) -> bool {
+    WarpDriveSettings::is_warp_drive_enabled(ctx)
+        && !local_mode::is_local_only_custom_provider_mode()
+}
+
 const PANEL_POSITION_ID: &str = "CommandSearchViewPanel";
 const DETAILS_PANEL_MARGIN: f32 = 4.;
 const MIN_WIDTH_RATIO: f32 = 0.25;
@@ -246,7 +254,7 @@ impl CommandSearchView {
                 );
             }
 
-            if WarpDriveSettings::is_warp_drive_enabled(ctx) {
+            if command_search_drive_sources_available(ctx) {
                 mixer.add_sync_source(
                     WorkflowsDataSource::new(session_context.as_ref(), ctx),
                     HashSet::from([QueryFilter::Workflows]),
@@ -611,7 +619,10 @@ impl CommandSearchView {
                             current_user_id,
                         )
                     } else {
-                        self.render_error_header_text(tr_cached(Message::OutOfCreditsContactAdmin).to_string(), appearance)
+                        self.render_error_header_text(
+                            tr_cached(Message::OutOfCreditsContactAdmin).to_string(),
+                            appearance,
+                        )
                     }
                 } else {
                     self.render_error_header_text(message, appearance)
@@ -665,7 +676,9 @@ impl CommandSearchView {
             .with_main_axis_size(warpui::elements::MainAxisSize::Max)
             .with_cross_axis_alignment(CrossAxisAlignment::Center);
 
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
+        if FeatureFlag::AnonymousOnlyMode.is_enabled()
+            || local_mode::is_local_only_custom_provider_mode()
+        {
             row.add_child(
                 appearance
                     .ui_builder()

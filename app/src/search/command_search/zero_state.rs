@@ -11,6 +11,7 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View
 
 use crate::appearance::Appearance;
 use crate::drive::settings::{WarpDriveSettings, WarpDriveSettingsChangedEvent};
+use crate::local_mode;
 use crate::search::{FilterChipRenderer, QueryFilter};
 use crate::settings::{AISettings, AISettingsChangedEvent};
 
@@ -295,7 +296,9 @@ fn valid_query_filters(app: &AppContext) -> Vec<QueryFilter> {
         filters.push(QueryFilter::PromptHistory);
     }
 
-    if WarpDriveSettings::is_warp_drive_enabled(app) {
+    if WarpDriveSettings::is_warp_drive_enabled(app)
+        && !local_mode::is_local_only_custom_provider_mode()
+    {
         filters.extend([QueryFilter::Workflows, QueryFilter::Notebooks]);
 
         filters.push(QueryFilter::EnvironmentVariables);

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use cloud_object_client::MockObjectClient;
+use serial_test::serial;
 use settings::manager::SettingsManager;
 use warpui::{App, SingletonEntity};
 
@@ -101,8 +102,91 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());
     app.add_singleton_model(|_| SettingsManager::default());
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
+    app.add_singleton_model(crate::user_config::WarpConfig::mock);
     app.update(crate::settings::init_and_register_user_preferences);
     app.update(AISettings::register_and_subscribe_to_events);
+    WarpDriveSettings::register(app);
+}
+
+#[test]
+#[serial]
+fn local_only_command_palette_omits_warp_drive_filters() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let binding_source = app.add_model(|_| BindingSource::None);
+        let session_source = app.add_model(|_| SessionSource::None);
+        let mixer = app.add_model(|_| CommandPaletteMixer::new());
+        let data_source_store =
+            app.add_model(|ctx| DataSourceStore::new(binding_source, session_source, ctx));
+
+        data_source_store.update(&mut app, |store, ctx| {
+            store.reset_search_mixer(mixer.clone(), false, ctx);
+        });
+
+        app.read(|app| {
+            let filters = mixer
+                .as_ref(app)
+                .registered_filters()
+                .collect::<HashSet<_>>();
+
+            for forbidden in [
+                QueryFilter::Drive,
+                QueryFilter::Notebooks,
+                QueryFilter::Plans,
+                QueryFilter::Workflows,
+                QueryFilter::AgentModeWorkflows,
+                QueryFilter::EnvironmentVariables,
+            ] {
+                assert!(
+                    !filters.contains(&forbidden),
+                    "{forbidden:?} should not be registered in Local-only Mode"
+                );
+            }
+        });
+    });
+}
+
+#[test]
+#[serial]
+fn standard_command_palette_keeps_warp_drive_filters() {
+    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        let binding_source = app.add_model(|_| BindingSource::None);
+        let session_source = app.add_model(|_| SessionSource::None);
+        let mixer = app.add_model(|_| CommandPaletteMixer::new());
+        let data_source_store =
+            app.add_model(|ctx| DataSourceStore::new(binding_source, session_source, ctx));
+
+        data_source_store.update(&mut app, |store, ctx| {
+            store.reset_search_mixer(mixer.clone(), false, ctx);
+        });
+
+        app.read(|app| {
+            let filters = mixer
+                .as_ref(app)
+                .registered_filters()
+                .collect::<HashSet<_>>();
+
+            for expected in [
+                QueryFilter::Drive,
+                QueryFilter::Notebooks,
+                QueryFilter::Plans,
+                QueryFilter::Workflows,
+                QueryFilter::EnvironmentVariables,
+            ] {
+                assert!(
+                    filters.contains(&expected),
+                    "{expected:?} should remain registered outside Local-only Mode"
+                );
+            }
+        });
+    });
 }
 
 #[test]

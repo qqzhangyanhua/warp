@@ -20,7 +20,6 @@ use warpui::windowing::WindowManager;
 use warpui::{AppContext, SingletonEntity};
 
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::auth;
 use crate::auth::AuthStateProvider;
 use crate::default_terminal::DefaultTerminal;
 use crate::features::{runtime_flags_menu_items, FeatureFlag};
@@ -37,6 +36,7 @@ use crate::user_config::WarpConfig;
 use crate::util::bindings::{self, trigger_to_keystroke, CustomAction};
 use crate::util::links;
 use crate::workspace::sync_inputs::SyncedInputState;
+use crate::{auth, local_mode};
 
 type CheckmarkStatusGetter = dyn 'static + Fn(&mut AppContext) -> bool;
 
@@ -125,7 +125,7 @@ fn app_menu_text<'a>(ctx: &AppContext, text: &'a str) -> Cow<'a, str> {
 
 /// Creates the root app menu bar
 pub fn menu_bar(ctx: &mut AppContext) -> MenuBar {
-    MenuBar::new(vec![
+    let mut menus = vec![
         make_new_app_menu(ctx),
         make_new_file_menu(ctx),
         make_new_edit_menu(ctx),
@@ -133,10 +133,15 @@ pub fn menu_bar(ctx: &mut AppContext) -> MenuBar {
         make_new_tab_menu(ctx),
         make_new_blocks_menu(ctx),
         make_new_ai_menu(ctx),
-        make_new_drive_menu(ctx),
         make_new_window_menu(ctx),
         make_new_help_menu(ctx),
-    ])
+    ];
+
+    if drive_menu_available() {
+        menus.insert(7, make_new_drive_menu(ctx));
+    }
+
+    MenuBar::new(menus)
 }
 
 // Creates the app dock menu
@@ -221,7 +226,7 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
     }
 
     menu_items.push(MenuItem::Separator);
-    if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+    if account_and_cloud_actions_available() {
         menu_items.push(updateable_custom_item_without_checkmark(
             CustomAction::ReferAFriend,
             ctx,
@@ -295,7 +300,7 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         None,
     )));
     menu_items.push(MenuItem::Separator);
-    if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+    if account_and_cloud_actions_available() {
         menu_items.push(MenuItem::Custom(CustomMenuItem::new(
             app_menu_text(ctx, "Log out").as_ref(),
             auth::maybe_log_out,
@@ -444,9 +449,16 @@ fn make_new_edit_menu(ctx: &AppContext) -> Menu {
 }
 
 fn make_new_view_menu(ctx: &AppContext) -> Menu {
-    let mut items = vec![
-        updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
-        MenuItem::Separator,
+    let mut items = vec![];
+
+    if drive_menu_available() {
+        items.extend([
+            updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
+            MenuItem::Separator,
+        ]);
+    }
+
+    items.extend([
         updateable_custom_item_without_checkmark(CustomAction::CommandPalette, ctx),
         updateable_custom_item_without_checkmark(CustomAction::NavigationPalette, ctx),
         updateable_custom_item_without_checkmark(CustomAction::LaunchConfigPalette, ctx),
@@ -505,7 +517,7 @@ fn make_new_view_menu(ctx: &AppContext) -> Menu {
             },
             None,
         )),
-    ];
+    ]);
 
     let is_compact_mode = matches!(
         TerminalSettings::handle(ctx)
@@ -674,7 +686,7 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
         ctx,
     ));
     items.push(MenuItem::Separator);
-    if !FeatureFlag::AnonymousOnlyMode.is_enabled() {
+    if account_and_cloud_actions_available() {
         items.extend([
             updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
             updateable_custom_item_without_checkmark(CustomAction::SearchDrive, ctx),
@@ -699,6 +711,15 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
     }
 
     Menu::new(app_menu_text(ctx, "Drive").into_owned(), items)
+}
+
+fn account_and_cloud_actions_available() -> bool {
+    !FeatureFlag::AnonymousOnlyMode.is_enabled()
+        && !local_mode::is_local_only_custom_provider_mode()
+}
+
+fn drive_menu_available() -> bool {
+    !local_mode::is_local_only_custom_provider_mode()
 }
 
 /// Returns [`MenuItem`]s that aid debugging to be included in the Block menu.
@@ -1269,5 +1290,32 @@ fn custom_action_updater(
         changes.checked = Some(checkmark_status(ctx));
 
         changes
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+
+    use super::*;
+
+    #[test]
+    #[serial]
+    fn local_only_app_menu_disables_account_and_cloud_surfaces() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+        assert!(!drive_menu_available());
+        assert!(!account_and_cloud_actions_available());
+    }
+
+    #[test]
+    #[serial]
+    fn standard_app_menu_keeps_account_and_cloud_surfaces() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+        assert!(drive_menu_available());
+        assert!(account_and_cloud_actions_available());
     }
 }

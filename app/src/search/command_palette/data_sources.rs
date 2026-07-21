@@ -8,6 +8,7 @@ use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 
 use super::{conversations, warp_drive};
 use crate::drive::settings::WarpDriveSettings;
+use crate::local_mode;
 use crate::search::action::CommandBindingDataSource;
 use crate::search::binding_source::BindingSource;
 use crate::search::command_palette::mixer::{CommandPaletteItemAction, ItemSummary};
@@ -92,7 +93,7 @@ impl DataSourceStore {
                 HashSet::from([QueryFilter::Sessions]),
             );
 
-            if WarpDriveSettings::is_warp_drive_enabled(ctx) {
+            if command_palette_drive_sources_available(ctx) {
                 let mut warp_drive_filters = HashSet::from([
                     QueryFilter::Notebooks,
                     QueryFilter::Plans,
@@ -209,18 +210,24 @@ impl DataSourceStore {
                 .actions_data_source
                 .as_ref(app)
                 .query_result(*binding_id),
-            ItemSummary::Workflow { id } => self
+            ItemSummary::Workflow { id } if command_palette_drive_sources_available(app) => self
                 .warp_drive_data_source
                 .as_ref(app)
                 .query_result(id, app),
-            ItemSummary::EnvVarCollection { id } => self
+            ItemSummary::EnvVarCollection { id }
+                if command_palette_drive_sources_available(app) =>
+            {
+                self.warp_drive_data_source
+                    .as_ref(app)
+                    .query_result(id, app)
+            }
+            ItemSummary::Notebook { id } if command_palette_drive_sources_available(app) => self
                 .warp_drive_data_source
                 .as_ref(app)
                 .query_result(id, app),
-            ItemSummary::Notebook { id } => self
-                .warp_drive_data_source
-                .as_ref(app)
-                .query_result(id, app),
+            ItemSummary::Workflow { .. }
+            | ItemSummary::EnvVarCollection { .. }
+            | ItemSummary::Notebook { .. } => None,
             ItemSummary::Session { pane_view_locator } => self
                 .sessions_data_source
                 .as_ref(app)
@@ -318,6 +325,11 @@ impl DataSourceStore {
     ) -> Option<QueryResult<CommandPaletteItemAction>> {
         self.query_result_from_summary(&ItemSummary::Action { binding_id }, app)
     }
+}
+
+fn command_palette_drive_sources_available(ctx: &AppContext) -> bool {
+    WarpDriveSettings::is_warp_drive_enabled(ctx)
+        && !local_mode::is_local_only_custom_provider_mode()
 }
 
 impl Entity for DataSourceStore {

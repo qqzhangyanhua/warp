@@ -23,6 +23,7 @@ use super::{
     BackingView, PaneConfiguration, PaneConfigurationEvent, PaneId, PaneStack, PaneStackEvent,
 };
 use crate::appearance::Appearance;
+use crate::local_mode;
 use crate::pane_group::focus_state::{PaneFocusHandle, PaneGroupFocusEvent};
 use crate::pane_group::pane::ActionOrigin;
 use crate::pane_group::{Direction, SplitPaneState, TabBarHoverIndex};
@@ -31,6 +32,10 @@ use crate::settings::{PaneSettings, PaneSettingsChangedEvent};
 use crate::util::bindings::CustomAction;
 
 const HAS_SHARED_OBJECT_CONTEXT_KEY: &str = "PaneView_HasSharedObject";
+
+fn share_pane_contents_action_available() -> bool {
+    !local_mode::is_local_only_custom_provider_mode()
+}
 
 /// Max width applied to the pane header while the pane renders as a floating drag preview.
 /// During a pane drag the pane is laid out with unbounded constraints; `MainAxisSize::Min`
@@ -50,7 +55,8 @@ pub fn init(app: &mut AppContext) {
         PaneAction::ShareContents,
     )
     .with_custom_action(CustomAction::SharePaneContents)
-    .with_context_predicate(id!("PaneView") & id!(HAS_SHARED_OBJECT_CONTEXT_KEY))]);
+    .with_context_predicate(id!("PaneView") & id!(HAS_SHARED_OBJECT_CONTEXT_KEY))
+    .with_enabled(share_pane_contents_action_available)]);
 }
 
 pub enum PaneViewEvent {
@@ -480,5 +486,29 @@ impl<P: BackingView> TypedActionView for PaneView<P> {
 impl DropTargetData for PaneDropTargetData {
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+
+    use super::*;
+    use crate::features::FeatureFlag;
+
+    #[test]
+    #[serial]
+    fn local_only_disables_share_pane_contents_action() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+        assert!(!share_pane_contents_action_available());
+    }
+
+    #[test]
+    #[serial]
+    fn standard_mode_keeps_share_pane_contents_action() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+
+        assert!(share_pane_contents_action_available());
     }
 }

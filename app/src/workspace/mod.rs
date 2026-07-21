@@ -52,11 +52,15 @@ use crate::server::telemetry::{AgentModeEntrypoint, PaletteSource};
 use crate::settings_view::{self, flags, SettingsSection};
 use crate::tab::{uses_vertical_tabs, NewSessionMenuItem};
 use crate::util::bindings::{self, cmd_or_ctrl_shift, is_binding_pty_compliant, CustomAction};
-use crate::{code, modal, notebooks, tab_configs};
+use crate::{code, local_mode, modal, notebooks, tab_configs};
 
 // Helper function to access panel header corner radius from other modules
 pub fn panel_header_corner_radius() -> warpui::elements::CornerRadius {
     warpui::elements::CornerRadius::with_top(warpui::elements::Radius::Pixels(8.))
+}
+
+fn account_and_cloud_actions_available() -> bool {
+    !local_mode::is_local_only_custom_provider_mode()
 }
 
 pub use one_time_modal_model::OneTimeModalModel;
@@ -650,6 +654,7 @@ pub fn init(app: &mut AppContext) {
                 & id!("WarpDrive_BelongsToTeam")
                 & id!("IsOnline"),
         )
+        .with_enabled(account_and_cloud_actions_available)
         .with_group(bindings::BindingGroup::Notebooks.as_str()),
         EditableBinding::new(
             "workspace:create_personal_notebook",
@@ -659,7 +664,8 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::Notebooks.as_str())
         .with_custom_action(CustomAction::NewPersonalNotebook)
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             "workspace:create_team_workflow",
             BindingDescription::new("Create a new team workflow")
@@ -673,6 +679,7 @@ pub fn init(app: &mut AppContext) {
                 & id!("IsOnline")
                 & id!("WarpDrive_BelongsToTeam"),
         )
+        .with_enabled(account_and_cloud_actions_available)
         .with_group(bindings::BindingGroup::Workflow.as_str()),
         EditableBinding::new(
             "workspace:create_personal_workflow",
@@ -682,7 +689,8 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::Workflow.as_str())
         .with_custom_action(CustomAction::NewPersonalWorkflow)
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             "workspace:create_team_folder",
             BindingDescription::new("Create a new team folder")
@@ -695,6 +703,7 @@ pub fn init(app: &mut AppContext) {
                 & id!("IsOnline")
                 & id!("WarpDrive_BelongsToTeam"),
         )
+        .with_enabled(account_and_cloud_actions_available)
         .with_group(bindings::BindingGroup::Folders.as_str()),
         EditableBinding::new(
             "workspace:create_personal_folder",
@@ -703,7 +712,8 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::CreatePersonalFolder,
         )
         .with_group(bindings::BindingGroup::Folders.as_str())
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE) & id!("IsOnline")),
+        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE) & id!("IsOnline"))
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             NEW_TAB_BINDING_NAME,
             BindingDescription::new("Create new tab"),
@@ -742,7 +752,9 @@ pub fn init(app: &mut AppContext) {
             id!("Workspace") & id!(flags::IS_ANY_AI_ENABLED) & !id!("Workspace_PaneDragging"),
         )
         .with_enabled(|| {
-            FeatureFlag::AgentView.is_enabled() && FeatureFlag::CloudMode.is_enabled()
+            FeatureFlag::AgentView.is_enabled()
+                && FeatureFlag::CloudMode.is_enabled()
+                && account_and_cloud_actions_available()
         }),
         EditableBinding::new(
             "workspace:toggle_left_panel",
@@ -750,7 +762,8 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::ToggleLeftPanel,
         )
         .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::ToggleWarpDrive),
+        .with_custom_action(CustomAction::ToggleWarpDrive)
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             TOGGLE_RIGHT_PANEL_BINDING_NAME,
             BindingDescription::new("Toggle code review")
@@ -814,7 +827,8 @@ pub fn init(app: &mut AppContext) {
         .with_group(bindings::BindingGroup::Navigation.as_str())
         .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
         .with_mac_key_binding("ctrl-4")
-        .with_linux_or_windows_key_binding("alt-4"),
+        .with_linux_or_windows_key_binding("alt-4")
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             TOGGLE_PROJECT_EXPLORER_BINDING_NAME,
             BindingDescription::new("Toggle project explorer")
@@ -838,7 +852,8 @@ pub fn init(app: &mut AppContext) {
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "ZYH Drive"),
             WorkspaceAction::ToggleWarpDrive,
         )
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             TOGGLE_CONVERSATION_LIST_VIEW_BINDING_NAME,
             BindingDescription::new("Toggle Agent conversation list view").with_custom_description(
@@ -1179,7 +1194,8 @@ pub fn init(app: &mut AppContext) {
             },
         )
         .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::SearchDrive),
+        .with_custom_action(CustomAction::SearchDrive)
+        .with_enabled(account_and_cloud_actions_available),
     ]);
 
     if FeatureFlag::Autoupdate.is_enabled() {
@@ -1210,7 +1226,8 @@ pub fn init(app: &mut AppContext) {
         WorkspaceAction::LogOut,
     )
     .with_group(bindings::BindingGroup::Settings.as_str())
-    .with_context_predicate(id!("Workspace") & !id!("IsAnonymousUser"))]);
+    .with_context_predicate(id!("Workspace") & !id!("IsAnonymousUser"))
+    .with_enabled(account_and_cloud_actions_available)]);
 
     if !FeatureFlag::AvatarInTabBar.is_enabled() {
         app.register_editable_bindings([EditableBinding::new(
@@ -1230,7 +1247,8 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::ExportAllWarpDriveObjects,
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))]);
+        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
+        .with_enabled(account_and_cloud_actions_available)]);
     }
 
     // Oz and Warp Control CLI install/uninstall actions (macOS only)
@@ -1345,6 +1363,7 @@ pub fn init(app: &mut AppContext) {
                 & id!("WarpDrive_BelongsToTeam")
                 & id!("IsOnline"),
         )
+        .with_enabled(account_and_cloud_actions_available)
         .with_group(bindings::BindingGroup::EnvVarCollection.as_str()),
         EditableBinding::new(
             "workspace:create_personal_env_vars",
@@ -1357,7 +1376,8 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::EnvVarCollection.as_str())
         .with_custom_action(CustomAction::NewPersonalEnvVars)
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             "workspace:create_personal_ai_prompt",
             BindingDescription::new("Create a new personal prompt")
@@ -1368,7 +1388,8 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::NewPersonalAIPrompt)
         .with_context_predicate(
             id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE) & id!(flags::IS_ANY_AI_ENABLED),
-        ),
+        )
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             "workspace:create_team_ai_prompt",
             BindingDescription::new("Create a new team prompt")
@@ -1383,7 +1404,8 @@ pub fn init(app: &mut AppContext) {
                 & id!("WarpDrive_BelongsToTeam")
                 & id!("IsOnline")
                 & id!(flags::IS_ANY_AI_ENABLED),
-        ),
+        )
+        .with_enabled(account_and_cloud_actions_available),
     ]);
 
     app.register_editable_bindings([
@@ -1409,7 +1431,8 @@ pub fn init(app: &mut AppContext) {
             "Import To Personal Drive",
             WorkspaceAction::ImportToPersonalDrive,
         )
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE)),
+        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
+        .with_enabled(account_and_cloud_actions_available),
         EditableBinding::new(
             "workspace:import_to_team_drive",
             "Import To Team Drive",
@@ -1417,7 +1440,8 @@ pub fn init(app: &mut AppContext) {
         )
         .with_context_predicate(
             id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE) & id!("WarpDrive_BelongsToTeam"),
-        ),
+        )
+        .with_enabled(account_and_cloud_actions_available),
     ]);
 
     // Register a debug-only action for writing the user's access token to the system clipboard
@@ -1748,5 +1772,62 @@ impl DropTargetData for TabBarDropTargetData {
 impl DropTargetData for VerticalTabsPaneDropTargetData {
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+    use warpui::keymap::EditableBinding;
+    use warpui::App;
+
+    use super::*;
+
+    fn register_test_cloud_binding(app: &mut App) {
+        app.update(|ctx| {
+            ctx.register_editable_bindings([EditableBinding::new(
+                "test:cloud_action",
+                "Cloud action",
+                WorkspaceAction::LogOut,
+            )
+            .with_enabled(account_and_cloud_actions_available)]);
+        });
+    }
+
+    fn has_test_cloud_binding(app: &mut App) -> bool {
+        app.update(|ctx| {
+            ctx.editable_bindings()
+                .any(|binding| binding.name == "test:cloud_action")
+        })
+    }
+
+    #[test]
+    #[serial]
+    fn local_only_workspace_bindings_disable_account_and_cloud_actions() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+        assert!(!account_and_cloud_actions_available());
+
+        App::test((), |mut app| async move {
+            register_test_cloud_binding(&mut app);
+
+            assert!(!has_test_cloud_binding(&mut app));
+        });
+    }
+
+    #[test]
+    #[serial]
+    fn standard_workspace_bindings_keep_account_and_cloud_actions() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
+        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+
+        assert!(account_and_cloud_actions_available());
+
+        App::test((), |mut app| async move {
+            register_test_cloud_binding(&mut app);
+
+            assert!(has_test_cloud_binding(&mut app));
+        });
     }
 }

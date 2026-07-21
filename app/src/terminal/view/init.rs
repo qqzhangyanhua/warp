@@ -16,6 +16,7 @@ use crate::ai::blocklist::agent_view::{
 use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
 use crate::channel::{Channel, ChannelState};
 use crate::features::FeatureFlag;
+use crate::local_mode;
 use crate::server::telemetry::{InteractionSource, ToggleBlockFilterSource};
 use crate::settings_view::flags;
 use crate::terminal::input::{
@@ -37,6 +38,16 @@ pub const TOGGLE_BLOCK_FILTER_KEYBINDING: &str =
     "terminal:toggle_block_filter_on_selected_or_last_block";
 
 pub const CANCEL_COMMAND_KEYBINDING: &str = "terminal:cancel_command";
+
+fn cloud_sharing_actions_available() -> bool {
+    !local_mode::is_local_only_custom_provider_mode()
+}
+
+fn share_current_session_action_available() -> bool {
+    FeatureFlag::CreatingSharedSessions.is_enabled()
+        && ContextFlag::CreateSharedSession.is_enabled()
+        && cloud_sharing_actions_available()
+}
 pub const TOGGLE_AUTOEXECUTE_MODE_KEYBINDING: &str = "terminal:toggle_autoexecute_mode";
 pub const TOGGLE_QUEUE_NEXT_PROMPT_KEYBINDING: &str = "terminal:toggle_queue_next_prompt";
 pub const TOGGLE_HIDE_CLI_RESPONSES_KEYBINDING: &str = "terminal:toggle_hide_cli_responses";
@@ -566,7 +577,8 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::CreateBlockPermalink)
         .with_context_predicate(
             id!("Terminal") & eq!("TerminalView_BlockSelectionCardinality", "One"),
-        ),
+        )
+        .with_enabled(cloud_sharing_actions_available),
         EditableBinding::new(
             "terminal:bookmark_selected_block",
             "Bookmark selected block",
@@ -937,10 +949,7 @@ pub fn init(app: &mut AppContext) {
             id!("Terminal") & id!(SharedSessionStatus::NotShared.as_keymap_context()),
         )
         .with_custom_action(CustomAction::ShareCurrentSession)
-        .with_enabled(|| {
-            FeatureFlag::CreatingSharedSessions.is_enabled()
-                && ContextFlag::CreateSharedSession.is_enabled()
-        }),
+        .with_enabled(share_current_session_action_available),
         EditableBinding::new(
             "terminal:stop_sharing_current_session",
             "Stop sharing current session",
@@ -1207,4 +1216,28 @@ fn register_input_mode_bindings(app: &mut AppContext) {
             id!(flags::IS_ANY_AI_ENABLED) & !id!(LONG_RUNNING_AGENT_REQUESTED_COMMAND_CONTEXT_KEY),
         ),
     ]);
+}
+
+#[cfg(test)]
+mod tests {
+    use serial_test::serial;
+
+    use super::*;
+
+    #[test]
+    #[serial]
+    fn local_only_disables_share_current_session_action() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+        let _sharing = FeatureFlag::CreatingSharedSessions.override_enabled(true);
+
+        assert!(!share_current_session_action_available());
+    }
+
+    #[test]
+    #[serial]
+    fn local_only_disables_share_block_action() {
+        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
+
+        assert!(!cloud_sharing_actions_available());
+    }
 }
