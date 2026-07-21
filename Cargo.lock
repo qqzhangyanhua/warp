@@ -15916,6 +15916,7 @@ dependencies = [
  "instant",
  "itertools 0.14.0",
  "log",
+ "nix 0.26.4",
  "num-traits",
  "parking_lot",
  "pathfinder_color",

@@ -16,6 +16,7 @@ mod history;
 mod input;
 mod keyboard_protocol;
 mod launch_configs;
+mod local_mode;
 mod notebooks;
 mod pane_restoration;
 #[cfg(target_os = "macos")]
@@ -60,6 +61,7 @@ pub use history::*;
 pub use input::*;
 pub use keyboard_protocol::*;
 pub use launch_configs::*;
+pub use local_mode::*;
 pub use notebooks::*;
 pub use pane_restoration::*;
 use parking_lot::Mutex;

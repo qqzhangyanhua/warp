@@ -1,3 +1,6 @@
+use url::Url;
+use warp_core::channel::ChannelState;
+
 #[test]
 #[should_panic(
     expected = "Local-only Mode attempted forbidden Warp request: GET https://app.warp.dev/forbidden"
@@ -25,6 +28,40 @@ fn local_only_forbidden_request_guard_blocks_warp_identity_and_sentry_hosts() {
         assert!(
             super::is_forbidden_local_only_request_url(&url.parse().expect("url should parse")),
             "{url} should be forbidden"
+        );
+    }
+}
+
+#[test]
+fn local_only_forbidden_request_guard_blocks_configured_warp_service_origins() {
+    for root_url in [ChannelState::server_root_url(), ChannelState::oz_root_url()] {
+        let url = Url::parse(root_url.as_ref())
+            .expect("configured Warp service URL should parse")
+            .join("local-only-smoke")
+            .expect("smoke path should join");
+
+        assert!(
+            super::is_forbidden_local_only_request_url(&url),
+            "configured Warp service origin should be forbidden: {url}"
+        );
+    }
+}
+
+#[test]
+fn local_only_forbidden_request_guard_allows_configured_provider_and_explicit_mcp_origins() {
+    let allowed_urls = [
+        // Configured Provider Origin.
+        "http://127.0.0.1:11434/v1/chat/completions",
+        // Explicitly configured MCP origin.
+        "https://mcp.example.test/sse",
+    ];
+
+    for url in allowed_urls {
+        assert!(
+            !super::is_forbidden_local_only_request_url(
+                &url.parse().expect("allowed URL should parse")
+            ),
+            "Local-only Mode should allow configured Provider and MCP origins: {url}"
         );
     }
 }
