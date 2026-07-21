@@ -1,6 +1,18 @@
 use settings_page::MatchData;
 
 use super::*;
+use crate::workspace::view::tests::{initialize_app, initialize_app_without_cloud_update_managers};
+
+const FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS: [SettingsSection; 8] = [
+    SettingsSection::Account,
+    SettingsSection::BillingAndUsage,
+    SettingsSection::Teams,
+    SettingsSection::Referrals,
+    SettingsSection::SharedBlocks,
+    SettingsSection::WarpDrive,
+    SettingsSection::CloudEnvironments,
+    SettingsSection::OzCloudAPIKeys,
+];
 
 struct TestRootView;
 
@@ -22,8 +34,22 @@ impl TypedActionView for TestRootView {
     type Action = ();
 }
 
-fn initialize_settings_view_test_models(app: &mut warpui::App) {
-    crate::workspace::view::tests::initialize_app(app);
+fn assert_local_only_selection_redirects_to_warp_agent(
+    settings_view: &ViewHandle<SettingsView>,
+    section: SettingsSection,
+    app: &mut warpui::App,
+) {
+    settings_view.update(app, |settings_view, ctx| {
+        settings_view.set_and_refresh_current_page(section, ctx);
+    });
+    let current_section = settings_view.read(app, |settings_view, _ctx| {
+        settings_view.current_settings_page
+    });
+    assert_eq!(
+        current_section,
+        SettingsSection::WarpAgent,
+        "{section:?} should resolve to WarpAgent in Local-only Mode"
+    );
 }
 
 // ── SettingsSection classification ──────────────────────────────────────────
@@ -156,16 +182,7 @@ fn local_only_mode_hides_account_and_cloud_settings_sections() {
     let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
     let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
 
-    for section in [
-        SettingsSection::Account,
-        SettingsSection::BillingAndUsage,
-        SettingsSection::Teams,
-        SettingsSection::Referrals,
-        SettingsSection::SharedBlocks,
-        SettingsSection::WarpDrive,
-        SettingsSection::CloudEnvironments,
-        SettingsSection::OzCloudAPIKeys,
-    ] {
+    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
         assert!(
             section.hidden_in_current_mode(),
             "{section:?} should be hidden in Local-only Mode"
@@ -199,16 +216,7 @@ fn standard_mode_does_not_hide_account_and_cloud_settings_sections_by_mode() {
     let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
     let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
 
-    for section in [
-        SettingsSection::Account,
-        SettingsSection::BillingAndUsage,
-        SettingsSection::Teams,
-        SettingsSection::Referrals,
-        SettingsSection::SharedBlocks,
-        SettingsSection::WarpDrive,
-        SettingsSection::CloudEnvironments,
-        SettingsSection::OzCloudAPIKeys,
-    ] {
+    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
         assert!(
             !section.hidden_in_current_mode(),
             "{section:?} should remain visible in standard mode"
@@ -276,16 +284,7 @@ fn local_only_mode_redirects_forbidden_settings_requests_to_warp_agent() {
     let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
     let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
 
-    for section in [
-        SettingsSection::Account,
-        SettingsSection::BillingAndUsage,
-        SettingsSection::Teams,
-        SettingsSection::Referrals,
-        SettingsSection::SharedBlocks,
-        SettingsSection::WarpDrive,
-        SettingsSection::CloudEnvironments,
-        SettingsSection::OzCloudAPIKeys,
-    ] {
+    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
         assert_eq!(
             section.redirect_for_local_only_mode(),
             SettingsSection::WarpAgent,
@@ -330,16 +329,7 @@ fn local_only_mode_does_not_instantiate_forbidden_settings_pages() {
     let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
     let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
 
-    for section in [
-        SettingsSection::Account,
-        SettingsSection::BillingAndUsage,
-        SettingsSection::Teams,
-        SettingsSection::Referrals,
-        SettingsSection::SharedBlocks,
-        SettingsSection::WarpDrive,
-        SettingsSection::CloudEnvironments,
-        SettingsSection::OzCloudAPIKeys,
-    ] {
+    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
         assert!(
             !section.should_instantiate_in_current_mode(),
             "{section:?} should not be instantiated in Local-only Mode"
@@ -349,14 +339,16 @@ fn local_only_mode_does_not_instantiate_forbidden_settings_pages() {
 
 #[test]
 #[serial_test::serial]
-fn local_only_settings_view_omits_forbidden_settings_pages() {
+fn local_only_settings_view_without_cloud_update_managers_omits_and_redirects_forbidden_pages() {
     let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
     let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
 
     warpui::App::test((), |mut app| async move {
-        initialize_settings_view_test_models(&mut app);
-        let (window_id, _root_view) =
-            app.add_window(warpui::platform::WindowStyle::NotStealFocus, |_| TestRootView);
+        initialize_app_without_cloud_update_managers(&mut app);
+        let (window_id, _root_view) = app
+            .add_window(warpui::platform::WindowStyle::NotStealFocus, |_| {
+                TestRootView
+            });
 
         let settings_view = app.update(|ctx| {
             ctx.add_typed_action_view(window_id, |ctx| {
@@ -370,16 +362,7 @@ fn local_only_settings_view_omits_forbidden_settings_pages() {
                 .map(|page| page.section)
                 .collect();
 
-            for section in [
-                SettingsSection::Account,
-                SettingsSection::BillingAndUsage,
-                SettingsSection::Teams,
-                SettingsSection::Referrals,
-                SettingsSection::SharedBlocks,
-                SettingsSection::WarpDrive,
-                SettingsSection::CloudEnvironments,
-                SettingsSection::OzCloudAPIKeys,
-            ] {
+            for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
                 assert!(
                     !sections.contains(&section),
                     "{section:?} should not be instantiated in Local-only Mode"
@@ -390,6 +373,10 @@ fn local_only_settings_view_omits_forbidden_settings_pages() {
                 SettingsSection::WarpAgent
             );
         });
+
+        for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
+            assert_local_only_selection_redirects_to_warp_agent(&settings_view, section, &mut app);
+        }
     });
 }
 
@@ -400,7 +387,7 @@ fn standard_settings_view_keeps_account_and_cloud_settings_pages() {
     let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
 
     warpui::App::test((), |mut app| async move {
-        initialize_settings_view_test_models(&mut app);
+        initialize_app(&mut app);
         let (window_id, _root_view) =
             app.add_window(warpui::platform::WindowStyle::NotStealFocus, |_| TestRootView);
 
@@ -416,16 +403,7 @@ fn standard_settings_view_keeps_account_and_cloud_settings_pages() {
                 .map(|page| page.section)
                 .collect();
 
-            for section in [
-                SettingsSection::Account,
-                SettingsSection::BillingAndUsage,
-                SettingsSection::Teams,
-                SettingsSection::Referrals,
-                SettingsSection::SharedBlocks,
-                SettingsSection::WarpDrive,
-                SettingsSection::CloudEnvironments,
-                SettingsSection::OzCloudAPIKeys,
-            ] {
+            for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
                 assert!(
                     sections.contains(&section),
                     "{section:?} should be instantiated in standard mode"

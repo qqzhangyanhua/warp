@@ -185,6 +185,18 @@ fn query_for_rewind_prefill_uses_custom_display_query_inputs() {
 }
 
 pub(crate) fn initialize_app(app: &mut App) {
+    initialize_app_with_cloud_update_managers(app, true);
+}
+
+// Omits UpdateManager and test models that require it during construction.
+pub(crate) fn initialize_app_without_cloud_update_managers(app: &mut App) {
+    initialize_app_with_cloud_update_managers(app, false);
+}
+
+fn initialize_app_with_cloud_update_managers(
+    app: &mut App,
+    include_cloud_update_manager_dependencies: bool,
+) {
     initialize_settings_for_tests(app);
 
     // Add the necessary singleton models to the App
@@ -202,10 +214,12 @@ pub(crate) fn initialize_app(app: &mut App) {
     app.add_singleton_model(UserWorkspaces::default_mock);
     app.add_singleton_model(|_ctx| UserProfiles::new(Vec::new()));
     app.add_singleton_model(TeamTesterStatus::mock);
-    app.add_singleton_model(TeamUpdateManager::mock);
-    app.add_singleton_model(UpdateManager::mock);
+    if include_cloud_update_manager_dependencies {
+        app.add_singleton_model(TeamUpdateManager::mock);
+        app.add_singleton_model(UpdateManager::mock);
+        app.add_singleton_model(CloudViewModel::mock);
+    }
     app.add_singleton_model(MCPGalleryManager::new);
-    app.add_singleton_model(CloudViewModel::mock);
     app.add_singleton_model(Listener::mock);
     app.add_singleton_model(|_| Appearance::mock());
     app.add_singleton_model(AppearanceManager::new);
@@ -225,15 +239,17 @@ pub(crate) fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| ObjectActions::new(Vec::new()));
     app.add_singleton_model(NotebookKeybindings::new);
     app.add_singleton_model(TerminalKeybindings::new);
-    app.add_singleton_model(NotebookManager::mock);
-    app.add_singleton_model(|ctx| {
-        CloudPreferencesSyncer::new(
-            false,                     // force_local_wins_on_startup
-            std::path::PathBuf::new(), // unused in tests that don't exercise the hash path
-            true,                      // sync_enabled: cloud sync active in tests
-            ctx,
-        )
-    });
+    if include_cloud_update_manager_dependencies {
+        app.add_singleton_model(NotebookManager::mock);
+        app.add_singleton_model(|ctx| {
+            CloudPreferencesSyncer::new(
+                false,                     // force_local_wins_on_startup
+                std::path::PathBuf::new(), // unused in tests that don't exercise the hash path
+                true,                      // sync_enabled: cloud sync active in tests
+                ctx,
+            )
+        });
+    }
     app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
     app.add_singleton_model(|_| crate::ai::agent::runtime::AgentRuntimeService::new());
     // QueuedQueryModel subscribes to history events; register after the
