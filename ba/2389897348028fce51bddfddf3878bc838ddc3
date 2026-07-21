@@ -1,0 +1,22 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "ba2389897348028fce51bddfddf3878bc838ddc3",
+  "prompts": {
+    "79a00e9820d49613": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6e56-9089-75c2-ae6b-c18c9a12b4a8",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 59,
+      "total_deletions": 1,
+      "accepted_lines": 59,
+      "overriden_lines": 0,
+      "messages_url": "https://gitai.tongbaninfo.com/cas/eff201c14afde8f321d1a9d324004f294a33224a6e0f8aee232e9dbe75f2545f"
+    }
+  }
+}
