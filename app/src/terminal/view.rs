@@ -776,7 +776,9 @@ const MOVE_LINE_END_BINDING_NAME: &str = "editor_view:move_to_line_end";
 
 const DEFAULT_AI_BLOCK_HEIGHT: f32 = 96.;
 
-pub fn default_ask_ai_autosuggestion_text() -> &'static str { tr_cached(Message::WhatHappenedHere) }
+pub fn default_ask_ai_autosuggestion_text() -> &'static str {
+    tr_cached(Message::WhatHappenedHere)
+}
 
 const WARP_MD_PATH: &str = "WARP.md";
 
@@ -872,12 +874,8 @@ impl NotificationsTrigger {
             NotificationsTrigger::AgentTaskCompleted(..) => {
                 tr_cached(Message::BannerNotifyAgentFinished)
             }
-            NotificationsTrigger::NeedsAttention => {
-                tr_cached(Message::BannerNotifyNeedsAttention)
-            }
-            NotificationsTrigger::PasswordPrompt => {
-                tr_cached(Message::BannerNotifyPasswordPrompt)
-            }
+            NotificationsTrigger::NeedsAttention => tr_cached(Message::BannerNotifyNeedsAttention),
+            NotificationsTrigger::PasswordPrompt => tr_cached(Message::BannerNotifyPasswordPrompt),
         }
     }
     /// Notifications have the following format

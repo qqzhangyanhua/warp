@@ -33,7 +33,6 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::blocklist::agent_view::shortcuts::render_keystroke_with_color_overrides;
 use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISubagentEvent};
 use crate::ai::blocklist::{
@@ -45,6 +44,7 @@ use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, PropagateAndNoOpEscapeKey,
     PropagateAndNoOpNavigationKeys, PropagateHorizontalNavigationKeys, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
 use crate::terminal::cli_agent_sessions::{CLIAgentSessionsModel, CLIAgentSessionsModelEvent};
@@ -56,11 +56,21 @@ use crate::view_components::action_button::{ActionButton, ButtonSize, NakedTheme
 const MAX_PROMPT_LINES: f32 = 5.;
 /// Max characters shown in a row's single-line preview before truncation.
 const PROMPT_PREVIEW_MAX_CHARS: usize = 500;
-fn initial_cloud_mode_prompt_tooltip() -> &'static str { tr_cached(Message::FirstCloudPromptCannotChange) }
-fn send_now_during_cloud_setup_tooltip() -> &'static str { tr_cached(Message::PromptsWaitEnvironmentSetup) }
-fn send_now_pending_lrc_tooltip() -> &'static str { tr_cached(Message::PromptsWaitFullTerminalAgent) }
-fn send_now_to_full_terminal_use_agent_tooltip() -> &'static str { tr_cached(Message::SendToFullTerminalAgent) }
-fn send_now_as_read_only_viewer_tooltip() -> &'static str { tr_cached(Message::ReadOnlyViewersCannotSendPrompts) }
+fn initial_cloud_mode_prompt_tooltip() -> &'static str {
+    tr_cached(Message::FirstCloudPromptCannotChange)
+}
+fn send_now_during_cloud_setup_tooltip() -> &'static str {
+    tr_cached(Message::PromptsWaitEnvironmentSetup)
+}
+fn send_now_pending_lrc_tooltip() -> &'static str {
+    tr_cached(Message::PromptsWaitFullTerminalAgent)
+}
+fn send_now_to_full_terminal_use_agent_tooltip() -> &'static str {
+    tr_cached(Message::SendToFullTerminalAgent)
+}
+fn send_now_as_read_only_viewer_tooltip() -> &'static str {
+    tr_cached(Message::ReadOnlyViewersCannotSendPrompts)
+}
 /// Suffix on rows auto-queued during an agent-requested long-running command, which fire
 /// when that command completes rather than at the end of the full response.
 const LRC_AUTO_QUEUE_ROW_SUFFIX: &str = "(queued until the command finishes)";

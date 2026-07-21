@@ -85,9 +85,13 @@ pub fn render_welcome_banner(
     );
 
     // "New" badge
-    let text = Text::new_inline(tr_cached(Message::HoaBadgeNew).to_string(), appearance.ui_font_family(), 14.)
-        .with_color(PhenomenonStyle::modal_badge_text())
-        .finish();
+    let text = Text::new_inline(
+        tr_cached(Message::HoaBadgeNew).to_string(),
+        appearance.ui_font_family(),
+        14.,
+    )
+    .with_color(PhenomenonStyle::modal_badge_text())
+    .finish();
     let badge = ConstrainedBox::new(
         Container::new(
             Flex::row()
@@ -133,14 +137,22 @@ pub fn render_welcome_banner(
             .with_cross_axis_alignment(CrossAxisAlignment::Start)
             .with_spacing(2.)
             .with_child(
-                Text::new_inline(tr_cached(item.title).to_string(), appearance.ui_font_family(), 14.)
-                    .with_color(PhenomenonStyle::modal_feature_title_text())
-                    .finish(),
+                Text::new_inline(
+                    tr_cached(item.title).to_string(),
+                    appearance.ui_font_family(),
+                    14.,
+                )
+                .with_color(PhenomenonStyle::modal_feature_title_text())
+                .finish(),
             )
             .with_child(
-                Text::new(tr_cached(item.description), appearance.ui_font_family(), 14.)
-                    .with_color(PhenomenonStyle::modal_feature_description_text())
-                    .finish(),
+                Text::new(
+                    tr_cached(item.description),
+                    appearance.ui_font_family(),
+                    14.,
+                )
+                .with_color(PhenomenonStyle::modal_feature_description_text())
+                .finish(),
             )
             .finish();
 

@@ -9,13 +9,13 @@ use warpui::units::IntoPixels;
 use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::context_chips::display_chip::{
     chip_container, render_git_diff_stats_content, render_udi_chip, udi_font_size, GitLineChanges,
     UdiChipConfig,
 };
 use crate::context_chips::prompt_snapshot::PromptSnapshot;
 use crate::context_chips::{ChipValue, ContextChipKind};
+use crate::i18n::{tr_cached, Message};
 use crate::search::command_palette::navigation::search::SessionHighlightIndices;
 use crate::search::result_renderer::ItemHighlightState;
 use crate::session_management::{CommandContext, SessionNavigationData};
@@ -362,8 +362,9 @@ impl CommandRenderInfo {
                     }
                     Some(mins) if mins == 1 => tr_cached(Message::NavCompletedOneMinuteAgo)
                         .replace("{}", &mins.to_string()),
-                    Some(mins) => tr_cached(Message::NavCompletedMinutesAgo)
-                        .replace("{}", &mins.to_string()),
+                    Some(mins) => {
+                        tr_cached(Message::NavCompletedMinutesAgo).replace("{}", &mins.to_string())
+                    }
                     None => tr_cached(Message::NavNoTimestampFound).to_string(),
                 },
             },

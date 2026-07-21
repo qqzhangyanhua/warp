@@ -16,9 +16,9 @@ use warpui::{
 };
 
 use crate::coding_entrypoints::clone_repo_view::{CloneRepoEvent, CloneRepoView};
-use crate::i18n::{tr_cached, Message};
 use crate::coding_entrypoints::create_project_view::{CreateProjectEvent, CreateProjectView};
 use crate::coding_entrypoints::project_buttons::{ProjectButtons, ProjectButtonsEvent};
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::view;
 use crate::pane_group::{BackingView, PaneConfiguration, PaneEvent};

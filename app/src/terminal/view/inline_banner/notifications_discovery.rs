@@ -73,14 +73,8 @@ pub fn render_inline_notifications_discovery_banner(
     };
 
     let (title, buttons) = match notifications_mode {
-        NotificationsMode::Dismissed => (
-            tr_cached(Message::BannerNotificationsDismissed),
-            vec![],
-        ),
-        NotificationsMode::Disabled => (
-            tr_cached(Message::BannerNotificationsDisabled),
-            vec![],
-        ),
+        NotificationsMode::Dismissed => (tr_cached(Message::BannerNotificationsDismissed), vec![]),
+        NotificationsMode::Disabled => (tr_cached(Message::BannerNotificationsDisabled), vec![]),
         NotificationsMode::Unset => (
             trigger.discovery_banner_copy(),
             vec![

@@ -67,9 +67,13 @@ mod render;
 
 use crate::settings::{CodeSettings, CodeSettingsChangedEvent};
 
-fn remote_text() -> &'static str { tr_cached(Message::ProjectExplorerNeedsLocalWorkspace) }
+fn remote_text() -> &'static str {
+    tr_cached(Message::ProjectExplorerNeedsLocalWorkspace)
+}
 const DISABLED_TEXT: &str = "The Project Explorer requires access to your local workspace. Open a new session or navigate to an active session to view.";
-fn wsl_text() -> &'static str { tr_cached(Message::ProjectExplorerNotInWsl) }
+fn wsl_text() -> &'static str {
+    tr_cached(Message::ProjectExplorerNotInWsl)
+}
 
 /// Stable identifier for an item in the file tree.
 /// Includes both the root directory and the index within that root's flattened list.

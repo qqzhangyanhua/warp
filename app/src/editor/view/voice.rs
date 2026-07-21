@@ -554,10 +554,8 @@ impl EditorView {
         } else if modifier_key == VoiceInputToggleKey::None {
             tr_cached(Message::VoiceTranscription).to_string()
         } else {
-            tr_cached(Message::VoiceTranscriptionHoldKey).replace(
-                "{}",
-                &modifier_key.display_name().to_lowercase(),
-            )
+            tr_cached(Message::VoiceTranscriptionHoldKey)
+                .replace("{}", &modifier_key.display_name().to_lowercase())
         };
 
         Box::new(move || {

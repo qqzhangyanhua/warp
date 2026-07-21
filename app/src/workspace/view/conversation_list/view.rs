@@ -1002,7 +1002,8 @@ impl TypedActionView for ConversationListView {
                     ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                         toast_stack.add_ephemeral_toast(
                             DismissibleToast::error(
-                                tr_cached(Message::ToastConversationsCannotDeleteInProgress).to_string(),
+                                tr_cached(Message::ToastConversationsCannotDeleteInProgress)
+                                    .to_string(),
                             ),
                             window_id,
                             ctx,
@@ -1170,7 +1171,8 @@ impl TypedActionView for ConversationListView {
                         ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                             toast_stack.add_ephemeral_toast(
                                 DismissibleToast::error(
-                                    tr_cached(Message::ToastConversationsCannotDeleteInProgress).to_string(),
+                                    tr_cached(Message::ToastConversationsCannotDeleteInProgress)
+                                        .to_string(),
                                 ),
                                 window_id,
                                 ctx,

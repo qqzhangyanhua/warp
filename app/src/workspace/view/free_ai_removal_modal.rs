@@ -30,12 +30,22 @@ const CORNER_RADIUS: f32 = 12.;
 const PANEL_PADDING: f32 = 24.;
 const CLOSE_BUTTON_DIAMETER: f32 = 20.;
 
-fn notice_title_text() -> &'static str { tr_cached(Message::FreePlanNoInference) }
-fn notice_body_text() -> &'static str { tr_cached(Message::FreePlanKeepUsingAi) }
-fn notice_bonus_credits_text() -> &'static str { tr_cached(Message::FreePlanBonusCredits) }
+fn notice_title_text() -> &'static str {
+    tr_cached(Message::FreePlanNoInference)
+}
+fn notice_body_text() -> &'static str {
+    tr_cached(Message::FreePlanKeepUsingAi)
+}
+fn notice_bonus_credits_text() -> &'static str {
+    tr_cached(Message::FreePlanBonusCredits)
+}
 
-fn prompt_suggestions_title_text() -> &'static str { tr_cached(Message::HowToUseAiInWarp) }
-fn prompt_suggestions_body_text() -> &'static str { tr_cached(Message::PromptSuggestionsNeedPlan) }
+fn prompt_suggestions_title_text() -> &'static str {
+    tr_cached(Message::HowToUseAiInWarp)
+}
+fn prompt_suggestions_body_text() -> &'static str {
+    tr_cached(Message::PromptSuggestionsNeedPlan)
+}
 
 /// Which surface opened the modal. Selects the copy and disambiguates telemetry;
 /// the layout and CTAs are identical across variants.

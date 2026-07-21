@@ -3,8 +3,8 @@ use warpui::elements::MouseStateHandle;
 use warpui::{ViewContext, ViewHandle};
 
 use super::adapter::Participant;
-use crate::menu::{Menu, MenuItem, MenuItemFields};
 use crate::i18n::{tr_cached, Message};
+use crate::menu::{Menu, MenuItem, MenuItemFields};
 use crate::pane_group::{PaneHeaderAction, PaneHeaderCustomAction};
 use crate::terminal::view::{TerminalAction, TerminalView};
 use crate::ui_components::icons::Icon;

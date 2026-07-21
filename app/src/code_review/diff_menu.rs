@@ -26,8 +26,8 @@ use crate::code_review::diff_state::DiffMode;
 use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, TextOptions,
 };
-use crate::ui_components::icons::Icon;
 use crate::i18n::{tr_cached, Message};
+use crate::ui_components::icons::Icon;
 
 const MENU_WIDTH: f32 = 280.;
 const MENU_MAX_LIST_HEIGHT: f32 = 200.;

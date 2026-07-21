@@ -38,10 +38,10 @@ use super::link::{NotebookLinks, SessionSource};
 use super::telemetry::NotebookTelemetryAction;
 use super::{styles, NotebookLocation};
 use crate::appearance::Appearance;
-use crate::i18n::{tr, tr_cached, Message};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::editor::InteractionState;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::notebooks::editor::model::NotebooksEditorModel;
 use crate::notebooks::editor::rich_text_styles;

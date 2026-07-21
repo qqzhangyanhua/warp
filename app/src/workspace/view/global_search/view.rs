@@ -41,12 +41,12 @@ use warpui::{
 };
 
 use crate::code::icon_from_file_path;
-use crate::i18n::{tr_cached, Message};
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, InteractionState,
     PropagateAndNoOpNavigationKeys, PropagateHorizontalNavigationKeys, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::search::ItemHighlightState as SearchHighlightState;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon as UiIcon;

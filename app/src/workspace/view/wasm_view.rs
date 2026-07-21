@@ -6,10 +6,10 @@ use warpui::{AppContext, SingletonEntity, ViewContext, ViewHandle};
 
 use super::PanelPosition;
 use crate::ai::agent_conversations_model::AgentConversationsModel;
-use crate::i18n::{tr_cached, Message};
 use crate::ai::conversation_details_panel::{
     ConversationDetailsData, ConversationDetailsPanel, ConversationDetailsPanelEvent,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::TerminalView;
 use crate::ui_components::icons;
 use crate::uri::browser_url_handler::parse_current_url;
@@ -44,14 +44,16 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) -> ViewHandle<ActionButton> {
         ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new(tr_cached(Message::TerminalOpenInWarp), PrimaryTheme).on_click(move |ctx| {
-                // Get the current URL and dispatch action to open it on desktop
-                if let Some(url) = parse_current_url() {
-                    ctx.dispatch_typed_action(WorkspaceAction::OpenLinkOnDesktop(url));
-                } else {
-                    log::warn!("Could not get URL for Open in Warp button");
-                }
-            })
+            ActionButton::new(tr_cached(Message::TerminalOpenInWarp), PrimaryTheme).on_click(
+                move |ctx| {
+                    // Get the current URL and dispatch action to open it on desktop
+                    if let Some(url) = parse_current_url() {
+                        ctx.dispatch_typed_action(WorkspaceAction::OpenLinkOnDesktop(url));
+                    } else {
+                        log::warn!("Could not get URL for Open in Warp button");
+                    }
+                },
+            )
         })
     }
 
@@ -60,9 +62,10 @@ impl Workspace {
     ) -> ViewHandle<ActionButton> {
         let url = build_oz_runs_url();
         ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new(tr_cached(Message::TerminalViewAllCloudRuns), SecondaryTheme).on_click(move |ctx| {
-                ctx.dispatch_typed_action(WorkspaceAction::OpenLink(url.clone()));
-            })
+            ActionButton::new(tr_cached(Message::TerminalViewAllCloudRuns), SecondaryTheme)
+                .on_click(move |ctx| {
+                    ctx.dispatch_typed_action(WorkspaceAction::OpenLink(url.clone()));
+                })
         })
     }
 

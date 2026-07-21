@@ -417,10 +417,8 @@ impl SearchItem for ConversationSearchItem {
     fn accessibility_label(&self) -> String {
         match &self.action_info {
             ConversationAction::Resume(matched_conversation) => {
-                tr_cached(Message::A11yConversationLabel).replace(
-                    "{}",
-                    matched_conversation.as_ref().conversation.title(),
-                )
+                tr_cached(Message::A11yConversationLabel)
+                    .replace("{}", matched_conversation.as_ref().conversation.title())
             }
             ConversationAction::Fork { title, .. } => {
                 tr_cached(Message::A11yForkConversationTitle).replace("{}", title)
@@ -432,10 +430,8 @@ impl SearchItem for ConversationSearchItem {
     fn accessibility_help_message(&self) -> Option<String> {
         match &self.action_info {
             ConversationAction::Resume(matched_conversation) => Some(
-                tr_cached(Message::A11yPressEnterNavigateConversation).replace(
-                    "{}",
-                    matched_conversation.as_ref().conversation.title(),
-                ),
+                tr_cached(Message::A11yPressEnterNavigateConversation)
+                    .replace("{}", matched_conversation.as_ref().conversation.title()),
             ),
             ConversationAction::Fork { .. } => {
                 Some(tr_cached(Message::A11yPressEnterForkConversation).into())

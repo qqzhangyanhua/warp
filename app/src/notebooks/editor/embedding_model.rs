@@ -28,10 +28,10 @@ use super::notebook_command::{
 use super::view::EditorViewAction;
 use super::{rich_text_styles, NotebookWorkflow};
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::CloudObject;
 use crate::completer::SessionAgnosticContext;
+use crate::i18n::{tr_cached, Message};
 use crate::notebooks::styles::block_footer_action_button;
 use crate::notebooks::telemetry::{ActionEntrypoint, BlockInfo};
 use crate::server::ids::{HashableId, ToServerId};

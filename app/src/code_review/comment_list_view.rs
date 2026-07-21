@@ -38,7 +38,6 @@ use warpui::{
 
 use crate::ai::request_usage_model::{AIRequestUsageModel, AIRequestUsageModelEvent};
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::comment_editor::DEFAULT_COMMENT_MAX_WIDTH;
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorView};
@@ -49,6 +48,7 @@ use crate::code_review::comments::{
     ReviewCommentBatch, ReviewCommentBatchEvent,
 };
 use crate::code_review::telemetry_event::CodeReviewTelemetryEvent;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Event, Menu, MenuItem, MenuItemFields};
 use crate::notebooks::editor::view::{EditorViewEvent, RichTextEditorView};
 use crate::send_telemetry_from_ctx;
@@ -209,10 +209,10 @@ impl CommentListView {
                 tr_cached(Message::CodeReviewCommentCount).replace("{}", "1"),
                 CustomSecondaryActionTheme,
             )
-                .with_size(ButtonSize::Small)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(CommentListAction::ToggleCollapsed);
-                })
+            .with_size(ButtonSize::Small)
+            .on_click(|ctx| {
+                ctx.dispatch_typed_action(CommentListAction::ToggleCollapsed);
+            })
         });
 
         let send_button = ctx.add_view(|ctx| {

@@ -23,11 +23,11 @@ use warpui::{
 
 use super::theme;
 use crate::appearance::{Appearance, AppearanceManager};
-use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::referral_theme_status::ReferralThemeStatus;
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipsCompleted,

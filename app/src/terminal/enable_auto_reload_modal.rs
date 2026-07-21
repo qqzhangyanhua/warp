@@ -392,8 +392,7 @@ impl warpui::TypedActionView for EnableAutoReloadModalBody {
                 let workspaces = UserWorkspaces::as_ref(ctx);
                 let Some(team_uid) = workspaces.current_team_uid() else {
                     ctx.emit(EnableAutoReloadModalBodyEvent::ShowToast {
-                        message: tr_cached(Message::TeamDataNotFound)
-                            .to_string(),
+                        message: tr_cached(Message::TeamDataNotFound).to_string(),
                         flavor: ToastFlavor::Error,
                     });
                     return;

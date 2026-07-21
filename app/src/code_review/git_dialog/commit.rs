@@ -16,7 +16,6 @@ use warpui::ui_components::switch::SwitchStateHandle;
 use warpui::{AppContext, SingletonEntity, ViewContext, ViewHandle};
 
 use crate::code_review::diff_state::CommitChainMode;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::code_review::git_dialog::pr::show_pr_created_toast;
 use crate::code_review::git_dialog::{
     render_branch_section, render_file_changes_box, should_send_git_ops_ai_request, show_toast,
@@ -29,6 +28,7 @@ use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, InteractionState,
     PropagateAndNoOpNavigationKeys, TextOptions,
 };
+use crate::i18n::{tr, tr_cached, Message};
 use crate::ui_components::icons::Icon;
 use crate::util::git::{get_file_change_entries, FileChangeEntry, PrInfo};
 use crate::view_components::action_button::{ActionButton, ButtonSize, SecondaryTheme};
@@ -45,15 +45,21 @@ const EDITOR_FONT_SIZE: f32 = 12.;
 const EDITOR_MIN_HEIGHT: f32 = 72.;
 /// Placeholder shown while the open-time AI commit-message autogen is in
 /// flight.
-fn generating_placeholder_text() -> &'static str { tr_cached(Message::GeneratingCommitMessage) }
+fn generating_placeholder_text() -> &'static str {
+    tr_cached(Message::GeneratingCommitMessage)
+}
 /// Placeholder shown once the open-time autogen resolves — either as a
 /// nudge if the user later clears the generated draft, or as guidance when
 /// autogen failed and the editor is blank. Also used when autogen is off.
-fn fallback_placeholder_text() -> &'static str { tr_cached(Message::TypeACommitMessage) }
+fn fallback_placeholder_text() -> &'static str {
+    tr_cached(Message::TypeACommitMessage)
+}
 /// Loading-state label while the commit / chain runs. Static regardless of
 /// which chain is in flight — the success toast communicates what actually
 /// ran.
-fn loading_label() -> &'static str { tr_cached(Message::CommittingEllipsis) }
+fn loading_label() -> &'static str {
+    tr_cached(Message::CommittingEllipsis)
+}
 
 pub struct CommitState {
     pub(super) intent: CommitChainMode,
@@ -149,15 +155,18 @@ pub(super) fn new_state(
 
     let commit_and_create_pr_button = if allow_create_pr {
         Some(ctx.add_typed_action_view(|ctx| {
-            ActionButton::new(tr(ctx, Message::CodeReviewCommitAndCreatePr), SecondaryTheme)
-                .with_size(ButtonSize::XSmall)
-                .with_height(32.)
-                .with_icon(Icon::Github)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(GitDialogAction::Commit(CommitSubAction::SetIntent(
-                        CommitChainMode::CommitAndCreatePr,
-                    )))
-                })
+            ActionButton::new(
+                tr(ctx, Message::CodeReviewCommitAndCreatePr),
+                SecondaryTheme,
+            )
+            .with_size(ButtonSize::XSmall)
+            .with_height(32.)
+            .with_icon(Icon::Github)
+            .on_click(|ctx| {
+                ctx.dispatch_typed_action(GitDialogAction::Commit(CommitSubAction::SetIntent(
+                    CommitChainMode::CommitAndCreatePr,
+                )))
+            })
         }))
     } else {
         None

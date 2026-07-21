@@ -32,48 +32,48 @@ impl CliAgentPluginManager for OpenCodePluginManager {
     }
 }
 
-static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
-    PluginInstructions {
-        title: tr_cached(Message::PluginInstallOpenCodeTitle),
-        subtitle: tr_cached(Message::PluginInstallOpenCodeSubtitle),
-        steps: Box::leak(Box::new([
-            PluginInstructionStep {
-                description: tr_cached(Message::PluginStepOpenOpencodeJson),
-                command: "~/.config/opencode/opencode.json",
-                executable: false,
-                link: None,
-            },
-            PluginInstructionStep {
-                description: tr_cached(Message::PluginStepAddOpencodePlugin),
-                command: "\"plugin\": [\"@warp-dot-dev/opencode-warp\"]",
-                executable: false,
-                link: None,
-            },
-        ])),
-        post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartOpenCodeActivate)])),
-    }
+static INSTALL_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
+    title: tr_cached(Message::PluginInstallOpenCodeTitle),
+    subtitle: tr_cached(Message::PluginInstallOpenCodeSubtitle),
+    steps: Box::leak(Box::new([
+        PluginInstructionStep {
+            description: tr_cached(Message::PluginStepOpenOpencodeJson),
+            command: "~/.config/opencode/opencode.json",
+            executable: false,
+            link: None,
+        },
+        PluginInstructionStep {
+            description: tr_cached(Message::PluginStepAddOpencodePlugin),
+            command: "\"plugin\": [\"@warp-dot-dev/opencode-warp\"]",
+            executable: false,
+            link: None,
+        },
+    ])),
+    post_install_notes: Box::leak(Box::new([tr_cached(
+        Message::PluginNoteRestartOpenCodeActivate,
+    )])),
 });
 
-static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| {
-    PluginInstructions {
-        title: tr_cached(Message::PluginUpdateOpenCodeTitle),
-        subtitle: tr_cached(Message::PluginUpdateOpenCodeSubtitle),
-        steps: Box::leak(Box::new([
-            PluginInstructionStep {
-                description: tr_cached(Message::PluginStepOpenOpencodeJson),
-                command: "~/.config/opencode/opencode.json",
-                executable: false,
-                link: None,
-            },
-            PluginInstructionStep {
-                description: tr_cached(Message::PluginStepReplaceOpencodePluginPin),
-                command: "\"plugin\": [\"@warp-dot-dev/opencode-warp@0.1.5\"]",
-                executable: false,
-                link: None,
-            },
-        ])),
-        post_install_notes: Box::leak(Box::new([tr_cached(Message::PluginNoteRestartOpenCodeUpdate)])),
-    }
+static UPDATE_INSTRUCTIONS: LazyLock<PluginInstructions> = LazyLock::new(|| PluginInstructions {
+    title: tr_cached(Message::PluginUpdateOpenCodeTitle),
+    subtitle: tr_cached(Message::PluginUpdateOpenCodeSubtitle),
+    steps: Box::leak(Box::new([
+        PluginInstructionStep {
+            description: tr_cached(Message::PluginStepOpenOpencodeJson),
+            command: "~/.config/opencode/opencode.json",
+            executable: false,
+            link: None,
+        },
+        PluginInstructionStep {
+            description: tr_cached(Message::PluginStepReplaceOpencodePluginPin),
+            command: "\"plugin\": [\"@warp-dot-dev/opencode-warp@0.1.5\"]",
+            executable: false,
+            link: None,
+        },
+    ])),
+    post_install_notes: Box::leak(Box::new([tr_cached(
+        Message::PluginNoteRestartOpenCodeUpdate,
+    )])),
 });
 
 #[cfg(test)]

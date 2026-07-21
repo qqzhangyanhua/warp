@@ -663,8 +663,7 @@ impl Input {
                             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                                 toast_stack.add_ephemeral_toast(
                                     DismissibleToast::error(
-                                        tr(ctx, I18nMessage::ToastOpenFileLocalOnly)
-                                            .to_owned(),
+                                        tr(ctx, I18nMessage::ToastOpenFileLocalOnly).to_owned(),
                                     ),
                                     window_id,
                                     ctx,
@@ -1033,10 +1032,7 @@ impl Input {
                     // so the user knows why nothing happened. The chip falls
                     // back to `&` compose mode here; the slash-command flow
                     // does not because it has no compose-draft state to seed.
-                    show_error_toast(
-                        tr(ctx, I18nMessage::ToastNothingToHandoff).to_owned(),
-                        ctx,
-                    );
+                    show_error_toast(tr(ctx, I18nMessage::ToastNothingToHandoff).to_owned(), ctx);
                 }
             }
             fork if command.name == commands::FORK.name => {

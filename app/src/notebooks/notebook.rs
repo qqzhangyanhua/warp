@@ -801,8 +801,7 @@ impl NotebookView {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            tr_cached(Message::ToastNotebookSecretsContent)
-                                .to_string(),
+                            tr_cached(Message::ToastNotebookSecretsContent).to_string(),
                         ),
                         window_id,
                         ctx,
@@ -1731,8 +1730,7 @@ impl NotebookView {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::error(
-                            tr_cached(Message::ToastNotebookSecretsTitle)
-                                .to_string(),
+                            tr_cached(Message::ToastNotebookSecretsTitle).to_string(),
                         ),
                         window_id,
                         ctx,
@@ -1974,7 +1972,9 @@ impl NotebookView {
                             )
                             .with_tooltip(move || {
                                 ui_builder
-                                    .tool_tip(tr_cached(Message::RestoreNotebookFromTrash).to_string())
+                                    .tool_tip(
+                                        tr_cached(Message::RestoreNotebookFromTrash).to_string(),
+                                    )
                                     .build()
                                     .finish()
                             })
@@ -2005,13 +2005,14 @@ impl NotebookView {
                                 .with_tooltip(move || {
                                     ui_builder
                                         .tool_tip(
-                                            tr_cached(Message::CopyNotebookToPersonal)
-                                                .to_string(),
+                                            tr_cached(Message::CopyNotebookToPersonal).to_string(),
                                         )
                                         .build()
                                         .finish()
                                 })
-                                .with_text_label(tr_cached(Message::NotebookCopyToPersonal).to_string())
+                                .with_text_label(
+                                    tr_cached(Message::NotebookCopyToPersonal).to_string(),
+                                )
                                 .build()
                                 .on_click(|ctx, _, _| {
                                     ctx.dispatch_typed_action(NotebookAction::CopyToPersonal)
@@ -2315,7 +2316,9 @@ impl TypedActionView for NotebookView {
                 let window_id = ctx.window_id();
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
-                        DismissibleToast::success(tr_cached(Message::ToastLinkCopiedToClipboard).to_string()),
+                        DismissibleToast::success(
+                            tr_cached(Message::ToastLinkCopiedToClipboard).to_string(),
+                        ),
                         window_id,
                         ctx,
                     );

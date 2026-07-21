@@ -906,10 +906,8 @@ fn create_environment(arg: &CreateEnvironmentArg, ctx: &mut AppContext) {
                 workspace
                     .active_tab_pane_group()
                     .update(ctx, |pane_group, ctx| {
-                        pane_group.set_title(
-                            tr(ctx, Message::EnvironmentFormCreateEnvironment),
-                            ctx,
-                        );
+                        pane_group
+                            .set_title(tr(ctx, Message::EnvironmentFormCreateEnvironment), ctx);
 
                         if let Some(terminal_view) = pane_group.active_session_view(ctx) {
                             terminal_view.update(ctx, |_, ctx| {
@@ -942,10 +940,8 @@ fn create_environment_and_run(arg: &CreateEnvironmentArg, ctx: &mut AppContext) 
                 workspace
                     .active_tab_pane_group()
                     .update(ctx, |pane_group, ctx| {
-                        pane_group.set_title(
-                            tr(ctx, Message::EnvironmentFormCreateEnvironment),
-                            ctx,
-                        );
+                        pane_group
+                            .set_title(tr(ctx, Message::EnvironmentFormCreateEnvironment), ctx);
 
                         if let Some(terminal_view) = pane_group.active_session_view(ctx) {
                             terminal_view.update(ctx, |_, ctx| {
@@ -1098,7 +1094,9 @@ fn open_warp_drive_object(arg: &OpenWarpDriveObjectArgs, ctx: &mut AppContext) {
 
 fn display_object_missing_error_in_window(window_id: WindowId, ctx: &mut AppContext) {
     crate::workspace::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-        let toast = DismissibleToast::error(String::from(tr_cached(Message::WorkspaceResourceNotFoundOrAccessDenied)));
+        let toast = DismissibleToast::error(String::from(tr_cached(
+            Message::WorkspaceResourceNotFoundOrAccessDenied,
+        )));
         toast_stack.add_ephemeral_toast(toast, window_id, ctx);
     });
 }
@@ -2729,10 +2727,8 @@ impl RootView {
                 workspace
                     .active_tab_pane_group()
                     .update(ctx, |pane_group, ctx| {
-                        pane_group.set_title(
-                            tr(ctx, Message::EnvironmentFormCreateEnvironment),
-                            ctx,
-                        );
+                        pane_group
+                            .set_title(tr(ctx, Message::EnvironmentFormCreateEnvironment), ctx);
 
                         if let Some(terminal_view) = pane_group.active_session_view(ctx) {
                             terminal_view.update(ctx, |_, ctx| {

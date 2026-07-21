@@ -170,15 +170,19 @@ impl AutoHandoffSleepModal {
     }
 
     fn render_title(appearance: &Appearance) -> Box<dyn Element> {
-        Text::new(tr_cached(Message::EnableAutoHandoffQuestion), appearance.ui_font_family(), 20.)
-            .with_color(
-                appearance
-                    .theme()
-                    .main_text_color(appearance.theme().surface_3())
-                    .into_solid(),
-            )
-            .with_style(Properties::default().weight(Weight::Semibold))
-            .finish()
+        Text::new(
+            tr_cached(Message::EnableAutoHandoffQuestion),
+            appearance.ui_font_family(),
+            20.,
+        )
+        .with_color(
+            appearance
+                .theme()
+                .main_text_color(appearance.theme().surface_3())
+                .into_solid(),
+        )
+        .with_style(Properties::default().weight(Weight::Semibold))
+        .finish()
     }
 
     fn render_description(appearance: &Appearance) -> Box<dyn Element> {

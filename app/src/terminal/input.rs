@@ -534,8 +534,12 @@ const VIM_STATUS_BAR_BOTTOM_PADDING: f32 = 20.;
 const DYNAMIC_ENUM_GENERATE_MESSAGE: &str = "Run the following command to generate variants:";
 const DYNAMIC_ENUM_RUN_MESSAGE: &str = "Run command";
 const DYNAMIC_ENUM_PENDING_MESSAGE: &str = "Command pending...";
-fn dynamic_enum_failure_message() -> &'static str { tr_cached(Message::CommandFailed) }
-fn dynamic_enum_no_results_message() -> &'static str { tr_cached(Message::CommandReturnedNoResults) }
+fn dynamic_enum_failure_message() -> &'static str {
+    tr_cached(Message::CommandFailed)
+}
+fn dynamic_enum_no_results_message() -> &'static str {
+    tr_cached(Message::CommandReturnedNoResults)
+}
 const DYNAMIC_ENUM_MENU_PADDING: f32 = 10.;
 const DYNAMIC_ENUM_MENU_HEIGHT_OFFSET: f32 = 25.;
 const DYNAMIC_ENUM_HORIZONTAL_TEXT_PADDING: f32 = 5.;

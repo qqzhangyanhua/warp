@@ -132,8 +132,12 @@ const WORKFLOW_PARAMETER_HIGHLIGHT_COLOR: u32 = 0x42C0FA4D;
 const MAX_ELEMENT_WIDTH: f32 = 800.;
 
 const SCROLLBAR_WIDTH: ScrollbarWidth = ScrollbarWidth::Auto;
-fn title_placeholder_text() -> &'static str { tr_cached(Message::AddATitle) }
-fn description_placeholder_text() -> &'static str { tr_cached(Message::AddADescription) }
+fn title_placeholder_text() -> &'static str {
+    tr_cached(Message::AddATitle)
+}
+fn description_placeholder_text() -> &'static str {
+    tr_cached(Message::AddADescription)
+}
 const COMMAND_PLACEHOLDER_TEXT: &str = "echo \"Hello {{your_name}}\" # insert arguments with curly braces\n# enter a single-line command or an entire shell script";
 const AGENT_MODE_QUERY_PLACEHOLDER_TEXT: &str = "Enter your prompt here... (e.g., 'Create a function to sort an array of objects by date' or 'Help me debug this React component').";
 const DESCRIPTION_MARGIN_TOP: f32 = 10.;
@@ -157,26 +161,44 @@ const HORIZONTAL_TEXT_INPUT_PADDING: f32 = 10.;
 
 const EDITOR_FONT_SIZE: f32 = 14.;
 
-fn create_button_text() -> &'static str { tr_cached(Message::CommonCreate) }
-fn save_button_text() -> &'static str { tr_cached(Message::CommonUpdate) }
-fn cancel_button_text() -> &'static str { tr_cached(Message::CommonCancel) }
+fn create_button_text() -> &'static str {
+    tr_cached(Message::CommonCreate)
+}
+fn save_button_text() -> &'static str {
+    tr_cached(Message::CommonUpdate)
+}
+fn cancel_button_text() -> &'static str {
+    tr_cached(Message::CommonCancel)
+}
 const BUTTON_PADDING: f32 = 12.;
 const BUTTON_FONT_SIZE: f32 = 14.;
 const BUTTON_BORDER_RADIUS: f32 = 4.;
 const BUTTON_HEIGHT: f32 = 32.;
 
 const AI_ASSIST_BUTTON_SIZE: f32 = 92.;
-fn ai_assist_button_text() -> &'static str { tr_cached(Message::Autofill) }
-fn ai_assist_loading_text() -> &'static str { tr_cached(Message::CommonLoadingEllipsis) }
+fn ai_assist_button_text() -> &'static str {
+    tr_cached(Message::Autofill)
+}
+fn ai_assist_loading_text() -> &'static str {
+    tr_cached(Message::CommonLoadingEllipsis)
+}
 
 const ALIAS_HELP_TEXT: &str = "Aliases allow you to create short strings to execute workflows. Each alias can have different argument values and environment variables, and aliases are personal to you.";
 
-fn run_on_desktop_button_text() -> &'static str { tr_cached(Message::RunInWarp) }
+fn run_on_desktop_button_text() -> &'static str {
+    tr_cached(Message::RunInWarp)
+}
 const RUN_ON_DESKTOP_BUTTON_WIDTH: f32 = 108.;
 
-fn unsaved_changes_text() -> &'static str { tr_cached(Message::UnsavedChanges) }
-fn keep_editing_text() -> &'static str { tr_cached(Message::KeepEditing) }
-fn discard_changes_text() -> &'static str { tr_cached(Message::DiscardChanges) }
+fn unsaved_changes_text() -> &'static str {
+    tr_cached(Message::UnsavedChanges)
+}
+fn keep_editing_text() -> &'static str {
+    tr_cached(Message::KeepEditing)
+}
+fn discard_changes_text() -> &'static str {
+    tr_cached(Message::DiscardChanges)
+}
 const DIALOG_WIDTH: f32 = 460.;
 const MODAL_HORIZONTAL_MARGIN: f32 = 28.;
 

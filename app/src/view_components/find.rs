@@ -18,11 +18,11 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::{FindOption, TelemetryEvent};
 use crate::settings::InputModeSettings;
@@ -274,7 +274,10 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
                 WarpA11yRole::UserAction,
             )
         } else {
-            AccessibilityContent::new_without_help(tr_cached(Message::NoResultsFound), WarpA11yRole::UserAction)
+            AccessibilityContent::new_without_help(
+                tr_cached(Message::NoResultsFound),
+                WarpA11yRole::UserAction,
+            )
         };
         ctx.emit_a11y_content(content);
     }

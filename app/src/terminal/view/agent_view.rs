@@ -6,7 +6,6 @@ use warpui::keymap::Keystroke;
 use warpui::{EntityId, SingletonEntity, ViewContext};
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::ai::blocklist::agent_view::{
     AgentViewEntryBlock, AgentViewEntryBlockEvent, AgentViewEntryBlockParams, AgentViewEntryOrigin,
     AutoTriggerBehavior, DismissalStrategy, EnterAgentViewError, EphemeralMessage,
@@ -15,6 +14,7 @@ use crate::ai::blocklist::agent_view::{
 use crate::ai::blocklist::history_model::CloudConversationData;
 use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
+use crate::i18n::{tr_cached, Message as I18nMessage};
 use crate::persistence::ModelEvent;
 use crate::server::telemetry::TelemetryAgentViewEntryOrigin;
 use crate::terminal::input::message_bar::{Message, MessageItem};
@@ -66,8 +66,7 @@ impl TerminalView {
             ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                 toast_stack.add_ephemeral_toast(
                     DismissibleToast::error(
-                        tr_cached(I18nMessage::ToastCannotStartWhileMonitoring)
-                            .to_string(),
+                        tr_cached(I18nMessage::ToastCannotStartWhileMonitoring).to_string(),
                     ),
                     window_id,
                     ctx,

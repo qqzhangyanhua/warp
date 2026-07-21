@@ -16,8 +16,8 @@ use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewCon
 
 use super::EditorElement;
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::editor::ACCEPT_AUTOSUGGESTION_KEYBINDING_NAME;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Menu, MenuItemFields};
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
 use crate::terminal::input::OPEN_COMPLETIONS_KEYBINDING_NAME;

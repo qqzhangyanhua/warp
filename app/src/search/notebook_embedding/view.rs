@@ -18,13 +18,15 @@ use warpui::{
 use super::searcher::{EmbeddingSearchItemAction, EmbeddingSearchMixer};
 use crate::appearance::Appearance;
 use crate::cloud_object::Space;
+use crate::i18n::{tr_cached, Message};
 use crate::search::notebook_embedding::notebooks::CloudNotebooksDataSource;
 use crate::search::notebook_embedding::workflows::CloudWorkflowsDataSource;
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
 use crate::search::search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering};
-use crate::i18n::{tr_cached, Message};
 
-fn default_placeholder_text() -> &'static str { tr_cached(Message::SearchForAReference) }
+fn default_placeholder_text() -> &'static str {
+    tr_cached(Message::SearchForAReference)
+}
 
 lazy_static! {
     static ref QUERY_RESULT_RENDERER_STYLES: QueryResultRendererStyles =

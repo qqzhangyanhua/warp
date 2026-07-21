@@ -75,16 +75,16 @@ impl ShareSessionModal {
                 body,
                 ctx,
             )
-                .with_modal_style(UiComponentStyles {
-                    width: Some(MODAL_WIDTH),
-                    height: Some(MODAL_HEIGHT),
-                    ..Default::default()
-                })
-                .with_header_style(style::modal_header_styles())
-                .with_body_style(style::modal_body_styles())
-                .with_background_opacity(100)
-                .with_dismiss_on_click()
-                .close_modal_button_disabled()
+            .with_modal_style(UiComponentStyles {
+                width: Some(MODAL_WIDTH),
+                height: Some(MODAL_HEIGHT),
+                ..Default::default()
+            })
+            .with_header_style(style::modal_header_styles())
+            .with_body_style(style::modal_body_styles())
+            .with_background_opacity(100)
+            .with_dismiss_on_click()
+            .close_modal_button_disabled()
         });
 
         let denied_body = ctx.add_typed_action_view(DeniedBody::new);

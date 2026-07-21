@@ -17,13 +17,13 @@ use warpui::{
 
 use crate::appearance::Appearance;
 use crate::external_secrets::ExternalSecret;
+use crate::i18n::{tr_cached, Message};
 use crate::search::external_secrets::external_secret_data_source::ExternalSecretDataSource;
 use crate::search::external_secrets::searcher::{
     ExternalSecretSearchItemAction, ExternalSecretSearchMixer,
 };
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
 use crate::search::search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering};
-use crate::i18n::{tr_cached, Message};
 
 lazy_static! {
     static ref QUERY_RESULT_RENDERER_STYLES: QueryResultRendererStyles =
@@ -39,7 +39,9 @@ lazy_static! {
         };
 }
 
-fn default_placeholder_text() -> &'static str { tr_cached(Message::SearchForASecret) }
+fn default_placeholder_text() -> &'static str {
+    tr_cached(Message::SearchForASecret)
+}
 
 pub struct ExternalSecretsMenu {
     scroll_state: ScrollStateHandle,

@@ -12,8 +12,8 @@ use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
 use crate::appearance::Appearance;
-use crate::i18n::{tr_cached, Message};
 use crate::context_chips::prompt::Prompt;
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::{PromptChoice, TelemetryEvent};
 use crate::settings::EnforceMinimumContrast;
@@ -236,10 +236,18 @@ impl OnboardingPromptBlock {
     fn render_existing_prompt_button_interior(&self, appearance: &Appearance) -> Box<dyn Element> {
         // Pixel values pulled from Figma mocks
         // https://www.figma.com/file/y888viqzWBoMpFTxQqkQEN/Activation?node-id=568:1595&mode=dev
-        fn header_text() -> &'static str { tr_cached(Message::OnboardingShellPromptPs1) }
-        fn no_ps1_text() -> &'static str { tr_cached(Message::OnboardingNoExistingPrompt) }
-        fn correction_text() -> &'static str { tr_cached(Message::OnboardingLookIncorrect) }
-        fn link_text() -> &'static str { tr_cached(Message::OnboardingLetUsKnow) }
+        fn header_text() -> &'static str {
+            tr_cached(Message::OnboardingShellPromptPs1)
+        }
+        fn no_ps1_text() -> &'static str {
+            tr_cached(Message::OnboardingNoExistingPrompt)
+        }
+        fn correction_text() -> &'static str {
+            tr_cached(Message::OnboardingLookIncorrect)
+        }
+        fn link_text() -> &'static str {
+            tr_cached(Message::OnboardingLetUsKnow)
+        }
         const LINK_DESTINATION: &str = "https://github.com/warpdotdev/Warp/issues/new?assignees=&labels=Bug&projects=&template=01_bug_report.yml";
 
         const HEADER_MARGIN_LEFT: f32 = 4.;
@@ -325,7 +333,9 @@ impl OnboardingPromptBlock {
     fn render_warp_prompt_button_interior(&self, appearance: &Appearance) -> Box<dyn Element> {
         // Pixel values pulled from Figma mocks
         // https://www.figma.com/file/y888viqzWBoMpFTxQqkQEN/Activation?node-id=568:1595&mode=dev
-        fn header_text() -> &'static str { tr_cached(Message::OnboardingWarpPrompt) }
+        fn header_text() -> &'static str {
+            tr_cached(Message::OnboardingWarpPrompt)
+        }
         const HEADER_MARGIN_LEFT: f32 = 4.;
         const SECTION_MARGIN_TOP: f32 = 8.;
         const OUTER_CORNER_RADIUS: f32 = 4.;

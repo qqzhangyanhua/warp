@@ -23,12 +23,12 @@ use super::{
 use crate::drive::workflows::workflow_arg_selector::{
     WorkflowArgSelector, WorkflowArgSelectorStyles,
 };
-use crate::i18n::{tr_cached, Message};
 use crate::drive::workflows::workflow_arg_type_helpers::{self, ArgumentTypeEditor};
 use crate::editor::{
     EditOrigin, EditorView, Event as EditorEvent, InteractionState,
     PlainTextEditorViewAction as EditorAction,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::pane_group::PaneEvent;
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;
@@ -39,9 +39,15 @@ const ARGUMENT_INPUT_HEIGHT: f32 = 30.;
 const ARGUMENT_LABEL_TEXT: &str = "Arguments";
 const ARGUMENT_LABEL_HEIGHT: f32 = 20.;
 const ARGUMENT_LABEL_MARGIN_BOTTOM: f32 = 5.;
-fn argument_description_placeholder_text() -> &'static str { tr_cached(Message::CommonDescription) }
-fn argument_alias_description_placeholder_text() -> &'static str { tr_cached(Message::ValueOptional) }
-fn argument_default_value_placeholder_text() -> &'static str { tr_cached(Message::DefaultValueOptional) }
+fn argument_description_placeholder_text() -> &'static str {
+    tr_cached(Message::CommonDescription)
+}
+fn argument_alias_description_placeholder_text() -> &'static str {
+    tr_cached(Message::ValueOptional)
+}
+fn argument_default_value_placeholder_text() -> &'static str {
+    tr_cached(Message::DefaultValueOptional)
+}
 pub const DEFAULT_ARGUMENT_PREFIX: &str = "argument";
 
 /// Width of the argument editor in alias mode.

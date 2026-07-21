@@ -1965,12 +1965,10 @@ impl ProfileModelSelector {
             Flex::row()
                 .with_main_axis_size(MainAxisSize::Max)
                 .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                .with_child(
-                    self.render_model_spec_value_label(
-                        tr_cached(Message::TerminalCost).to_string(),
-                        app,
-                    ),
-                )
+                .with_child(self.render_model_spec_value_label(
+                    tr_cached(Message::TerminalCost).to_string(),
+                    app,
+                ))
                 .with_child(
                     Expanded::new(
                         1.,

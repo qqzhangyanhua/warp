@@ -113,13 +113,23 @@ fn slash_command_description_message(description: &str) -> Option<crate::i18n::M
     use crate::i18n::Message;
     match description {
         "Start a new conversation" => Some(Message::SlashDescStartNewConversation),
-        "Start a new cloud agent conversation" => Some(Message::SlashDescStartCloudAgentConversation),
+        "Start a new cloud agent conversation" => {
+            Some(Message::SlashDescStartCloudAgentConversation)
+        }
         "Add a new MCP server via the MCP settings page" => Some(Message::SlashDescAddMcpServer),
         "Pull GitHub PR review comments" => Some(Message::SlashDescPullPrReviewComments),
-        "Create an Oz environment (Docker image + repos) via guided setup" => Some(Message::SlashDescCreateOzEnvironment),
-        "Create a new docker sandbox terminal session" => Some(Message::SlashDescCreateDockerSandbox),
-        "Have Oz walk you through creating a new coding project" => Some(Message::SlashDescCreateCodingProject),
-        "Open a skill's markdown file in ZYH's built-in editor" => Some(Message::SlashDescOpenSkillMarkdown),
+        "Create an Oz environment (Docker image + repos) via guided setup" => {
+            Some(Message::SlashDescCreateOzEnvironment)
+        }
+        "Create a new docker sandbox terminal session" => {
+            Some(Message::SlashDescCreateDockerSandbox)
+        }
+        "Have Oz walk you through creating a new coding project" => {
+            Some(Message::SlashDescCreateCodingProject)
+        }
+        "Open a skill's markdown file in ZYH's built-in editor" => {
+            Some(Message::SlashDescOpenSkillMarkdown)
+        }
         "Invoke a skill" => Some(Message::SlashDescInvokeSkill),
         "Add new Agent prompt" => Some(Message::SlashDescAddAgentPrompt),
         "Add a new global rule for the agent" => Some(Message::SlashDescAddGlobalRule),
@@ -127,11 +137,15 @@ fn slash_command_description_message(description: &str) -> Option<crate::i18n::M
         "Rename the current tab" => Some(Message::SlashDescRenameCurrentTab),
         "Rename the current conversation" => Some(Message::SlashDescRenameCurrentConversation),
         "Set the color of the current tab" => Some(Message::SlashDescSetTabColor),
-        "Fork the current conversation in a new pane or a new tab" => Some(Message::SlashDescForkConversation),
+        "Fork the current conversation in a new pane or a new tab" => {
+            Some(Message::SlashDescForkConversation)
+        }
         "Hand off this conversation to a cloud agent" => Some(Message::SlashDescHandoffCloudAgent),
         "Open code review" => Some(Message::SlashDescOpenCodeReview),
         "Index this codebase" => Some(Message::SlashDescIndexCodebase),
-        "Index this codebase and generate an AGENTS.md file" => Some(Message::SlashDescIndexCodebaseAgentsMd),
+        "Index this codebase and generate an AGENTS.md file" => {
+            Some(Message::SlashDescIndexCodebaseAgentsMd)
+        }
         "Open the project rules file (AGENTS.md)" => Some(Message::SlashDescOpenProjectRules),
         "Open MCP servers" => Some(Message::SlashDescOpenMcpServers),
         "Open settings file (TOML)" => Some(Message::SlashDescOpenSettingsToml),
@@ -139,18 +153,32 @@ fn slash_command_description_message(description: &str) -> Option<crate::i18n::M
         "Send feedback" => Some(Message::SlashDescSendFeedback),
         "Switch to another indexed repository" => Some(Message::SlashDescSwitchIndexedRepo),
         "View all of your global and project rules" => Some(Message::SlashDescViewAllRules),
-        "Start a new conversation (alias for /agent)" => Some(Message::SlashDescStartConversationAlias),
+        "Start a new conversation (alias for /agent)" => {
+            Some(Message::SlashDescStartConversationAlias)
+        }
         "Switch the base agent model" => Some(Message::SlashDescSwitchBaseModel),
         "Switch the cloud agent execution host" => Some(Message::SlashDescSwitchCloudHost),
         "Switch the cloud agent harness" => Some(Message::SlashDescSwitchCloudHarness),
         "Switch the cloud agent environment" => Some(Message::SlashDescSwitchCloudEnvironment),
         "Switch the active execution profile" => Some(Message::SlashDescSwitchExecutionProfile),
-        "Prompt the agent to do some research and create a plan for a task" => Some(Message::SlashDescResearchAndPlan),
-        "Break a task into subtasks and run them in parallel with multiple agents" => Some(Message::SlashDescParallelSubtasks),
-        "Free up context by summarizing convo history" => Some(Message::SlashDescFreeContextSummarize),
-        "Compact conversation and then send a follow-up prompt" => Some(Message::SlashDescCompactThenFollowUp),
-        "Queue a prompt to send after the agent finishes responding" => Some(Message::SlashDescQueuePrompt),
-        "Fork current conversation and compact it in the forked copy" => Some(Message::SlashDescForkAndCompact),
+        "Prompt the agent to do some research and create a plan for a task" => {
+            Some(Message::SlashDescResearchAndPlan)
+        }
+        "Break a task into subtasks and run them in parallel with multiple agents" => {
+            Some(Message::SlashDescParallelSubtasks)
+        }
+        "Free up context by summarizing convo history" => {
+            Some(Message::SlashDescFreeContextSummarize)
+        }
+        "Compact conversation and then send a follow-up prompt" => {
+            Some(Message::SlashDescCompactThenFollowUp)
+        }
+        "Queue a prompt to send after the agent finishes responding" => {
+            Some(Message::SlashDescQueuePrompt)
+        }
+        "Fork current conversation and compact it in the forked copy" => {
+            Some(Message::SlashDescForkAndCompact)
+        }
         "Fork conversation from a specific query" => Some(Message::SlashDescForkFromQuery),
         "Continue this cloud conversation locally" => Some(Message::SlashDescContinueCloudLocally),
         "Open billing and usage settings" => Some(Message::SlashDescOpenBillingUsage),
@@ -158,9 +186,15 @@ fn slash_command_description_message(description: &str) -> Option<crate::i18n::M
         "Toggle credit usage details" => Some(Message::SlashDescToggleCreditUsage),
         "Open conversation history" => Some(Message::SlashDescOpenConversationHistory),
         "Search saved prompts" => Some(Message::SlashDescSearchSavedPrompts),
-        "Rewind to a previous point in the conversation" => Some(Message::SlashDescRewindConversation),
-        "Export current conversation to clipboard in markdown format" => Some(Message::SlashDescExportConversationClipboard),
-        "Export current conversation to a markdown file" => Some(Message::SlashDescExportConversationFile),
+        "Rewind to a previous point in the conversation" => {
+            Some(Message::SlashDescRewindConversation)
+        }
+        "Export current conversation to clipboard in markdown format" => {
+            Some(Message::SlashDescExportConversationClipboard)
+        }
+        "Export current conversation to a markdown file" => {
+            Some(Message::SlashDescExportConversationFile)
+        }
         _ => None,
     }
 }
@@ -181,19 +215,26 @@ fn slash_hint_message(hint_text: &str) -> Option<crate::i18n::Message> {
         "<path/to/file[:line[:col]]> or \"@\" to search" => Some(Message::SlashHintPathOrAtSearch),
         "<tab name>" => Some(Message::SlashHintTabName),
         "<new title>" => Some(Message::SlashHintNewTitle),
-        "<optional prompt to send in forked conversation>" => Some(Message::SlashHintOptionalForkPrompt),
+        "<optional prompt to send in forked conversation>" => {
+            Some(Message::SlashHintOptionalForkPrompt)
+        }
         "<optional follow-up prompt>" => Some(Message::SlashHintOptionalFollowUp),
         "<describe your task>" => Some(Message::SlashHintDescribeTask),
-        "<optional custom summarization instructions>" => Some(Message::SlashHintOptionalSummarizeInstructions),
+        "<optional custom summarization instructions>" => {
+            Some(Message::SlashHintOptionalSummarizeInstructions)
+        }
         "<prompt to send after compaction>" => Some(Message::SlashHintPromptAfterCompaction),
         "<prompt to send when agent is done>" => Some(Message::SlashHintPromptWhenAgentDone),
-        "<optional prompt to send after compaction>" => Some(Message::SlashHintOptionalPromptAfterCompaction),
-        "<optional prompt to send in local conversation>" => Some(Message::SlashHintOptionalLocalPrompt),
+        "<optional prompt to send after compaction>" => {
+            Some(Message::SlashHintOptionalPromptAfterCompaction)
+        }
+        "<optional prompt to send in local conversation>" => {
+            Some(Message::SlashHintOptionalLocalPrompt)
+        }
         "<optional filename>" => Some(Message::SlashHintOptionalFilename),
         _ => None,
     }
 }
-
 
 impl StaticCommand {
     pub fn localized_description(&self, ctx: &AppContext) -> &'static str {

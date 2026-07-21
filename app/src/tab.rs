@@ -497,9 +497,12 @@ impl TabData {
         if !self.tab_name_hidden_in_grouped_pane_view(ctx) {
             // TODO add option to show the keybinding once we figure out a nice API to retrieve
             // the actual keybinding (based on the user's preferences etc.)
-            menu_items.append(&mut vec![MenuItemFields::new(tr(ctx, Message::TabRenameTab))
-                .with_on_select_action(WorkspaceAction::RenameTab(index))
-                .into_item()]);
+            menu_items.append(&mut vec![MenuItemFields::new(tr(
+                ctx,
+                Message::TabRenameTab,
+            ))
+            .with_on_select_action(WorkspaceAction::RenameTab(index))
+            .into_item()]);
             // Group together with rename option (note, resetting doesn't make
             // sense unless you're able to rename a tab).
             let title = self.pane_group.as_ref(ctx).custom_title(ctx);
@@ -627,7 +630,10 @@ impl TabData {
         }
 
         let (label, action) = if self.pinned {
-            (tr_cached(Message::TabUnpin), WorkspaceAction::UnpinTab(index))
+            (
+                tr_cached(Message::TabUnpin),
+                WorkspaceAction::UnpinTab(index),
+            )
         } else {
             (tr_cached(Message::TabPin), WorkspaceAction::PinTab(index))
         };
@@ -664,9 +670,8 @@ impl TabData {
             );
         }
         if show_move_to_group {
-            menu_items.push(
-                MenuItemFields::new_submenu(tr_cached(Message::TabMoveToGroup)).into_item(),
-            );
+            menu_items
+                .push(MenuItemFields::new_submenu(tr_cached(Message::TabMoveToGroup)).into_item());
         }
         if show_remove_from_group {
             menu_items.push(

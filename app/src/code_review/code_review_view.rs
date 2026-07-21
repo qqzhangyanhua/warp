@@ -66,7 +66,6 @@ use crate::ai::agent::{
 };
 use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::appearance::Appearance;
-use crate::i18n::{tr, tr_cached, Message};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::comment_editor::DEFAULT_COMMENT_MAX_WIDTH;
 use crate::code::editor::line::EditorLineLocation;
@@ -112,6 +111,7 @@ use crate::code_review::telemetry_event::{
 use crate::code_review::DiffSetScope;
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::editor::InteractionState;
+use crate::i18n::{tr, tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::{PaneFocusHandle, PaneGroupFocusEvent};
 use crate::pane_group::pane::{view, BackingView, PaneEvent};
@@ -266,10 +266,18 @@ const CODE_REVIEW_EDITOR_LINE_HEIGHT_RATIO: f32 = 1.4;
 /// Extra scroll buffer (in pixels) added when scrolling to a line that has a comment editor below it.
 const COMMENT_EDITOR_SCROLL_BUFFER: f32 = 200.0;
 
-pub fn code_review_tooltip_text() -> &'static str { tr_cached(Message::ViewChanges) }
-fn remote_text() -> &'static str { tr_cached(Message::DiffsLocalWorkspacesOnly) }
-fn disabled_text() -> &'static str { tr_cached(Message::DiffsGitReposOnly) }
-fn wsl_text() -> &'static str { tr_cached(Message::DiffsNotInWsl) }
+pub fn code_review_tooltip_text() -> &'static str {
+    tr_cached(Message::ViewChanges)
+}
+fn remote_text() -> &'static str {
+    tr_cached(Message::DiffsLocalWorkspacesOnly)
+}
+fn disabled_text() -> &'static str {
+    tr_cached(Message::DiffsGitReposOnly)
+}
+fn wsl_text() -> &'static str {
+    tr_cached(Message::DiffsNotInWsl)
+}
 
 pub fn get_discard_button_disabled_tooltip(git_operation_blocked: bool) -> String {
     if git_operation_blocked {
@@ -1224,8 +1232,11 @@ impl CodeReviewView {
         });
 
         let discard_confirm_button = ctx.add_typed_action_view(|ctx| {
-            ActionButton::new(tr(ctx, Message::CodeReviewDiscardChanges), DangerPrimaryTheme)
-                .on_click(|ctx| ctx.dispatch_typed_action(CodeReviewAction::ConfirmDiscardFile))
+            ActionButton::new(
+                tr(ctx, Message::CodeReviewDiscardChanges),
+                DangerPrimaryTheme,
+            )
+            .on_click(|ctx| ctx.dispatch_typed_action(CodeReviewAction::ConfirmDiscardFile))
         });
 
         let discard_cancel_button = ctx.add_typed_action_view(|ctx| {
@@ -4088,10 +4099,14 @@ impl CodeReviewView {
                 .finish(),
             )
             .with_child(
-                Text::new(tr_cached(Message::CodeReviewNoOpenChanges), appearance.ui_font_family(), 16.)
-                    .with_style(Properties::default().weight(Weight::Semibold))
-                    .with_color(theme.main_text_color(theme.surface_2()).into())
-                    .finish(),
+                Text::new(
+                    tr_cached(Message::CodeReviewNoOpenChanges),
+                    appearance.ui_font_family(),
+                    16.,
+                )
+                .with_style(Properties::default().weight(Weight::Semibold))
+                .with_color(theme.main_text_color(theme.surface_2()).into())
+                .finish(),
             )
             .with_child(
                 Container::new(
@@ -4285,7 +4300,9 @@ impl CodeReviewView {
 
                 self.clear_review_comments(ctx);
                 ToastStack::handle(ctx).update(ctx, |stack, ctx| {
-                    let toast = DismissibleToast::default(tr_cached(Message::ToastCommentsSentToAgent).into());
+                    let toast = DismissibleToast::default(
+                        tr_cached(Message::ToastCommentsSentToAgent).into(),
+                    );
                     stack.add_ephemeral_toast(toast, self.window_id, ctx);
                 });
                 ctx.emit(CodeReviewViewEvent::ReviewSubmitted);
@@ -6770,9 +6787,15 @@ impl CodeReviewView {
         }
 
         let (comment_label, comment_icon) = if self.get_existing_diffset_comment(ctx).is_some() {
-            (tr(ctx, Message::CodeReviewShowSavedComment), Icon::MessageText)
+            (
+                tr(ctx, Message::CodeReviewShowSavedComment),
+                Icon::MessageText,
+            )
         } else {
-            (tr(ctx, Message::CodeReviewAddComment), Icon::MessagePlusSquare)
+            (
+                tr(ctx, Message::CodeReviewAddComment),
+                Icon::MessagePlusSquare,
+            )
         };
 
         items.push(
@@ -6807,9 +6830,15 @@ impl CodeReviewView {
         if FeatureFlag::FileAndDiffSetComments.is_enabled() && has_changes {
             let (comment_label, comment_icon) = if self.get_existing_diffset_comment(ctx).is_some()
             {
-                (tr(ctx, Message::CodeReviewShowSavedComment), Icon::MessageText)
+                (
+                    tr(ctx, Message::CodeReviewShowSavedComment),
+                    Icon::MessageText,
+                )
             } else {
-                (tr(ctx, Message::CodeReviewAddComment), Icon::MessagePlusSquare)
+                (
+                    tr(ctx, Message::CodeReviewAddComment),
+                    Icon::MessagePlusSquare,
+                )
             };
 
             items.push(
