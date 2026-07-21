@@ -4,9 +4,10 @@ use std::env;
 use anyhow::Result;
 use clap::Parser;
 use integration::test::*;
-use integration::Builder;
+use integration::{Builder, CLI_STARTUP_BASELINE_ENV};
 use warp_cli::WorkerCommand;
 use warp_core::channel::{Channel, ChannelConfig, ChannelState, OzConfig, WarpServerConfig};
+use warp_core::features::FeatureFlag;
 use warp_core::AppId;
 
 /// The Warp integration test runner.
@@ -24,7 +25,8 @@ pub struct Args {
 }
 
 pub fn main() -> Result<()> {
-    ChannelState::set(ChannelState::new(
+    let cli_startup_baseline = env::var_os(CLI_STARTUP_BASELINE_ENV).is_some();
+    let mut channel_state = ChannelState::new(
         Channel::Integration,
         ChannelConfig {
             app_id: AppId::new(
@@ -57,7 +59,16 @@ pub fn main() -> Result<()> {
             autoupdate_config: None,
             mcp_static_config: None,
         },
-    ));
+    );
+    if cli_startup_baseline {
+        channel_state =
+            channel_state.with_additional_features(&[FeatureFlag::LocalOnlyCustomProviderMode]);
+    }
+    ChannelState::set(channel_state);
+
+    if cli_startup_baseline {
+        return warp::run();
+    }
 
     let args = Args::parse();
 

@@ -1,3 +1,8 @@
+---
+status: superseded
+superseded-by: 0009-adopt-the-permanent-zyh-local-product.md
+---
+
 # Add Local-only Custom Provider Mode
 
 Warp will provide a build-gated Local-only Mode for OpenAI-compatible Provider

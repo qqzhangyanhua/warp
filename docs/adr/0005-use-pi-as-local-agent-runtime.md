@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: 0009-adopt-the-permanent-zyh-local-product.md
 ---
 
 # Use Pi as the Local Agent Runtime

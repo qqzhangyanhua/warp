@@ -6962,10 +6962,12 @@ dependencies = [
  "serde_json",
  "settings",
  "simplelog",
+ "startup_request_recorder",
  "strum 0.27.1",
  "strum_macros 0.27.1",
  "sum_tree",
  "sysinfo",
+ "tempfile",
  "version-compare",
  "warp",
  "warp-command-signatures",
@@ -12962,6 +12964,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
+name = "startup_request_recorder"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -15924,6 +15934,7 @@ dependencies = [
  "serde_json",
  "serial_test",
  "similar",
+ "startup_request_recorder",
  "string-offset",
  "strum 0.27.1",
  "strum_macros 0.27.1",

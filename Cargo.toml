@@ -68,6 +68,7 @@ settings = { path = "crates/settings" }
 settings_value = { path = "crates/settings_value", default-features = false }
 settings_value_derive = { path = "crates/settings_value_derive" }
 simple_logger = { path = "crates/simple_logger" }
+startup_request_recorder = { path = "crates/startup_request_recorder" }
 string-offset = { path = "crates/string-offset" }
 sum_tree = { path = "crates/sum_tree" }
 syntax_tree = { path = "crates/syntax_tree" }

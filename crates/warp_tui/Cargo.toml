@@ -70,8 +70,9 @@ warpui.workspace = true
 warpui_core = { workspace = true, features = ["tui"] }
 
 [dev-dependencies]
-nix = { workspace = true, features = ["term"] }
+nix = { workspace = true, features = ["poll", "term"] }
 serial_test = "0.8.0"
+startup_request_recorder.workspace = true
 tempfile.workspace = true
 warpui_extras = { workspace = true, features = ["test-util"] }
 # `test-util` exposes `Appearance::mock()`, used to register the `Appearance`

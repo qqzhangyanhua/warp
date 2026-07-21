@@ -1,3 +1,8 @@
+---
+status: superseded
+superseded-by: 0009-adopt-the-permanent-zyh-local-product.md
+---
+
 # Route anonymous AI through Warp Agent
 
 Anonymous-only Mode will send OpenAI-compatible Provider settings through the existing Warp Agent request path instead of calling provider endpoints directly from the client. This preserves streaming, tool use, context, and agent orchestration while keeping provider credentials in local secure storage and attaching them only to requests that need them; an Anonymous Session supplies the service identity.

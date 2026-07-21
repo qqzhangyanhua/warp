@@ -1,3 +1,4 @@
+use startup_request_recorder::RequestRecorder;
 use warp::features::FeatureFlag;
 use warp::integration_testing::step::new_step_with_default_assertions;
 use warp::integration_testing::tab::{assert_pane_title, assert_tab_title};
@@ -6,12 +7,17 @@ use warp::integration_testing::terminal::{
 };
 use warp::integration_testing::workspace::assert_tab_count;
 use warp::settings_view::{SettingsSection, SettingsView};
+use warpui_core::integration::{AssertionOutcome, TestStep};
 use warpui_core::{async_assert_eq, ViewHandle};
 
 use crate::Builder;
 
 pub fn test_local_only_gui_startup_and_settings_respect_network_boundary() -> Builder {
     FeatureFlag::LocalOnlyCustomProviderMode.set_enabled(true);
+    let recorder = RequestRecorder::start().expect("startup request recorder should start");
+    for (variable, value) in recorder.proxy_environment() {
+        std::env::set_var(variable, value);
+    }
 
     Builder::new()
         .with_step(
@@ -42,5 +48,17 @@ pub fn test_local_only_gui_startup_and_settings_respect_network_boundary() -> Bu
                         })
                     },
                 ),
+        )
+        .with_step(
+            TestStep::new("Record GUI startup network baseline").add_assertion(move |_, _| {
+                let requests = recorder
+                    .requests()
+                    .expect("GUI request recorder should synchronize");
+                assert!(
+                    requests.is_empty(),
+                    "GUI startup made app-initiated requests: {requests:#?}"
+                );
+                AssertionOutcome::Success
+            }),
         )
 }

@@ -471,7 +471,7 @@ impl ServerApi {
                 model.install_on_clients([&mut client, &mut telemetry_api.client], model_ctx);
             });
         }
-        #[cfg(any(test, feature = "test-util", feature = "integration_tests"))]
+        #[cfg(any(test, feature = "test-util"))]
         if crate::local_mode::is_local_only_custom_provider_mode() {
             install_local_only_forbidden_warp_request_guard(&mut client);
             install_local_only_forbidden_warp_request_guard(&mut telemetry_api.client);
@@ -1432,7 +1432,7 @@ impl ServerApiProvider {
     }
 }
 
-#[cfg(any(test, feature = "test-util", feature = "integration_tests"))]
+#[cfg(any(test, feature = "test-util"))]
 fn install_local_only_forbidden_warp_request_guard(client: &mut http_client::Client) {
     client.set_before_request_fn(Box::new(|request, _| {
         if is_forbidden_local_only_request_url(request.url()) {
@@ -1445,7 +1445,7 @@ fn install_local_only_forbidden_warp_request_guard(client: &mut http_client::Cli
     }));
 }
 
-#[cfg(any(test, feature = "test-util", feature = "integration_tests"))]
+#[cfg(any(test, feature = "test-util"))]
 fn is_forbidden_local_only_request_url(url: &Url) -> bool {
     let Some(host) = url.host_str() else {
         return false;
@@ -1460,7 +1460,7 @@ fn is_forbidden_local_only_request_url(url: &Url) -> bool {
         || is_configured_rudderstack_host(host)
 }
 
-#[cfg(any(test, feature = "test-util", feature = "integration_tests"))]
+#[cfg(any(test, feature = "test-util"))]
 fn is_configured_warp_service_origin(url: &Url) -> bool {
     [ChannelState::server_root_url(), ChannelState::oz_root_url()]
         .iter()
@@ -1472,7 +1472,7 @@ fn is_configured_warp_service_origin(url: &Url) -> bool {
         })
 }
 
-#[cfg(any(test, feature = "test-util", feature = "integration_tests"))]
+#[cfg(any(test, feature = "test-util"))]
 fn is_configured_rudderstack_host(host: &str) -> bool {
     [
         ChannelState::rudderstack_non_ugc_destination().root_url,
