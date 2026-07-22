@@ -111,6 +111,7 @@ pub struct WorkspaceState {
     pub is_close_session_confirmation_dialog_open: bool,
     pub is_rewind_confirmation_dialog_open: bool,
     pub is_delete_conversation_confirmation_dialog_open: bool,
+    pub is_zyh_project_migration_dialog_open: bool,
     pub is_native_quit_modal_open: bool,
     pub is_shared_objects_creation_denied_modal_open: bool,
     pub is_suggested_agent_mode_workflow_modal_open: bool,
@@ -168,6 +169,7 @@ impl WorkspaceState {
             || self.is_session_config_modal_open
             || self.is_new_worktree_modal_open
             || self.is_remove_tab_config_dialog_open
+            || self.is_zyh_project_migration_dialog_open
             || {
                 let one_time_modal = OneTimeModalModel::as_ref(app);
                 one_time_modal.is_oz_launch_modal_open()
@@ -212,6 +214,7 @@ impl WorkspaceState {
         self.is_session_config_modal_open = false;
         self.is_new_worktree_modal_open = false;
         self.is_remove_tab_config_dialog_open = false;
+        self.is_zyh_project_migration_dialog_open = false;
     }
 
     pub fn is_right_panel_open(&self) -> bool {

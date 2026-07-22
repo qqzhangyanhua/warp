@@ -37,6 +37,7 @@ mod websockets;
 mod workflows;
 mod workspace;
 mod zyh_home;
+mod zyh_project_migration;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -195,6 +196,7 @@ pub use websockets::*;
 pub use workflows::*;
 pub use workspace::*;
 pub use zyh_home::*;
+pub use zyh_project_migration::*;
 
 use crate::builder::cargo_target_tmpdir;
 use crate::util::{skip_if_powershell_core_2303, ShellRcType};

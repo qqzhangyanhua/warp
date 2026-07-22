@@ -24,6 +24,18 @@ fn mcp_provider_from_file_path_recognizes_warp_home_path() {
     }
 }
 
+#[test]
+fn warp_project_mcp_path_uses_zyh_directory() {
+    assert_eq!(
+        MCPProvider::Warp.project_config_path(),
+        std::path::Path::new(".zyh/.mcp.json")
+    );
+    assert_eq!(
+        mcp_provider_from_file_path(std::path::Path::new("/repo/.warp/.mcp.json")),
+        Some(MCPProvider::Warp)
+    );
+}
+
 /// Helper function to create a test TemplatableMCPServerInstallation with custom values
 fn create_test_installation(
     name: &str,

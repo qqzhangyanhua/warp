@@ -412,6 +412,8 @@ pub enum WorkspaceAction {
     /// if the focused pane is the rendered file viewer (`FilePane`), otherwise the focused
     /// terminal session's working directory. No-op if neither yields a path.
     CopyCurrentPath,
+    /// Preview and explicitly migrate supported legacy project configuration into `.zyh/`.
+    MigrateLegacyProjectConfiguration,
     /// An action only registered in dev and local builds, which writes the user's current access
     /// token to the system clipboard to aid debugging and development.
     CopyAccessTokenToClipboard,
@@ -1090,6 +1092,7 @@ impl WorkspaceAction {
             | ToggleWelcomeTips
             | CopyTextToClipboard(_)
             | CopyCurrentPath
+            | MigrateLegacyProjectConfiguration
             | CopyAccessTokenToClipboard
             | OpenTabConfigRepoPicker { .. }
             | OpenNewWorktreeModal

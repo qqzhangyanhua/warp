@@ -533,6 +533,8 @@ use crate::workspace::view::right_panel::{RightPanelEvent, RightPanelView};
 use crate::workspace::{ForkFromExchange, ForkedConversationDestination};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::AdminEnablementSetting;
+use crate::zyh_project_migration::modal::{ProjectMigrationDialog, ProjectMigrationDialogEvent};
+use crate::zyh_project_migration::{execute_project_migration, preview_project_migration};
 use crate::{
     autoupdate, local_mode, send_telemetry_from_ctx, settings, AgentNotificationsModel,
     BlocklistAIHistoryModel, GlobalResourceHandles, TelemetryEvent,
@@ -1146,6 +1148,8 @@ pub struct Workspace {
     close_session_confirmation_dialog: ViewHandle<CloseSessionConfirmationDialog>,
     rewind_confirmation_dialog: ViewHandle<RewindConfirmationDialog>,
     delete_conversation_confirmation_dialog: ViewHandle<DeleteConversationConfirmationDialog>,
+    zyh_project_migration_dialog: ViewHandle<ProjectMigrationDialog>,
+    zyh_project_migration_request_id: u64,
     resource_center_view: ViewHandle<ResourceCenterView>,
     command_search_view: ViewHandle<CommandSearchView>,
     autoupdate_unable_to_update_banner_dismissed: bool,
@@ -3103,6 +3107,10 @@ impl Workspace {
         let rewind_confirmation_dialog = Self::build_rewind_confirmation_dialog(ctx);
         let delete_conversation_confirmation_dialog =
             Self::build_delete_conversation_confirmation_dialog(ctx);
+        let zyh_project_migration_dialog = ctx.add_typed_action_view(ProjectMigrationDialog::new);
+        ctx.subscribe_to_view(&zyh_project_migration_dialog, |me, _, event, ctx| {
+            me.handle_zyh_project_migration_dialog_event(event, ctx);
+        });
         let command_search_view =
             ctx.add_typed_action_view(|ctx| CommandSearchView::new(ai_client.clone(), ctx));
         ctx.subscribe_to_view(&command_search_view, |me, _, event, ctx| {
@@ -3498,6 +3506,8 @@ impl Workspace {
             close_session_confirmation_dialog,
             rewind_confirmation_dialog,
             delete_conversation_confirmation_dialog,
+            zyh_project_migration_dialog,
+            zyh_project_migration_request_id: 0,
             resource_center_view,
             command_search_view,
             autoupdate_unable_to_update_banner_dismissed: false,
@@ -3620,6 +3630,32 @@ impl Workspace {
     #[cfg(any(test, feature = "integration_tests"))]
     pub fn ai_fact_view(&self) -> ViewHandle<AIFactView> {
         self.ai_fact_view.clone()
+    }
+
+    #[cfg(any(test, feature = "integration_tests"))]
+    pub fn is_zyh_project_migration_dialog_open(&self) -> bool {
+        self.current_workspace_state
+            .is_zyh_project_migration_dialog_open
+    }
+
+    #[cfg(any(test, feature = "integration_tests"))]
+    pub fn is_zyh_project_migration_preview_visible(&self, ctx: &AppContext) -> bool {
+        self.current_workspace_state
+            .is_zyh_project_migration_dialog_open
+            && self
+                .zyh_project_migration_dialog
+                .as_ref(ctx)
+                .is_preview_visible()
+    }
+
+    #[cfg(any(test, feature = "integration_tests"))]
+    pub fn is_zyh_project_migration_result_visible(&self, ctx: &AppContext) -> bool {
+        self.current_workspace_state
+            .is_zyh_project_migration_dialog_open
+            && self
+                .zyh_project_migration_dialog
+                .as_ref(ctx)
+                .is_result_visible()
     }
 
     fn handle_task_status_reset(&mut self, pane_group_id: EntityId, ctx: &mut ViewContext<Self>) {
@@ -11407,6 +11443,87 @@ impl Workspace {
                 ctx.notify();
             }
         }
+    }
+
+    fn handle_zyh_project_migration_dialog_event(
+        &mut self,
+        event: &ProjectMigrationDialogEvent,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        match event {
+            ProjectMigrationDialogEvent::Confirm(preview) => {
+                let preview = preview.clone();
+                let dialog = self.zyh_project_migration_dialog.clone();
+                ctx.spawn(
+                    async move {
+                        tokio::task::spawn_blocking(move || execute_project_migration(preview))
+                            .await
+                    },
+                    move |_, result, ctx| {
+                        dialog.update(ctx, |dialog, ctx| match result {
+                            Ok(result) => dialog.set_result(result, ctx),
+                            Err(error) => dialog.set_error(error.to_string(), ctx),
+                        });
+                    },
+                );
+            }
+            ProjectMigrationDialogEvent::Close => {
+                self.current_workspace_state
+                    .is_zyh_project_migration_dialog_open = false;
+                self.focus_active_tab(ctx);
+                ctx.notify();
+            }
+        }
+    }
+
+    fn show_zyh_project_migration_dialog(&mut self, ctx: &mut ViewContext<Self>) {
+        self.zyh_project_migration_request_id =
+            self.zyh_project_migration_request_id.wrapping_add(1);
+        let request_id = self.zyh_project_migration_request_id;
+        self.current_workspace_state
+            .is_zyh_project_migration_dialog_open = true;
+        self.zyh_project_migration_dialog
+            .update(ctx, |dialog, ctx| dialog.set_loading(ctx));
+        ctx.focus(&self.zyh_project_migration_dialog);
+        ctx.notify();
+
+        let path = self
+            .active_tab_pane_group()
+            .as_ref(ctx)
+            .focused_session_view(ctx)
+            .and_then(|terminal| terminal.as_ref(ctx).pwd_if_local(ctx))
+            .map(PathBuf::from);
+        let Some(path) = path else {
+            self.zyh_project_migration_dialog
+                .update(ctx, |dialog, ctx| {
+                    dialog.set_error(
+                        tr(
+                            ctx,
+                            Message::WorkspaceProjectMigrationLocalRepositoryRequired,
+                        )
+                        .to_owned(),
+                        ctx,
+                    );
+                });
+            return;
+        };
+
+        let dialog = self.zyh_project_migration_dialog.clone();
+        ctx.spawn(
+            async move {
+                tokio::task::spawn_blocking(move || preview_project_migration(&path)).await
+            },
+            move |workspace, result, ctx| {
+                if workspace.zyh_project_migration_request_id != request_id {
+                    return;
+                }
+                dialog.update(ctx, |dialog, ctx| match result {
+                    Ok(Ok(preview)) => dialog.set_preview(preview, ctx),
+                    Ok(Err(error)) => dialog.set_error(error.to_string(), ctx),
+                    Err(error) => dialog.set_error(error.to_string(), ctx),
+                });
+            },
+        );
     }
 
     pub fn handle_network_status_event(
@@ -25120,6 +25237,9 @@ impl TypedActionView for Workspace {
                     ctx.clipboard().write(ClipboardContent::plain_text(path));
                 }
             }
+            MigrateLegacyProjectConfiguration => {
+                self.show_zyh_project_migration_dialog(ctx);
+            }
             DismissWorkspaceBanner(banner_type) => self.dismiss_workspace_banner(ctx, banner_type),
             DismissAIAssistantWarmWelcome => {
                 self.dismiss_ai_assistant_warm_welcome(ctx);
@@ -27537,6 +27657,21 @@ impl View for Workspace {
         {
             stack.add_positioned_overlay_child(
                 ChildView::new(&self.delete_conversation_confirmation_dialog).finish(),
+                OffsetPositioning::offset_from_parent(
+                    Vector2F::zero(),
+                    ParentOffsetBounds::WindowByPosition,
+                    ParentAnchor::Center,
+                    ChildAnchor::Center,
+                ),
+            );
+        }
+
+        if self
+            .current_workspace_state
+            .is_zyh_project_migration_dialog_open
+        {
+            stack.add_positioned_overlay_child(
+                ChildView::new(&self.zyh_project_migration_dialog).finish(),
                 OffsetPositioning::offset_from_parent(
                     Vector2F::zero(),
                     ParentOffsetBounds::WindowByPosition,

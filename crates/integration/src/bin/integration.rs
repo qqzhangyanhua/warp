@@ -239,6 +239,7 @@ fn register_tests() -> HashMap<&'static str, BoxedBuilderFn> {
     register_test!(test_add_launch_config_to_warp_config);
     register_test!(test_add_workflows_to_warp_config);
     register_test!(test_loading_project_workflows);
+    register_test!(test_zyh_project_migration_requires_confirmation);
     register_test!(test_cmd_enter);
     register_test!(test_alias_expansion_has_limit);
     register_test!(test_command_corrections);

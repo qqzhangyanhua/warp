@@ -1,3 +1,4 @@
+use std::fs;
 use std::sync::Arc;
 
 use warpui::App;
@@ -54,4 +55,20 @@ fn test_workflow_by_command_name() {
             assert_eq!(workflow_source, WorkflowSource::Global);
         });
     });
+}
+
+#[test]
+fn project_workflows_load_from_zyh_project_directory() {
+    let tempdir = tempfile::tempdir().unwrap();
+    git2::Repository::init(tempdir.path()).unwrap();
+    let workflow_path = tempdir.path().join(".zyh/workflows/test.yaml");
+    fs::create_dir_all(workflow_path.parent().unwrap()).unwrap();
+    fs::write(&workflow_path, "name: ZYH workflow\ncommand: echo zyh\n").unwrap();
+
+    let workflows = load_project_workflows(tempdir.path());
+
+    assert!(workflows
+        .iter()
+        .any(|workflow| workflow.name() == "ZYH workflow"));
+    assert!(!tempdir.path().join(".warp/workflows").exists());
 }

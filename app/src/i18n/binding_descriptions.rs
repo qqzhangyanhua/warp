@@ -177,6 +177,7 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         }
         "invite people..." => Some("邀请成员..."),
         "join our slack community (opens external link)" => Some("加入 Slack 社区（打开外部链接）"),
+        "migrate legacy project configuration" => Some("迁移旧项目配置"),
         "jump to latest agent message" => Some("跳到最新 Agent 消息"),
         "jump to latest agent task" => Some("跳到最新 Agent 任务"),
         "launch configuration palette" => Some("启动配置面板"),

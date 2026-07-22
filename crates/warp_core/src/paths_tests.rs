@@ -56,6 +56,13 @@ fn zyh_home_paths_are_platform_independent() {
 }
 
 #[test]
+fn legacy_and_zyh_project_config_directories_are_distinct() {
+    assert_eq!(LEGACY_PROJECT_CONFIG_DIR, ".warp");
+    assert_eq!(ZYH_PROJECT_CONFIG_DIR, ".zyh");
+    assert_ne!(LEGACY_PROJECT_CONFIG_DIR, ZYH_PROJECT_CONFIG_DIR);
+}
+
+#[test]
 fn legacy_roots_match_each_platforms_existing_layout() {
     let mac = LegacyRoots::resolve(
         Path::new("/Users/tester"),

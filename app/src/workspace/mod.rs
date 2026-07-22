@@ -89,6 +89,7 @@ pub fn init(app: &mut AppContext) {
     lightbox_view::init(app);
     rewind_confirmation_dialog::init(app);
     delete_conversation_confirmation_dialog::init(app);
+    crate::zyh_project_migration::modal::init(app);
     crate::tab_configs::remove_confirmation_dialog::init(app);
     hoa_onboarding::init(app);
     tab_configs::session_config_modal::init(app);
@@ -1464,6 +1465,13 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::CopyCurrentPath,
         )
         .with_context_predicate(id!("Workspace")),
+        EditableBinding::new(
+            "workspace:migrate_legacy_project_configuration",
+            BindingDescription::new("Migrate Legacy Project Configuration"),
+            WorkspaceAction::MigrateLegacyProjectConfiguration,
+        )
+        .with_context_predicate(id!("Workspace"))
+        .with_group(bindings::BindingGroup::Folders.as_str()),
         EditableBinding::new(
             "workspace:open_repository",
             BindingDescription::new("Open repository")

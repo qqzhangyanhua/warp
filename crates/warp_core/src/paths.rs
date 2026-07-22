@@ -30,11 +30,14 @@ mod zyh_home;
 pub use legacy_roots::{LegacyInstallation, LegacyPlatform, LegacyRoots};
 pub use zyh_home::{AppHome, AppHomeError, AppHomeProfile, ZYH_HOME_OVERRIDE_ENV};
 
-/// The name of the directory in which to put non-global Warp-specific files.
-///
-/// This should be used, for example, as the base directory under which
-/// repository workflows would be stored (in "./.warp/workflows").
-pub const WARP_CONFIG_DIR: &str = ".warp";
+/// The legacy project configuration directory, retained for explicit migration only.
+pub const LEGACY_PROJECT_CONFIG_DIR: &str = ".warp";
+
+/// The project configuration directory owned by ZYH.
+pub const ZYH_PROJECT_CONFIG_DIR: &str = ".zyh";
+
+/// Compatibility name for the legacy project configuration directory.
+pub const WARP_CONFIG_DIR: &str = LEGACY_PROJECT_CONFIG_DIR;
 
 /// The name of the folder that stores Warp execution logs and network logs.
 /// This is currently only used on Windows to maintain backwards compatibility.

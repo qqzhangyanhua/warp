@@ -528,7 +528,7 @@ impl MCPProvider {
     /// Returns the path of the provider's config file relative to the home directory.
     pub fn home_config_path(&self) -> &'static Path {
         match self {
-            MCPProvider::Warp => Path::new(".warp/.mcp.json"),
+            MCPProvider::Warp => Path::new(".zyh/.mcp.json"),
             MCPProvider::Claude => Path::new(".claude.json"),
             MCPProvider::Codex => Path::new(".codex/config.toml"),
             MCPProvider::Agents => Path::new(".agents/.mcp.json"),
@@ -538,7 +538,7 @@ impl MCPProvider {
     /// Returns the path of the provider's config file relative to a project root.
     pub fn project_config_path(&self) -> &'static Path {
         match self {
-            MCPProvider::Warp => Path::new(".warp/.mcp.json"),
+            MCPProvider::Warp => Path::new(".zyh/.mcp.json"),
             MCPProvider::Claude => Path::new(".mcp.json"),
             MCPProvider::Codex => Path::new(".codex/config.toml"),
             MCPProvider::Agents => Path::new(".agents/.mcp.json"),
@@ -551,6 +551,12 @@ impl MCPProvider {
 /// Matches against both home-level configs (e.g. `~/.claude.json`) and
 /// project-level configs (e.g. `.mcp.json` anywhere in the path).
 pub fn mcp_provider_from_file_path(file_path: &Path) -> Option<MCPProvider> {
+    // Legacy project MCP files remain protected from agent writes, but active discovery uses
+    // `MCPProvider::Warp::project_config_path()` and therefore never reads this path implicitly.
+    if file_path.ends_with(Path::new(".warp/.mcp.json")) {
+        return Some(MCPProvider::Warp);
+    }
+
     // Try exact home-config match first (unambiguous).
     for provider in MCPProvider::iter() {
         if home_config_file_path(provider)
@@ -562,7 +568,7 @@ pub fn mcp_provider_from_file_path(file_path: &Path) -> Option<MCPProvider> {
     }
     // Fall back to project-config suffix match, preferring the longest
     // (most-specific) suffix.
-    // This avoids `.mcp.json` shadowing `.warp/.mcp.json`, for example.
+    // This avoids `.mcp.json` shadowing `.zyh/.mcp.json`, for example.
     let mut best: Option<(MCPProvider, usize)> = None;
     for provider in MCPProvider::iter() {
         let cfg = provider.project_config_path();

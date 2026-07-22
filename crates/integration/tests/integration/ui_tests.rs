@@ -106,6 +106,7 @@ integration_tests! {
     #[ignore = "Flakes in CI"]
     test_add_theme_to_warp_config,
     test_loading_project_workflows,
+    test_zyh_project_migration_requires_confirmation,
     test_completions_as_you_type,
     test_completions_as_you_type_one_matching_entry_tab,
     test_completions_as_you_type_execute_on_enter,

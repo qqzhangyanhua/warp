@@ -56,6 +56,20 @@ fn local_project_provider_path_is_classified_by_structure() {
 }
 
 #[test]
+fn zyh_project_skill_path_is_classified_as_warp_provider() {
+    let path = LocalOrRemotePath::Local(
+        std::env::temp_dir()
+            .join("repo")
+            .join(".zyh")
+            .join("skills")
+            .join("my-skill")
+            .join("SKILL.md"),
+    );
+
+    assert_eq!(get_provider_for_path(&path), Some(SkillProvider::Warp));
+}
+
+#[test]
 fn foreign_encoded_remote_provider_path_is_classified_by_structure() {
     let path = LocalOrRemotePath::Remote(RemotePath::new(
         HostId::new("remote-host".to_string()),

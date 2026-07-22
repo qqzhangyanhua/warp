@@ -104,6 +104,8 @@ mod word_block_editor;
 mod workspaces;
 #[cfg(all(not(target_family = "wasm"), feature = "local_fs"))]
 mod zyh_home_migration;
+#[cfg(all(not(target_family = "wasm"), feature = "local_fs"))]
+mod zyh_project_migration;
 
 // PLEASE DO NOT ADD MORE PUBLIC MODULES!
 //
