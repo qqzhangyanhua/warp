@@ -33,7 +33,6 @@ pub struct LegacyRoots {
     secure_state_dir: PathBuf,
     logs_dir: PathBuf,
     log_file_name: String,
-    cache_dir: PathBuf,
     tui_config_dir: PathBuf,
     tui_state_dir: PathBuf,
 }
@@ -82,7 +81,7 @@ impl LegacyRoots {
                 let logs_dir = user_home.join("Library").join("Logs");
                 let tui_config_dir =
                     user_home.join(macos_tui_config_dir_name(installation.channel));
-                let tui_state_dir = state_dir.join("tui");
+                let tui_state_dir = secure_state_dir.join("tui");
                 Self {
                     home_config_dir,
                     config_dir: config_dir.clone(),
@@ -91,7 +90,6 @@ impl LegacyRoots {
                     secure_state_dir,
                     logs_dir,
                     log_file_name,
-                    cache_dir: state_dir,
                     tui_config_dir,
                     tui_state_dir,
                 }
@@ -106,7 +104,6 @@ impl LegacyRoots {
                     .join(".local")
                     .join("state")
                     .join(&installation.project_path);
-                let cache_dir = user_home.join(".cache").join(&installation.project_path);
                 let tui_config_dir = config_dir.join("cli");
                 let tui_state_dir = state_dir.join("tui");
                 Self {
@@ -117,7 +114,6 @@ impl LegacyRoots {
                     secure_state_dir: state_dir.clone(),
                     logs_dir: state_dir,
                     log_file_name,
-                    cache_dir,
                     tui_config_dir,
                     tui_state_dir,
                 }
@@ -135,10 +131,6 @@ impl LegacyRoots {
                     user_home,
                     &format!(r"AppData\Local\{}\data", installation.project_path),
                 );
-                let cache_dir = windows_join(
-                    user_home,
-                    &format!(r"AppData\Local\{}\cache", installation.project_path),
-                );
                 let tui_config_dir = windows_join(&config_dir, "cli");
                 let tui_state_dir = windows_join(&state_dir, "tui");
                 let logs_dir = windows_join(&state_dir, "logs");
@@ -150,7 +142,6 @@ impl LegacyRoots {
                     secure_state_dir: state_dir,
                     logs_dir,
                     log_file_name,
-                    cache_dir,
                     tui_config_dir,
                     tui_state_dir,
                 }
@@ -184,10 +175,6 @@ impl LegacyRoots {
 
     pub fn log_file_name(&self) -> &str {
         &self.log_file_name
-    }
-
-    pub fn cache_dir(&self) -> &Path {
-        &self.cache_dir
     }
 
     pub fn tui_config_dir(&self) -> &Path {

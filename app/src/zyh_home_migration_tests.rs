@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
+use std::path::Path;
 use std::sync::Mutex;
 
 use diesel::connection::SimpleConnection as _;
@@ -27,7 +28,7 @@ impl MigrationSecretStore for TestSecretStore {
     fn read_destination(
         &self,
         key: &str,
-        _: &std::path::Path,
+        _: &Path,
     ) -> Result<Option<String>, MigrationSecretError> {
         if self.hide_destination_reads {
             return Ok(None);
@@ -39,7 +40,7 @@ impl MigrationSecretStore for TestSecretStore {
         &self,
         key: &str,
         value: &str,
-        _: &std::path::Path,
+        _: &Path,
     ) -> Result<(), MigrationSecretError> {
         self.destination
             .lock()
@@ -259,51 +260,6 @@ fn macos_migration_copies_only_the_current_channels_log_files() {
 }
 
 #[test]
-fn partial_failure_leaves_no_destination_and_a_rerun_can_complete() {
-    let tempdir = tempfile::tempdir().unwrap();
-    let legacy = LegacyRoots::resolve(
-        &tempdir.path().join("home"),
-        LegacyPlatform::MacOs,
-        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
-    );
-    write(&legacy.config_dir().join("keybindings.yaml"), b"bindings");
-    write(&legacy.data_dir().join("themes/dark.yaml"), b"theme");
-    let destination = tempdir.path().join("home").join(".zyh");
-    let secrets = TestSecretStore::default();
-
-    let error = migrate_legacy_home(
-        MigrationRequest::new(destination.clone(), legacy.clone(), &secrets)
-            .with_failure_after("keybindings"),
-    )
-    .unwrap_err();
-    assert!(matches!(
-        error,
-        super::MigrationError::InjectedFailure {
-            after: "keybindings"
-        }
-    ));
-    assert!(!destination.exists());
-    assert_eq!(
-        fs::read(legacy.config_dir().join("keybindings.yaml")).unwrap(),
-        b"bindings"
-    );
-    assert!(fs::read_dir(destination.parent().unwrap())
-        .unwrap()
-        .all(|entry| {
-            let name = entry.unwrap().file_name();
-            !name.to_string_lossy().starts_with(".zyh-migration-")
-        }));
-
-    let outcome =
-        migrate_legacy_home(MigrationRequest::new(destination.clone(), legacy, &secrets)).unwrap();
-    assert!(matches!(outcome, MigrationOutcome::Migrated { .. }));
-    assert_eq!(
-        fs::read(destination.join("keybindings.yaml")).unwrap(),
-        b"bindings"
-    );
-}
-
-#[test]
 fn stale_lock_file_does_not_block_a_retry() {
     let tempdir = tempfile::tempdir().unwrap();
     let legacy = LegacyRoots::resolve(
@@ -419,6 +375,9 @@ fn source_symlinks_are_reported_and_never_followed() {
 #[path = "zyh_home_migration_tests/secret_tests.rs"]
 mod secret_tests;
 
+#[path = "zyh_home_migration_tests/publication_tests.rs"]
+mod publication_tests;
+
 #[test]
 fn concurrent_migration_reports_in_progress_then_allows_retry() {
     let tempdir = tempfile::tempdir().unwrap();
@@ -486,7 +445,7 @@ fn query_count(connection: &mut SqliteConnection, table: &str) -> i64 {
         .count
 }
 
-fn write(path: &std::path::Path, contents: &[u8]) {
+fn write(path: &Path, contents: &[u8]) {
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, contents).unwrap();
 }

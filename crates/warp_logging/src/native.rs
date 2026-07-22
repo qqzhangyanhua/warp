@@ -654,21 +654,7 @@ pub fn log_directory() -> Result<std::path::PathBuf> {
 }
 
 fn init_log_directory() -> Result<std::path::PathBuf> {
-    cfg_if::cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            Ok(dirs::home_dir()
-                .ok_or_else(|| {
-                    anyhow::anyhow!("could not locate home directory in order to create a log file")
-                })?
-                .join("Library/Logs/"))
-        } else if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
-            Ok(warp_core::paths::state_dir())
-        } else if #[cfg(windows)] {
-            Ok(warp_core::paths::state_dir().join(warp_core::paths::WARP_LOGS_DIR))
-        } else {
-            Err(anyhow::anyhow!("Have not configured file-based logging for the current platform!"))
-        }
-    }
+    Ok(warp_core::paths::AppHome::current()?.logs_dir())
 }
 
 /// Initializes the logger before running tests.

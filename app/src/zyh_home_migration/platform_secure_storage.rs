@@ -85,7 +85,15 @@ impl PlatformMigrationSecretStore {
         match storage.read_value(key) {
             Ok(value) => Ok(Some(value)),
             Err(SecureStorageError::NotFound) => Ok(None),
-            Err(_) => Err(MigrationSecretError::Unavailable),
+            Err(SecureStorageError::DecodeError(_) | SecureStorageError::Unknown(_)) => {
+                Err(MigrationSecretError::Unavailable)
+            }
+            #[cfg(target_os = "windows")]
+            Err(
+                SecureStorageError::IOError(_)
+                | SecureStorageError::WindowsAPIError(_)
+                | SecureStorageError::InvalidLocation,
+            ) => Err(MigrationSecretError::Unavailable),
         }
     }
 

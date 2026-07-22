@@ -9,13 +9,15 @@ use std::{env, fs};
 mod action_log;
 mod artifacts;
 pub mod capture_recorder;
+mod cleanup;
 mod driver;
 pub mod overlay;
 mod step;
 pub mod video_recorder;
 pub use action_log::ActionLog;
 pub use artifacts::ARTIFACTS_DIR_ENV_VAR;
-pub use driver::{Builder, SetupFn, TestDriver, RERUN_EXIT_CODE, RUNTIME_TAG_FAILURE_REASON};
+pub use cleanup::SetupFn;
+pub use driver::{Builder, TestDriver, RERUN_EXIT_CODE, RUNTIME_TAG_FAILURE_REASON};
 pub use overlay::OverlayLog;
 pub use step::{
     AssertionCallback, AssertionOutcome, AssertionWithDataCallback, IntegrationTestEvent,

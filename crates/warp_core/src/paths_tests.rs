@@ -77,6 +77,7 @@ fn legacy_roots_match_each_platforms_existing_layout() {
     );
     assert_eq!(mac.logs_dir(), Path::new("/Users/tester/Library/Logs"));
     assert_eq!(mac.tui_config_dir(), Path::new("/Users/tester/.warp_cli"));
+    assert_eq!(mac.tui_state_dir(), mac.secure_state_dir().join("tui"));
 
     let linux = LegacyRoots::resolve(
         Path::new("/home/tester"),

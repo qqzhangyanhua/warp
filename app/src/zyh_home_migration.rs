@@ -41,6 +41,8 @@ pub(crate) struct MigrationRequest<'a> {
     secrets: &'a dyn MigrationSecretStore,
     #[cfg(test)]
     failure_after: Option<&'static str>,
+    #[cfg(test)]
+    publication_failure: Option<PublicationFailure>,
 }
 
 impl<'a> MigrationRequest<'a> {
@@ -55,6 +57,8 @@ impl<'a> MigrationRequest<'a> {
             secrets,
             #[cfg(test)]
             failure_after: None,
+            #[cfg(test)]
+            publication_failure: None,
         }
     }
 
@@ -63,6 +67,19 @@ impl<'a> MigrationRequest<'a> {
         self.failure_after = Some(entry_id);
         self
     }
+
+    #[cfg(test)]
+    fn with_publication_failure(mut self, failure: PublicationFailure) -> Self {
+        self.publication_failure = Some(failure);
+        self
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PublicationFailure {
+    Rename,
+    ParentSync,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -97,6 +114,13 @@ pub(crate) enum MigrationSecretError {
 pub(crate) enum MigrationError {
     #[error("migration filesystem operation failed: {0}")]
     Io(#[from] io::Error),
+    #[error(
+        "could not sync the published ZYH home parent ({sync}); rollback also failed ({rollback})"
+    )]
+    PublicationRollback {
+        sync: io::Error,
+        rollback: io::Error,
+    },
     #[error("owner-only migration write failed: {0}")]
     OwnerOnly(#[from] OwnerOnlyFileError),
     #[error("could not serialize the redacted migration report: {0}")]
@@ -172,9 +196,25 @@ pub(crate) fn migrate_legacy_home(
         },
     )?;
 
-    let staging_path = staging.keep();
-    fs::rename(&staging_path, &request.destination)?;
-    sync_directory(parent)?;
+    #[cfg(test)]
+    if request.publication_failure == Some(PublicationFailure::Rename) {
+        return Err(io::Error::other("injected migration publication rename failure").into());
+    }
+    fs::rename(staging.path(), &request.destination)?;
+    #[cfg(test)]
+    let sync_result = if request.publication_failure == Some(PublicationFailure::ParentSync) {
+        Err(io::Error::other("injected migration parent sync failure"))
+    } else {
+        sync_directory(parent)
+    };
+    #[cfg(not(test))]
+    let sync_result = sync_directory(parent);
+    if let Err(sync) = sync_result {
+        return match fs::remove_dir_all(&request.destination) {
+            Ok(()) => Err(sync.into()),
+            Err(rollback) => Err(MigrationError::PublicationRollback { sync, rollback }),
+        };
+    }
 
     Ok(MigrationOutcome::Migrated {
         manifest_version: MANIFEST_VERSION,

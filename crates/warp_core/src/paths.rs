@@ -40,10 +40,10 @@ pub const WARP_CONFIG_DIR: &str = ".warp";
 /// This is currently only used on Windows to maintain backwards compatibility.
 pub const WARP_LOGS_DIR: &str = "logs";
 
-/// Returns the home-relative Warp config directory name for the current channel and data profile.
+/// Returns the directory name of the current ZYH application home.
 ///
-/// This preserves the historical `.warp*` directory shape while still isolating dev, local,
-/// integration, oss, and optional development profiles.
+/// The legacy function name is retained for source compatibility, but the returned name follows
+/// the current `.zyh*` application-home contract.
 pub fn warp_home_config_dir_name() -> String {
     current_app_home()
         .root()

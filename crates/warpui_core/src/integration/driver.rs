@@ -1,5 +1,6 @@
 use super::action_log::{self, ActionLog, ACTION_LOG_KEY};
 use super::artifacts::{self, TestArtifacts, ARTIFACTS_KEY};
+use super::cleanup::{SetupFn, TestCleanupHandle};
 use super::overlay::{OverlayLog, OVERLAY_LOG_KEY};
 use super::step::{run_step, AssertionOutcome, StepDataMap, TestStep};
 use super::video_recorder::{self, VideoRecorder, VIDEO_RECORDER_KEY};
@@ -10,12 +11,10 @@ const RUNTIME_TAG_FAILED_ASSERTION_NAME: &str = "failed_assertion_name";
 pub const RUNTIME_TAG_FAILURE_REASON: &str = "failure_reason";
 
 use std::backtrace::BacktraceStatus;
-use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
 use std::pin::Pin;
-use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 #[cfg(not(target_family = "wasm"))]
 use std::sync::atomic::Ordering;
@@ -34,36 +33,10 @@ use crate::r#async::FutureExt as _;
 use crate::r#async::Timer;
 use crate::{App, WindowId};
 
-pub type SetupFn = Box<dyn FnMut(&mut TestSetupUtils) + 'static>;
 pub type OnFinishFn = Box<
     dyn FnMut(&mut App, WindowId, &mut PersistedDataMap) -> Pin<Box<dyn Future<Output = ()> + Send>>
         + 'static,
 >;
-
-struct TestCleanup {
-    test_setup: TestSetupUtils,
-    callback: Option<SetupFn>,
-}
-
-#[derive(Clone)]
-struct TestCleanupHandle(Rc<RefCell<TestCleanup>>);
-
-impl TestCleanupHandle {
-    fn new(test_setup: TestSetupUtils, callback: SetupFn) -> Self {
-        Self(Rc::new(RefCell::new(TestCleanup {
-            test_setup,
-            callback: Some(callback),
-        })))
-    }
-
-    fn run(&self) {
-        let mut cleanup = self.0.borrow_mut();
-        cleanup.test_setup.cleanup_env();
-        if let Some(mut callback) = cleanup.callback.take() {
-            callback(&mut cleanup.test_setup);
-        }
-    }
-}
 
 pub struct Builder {
     use_real_display: bool,
@@ -264,14 +237,7 @@ enum StepResult {
 impl TestDriver {
     #[doc(hidden)]
     pub fn install_cleanup_on_termination(&self, callbacks: &mut AppCallbacks) {
-        let cleanup = self.cleanup.clone();
-        let mut on_will_terminate = callbacks.on_will_terminate.take();
-        callbacks.on_will_terminate = Some(Box::new(move |ctx| {
-            if let Some(callback) = &mut on_will_terminate {
-                callback(ctx);
-            }
-            cleanup.run();
-        }));
+        self.cleanup.install_on_termination(callbacks);
     }
 
     /// Executes the test steps, performing assertions against application state,

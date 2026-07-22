@@ -10,6 +10,9 @@ use warp_core::channel::{Channel, ChannelConfig, ChannelState, OzConfig, WarpSer
 use warp_core::features::FeatureFlag;
 use warp_core::AppId;
 
+#[path = "integration/environment.rs"]
+mod integration_environment;
+
 /// The Warp integration test runner.
 #[derive(Debug, Default, Parser, Clone)]
 #[command(name = "warp-integration-test")]
@@ -102,26 +105,8 @@ pub fn main() -> Result<()> {
     #[cfg_attr(not(unix), allow(unused_variables))]
     let driver = builder.build(test_name, true);
 
-    // Before actually running the test, make sure we won't accidentally stop
-    // on any of the real user's configuration or rcfiles.
-    let zyh_home = std::env::var("ZYH_HOME")
-        .expect("Integration test binary should have set a ZYH_HOME environment variable");
-    assert!(
-        std::path::Path::new(&zyh_home).ends_with("zyh-home"),
-        "ZYH_HOME should point to the isolated integration root"
-    );
-    cfg_if::cfg_if! {
-        if #[cfg(unix)] {
-            let home =
-                std::env::var("HOME").expect("Should have a value for the HOME environment variable");
-            let original_home = std::env::var("ORIGINAL_HOME").expect(
-                "Integration test binary should have set an ORIGINAL_HOME environment variable",
-            );
-            assert_ne!(home, original_home, "HOME should not be the same as ORIGINAL_HOME!");
-        } else {
-            unimplemented!("Need to add support for hermetic integration tests for the current platform!");
-        }
-    }
+    // Make sure the child cannot read the real user's configuration or rcfiles.
+    integration_environment::validate_isolation();
 
     #[cfg_attr(not(unix), allow(unreachable_code))]
     warp::run_integration_test(driver)
