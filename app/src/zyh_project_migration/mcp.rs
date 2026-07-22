@@ -83,6 +83,8 @@ fn sanitize_server(
         }
     }
     copy_string_array(server, "args", path, &mut output, omissions);
+    copy_string(server, "type", path, &mut output, omissions);
+    copy_string(server, "transport", path, &mut output, omissions);
     copy_string(server, "working_directory", path, &mut output, omissions);
     copy_reference_map(server, "env", path, &mut output, omissions);
     copy_reference_map(server, "headers", path, &mut output, omissions);
@@ -91,6 +93,8 @@ fn sanitize_server(
         "command",
         "url",
         "args",
+        "type",
+        "transport",
         "working_directory",
         "env",
         "headers",
@@ -112,21 +116,32 @@ fn sanitize_server(
 fn contains_credential_argument(args: &[Value]) -> bool {
     const CREDENTIAL_ARGUMENTS: &[&str] = &[
         "token",
+        "access-token",
         "api-key",
         "apikey",
         "secret",
         "password",
         "credential",
         "credentials",
+        "header",
+        "headers",
     ];
 
     args.iter().filter_map(Value::as_str).any(|argument| {
-        let normalized = argument
+        let normalized = argument.trim().to_ascii_lowercase().replace('_', "-");
+        if normalized.contains("authorization:")
+            || normalized
+                .split(|character: char| character.is_ascii_whitespace() || character == '=')
+                .any(|part| part == "bearer")
+        {
+            return true;
+        }
+        let flag = normalized
             .trim_start_matches('-')
-            .to_ascii_lowercase()
-            .replace('_', "-");
-        let name = normalized.split('=').next().unwrap_or(&normalized);
-        CREDENTIAL_ARGUMENTS.contains(&name)
+            .split('=')
+            .next()
+            .unwrap_or(&normalized);
+        CREDENTIAL_ARGUMENTS.contains(&flag) || flag.contains("cloud") || flag.contains("managed")
     })
 }
 

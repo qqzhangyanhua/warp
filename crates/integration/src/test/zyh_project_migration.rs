@@ -139,7 +139,27 @@ pub fn test_zyh_project_migration_requires_confirmation() -> Builder {
                     }
                 }),
         )
-        .with_step(new_step_with_default_assertions("Confirm migration").with_keystrokes(&["enter"]))
+        .with_step(
+            new_step_with_default_assertions("Enter keeps migration at preview")
+                .with_keystrokes(&["enter"])
+                .add_named_assertion("Migration still requires a button click", |app, window_id| {
+                    let workspace = workspace_view(app, window_id);
+                    let preview_visible = workspace.read(app, |workspace, ctx| {
+                        workspace.is_zyh_project_migration_preview_visible(ctx)
+                    });
+                    if preview_visible && !test_root().join(".zyh").exists() {
+                        AssertionOutcome::Success
+                    } else {
+                        AssertionOutcome::failure(
+                            "enter unexpectedly confirmed project migration".to_owned(),
+                        )
+                    }
+                }),
+        )
+        .with_step(
+            new_step_with_default_assertions("Confirm migration")
+                .with_click_on_saved_position("zyh_project_migration:migrate_button"),
+        )
         .with_step(
             new_step_with_default_assertions("Inspect migration result").add_named_assertion(
                 "Only approved files were copied and result remains visible",

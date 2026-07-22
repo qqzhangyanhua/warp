@@ -1,6 +1,6 @@
 use std::fs;
 
-use super::{atomic_replace, content_hash, ExpectedContent, OwnerOnlyFileError};
+use super::{atomic_create, atomic_replace, content_hash, ExpectedContent, OwnerOnlyFileError};
 
 #[test]
 fn creates_and_replaces_with_one_last_known_good_backup() {
@@ -40,6 +40,40 @@ fn rejects_stale_or_unexpected_destination_without_changing_it() {
         atomic_replace(&path, b"replacement", ExpectedContent::Hash(wrong_hash)).unwrap_err();
     assert!(matches!(error, OwnerOnlyFileError::Conflict { .. }));
     assert_eq!(fs::read(&path).unwrap(), b"newer external edit");
+}
+
+#[test]
+fn atomic_create_never_replaces_an_existing_destination() {
+    let tempdir = tempfile::tempdir().unwrap();
+    let path = tempdir.path().join("settings.toml");
+    fs::write(&path, b"external edit").unwrap();
+
+    let error = atomic_create(&path, b"replacement").unwrap_err();
+
+    assert!(matches!(error, OwnerOnlyFileError::Conflict { .. }));
+    assert_eq!(fs::read(path).unwrap(), b"external edit");
+}
+
+#[cfg(unix)]
+#[test]
+fn atomic_create_uses_owner_only_permissions() {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let tempdir = tempfile::tempdir().unwrap();
+    let private_dir = tempdir.path().join("private");
+    let path = private_dir.join("settings.toml");
+
+    atomic_create(&path, b"private").unwrap();
+
+    assert_eq!(fs::read(&path).unwrap(), b"private");
+    assert_eq!(
+        fs::metadata(private_dir).unwrap().permissions().mode() & 0o777,
+        0o700
+    );
+    assert_eq!(
+        fs::metadata(path).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
 }
 
 #[cfg(unix)]

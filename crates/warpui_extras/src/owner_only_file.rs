@@ -3,7 +3,7 @@ use std::io::{self, Write as _};
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest as _, Sha256};
-use tempfile::Builder;
+use tempfile::{Builder, NamedTempFile};
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -107,6 +107,29 @@ pub fn atomic_replace(
     })
 }
 
+pub fn atomic_create(path: &Path, bytes: &[u8]) -> Result<ContentHash, OwnerOnlyFileError> {
+    let parent = path.parent().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "owner-only file path must have a parent directory",
+        )
+    })?;
+    ensure_owner_only_dir(parent)?;
+
+    let temporary = owner_only_temporary(parent, bytes)?;
+    temporary.persist_noclobber(path).map_err(|error| {
+        if error.error.kind() == io::ErrorKind::AlreadyExists {
+            OwnerOnlyFileError::Conflict {
+                path: path.to_path_buf(),
+            }
+        } else {
+            OwnerOnlyFileError::Io(error.error)
+        }
+    })?;
+    sync_parent(parent)?;
+    Ok(hash_bytes(bytes))
+}
+
 impl ExpectedContent {
     fn matches(self, actual: Option<ContentHash>) -> bool {
         match self {
@@ -124,13 +147,18 @@ fn persist_owner_only(path: &Path, bytes: &[u8]) -> Result<(), OwnerOnlyFileErro
             "owner-only file path must have a parent directory",
         )
     })?;
+    let temporary = owner_only_temporary(parent, bytes)?;
+    temporary.persist(path).map_err(|error| error.error)?;
+    sync_parent(parent)?;
+    Ok(())
+}
+
+fn owner_only_temporary(parent: &Path, bytes: &[u8]) -> Result<NamedTempFile, OwnerOnlyFileError> {
     let mut temporary = Builder::new().prefix(".zyh-write-").tempfile_in(parent)?;
     set_owner_only_file_permissions(temporary.path())?;
     temporary.write_all(bytes)?;
     temporary.as_file().sync_all()?;
-    temporary.persist(path).map_err(|error| error.error)?;
-    sync_parent(parent)?;
-    Ok(())
+    Ok(temporary)
 }
 
 fn validate_destination(path: &Path) -> Result<(), OwnerOnlyFileError> {

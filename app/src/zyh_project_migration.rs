@@ -1,16 +1,17 @@
 use std::collections::HashSet;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 use sha2::{Digest as _, Sha256};
 use walkdir::WalkDir;
 use warp_core::paths::{LEGACY_PROJECT_CONFIG_DIR, ZYH_PROJECT_CONFIG_DIR};
-use warpui_extras::owner_only_file::{atomic_replace, ExpectedContent};
+use warpui_extras::owner_only_file::{atomic_create, OwnerOnlyFileError};
 
 mod manifest;
 mod mcp;
 pub(crate) mod modal;
 mod model;
+mod revalidation;
 
 use manifest::{ManifestEntryKind, PROJECT_MIGRATION_MANIFEST};
 use model::{DestinationSnapshot, FileHash, FileSnapshot};
@@ -18,6 +19,7 @@ pub(crate) use model::{
     MigrationPreview, MigrationPreviewEntry, MigrationResult, MigrationResultEntry,
     MigrationResultStatus, PreviewStatus, ProjectMigrationError,
 };
+use revalidation::{revalidate_snapshot, SnapshotRevalidationError};
 
 pub(crate) fn preview_project_migration(
     path: &Path,
@@ -277,7 +279,12 @@ fn destination_status(
     destination: &Path,
     source_hash: FileHash,
 ) -> Result<(PreviewStatus, DestinationSnapshot), ProjectMigrationError> {
-    if destination_has_invalid_ancestor(destination) {
+    if destination_has_invalid_ancestor(destination).map_err(|source| {
+        ProjectMigrationError::Io {
+            path: destination.to_path_buf(),
+            source,
+        }
+    })? {
         return Ok((PreviewStatus::Conflict, DestinationSnapshot::Other));
     }
     match fs::symlink_metadata(destination) {
@@ -311,7 +318,10 @@ fn execute_entry(repository_root: &Path, entry: MigrationPreviewEntry) -> Migrat
         .as_ref()
         .map(|snapshot| revalidate_snapshot(repository_root, &entry, snapshot));
     let status = match source_bytes {
-        Some(Err(())) => MigrationResultStatus::Stale,
+        Some(Err(SnapshotRevalidationError::Stale)) => MigrationResultStatus::Stale,
+        Some(Err(SnapshotRevalidationError::Io { path, source })) => {
+            MigrationResultStatus::Failed(ProjectMigrationError::Io { path, source }.to_string())
+        }
         Some(Ok(source_bytes)) => match entry.status {
             PreviewStatus::Ready => execute_ready_entry(repository_root, &entry, &source_bytes),
             PreviewStatus::AlreadyPresent => MigrationResultStatus::AlreadyPresent,
@@ -350,88 +360,33 @@ fn execute_ready_entry(
         .as_ref()
         .and_then(|snapshot| snapshot.prepared_content.as_deref())
         .unwrap_or(source_bytes);
-    match atomic_replace(&destination_path, output, ExpectedContent::Missing) {
+    match atomic_create(&destination_path, output) {
         Ok(_) => MigrationResultStatus::Copied,
+        Err(OwnerOnlyFileError::Conflict { .. }) => MigrationResultStatus::Conflict,
         Err(error) => MigrationResultStatus::Failed(error.to_string()),
     }
 }
 
-fn revalidate_snapshot(
-    repository_root: &Path,
-    entry: &MigrationPreviewEntry,
-    snapshot: &FileSnapshot,
-) -> Result<Vec<u8>, ()> {
-    let destination = entry.destination.as_ref().ok_or(())?;
-    if path_has_symlink_or_non_directory_ancestor(repository_root, &entry.source) {
-        return Err(());
-    }
-    let source_path = repository_root.join(&entry.source);
-    match fs::symlink_metadata(&source_path) {
-        Ok(metadata) if metadata.file_type().is_file() => {}
-        _ => return Err(()),
-    }
-    let source_bytes = fs::read(source_path).map_err(|_| ())?;
-    if hash_bytes(&source_bytes) != snapshot.source_hash {
-        return Err(());
-    }
-    let destination_path = repository_root.join(destination);
-    if destination_snapshot(&destination_path).map_err(|_| ())? != snapshot.destination {
-        return Err(());
-    }
-    Ok(source_bytes)
-}
-
-fn destination_snapshot(path: &Path) -> io::Result<DestinationSnapshot> {
-    if destination_has_invalid_ancestor(path) {
-        return Ok(DestinationSnapshot::Other);
-    }
-    match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_file() => {
-            hash_file(path).map(DestinationSnapshot::Regular)
-        }
-        Ok(_) => Ok(DestinationSnapshot::Other),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(DestinationSnapshot::Missing),
-        Err(error) => Err(error),
+fn destination_has_invalid_ancestor(destination: &Path) -> io::Result<bool> {
+    match destination.parent() {
+        Some(parent) => existing_path_is_symlink_or_non_directory(parent),
+        None => Ok(false),
     }
 }
 
-fn destination_has_invalid_ancestor(destination: &Path) -> bool {
-    destination
-        .parent()
-        .is_some_and(|parent| existing_path_is_symlink_or_non_directory(parent))
-}
-
-fn existing_path_is_symlink_or_non_directory(path: &Path) -> bool {
+fn existing_path_is_symlink_or_non_directory(path: &Path) -> io::Result<bool> {
     let mut current = path;
     loop {
         match fs::symlink_metadata(current) {
-            Ok(metadata) => return !metadata.file_type().is_dir(),
+            Ok(metadata) => return Ok(!metadata.file_type().is_dir()),
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-            Err(_) => return true,
+            Err(error) => return Err(error),
         }
         let Some(parent) = current.parent() else {
-            return false;
+            return Ok(false);
         };
         current = parent;
     }
-}
-
-fn path_has_symlink_or_non_directory_ancestor(repository_root: &Path, relative: &Path) -> bool {
-    let Some(parent) = relative.parent() else {
-        return false;
-    };
-    let mut current = repository_root.to_path_buf();
-    for component in parent.components() {
-        let Component::Normal(component) = component else {
-            return true;
-        };
-        current.push(component);
-        match fs::symlink_metadata(&current) {
-            Ok(metadata) if metadata.file_type().is_dir() => {}
-            _ => return true,
-        }
-    }
-    false
 }
 
 fn hash_file(path: &Path) -> io::Result<FileHash> {

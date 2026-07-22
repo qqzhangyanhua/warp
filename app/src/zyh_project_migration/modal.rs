@@ -1,11 +1,13 @@
+use std::path::Path;
+
 use pathfinder_geometry::vector::vec2f;
 use warp_core::ui::theme::Fill;
 use warpui::elements::{
     Align, ChildAnchor, ChildView, ClippedScrollStateHandle, ClippedScrollable, ConstrainedBox,
     Container, CrossAxisAlignment, Element, Flex, OffsetPositioning, ParentAnchor, ParentElement,
-    ParentOffsetBounds, ScrollbarWidth, Stack, Text,
+    ParentOffsetBounds, SavePosition, ScrollbarWidth, Stack, Text,
 };
-use warpui::keymap::{FixedBinding, Keystroke};
+use warpui::keymap::FixedBinding;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle};
 
@@ -13,28 +15,20 @@ use super::{MigrationPreview, MigrationResult, MigrationResultStatus, PreviewSta
 use crate::appearance::Appearance;
 use crate::i18n::{tr, Message};
 use crate::ui_components::dialog::{dialog_styles, Dialog};
-use crate::view_components::action_button::{
-    ActionButton, KeystrokeSource, NakedTheme, PrimaryTheme,
-};
+use crate::view_components::action_button::{ActionButton, NakedTheme, PrimaryTheme};
 
 const DIALOG_WIDTH: f32 = 680.;
 const CONTENT_MAX_HEIGHT: f32 = 360.;
+const MIGRATE_BUTTON_POSITION_ID: &str = "zyh_project_migration:migrate_button";
 
 pub(crate) fn init(app: &mut AppContext) {
     use warpui::keymap::macros::*;
 
-    app.register_fixed_bindings([
-        FixedBinding::new(
-            "escape",
-            ProjectMigrationDialogAction::Cancel,
-            id!(ProjectMigrationDialog::ui_name()),
-        ),
-        FixedBinding::new(
-            "enter",
-            ProjectMigrationDialogAction::Primary,
-            id!(ProjectMigrationDialog::ui_name()),
-        ),
-    ]);
+    app.register_fixed_bindings([FixedBinding::new(
+        "escape",
+        ProjectMigrationDialogAction::Cancel,
+        id!(ProjectMigrationDialog::ui_name()),
+    )]);
 }
 
 enum ProjectMigrationDialogState {
@@ -60,13 +54,11 @@ impl ProjectMigrationDialog {
                 ctx.dispatch_typed_action(ProjectMigrationDialogAction::Cancel);
             })
         });
-        let enter_keystroke = Keystroke::parse("enter").expect("valid enter keystroke");
         let migrate_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new(
                 tr(ctx, Message::WorkspaceProjectMigrationMigrate),
                 PrimaryTheme,
             )
-            .with_keybinding(KeystrokeSource::Fixed(enter_keystroke), ctx)
             .on_click(|ctx| {
                 ctx.dispatch_typed_action(ProjectMigrationDialogAction::Primary);
             })
@@ -137,17 +129,12 @@ impl ProjectMigrationDialog {
                 .entries
                 .iter()
                 .map(|entry| {
-                    let status = preview_status_text(app, &entry.status);
-                    let destination = entry
-                        .destination
-                        .as_ref()
-                        .map(|path| format!(" -> {}", path.display()))
-                        .unwrap_or_default();
-                    let omissions = omission_text(app, &entry.omissions);
-                    format!(
-                        "{}{} [{status}]{omissions}",
-                        entry.source.display(),
-                        destination
+                    format_row(
+                        app,
+                        &entry.source,
+                        entry.destination.as_deref(),
+                        preview_status_text(app, &entry.status),
+                        &entry.omissions,
                     )
                 })
                 .collect(),
@@ -156,16 +143,12 @@ impl ProjectMigrationDialog {
                 .iter()
                 .map(|entry| {
                     let status = result_status_text(app, &entry.status);
-                    let destination = entry
-                        .destination
-                        .as_ref()
-                        .map(|path| format!(" -> {}", path.display()))
-                        .unwrap_or_default();
-                    let omissions = omission_text(app, &entry.omissions);
-                    format!(
-                        "{}{} [{status}]{omissions}",
-                        entry.source.display(),
-                        destination
+                    format_row(
+                        app,
+                        &entry.source,
+                        entry.destination.as_deref(),
+                        &status,
+                        &entry.omissions,
                     )
                 })
                 .collect(),
@@ -241,7 +224,13 @@ impl View for ProjectMigrationDialog {
                             .with_margin_right(12.)
                             .finish(),
                     )
-                    .with_bottom_row_child(ChildView::new(&self.migrate_button).finish());
+                    .with_bottom_row_child(
+                        SavePosition::new(
+                            ChildView::new(&self.migrate_button).finish(),
+                            MIGRATE_BUTTON_POSITION_ID,
+                        )
+                        .finish(),
+                    );
             }
             ProjectMigrationDialogState::Result(_) | ProjectMigrationDialogState::Error(_) => {
                 dialog = dialog.with_bottom_row_child(ChildView::new(&self.close_button).finish());
@@ -301,6 +290,20 @@ impl TypedActionView for ProjectMigrationDialog {
             }
         }
     }
+}
+
+fn format_row(
+    app: &AppContext,
+    source: &Path,
+    destination: Option<&Path>,
+    status: &str,
+    omissions: &[String],
+) -> String {
+    let destination = destination
+        .map(|path| format!(" -> {}", path.display()))
+        .unwrap_or_default();
+    let omissions = omission_text(app, omissions);
+    format!("{}{} [{status}]{omissions}", source.display(), destination)
 }
 
 fn omission_text(app: &AppContext, omissions: &[String]) -> String {
