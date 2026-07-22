@@ -1,0 +1,98 @@
+app/src/settings/ai.rs
+  59fd0c30aac2a058 1594
+app/src/workflows/local_workflows.rs
+  59fd0c30aac2a058 84,186
+crates/integration/src/test.rs
+  59fd0c30aac2a058 40,199
+crates/ai/src/skills/skill_provider.rs
+  59fd0c30aac2a058 113
+crates/integration/src/test/zyh_project_migration.rs
+  59fd0c30aac2a058 1-165
+app/src/zyh_project_migration_tests.rs
+  59fd0c30aac2a058 1-349
+app/src/workspace/mod.rs
+  59fd0c30aac2a058 92,1468-1474
+app/src/lib.rs
+  59fd0c30aac2a058 107-108
+app/src/workflows/local_workflows_tests.rs
+  59fd0c30aac2a058 1,59-73
+app/src/i18n/message.rs
+  59fd0c30aac2a058 949-966
+crates/integration/src/bin/integration.rs
+  59fd0c30aac2a058 242
+app/src/ai/mcp/mod.rs
+  59fd0c30aac2a058 531,541,554-559,571
+crates/ai/src/skills/skill_provider_tests.rs
+  59fd0c30aac2a058 59-71
+app/src/zyh_project_migration/modal.rs
+  59fd0c30aac2a058 1-350
+app/src/zyh_project_migration/model.rs
+  59fd0c30aac2a058 1-115
+app/src/ai/mcp/file_based_manager.rs
+  59fd0c30aac2a058 247,273,487,491
+crates/warp_core/src/paths_tests.rs
+  59fd0c30aac2a058 59-64
+app/src/ai/mcp/file_based_manager_tests.rs
+  59fd0c30aac2a058 277
+app/src/workspace/view.rs
+  59fd0c30aac2a058 536-537,1151-1152,3110-3113,3509-3510,3635-3658,11448-11473,11477-11526,25240-25241,27669-27674
+app/src/ai/mcp/file_mcp_watcher.rs
+  59fd0c30aac2a058 31,37
+crates/integration/src/test/workflows.rs
+  59fd0c30aac2a058 86,127
+crates/warp_cli/src/agent.rs
+  59fd0c30aac2a058 345,525
+app/src/zyh_project_migration/mcp.rs
+  59fd0c30aac2a058 1-217
+app/src/ai/skills/skill_utils.rs
+  59fd0c30aac2a058 99
+crates/warp_cli/src/schedule.rs
+  59fd0c30aac2a058 123,198
+app/src/ai/mcp/mod_tests.rs
+  59fd0c30aac2a058 27-38
+docs/issue-25-zyh-project-migration-plan.md
+  59fd0c30aac2a058 1-261
+app/src/i18n/binding_descriptions.rs
+  59fd0c30aac2a058 180
+app/src/zyh_project_migration.rs
+  59fd0c30aac2a058 1-469
+app/src/ai/skills/resolve_skill_spec_tests.rs
+  59fd0c30aac2a058 25,52,73,191,200
+app/src/zyh_project_migration/manifest.rs
+  59fd0c30aac2a058 1-44
+crates/integration/tests/integration/ui_tests.rs
+  59fd0c30aac2a058 109
+app/src/workspace/action.rs
+  59fd0c30aac2a058 415-416,1095
+crates/warp_cli/src/skill.rs
+  59fd0c30aac2a058 8,23,42,91
+app/src/i18n/table.rs
+  59fd0c30aac2a058 854-871,3779-3796,6609-6626
+app/src/workspace/util.rs
+  59fd0c30aac2a058 114,172,217
+crates/warp_features/src/lib.rs
+  59fd0c30aac2a058 644
+crates/warp_core/src/paths.rs
+  59fd0c30aac2a058 33-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "57da812fe645eb15a19e8133d32615b584c47f77",
+  "prompts": {
+    "59fd0c30aac2a058": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f8921-0acd-79d1-8c3a-dd638035d6d4",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 2293,
+      "total_deletions": 36,
+      "accepted_lines": 2293,
+      "overriden_lines": 0,
+      "messages_url": "https://gitai.tongbaninfo.com/cas/65939981011599a00edc2e7f28fd549ba194d18fe6dfcc84198097c6cb4ababb"
+    }
+  }
+}
