@@ -104,6 +104,12 @@ pub fn main() -> Result<()> {
 
     // Before actually running the test, make sure we won't accidentally stop
     // on any of the real user's configuration or rcfiles.
+    let zyh_home = std::env::var("ZYH_HOME")
+        .expect("Integration test binary should have set a ZYH_HOME environment variable");
+    assert!(
+        std::path::Path::new(&zyh_home).ends_with("zyh-home"),
+        "ZYH_HOME should point to the isolated integration root"
+    );
     cfg_if::cfg_if! {
         if #[cfg(unix)] {
             let home =
@@ -244,8 +250,6 @@ fn register_tests() -> HashMap<&'static str, BoxedBuilderFn> {
     register_test!(test_create_session_with_new_tab_while_bootstrapping);
     register_test!(test_add_theme_to_warp_config);
     register_test!(test_palette_opens_when_theme_chooser_is_open);
-    #[cfg(target_os = "macos")]
-    register_test!(test_preview_config_dir_migration);
     register_test!(test_launch_warp_with_theme_in_warp_config);
     register_test!(test_add_launch_config_to_warp_config);
     register_test!(test_add_workflows_to_warp_config);
@@ -411,6 +415,8 @@ fn register_tests() -> HashMap<&'static str, BoxedBuilderFn> {
     register_test!(test_pass_control_sequences_to_long_running_block);
     register_test!(test_settings_file_migration_from_native_store);
     register_test!(test_settings_file_hot_reload_applies_new_values);
+    register_test!(test_integration_startup_uses_isolated_zyh_home);
+    register_test!(test_settings_writes_are_owner_only_atomic_and_backed_up);
 
     register_test!(test_settings_error_banner_on_startup_with_invalid_toml);
     register_test!(test_settings_error_banner_on_startup_with_invalid_value);

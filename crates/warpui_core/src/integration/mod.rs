@@ -1,7 +1,9 @@
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::{env, fs};
 
 mod action_log;
@@ -20,7 +22,8 @@ pub use step::{
     PersistedDataMap, StepData, StepDataMap, TestStep,
 };
 pub use video_recorder::{save_captured_frame_as_png, VideoRecorder};
-use warp_errors::report_error;
+
+pub const TEST_ROOT_OUTPUT_FILE_ENV_VAR: &str = "WARP_INTEGRATION_TEST_ROOT_OUTPUT_FILE";
 
 #[macro_export]
 macro_rules! async_assert {
@@ -114,22 +117,29 @@ macro_rules! async_assert_eq {
     };
 }
 
+#[derive(Clone)]
 pub struct TestSetupUtils {
-    env_vars: HashSet<String>,
+    state: Rc<TestSetupState>,
+}
+
+struct TestSetupState {
+    env_vars: RefCell<HashSet<String>>,
     root_dir: RootDir,
 }
 
 impl TestSetupUtils {
     fn new(root_dir: RootDir) -> Self {
         TestSetupUtils {
-            env_vars: HashSet::new(),
-            root_dir,
+            state: Rc::new(TestSetupState {
+                env_vars: RefCell::new(HashSet::new()),
+                root_dir,
+            }),
         }
     }
 
     /// Returns the $HOME dir for the test.
     pub fn test_dir(&self) -> PathBuf {
-        self.root_dir.as_path().to_path_buf()
+        self.state.root_dir.as_path().to_path_buf()
     }
 
     pub fn set_env<K, V>(&mut self, key: K, value: Option<V>)
@@ -146,7 +156,7 @@ impl TestSetupUtils {
                     v.as_ref().to_string_lossy()
                 );
                 env::set_var(&key, v);
-                self.env_vars.insert(key);
+                self.state.env_vars.borrow_mut().insert(key);
             }
             None => {
                 println!("Clearing env var {key}");
@@ -156,17 +166,16 @@ impl TestSetupUtils {
     }
 
     pub fn cleanup_env(&mut self) {
-        for key in &self.env_vars {
+        for key in self.state.env_vars.take() {
             println!("Clearing env var {key}");
             env::remove_var(key);
         }
-        self.env_vars = HashSet::new();
     }
 
     // For each test, we create an empty directory in the temp filesystem. This will be the root
     // for that test's specific resources.
     fn create_temp_dir_for_test(&self) {
-        let test_dir = self.root_dir.as_path();
+        let test_dir = self.state.root_dir.as_path();
 
         // Remove anything we failed to remove from previous runs of the test.
         match fs::remove_dir_all(test_dir) {
@@ -192,10 +201,22 @@ impl TestSetupUtils {
                 panic!("Failed to create directory {test_dir:?}");
             }
         }
+
+        if let Some(output_file) = env::var_os(TEST_ROOT_OUTPUT_FILE_ENV_VAR) {
+            fs::write(&output_file, test_dir.to_string_lossy().as_bytes()).unwrap_or_else(|err| {
+                panic!("Failed to record integration test root in {output_file:?}: {err}")
+            });
+        }
     }
 
     /// Configures the home directory path for the test.
     fn set_home_dir_for_test(&mut self) {
+        let canonical_test_dir = self
+            .test_dir()
+            .canonicalize()
+            .unwrap_or_else(|_| self.test_dir());
+        self.set_env("ZYH_HOME", Some(canonical_test_dir.join("zyh-home")));
+
         if cfg!(unix) {
             self.set_env("ORIGINAL_HOME", dirs::home_dir());
             // Override the home directory path.  This helps keep tests more
@@ -206,17 +227,7 @@ impl TestSetupUtils {
             // We canonicalize the path to resolve symlinks (e.g. /var ->
             // /private/var on macOS) so that the shell's resolved $PWD matches
             // $HOME exactly, which is required for ~ substitution to work.
-            let canonical_test_dir = self
-                .test_dir()
-                .canonicalize()
-                .unwrap_or_else(|_| self.test_dir());
             self.set_env("HOME", Some(canonical_test_dir));
-        }
-    }
-
-    pub fn cleanup_dir(&mut self) {
-        if let Err(err) = fs::remove_dir_all(self.root_dir.as_path()) {
-            report_error!("Could not cleanup directory", extra: { "error" => ?err });
         }
     }
 }

@@ -27,7 +27,7 @@ mod legacy_roots;
 #[path = "paths/zyh_home.rs"]
 mod zyh_home;
 
-pub use legacy_roots::{LegacyIdentity, LegacyPlatform, LegacyRoots};
+pub use legacy_roots::{LegacyInstallation, LegacyPlatform, LegacyRoots};
 pub use zyh_home::{AppHome, AppHomeError, AppHomeProfile, ZYH_HOME_OVERRIDE_ENV};
 
 /// The name of the directory in which to put non-global Warp-specific files.

@@ -14,8 +14,9 @@ Implement the first complete ZYH configuration path described by GitHub issue
   report;
 - existing ZYH homes always win and are never merged with legacy state.
 
-This is a high-risk persistence and permissions change. The plan is awaiting
-human review. It does not authorize production-code changes by itself.
+This is a high-risk persistence and permissions change. The repository owner
+confirmed this plan on 2026-07-22, authorizing the implementation within the
+scope and pre-agreed test seams below.
 
 ## Scope Decisions
 

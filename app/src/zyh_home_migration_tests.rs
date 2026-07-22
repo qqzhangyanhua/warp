@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use diesel::connection::SimpleConnection as _;
 use diesel::prelude::*;
 use warp_core::channel::Channel;
-use warp_core::paths::{LegacyIdentity, LegacyPlatform, LegacyRoots};
+use warp_core::paths::{LegacyInstallation, LegacyPlatform, LegacyRoots};
 
 use super::{
     migrate_legacy_home, MigrationOutcome, MigrationRequest, MigrationSecretError,
@@ -27,7 +27,7 @@ impl MigrationSecretStore for TestSecretStore {
     fn read_destination(
         &self,
         key: &str,
-        _staging_root: &std::path::Path,
+        _: &std::path::Path,
     ) -> Result<Option<String>, MigrationSecretError> {
         if self.hide_destination_reads {
             return Ok(None);
@@ -39,7 +39,7 @@ impl MigrationSecretStore for TestSecretStore {
         &self,
         key: &str,
         value: &str,
-        _staging_root: &std::path::Path,
+        _: &std::path::Path,
     ) -> Result<(), MigrationSecretError> {
         self.destination
             .lock()
@@ -55,7 +55,7 @@ fn fresh_migration_copies_manifest_data_without_touching_legacy_sources() {
     let legacy = LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
     let destination = tempdir.path().join("home").join(".zyh");
 
@@ -98,7 +98,7 @@ is_settings_sync_enabled = true
         &legacy.data_dir().join("ssh_hosts.json"),
         br#"{"version":1,"hosts":[]}"#,
     );
-    write(&legacy.state_dir().join("logs/app.log"), b"log");
+    write(&legacy.logs_dir().join("warp.log"), b"log");
     write(
         &legacy.tui_config_dir().join("settings.toml"),
         b"[terminal]\ncopy_on_select = true\n",
@@ -157,7 +157,7 @@ is_settings_sync_enabled = true
         fs::read(destination.join("ssh_hosts.json")).unwrap(),
         br#"{"version":1,"hosts":[]}"#
     );
-    assert_eq!(fs::read(destination.join("logs/app.log")).unwrap(), b"log");
+    assert_eq!(fs::read(destination.join("logs/warp.log")).unwrap(), b"log");
     assert!(destination.join("tui/settings.toml").is_file());
 
     let settings = fs::read_to_string(destination.join("settings.toml")).unwrap();
@@ -198,9 +198,9 @@ fn sqlite_migration_uses_a_consistent_backup_and_removes_cloud_rows() {
     let legacy = LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
-    let source_database = legacy.state_dir().join("warp.sqlite");
+    let source_database = legacy.secure_state_dir().join("warp.sqlite");
     fs::create_dir_all(source_database.parent().unwrap()).unwrap();
     let mut source = crate::persistence::setup_database(&source_database).unwrap();
     source
@@ -228,12 +228,43 @@ fn sqlite_migration_uses_a_consistent_backup_and_removes_cloud_rows() {
 }
 
 #[test]
+fn macos_migration_copies_only_the_current_channels_log_files() {
+    let tempdir = tempfile::tempdir().unwrap();
+    let legacy = LegacyRoots::resolve(
+        &tempdir.path().join("home"),
+        LegacyPlatform::MacOs,
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
+    );
+    write(&legacy.logs_dir().join("warp.log"), b"current");
+    write(&legacy.logs_dir().join("warp.log.old.0"), b"previous");
+    write(&legacy.logs_dir().join("other.log"), b"unrelated");
+    let destination = tempdir.path().join("home").join(".zyh");
+
+    migrate_legacy_home(MigrationRequest::new(
+        destination.clone(),
+        legacy,
+        &TestSecretStore::default(),
+    ))
+    .unwrap();
+
+    assert_eq!(
+        fs::read(destination.join("logs/warp.log")).unwrap(),
+        b"current"
+    );
+    assert_eq!(
+        fs::read(destination.join("logs/warp.log.old.0")).unwrap(),
+        b"previous"
+    );
+    assert!(!destination.join("logs/other.log").exists());
+}
+
+#[test]
 fn partial_failure_leaves_no_destination_and_a_rerun_can_complete() {
     let tempdir = tempfile::tempdir().unwrap();
     let legacy = LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
     write(&legacy.config_dir().join("keybindings.yaml"), b"bindings");
     write(&legacy.data_dir().join("themes/dark.yaml"), b"theme");
@@ -278,7 +309,7 @@ fn stale_lock_file_does_not_block_a_retry() {
     let legacy = LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
     let destination = tempdir.path().join("home").join(".zyh");
     let lock_path = destination.parent().unwrap().join(".zyh.migration.lock");
@@ -301,7 +332,7 @@ fn existing_destination_is_a_hard_noop_even_when_empty() {
     let legacy = LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
     write(&legacy.config_dir().join("keybindings.yaml"), b"legacy");
     let destination = tempdir.path().join("home").join(".zyh");
@@ -324,7 +355,7 @@ fn malformed_settings_are_backed_up_without_creating_active_settings() {
     let legacy = LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
     let malformed = b"api_key = 'secret-value'\n[broken";
     write(&legacy.config_dir().join("settings.toml"), malformed);
@@ -356,7 +387,7 @@ fn source_symlinks_are_reported_and_never_followed() {
     let legacy = LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
     let outside_file = tempdir.path().join("outside-keybindings.yaml");
     write(&outside_file, b"outside secret");
@@ -385,83 +416,8 @@ fn source_symlinks_are_reported_and_never_followed() {
     assert!(!report.contains("theme secret"));
 }
 
-#[test]
-fn equal_destination_secret_is_verified_without_overwrite() {
-    let tempdir = tempfile::tempdir().unwrap();
-    let legacy = legacy_roots(&tempdir);
-    let destination = tempdir.path().join("home").join(".zyh");
-    let secrets = TestSecretStore {
-        legacy: HashMap::from([("AiApiKeys".to_owned(), "same-secret".to_owned())]),
-        destination: Mutex::new(HashMap::from([(
-            "AiApiKeys".to_owned(),
-            "same-secret".to_owned(),
-        )])),
-        ..TestSecretStore::default()
-    };
-
-    let outcome =
-        migrate_legacy_home(MigrationRequest::new(destination, legacy, &secrets)).unwrap();
-
-    assert!(matches!(outcome, MigrationOutcome::Migrated { .. }));
-    assert_eq!(secrets.destination.lock().unwrap().len(), 1);
-}
-
-#[test]
-fn conflicting_destination_secret_aborts_publication() {
-    let tempdir = tempfile::tempdir().unwrap();
-    let legacy = legacy_roots(&tempdir);
-    let destination = tempdir.path().join("home").join(".zyh");
-    let secrets = TestSecretStore {
-        legacy: HashMap::from([("AiApiKeys".to_owned(), "legacy-secret".to_owned())]),
-        destination: Mutex::new(HashMap::from([(
-            "AiApiKeys".to_owned(),
-            "destination-secret".to_owned(),
-        )])),
-        ..TestSecretStore::default()
-    };
-
-    let error = migrate_legacy_home(MigrationRequest::new(destination.clone(), legacy, &secrets))
-        .unwrap_err();
-
-    assert!(matches!(
-        error,
-        super::MigrationError::SecretConflict { key: "AiApiKeys" }
-    ));
-    assert!(!destination.exists());
-    assert_eq!(
-        secrets
-            .destination
-            .lock()
-            .unwrap()
-            .get("AiApiKeys")
-            .map(String::as_str),
-        Some("destination-secret")
-    );
-}
-
-#[test]
-fn failed_secret_readback_aborts_publication() {
-    let tempdir = tempfile::tempdir().unwrap();
-    let legacy = legacy_roots(&tempdir);
-    let destination = tempdir.path().join("home").join(".zyh");
-    let secrets = TestSecretStore {
-        legacy: HashMap::from([("AiApiKeys".to_owned(), "provider-secret".to_owned())]),
-        hide_destination_reads: true,
-        ..TestSecretStore::default()
-    };
-
-    let error = migrate_legacy_home(MigrationRequest::new(destination.clone(), legacy, &secrets))
-        .unwrap_err();
-
-    assert!(matches!(
-        error,
-        super::MigrationError::Secret {
-            key: "AiApiKeys",
-            source: MigrationSecretError::Unavailable,
-        }
-    ));
-    assert!(!destination.exists());
-}
+#[path = "zyh_home_migration_tests/secret_tests.rs"]
+mod secret_tests;
 
 #[test]
 fn concurrent_migration_reports_in_progress_then_allows_retry() {
@@ -472,6 +428,7 @@ fn concurrent_migration_reports_in_progress_then_allows_retry() {
     let lock_path = destination.parent().unwrap().join(".zyh.migration.lock");
     let lock = OpenOptions::new()
         .create(true)
+        .truncate(false)
         .read(true)
         .write(true)
         .open(lock_path)
@@ -538,6 +495,6 @@ fn legacy_roots(tempdir: &tempfile::TempDir) -> LegacyRoots {
     LegacyRoots::resolve(
         &tempdir.path().join("home"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     )
 }

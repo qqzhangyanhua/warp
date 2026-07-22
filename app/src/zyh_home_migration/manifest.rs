@@ -3,7 +3,8 @@ pub(super) enum LegacyRoot {
     HomeConfig,
     Config,
     Data,
-    State,
+    SecureState,
+    Logs,
     TuiConfig,
     TuiState,
 }
@@ -14,6 +15,7 @@ pub(super) enum EntryKind {
     Directory,
     Settings { backup_name: &'static str },
     Sqlite,
+    LogFiles,
 }
 
 #[derive(Clone, Copy)]
@@ -102,17 +104,17 @@ pub(super) const MIGRATION_MANIFEST: &[ManifestEntry] = &[
     },
     ManifestEntry {
         id: "gui_sqlite",
-        root: LegacyRoot::State,
+        root: LegacyRoot::SecureState,
         source: "warp.sqlite",
         destination: "warp.sqlite",
         kind: EntryKind::Sqlite,
     },
     ManifestEntry {
         id: "logs",
-        root: LegacyRoot::State,
-        source: "logs",
+        root: LegacyRoot::Logs,
+        source: "",
         destination: "logs",
-        kind: EntryKind::Directory,
+        kind: EntryKind::LogFiles,
     },
     ManifestEntry {
         id: "tui_settings",

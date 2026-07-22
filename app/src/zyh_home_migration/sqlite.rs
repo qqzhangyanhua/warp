@@ -1,8 +1,7 @@
 use std::ffi::{CStr, CString};
 use std::path::Path;
-use std::ptr;
-use std::thread;
 use std::time::Duration;
+use std::{ptr, thread};
 
 use anyhow::{anyhow, bail, Context as _, Result};
 use diesel::connection::SimpleConnection as _;

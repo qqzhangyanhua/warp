@@ -184,7 +184,7 @@ fn set_owner_only_file_permissions(path: &Path) -> io::Result<()> {
 }
 
 #[cfg(target_os = "windows")]
-fn sync_parent(_path: &Path) -> io::Result<()> {
+fn sync_parent(_: &Path) -> io::Result<()> {
     Ok(())
 }
 

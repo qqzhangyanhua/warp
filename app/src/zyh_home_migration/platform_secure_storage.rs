@@ -1,6 +1,8 @@
 use std::path::Path;
 
+use warp_core::channel::ChannelState;
 use warp_core::paths::{AppHome, AppHomeProfile, LegacyRoots};
+use warpui_extras::secure_storage::{self, Error as SecureStorageError, Model, SecureStorage};
 
 use super::{migrate_legacy_home, MigrationRequest, MigrationSecretError, MigrationSecretStore};
 
@@ -16,7 +18,7 @@ pub(crate) fn migrate_current_home_if_needed() -> anyhow::Result<()> {
     let legacy = LegacyRoots::current()
         .ok_or_else(|| anyhow::anyhow!("could not resolve the active legacy application roots"))?;
     let secrets = PlatformMigrationSecretStore::new(
-        &warp_core::channel::ChannelState::data_domain(),
+        &ChannelState::data_domain(),
         ZYH_PRODUCTION_SECRET_SERVICE,
         &legacy,
     );
@@ -33,28 +35,35 @@ pub(crate) fn current_secure_storage_service() -> &'static str {
 }
 
 struct PlatformMigrationSecretStore {
-    legacy: warpui_extras::secure_storage::Model,
+    legacy: Model,
     #[cfg(not(target_os = "windows"))]
-    destination: warpui_extras::secure_storage::Model,
+    destination: Model,
     #[cfg(target_os = "windows")]
     destination_service: String,
 }
 
 impl PlatformMigrationSecretStore {
-    fn new(legacy_service: &str, destination_service: &str, legacy_roots: &LegacyRoots) -> Self {
-        let _ = legacy_roots;
+    fn new(
+        legacy_service: &str,
+        destination_service: &str,
+        #[cfg_attr(
+            not(any(target_os = "linux", target_os = "freebsd", target_os = "windows")),
+            allow(unused_variables)
+        )]
+        legacy_roots: &LegacyRoots,
+    ) -> Self {
         cfg_if::cfg_if! {
             if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
                 Self {
-                    legacy: warpui_extras::secure_storage::open_with_fallback(
+                    legacy: secure_storage::open_with_fallback(
                         legacy_service,
                         legacy_roots.state_dir().to_path_buf(),
                     ),
-                    destination: warpui_extras::secure_storage::open(destination_service),
+                    destination: secure_storage::open(destination_service),
                 }
             } else if #[cfg(target_os = "windows")] {
                 Self {
-                    legacy: warpui_extras::secure_storage::open_with_dir(
+                    legacy: secure_storage::open_with_dir(
                         legacy_service,
                         legacy_roots.state_dir().to_path_buf(),
                     ),
@@ -62,22 +71,38 @@ impl PlatformMigrationSecretStore {
                 }
             } else {
                 Self {
-                    legacy: warpui_extras::secure_storage::open(legacy_service),
-                    destination: warpui_extras::secure_storage::open(destination_service),
+                    legacy: secure_storage::open(legacy_service),
+                    destination: secure_storage::open(destination_service),
                 }
             }
         }
     }
 
     fn read(
-        storage: &dyn warpui_extras::secure_storage::SecureStorage,
+        storage: &dyn SecureStorage,
         key: &str,
     ) -> Result<Option<String>, MigrationSecretError> {
         match storage.read_value(key) {
             Ok(value) => Ok(Some(value)),
-            Err(warpui_extras::secure_storage::Error::NotFound) => Ok(None),
+            Err(SecureStorageError::NotFound) => Ok(None),
             Err(_) => Err(MigrationSecretError::Unavailable),
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn with_destination<T>(
+        &self,
+        staging_root: &Path,
+        callback: impl FnOnce(&dyn SecureStorage) -> T,
+    ) -> T {
+        let destination =
+            secure_storage::open_with_dir(&self.destination_service, staging_root.to_path_buf());
+        callback(destination.as_ref())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn with_destination<T>(&self, _: &Path, callback: impl FnOnce(&dyn SecureStorage) -> T) -> T {
+        callback(self.destination.as_ref())
     }
 }
 
@@ -91,17 +116,7 @@ impl MigrationSecretStore for PlatformMigrationSecretStore {
         key: &str,
         staging_root: &Path,
     ) -> Result<Option<String>, MigrationSecretError> {
-        let _ = staging_root;
-        #[cfg(target_os = "windows")]
-        let destination = warpui_extras::secure_storage::open_with_dir(
-            &self.destination_service,
-            staging_root.to_path_buf(),
-        );
-        #[cfg(not(target_os = "windows"))]
-        let destination = self.destination.as_ref();
-        #[cfg(target_os = "windows")]
-        let destination = destination.as_ref();
-        Self::read(destination, key)
+        self.with_destination(staging_root, |destination| Self::read(destination, key))
     }
 
     fn write_destination(
@@ -110,18 +125,10 @@ impl MigrationSecretStore for PlatformMigrationSecretStore {
         value: &str,
         staging_root: &Path,
     ) -> Result<(), MigrationSecretError> {
-        let _ = staging_root;
-        #[cfg(target_os = "windows")]
-        let destination = warpui_extras::secure_storage::open_with_dir(
-            &self.destination_service,
-            staging_root.to_path_buf(),
-        );
-        #[cfg(not(target_os = "windows"))]
-        let destination = self.destination.as_ref();
-        #[cfg(target_os = "windows")]
-        let destination = destination.as_ref();
-        destination
-            .write_value_with_owner_only_fallback(key, value)
-            .map_err(|_| MigrationSecretError::Unavailable)
+        self.with_destination(staging_root, |destination| {
+            destination
+                .write_value_with_owner_only_fallback(key, value)
+                .map_err(|_| MigrationSecretError::Unavailable)
+        })
     }
 }

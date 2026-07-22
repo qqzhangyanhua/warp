@@ -9,6 +9,7 @@ use sha2::{Digest, Sha256};
 use toml_edit::{value, Array, DocumentMut, InlineTable, Item, Table, Value};
 
 use super::Error;
+use crate::owner_only_file::{atomic_replace, ExpectedContent};
 
 /// Indentation used per nesting level when pretty-printing multi-line arrays
 /// and inline tables.
@@ -195,14 +196,9 @@ impl TomlBackedUserPreferences {
         if self.write_inhibited.get() {
             return Ok(());
         }
-        let parent_dir = self
-            .file_path
-            .parent()
-            .expect("absolute path to file should have parent");
-        std::fs::create_dir_all(parent_dir)?;
-
         let data = self.document.borrow().to_string();
-        std::fs::write(&self.file_path, data)?;
+        atomic_replace(&self.file_path, data.as_bytes(), ExpectedContent::Any)
+            .map_err(|error| Error::Unknown(anyhow::Error::new(error)))?;
         Ok(())
     }
 

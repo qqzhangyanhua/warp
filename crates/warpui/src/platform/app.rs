@@ -47,10 +47,13 @@ pub struct AppBuilder {
 impl AppBuilder {
     /// Constructs a new application using the current platform backend.
     pub fn new(
-        callbacks: AppCallbacks,
+        mut callbacks: AppCallbacks,
         assets: Box<dyn AssetProvider>,
         test_driver: Option<TestDriver>,
     ) -> Self {
+        if let Some(test_driver) = &test_driver {
+            test_driver.install_cleanup_on_termination(&mut callbacks);
+        }
         let inner = super::current::App::new(callbacks, assets, test_driver.as_ref());
 
         Self {
@@ -63,10 +66,13 @@ impl AppBuilder {
 
     /// Constructs a new application using the headless backend.
     pub fn new_headless(
-        callbacks: AppCallbacks,
+        mut callbacks: AppCallbacks,
         assets: Box<dyn AssetProvider>,
         test_driver: Option<TestDriver>,
     ) -> Self {
+        if let Some(test_driver) = &test_driver {
+            test_driver.install_cleanup_on_termination(&mut callbacks);
+        }
         let inner = super::headless::App::new(callbacks, assets, test_driver.as_ref());
         Self {
             inner: AppBackend::Headless(Box::new(inner)),

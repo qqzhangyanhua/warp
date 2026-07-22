@@ -10,10 +10,12 @@ const RUNTIME_TAG_FAILED_ASSERTION_NAME: &str = "failed_assertion_name";
 pub const RUNTIME_TAG_FAILURE_REASON: &str = "failure_reason";
 
 use std::backtrace::BacktraceStatus;
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
 use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 #[cfg(not(target_family = "wasm"))]
 use std::sync::atomic::Ordering;
@@ -25,6 +27,7 @@ use instant::{Duration, Instant};
 use warp_errors::report_error;
 
 use crate::integration::step::PersistedDataMap;
+use crate::platform::app::AppCallbacks;
 use crate::platform::TerminationMode;
 use crate::r#async::FutureExt as _;
 #[cfg(feature = "integration_tests")]
@@ -36,6 +39,31 @@ pub type OnFinishFn = Box<
     dyn FnMut(&mut App, WindowId, &mut PersistedDataMap) -> Pin<Box<dyn Future<Output = ()> + Send>>
         + 'static,
 >;
+
+struct TestCleanup {
+    test_setup: TestSetupUtils,
+    callback: Option<SetupFn>,
+}
+
+#[derive(Clone)]
+struct TestCleanupHandle(Rc<RefCell<TestCleanup>>);
+
+impl TestCleanupHandle {
+    fn new(test_setup: TestSetupUtils, callback: SetupFn) -> Self {
+        Self(Rc::new(RefCell::new(TestCleanup {
+            test_setup,
+            callback: Some(callback),
+        })))
+    }
+
+    fn run(&self) {
+        let mut cleanup = self.0.borrow_mut();
+        cleanup.test_setup.cleanup_env();
+        if let Some(mut callback) = cleanup.callback.take() {
+            callback(&mut cleanup.test_setup);
+        }
+    }
+}
 
 pub struct Builder {
     use_real_display: bool,
@@ -169,10 +197,10 @@ impl Builder {
         let mut driver = TestDriver {
             steps: self.steps,
             test_name: test_name.to_string(),
-            test_setup,
+            test_setup: test_setup.clone(),
             should_run_test: self.should_run_test,
             setup: self.setup.unwrap_or_else(|| Box::new(|_| {})),
-            cleanup: self.cleanup,
+            cleanup: TestCleanupHandle::new(test_setup, self.cleanup),
             on_finish: self.on_finish,
             timeout: self.timeout,
             persisted_data: self.static_persisted_data,
@@ -215,7 +243,7 @@ pub struct TestDriver {
     test_setup: TestSetupUtils,
     should_run_test: Box<dyn FnMut() -> bool>,
     setup: Box<dyn FnMut(&mut TestSetupUtils) + 'static>,
-    cleanup: Box<dyn FnMut(&mut TestSetupUtils) + 'static>,
+    cleanup: TestCleanupHandle,
     /// The callback to run before the app quits (on success, failure, or cancel).
     /// Note that this cannot run if the app panics, so make sure your assertions don't panic if you rely on this.
     /// Also, this function relies on the presence of an active window after the test steps have finished.
@@ -234,6 +262,18 @@ enum StepResult {
 }
 
 impl TestDriver {
+    #[doc(hidden)]
+    pub fn install_cleanup_on_termination(&self, callbacks: &mut AppCallbacks) {
+        let cleanup = self.cleanup.clone();
+        let mut on_will_terminate = callbacks.on_will_terminate.take();
+        callbacks.on_will_terminate = Some(Box::new(move |ctx| {
+            if let Some(callback) = &mut on_will_terminate {
+                callback(ctx);
+            }
+            cleanup.run();
+        }));
+    }
+
     /// Executes the test steps, performing assertions against application state,
     /// and then cleans up test-only state as necessary.
     ///
@@ -267,13 +307,11 @@ impl TestDriver {
             }
         }
 
-        // Make sure we perform any necessary cleanup steps in case we end up
-        // calling `std::process::exit()`, which doesn't `Drop` things.
-        self.cleanup();
-
         match test_result {
             Ok(should_rerun) => {
                 if should_rerun {
+                    // `std::process::exit()` does not run the application termination callback.
+                    self.cleanup();
                     std::process::exit(RERUN_EXIT_CODE);
                 } else {
                     app.as_mut()
@@ -286,6 +324,7 @@ impl TestDriver {
                     None => eprintln!("\nTest failed (No additional information available)\n"),
                 }
                 // Exit with a non-zero status so that the test function knows that we failed
+                self.cleanup();
                 std::process::exit(1);
             }
         }
@@ -498,9 +537,7 @@ impl TestDriver {
     }
 
     pub(crate) fn cleanup(&mut self) {
-        self.test_setup.cleanup_env();
-        self.test_setup.cleanup_dir();
-        (self.cleanup)(&mut self.test_setup);
+        self.cleanup.run();
     }
 
     fn export_runtime_tags(&self) {

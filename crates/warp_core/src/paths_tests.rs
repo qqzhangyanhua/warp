@@ -60,7 +60,7 @@ fn legacy_roots_match_each_platforms_existing_layout() {
     let mac = LegacyRoots::resolve(
         Path::new("/Users/tester"),
         LegacyPlatform::MacOs,
-        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+        LegacyInstallation::new(Channel::Stable, "dev.warp.Warp"),
     );
     assert_eq!(mac.home_config_dir(), Path::new("/Users/tester/.warp"));
     assert_eq!(mac.config_dir(), Path::new("/Users/tester/.warp"));
@@ -69,12 +69,19 @@ fn legacy_roots_match_each_platforms_existing_layout() {
         mac.state_dir(),
         Path::new("/Users/tester/Library/Application Support/dev.warp.Warp")
     );
+    assert_eq!(
+        mac.secure_state_dir(),
+        Path::new(
+            "/Users/tester/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp"
+        )
+    );
+    assert_eq!(mac.logs_dir(), Path::new("/Users/tester/Library/Logs"));
     assert_eq!(mac.tui_config_dir(), Path::new("/Users/tester/.warp_cli"));
 
     let linux = LegacyRoots::resolve(
         Path::new("/home/tester"),
         LegacyPlatform::Linux,
-        LegacyIdentity::new(Channel::Oss, "warp-oss"),
+        LegacyInstallation::new(Channel::Oss, "warp-oss"),
     );
     assert_eq!(linux.home_config_dir(), Path::new("/home/tester/.warp-oss"));
     assert_eq!(
@@ -95,7 +102,7 @@ fn legacy_roots_match_each_platforms_existing_layout() {
     let windows = LegacyRoots::resolve(
         Path::new(r"C:\Users\tester"),
         LegacyPlatform::Windows,
-        LegacyIdentity::new(Channel::Oss, r"warp\WarpOss"),
+        LegacyInstallation::new(Channel::Oss, r"warp\WarpOss"),
     );
     assert_eq!(
         windows.config_dir(),

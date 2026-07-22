@@ -7,6 +7,7 @@ use windows::Win32::Security::Cryptography::{
 };
 
 use super::Error;
+use crate::owner_only_file::{atomic_replace, ExpectedContent};
 
 #[derive(Default)]
 pub struct SecureStorage {
@@ -103,6 +104,14 @@ impl super::SecureStorage for SecureStorage {
         let storage_file = self.storage_file(key);
         let encrypted_bytes = Self::encrypt(key, value.to_string())?;
         std::fs::write(storage_file, encrypted_bytes).map_err(Error::from)
+    }
+
+    fn write_value_with_owner_only_fallback(&self, key: &str, value: &str) -> Result<(), Error> {
+        let storage_file = self.storage_file(key);
+        let encrypted_bytes = Self::encrypt(key, value.to_string())?;
+        atomic_replace(&storage_file, &encrypted_bytes, ExpectedContent::Any)
+            .map(|_| ())
+            .map_err(|error| Error::Unknown(anyhow::Error::new(error)))
     }
 
     fn read_value(&self, key: &str) -> Result<String, Error> {

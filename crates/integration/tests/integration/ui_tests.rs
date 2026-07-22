@@ -99,8 +99,6 @@ integration_tests! {
     test_accepting_completion_inserts_space,
     test_palette_opens_when_theme_chooser_is_open,
     test_launch_warp_with_theme_in_warp_config,
-    #[cfg(target_os="macos")]
-    test_preview_config_dir_migration,
     #[ignore = "Flakes in CI"]
     test_add_launch_config_to_warp_config,
     #[ignore = "Flakes in CI"]
@@ -262,6 +260,8 @@ integration_tests! {
     test_pass_control_sequences_to_long_running_block,
     test_settings_file_migration_from_native_store,
     test_settings_file_hot_reload_applies_new_values,
+    test_integration_startup_uses_isolated_zyh_home,
+    test_settings_writes_are_owner_only_atomic_and_backed_up,
 
     test_settings_error_banner_on_startup_with_invalid_toml,
     test_settings_error_banner_on_startup_with_invalid_value,

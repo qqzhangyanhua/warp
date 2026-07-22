@@ -10,12 +10,12 @@ pub enum LegacyPlatform {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LegacyIdentity {
+pub struct LegacyInstallation {
     channel: Channel,
     project_path: String,
 }
 
-impl LegacyIdentity {
+impl LegacyInstallation {
     pub fn new(channel: Channel, project_path: impl Into<String>) -> Self {
         Self {
             channel,
@@ -30,6 +30,9 @@ pub struct LegacyRoots {
     config_dir: PathBuf,
     data_dir: PathBuf,
     state_dir: PathBuf,
+    secure_state_dir: PathBuf,
+    logs_dir: PathBuf,
+    log_file_name: String,
     cache_dir: PathBuf,
     tui_config_dir: PathBuf,
     tui_state_dir: PathBuf,
@@ -46,52 +49,74 @@ impl LegacyRoots {
         .project_path()
         .to_string_lossy()
         .into_owned();
-        Some(Self::resolve(
+        let mut roots = Self::resolve(
             &user_home,
             platform,
-            LegacyIdentity::new(ChannelState::channel(), project_path),
-        ))
+            LegacyInstallation::new(ChannelState::channel(), project_path),
+        );
+        roots.log_file_name = ChannelState::logfile_name().into_owned();
+        Some(roots)
     }
 
-    pub fn resolve(user_home: &Path, platform: LegacyPlatform, identity: LegacyIdentity) -> Self {
-        let home_config_dir = user_home.join(home_config_dir_name(identity.channel));
+    pub fn resolve(
+        user_home: &Path,
+        platform: LegacyPlatform,
+        installation: LegacyInstallation,
+    ) -> Self {
+        let home_config_dir = user_home.join(home_config_dir_name(installation.channel));
+        let log_file_name = legacy_log_file_name(installation.channel).to_owned();
         match platform {
             LegacyPlatform::MacOs => {
-                let config_dir = user_home.join(macos_config_dir_name(identity.channel));
+                let config_dir = user_home.join(macos_config_dir_name(installation.channel));
                 let state_dir = user_home
                     .join("Library")
                     .join("Application Support")
-                    .join(&identity.project_path);
-                let tui_config_dir = user_home.join(macos_tui_config_dir_name(identity.channel));
+                    .join(&installation.project_path);
+                let secure_state_dir = user_home
+                    .join("Library")
+                    .join("Group Containers")
+                    .join("2BBY89MBSN.dev.warp")
+                    .join("Library")
+                    .join("Application Support")
+                    .join(&installation.project_path);
+                let logs_dir = user_home.join("Library").join("Logs");
+                let tui_config_dir =
+                    user_home.join(macos_tui_config_dir_name(installation.channel));
                 let tui_state_dir = state_dir.join("tui");
                 Self {
                     home_config_dir,
                     config_dir: config_dir.clone(),
                     data_dir: config_dir,
                     state_dir: state_dir.clone(),
+                    secure_state_dir,
+                    logs_dir,
+                    log_file_name,
                     cache_dir: state_dir,
                     tui_config_dir,
                     tui_state_dir,
                 }
             }
             LegacyPlatform::Linux => {
-                let config_dir = user_home.join(".config").join(&identity.project_path);
+                let config_dir = user_home.join(".config").join(&installation.project_path);
                 let data_dir = user_home
                     .join(".local")
                     .join("share")
-                    .join(&identity.project_path);
+                    .join(&installation.project_path);
                 let state_dir = user_home
                     .join(".local")
                     .join("state")
-                    .join(&identity.project_path);
-                let cache_dir = user_home.join(".cache").join(&identity.project_path);
+                    .join(&installation.project_path);
+                let cache_dir = user_home.join(".cache").join(&installation.project_path);
                 let tui_config_dir = config_dir.join("cli");
                 let tui_state_dir = state_dir.join("tui");
                 Self {
                     home_config_dir,
                     config_dir,
                     data_dir,
-                    state_dir,
+                    state_dir: state_dir.clone(),
+                    secure_state_dir: state_dir.clone(),
+                    logs_dir: state_dir,
+                    log_file_name,
                     cache_dir,
                     tui_config_dir,
                     tui_state_dir,
@@ -100,27 +125,31 @@ impl LegacyRoots {
             LegacyPlatform::Windows => {
                 let config_dir = windows_join(
                     user_home,
-                    &format!(r"AppData\Local\{}\config", identity.project_path),
+                    &format!(r"AppData\Local\{}\config", installation.project_path),
                 );
                 let data_dir = windows_join(
                     user_home,
-                    &format!(r"AppData\Roaming\{}\data", identity.project_path),
+                    &format!(r"AppData\Roaming\{}\data", installation.project_path),
                 );
                 let state_dir = windows_join(
                     user_home,
-                    &format!(r"AppData\Local\{}\data", identity.project_path),
+                    &format!(r"AppData\Local\{}\data", installation.project_path),
                 );
                 let cache_dir = windows_join(
                     user_home,
-                    &format!(r"AppData\Local\{}\cache", identity.project_path),
+                    &format!(r"AppData\Local\{}\cache", installation.project_path),
                 );
                 let tui_config_dir = windows_join(&config_dir, "cli");
                 let tui_state_dir = windows_join(&state_dir, "tui");
+                let logs_dir = windows_join(&state_dir, "logs");
                 Self {
                     home_config_dir,
                     config_dir,
                     data_dir,
-                    state_dir,
+                    state_dir: state_dir.clone(),
+                    secure_state_dir: state_dir,
+                    logs_dir,
+                    log_file_name,
                     cache_dir,
                     tui_config_dir,
                     tui_state_dir,
@@ -143,6 +172,18 @@ impl LegacyRoots {
 
     pub fn state_dir(&self) -> &Path {
         &self.state_dir
+    }
+
+    pub fn secure_state_dir(&self) -> &Path {
+        &self.secure_state_dir
+    }
+
+    pub fn logs_dir(&self) -> &Path {
+        &self.logs_dir
+    }
+
+    pub fn log_file_name(&self) -> &str {
+        &self.log_file_name
     }
 
     pub fn cache_dir(&self) -> &Path {
@@ -195,6 +236,17 @@ fn macos_config_dir_name(channel: Channel) -> &'static str {
 
 fn macos_tui_config_dir_name(channel: Channel) -> String {
     macos_config_dir_name(channel).replacen(".warp", ".warp_cli", 1)
+}
+
+fn legacy_log_file_name(channel: Channel) -> &'static str {
+    match channel {
+        Channel::Stable => "warp.log",
+        Channel::Preview => "warp-preview.log",
+        Channel::Oss => "warp-oss.log",
+        Channel::Dev => "warp-dev.log",
+        Channel::Integration => "warp_integration.log",
+        Channel::Local => "warp-local.log",
+    }
 }
 
 fn windows_join(base: &Path, suffix: &str) -> PathBuf {

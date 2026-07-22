@@ -11,15 +11,21 @@ use warpui_extras::owner_only_file::{
     OwnerOnlyFileError,
 };
 
+mod logs;
 mod manifest;
 mod platform_secure_storage;
+mod report;
 pub(crate) mod settings;
 mod settings_rules;
 mod sqlite;
 
+use logs::copy_log_files;
 use manifest::{EntryKind, LegacyRoot, ManifestEntry, MANIFEST_VERSION, MIGRATION_MANIFEST};
 pub(crate) use platform_secure_storage::{
     current_secure_storage_service, migrate_current_home_if_needed,
+};
+use report::{
+    EntryReport, EntryStatus, MigrationMarker, MigrationReport, SecretReport, SecretStatus,
 };
 use settings::translate_legacy_settings;
 use settings_rules::SETTINGS_RULES;
@@ -113,34 +119,6 @@ pub(crate) enum MigrationError {
     },
 }
 
-#[derive(Serialize)]
-struct MigrationReport {
-    manifest_version: u32,
-    entries: Vec<EntryReport>,
-    omitted_setting_keys: Vec<String>,
-    unknown_setting_keys: Vec<String>,
-    skipped_paths: Vec<String>,
-    secure_storage: Vec<SecretReport>,
-}
-
-#[derive(Serialize)]
-struct EntryReport {
-    id: &'static str,
-    status: &'static str,
-}
-
-#[derive(Serialize)]
-struct SecretReport {
-    key: &'static str,
-    status: &'static str,
-}
-
-#[derive(Serialize)]
-struct MigrationMarker {
-    manifest_version: u32,
-    complete: bool,
-}
-
 pub(crate) fn migrate_legacy_home(
     request: MigrationRequest<'_>,
 ) -> Result<MigrationOutcome, MigrationError> {
@@ -216,7 +194,7 @@ fn migrate_entry(
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             report.entries.push(EntryReport {
                 id: entry.id,
-                status: "missing",
+                status: EntryStatus::Missing,
             });
             return Ok(());
         }
@@ -226,7 +204,7 @@ fn migrate_entry(
     if metadata.file_type().is_symlink() {
         report.entries.push(EntryReport {
             id: entry.id,
-            status: "skipped_symlink",
+            status: EntryStatus::SkippedSymlink,
         });
         report.skipped_paths.push(entry.destination.to_owned());
         return Ok(());
@@ -235,11 +213,11 @@ fn migrate_entry(
     let status = match entry.kind {
         EntryKind::File if metadata.is_file() => {
             copy_file(&source, &destination)?;
-            "copied"
+            EntryStatus::Copied
         }
         EntryKind::Directory if metadata.is_dir() => {
             copy_directory(&source, &destination, entry.destination, report)?;
-            "copied"
+            EntryStatus::Copied
         }
         EntryKind::Settings { backup_name } if metadata.is_file() => {
             migrate_settings(&source, &destination, staging, backup_name, report)?
@@ -251,11 +229,28 @@ fn migrate_entry(
                     source: source_error,
                 }
             })?;
-            "copied_and_cleaned"
+            EntryStatus::CopiedAndCleaned
         }
-        EntryKind::File | EntryKind::Directory | EntryKind::Settings { .. } | EntryKind::Sqlite => {
+        EntryKind::LogFiles if metadata.is_dir() => {
+            if copy_log_files(
+                &source,
+                &destination,
+                legacy.log_file_name(),
+                entry.destination,
+                report,
+            )? {
+                EntryStatus::Copied
+            } else {
+                EntryStatus::Missing
+            }
+        }
+        EntryKind::File
+        | EntryKind::Directory
+        | EntryKind::Settings { .. }
+        | EntryKind::Sqlite
+        | EntryKind::LogFiles => {
             report.skipped_paths.push(entry.destination.to_owned());
-            "skipped_unsupported"
+            EntryStatus::SkippedUnsupported
         }
     };
     report.entries.push(EntryReport {
@@ -271,7 +266,7 @@ fn migrate_settings(
     staging: &Path,
     backup_name: &str,
     report: &mut MigrationReport,
-) -> Result<&'static str, MigrationError> {
+) -> Result<EntryStatus, MigrationError> {
     let source_bytes = read_source_file(source)?;
     atomic_replace(
         &staging.join("migration").join(backup_name),
@@ -279,10 +274,10 @@ fn migrate_settings(
         ExpectedContent::Missing,
     )?;
     let Ok(source_text) = std::str::from_utf8(&source_bytes) else {
-        return Ok("malformed");
+        return Ok(EntryStatus::Malformed);
     };
     let Ok(translation) = translate_legacy_settings(source_text, SETTINGS_RULES) else {
-        return Ok("malformed");
+        return Ok(EntryStatus::Malformed);
     };
 
     report.omitted_setting_keys.extend(translation.omitted_keys);
@@ -292,7 +287,7 @@ fn migrate_settings(
         translation.settings.to_string().as_bytes(),
         ExpectedContent::Missing,
     )?;
-    Ok("translated")
+    Ok(EntryStatus::Translated)
 }
 
 fn copy_directory(
@@ -367,7 +362,7 @@ fn migrate_secrets(
         else {
             report.secure_storage.push(SecretReport {
                 key,
-                status: "missing",
+                status: SecretStatus::Missing,
             });
             continue;
         };
@@ -397,7 +392,7 @@ fn migrate_secrets(
         }
         report.secure_storage.push(SecretReport {
             key,
-            status: "copied_and_verified",
+            status: SecretStatus::CopiedAndVerified,
         });
     }
     Ok(())
@@ -408,7 +403,8 @@ fn legacy_root(legacy: &LegacyRoots, root: LegacyRoot) -> &Path {
         LegacyRoot::HomeConfig => legacy.home_config_dir(),
         LegacyRoot::Config => legacy.config_dir(),
         LegacyRoot::Data => legacy.data_dir(),
-        LegacyRoot::State => legacy.state_dir(),
+        LegacyRoot::SecureState => legacy.secure_state_dir(),
+        LegacyRoot::Logs => legacy.logs_dir(),
         LegacyRoot::TuiConfig => legacy.tui_config_dir(),
         LegacyRoot::TuiState => legacy.tui_state_dir(),
     }
@@ -452,7 +448,7 @@ fn sync_directory(path: &Path) -> io::Result<()> {
 }
 
 #[cfg(not(unix))]
-fn sync_directory(_path: &Path) -> io::Result<()> {
+fn sync_directory(_: &Path) -> io::Result<()> {
     Ok(())
 }
 

@@ -19,8 +19,6 @@ mod launch_configs;
 mod local_mode;
 mod notebooks;
 mod pane_restoration;
-#[cfg(target_os = "macos")]
-mod preview_config_migration;
 mod remote_server;
 mod rich_input_ctrl_enter;
 mod rules;
@@ -38,6 +36,7 @@ mod video_recording;
 mod websockets;
 mod workflows;
 mod workspace;
+mod zyh_home;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -67,8 +66,6 @@ pub use pane_restoration::*;
 use parking_lot::Mutex;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::Vector2F;
-#[cfg(target_os = "macos")]
-pub use preview_config_migration::*;
 pub use remote_server::*;
 pub use rich_input_ctrl_enter::*;
 pub use rules::*;
@@ -197,6 +194,7 @@ use warpui_core::{
 pub use websockets::*;
 pub use workflows::*;
 pub use workspace::*;
+pub use zyh_home::*;
 
 use crate::builder::cargo_target_tmpdir;
 use crate::util::{skip_if_powershell_core_2303, ShellRcType};
