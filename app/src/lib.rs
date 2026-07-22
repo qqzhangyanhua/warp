@@ -104,6 +104,8 @@ mod wasm_nux_dialog;
 mod window_settings;
 mod word_block_editor;
 mod workspaces;
+#[cfg(all(not(target_family = "wasm"), feature = "local_fs"))]
+mod zyh_home_migration;
 
 // PLEASE DO NOT ADD MORE PUBLIC MODULES!
 //
@@ -916,6 +918,10 @@ fn run_internal(mut launch_mode: LaunchMode) -> Result<()> {
     // for other entrypoints.
     features::init_feature_flags();
 
+    #[cfg(all(not(target_family = "wasm"), feature = "local_fs"))]
+    zyh_home_migration::migrate_current_home_if_needed()
+        .context("failed to migrate the legacy application home")?;
+
     // Now that feature flags are initialized, parse the TUI's `--api-key` /
     // `WARP_API_KEY` (`Args::from_env` checks feature flags while building its
     // clap command). Done here rather than in `run_tui` so we don't re-init
@@ -1275,7 +1281,7 @@ pub(crate) fn initialize_app(
     // WARNING: Errors that happen here before crash_reporting::init will not be collected in
     // Sentry. Only the dependencies of crash_reporting should be initialized here. Avoid adding
     // any other stuff here, as failures will be silent. Push them to pre_sentry_errors instead.
-    let data_domain = ChannelState::data_domain();
+    let data_domain = zyh_home_migration::current_secure_storage_service();
 
     // Daemon auth arrives through the client handshake, so avoid platform keychains that may
     // require an interactive unlock prompt. Other headless modes still use secure storage for

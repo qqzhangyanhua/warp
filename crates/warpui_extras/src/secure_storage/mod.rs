@@ -53,7 +53,13 @@ pub type Model = Box<dyn SecureStorage>;
 /// common scheme is reverse-DNS notation (e.g.: "dev.warp.Warp").
 #[cfg(not(target_os = "windows"))]
 pub fn register(service_name: &str, ctx: &mut warpui_core::AppContext) {
-    ctx.add_singleton_model(|_| -> Model { Box::new(imp::SecureStorage::new(service_name)) });
+    let model = open(service_name);
+    ctx.add_singleton_model(move |_| model);
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn open(service_name: &str) -> Model {
+    Box::new(imp::SecureStorage::new(service_name))
 }
 
 /// Registers a no-op Secure Storage provider with the application.
@@ -74,12 +80,16 @@ pub fn register_with_fallback(
     fallback_dir: std::path::PathBuf,
     ctx: &mut warpui_core::AppContext,
 ) {
-    ctx.add_singleton_model(|_| -> Model {
-        Box::new(imp::SecureStorage::new_with_fallback(
-            service_name,
-            fallback_dir,
-        ))
-    });
+    let model = open_with_fallback(service_name, fallback_dir);
+    ctx.add_singleton_model(move |_| model);
+}
+
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
+pub fn open_with_fallback(service_name: &str, fallback_dir: std::path::PathBuf) -> Model {
+    Box::new(imp::SecureStorage::new_with_fallback(
+        service_name,
+        fallback_dir,
+    ))
 }
 
 /// Registers a Windows-native Secure Storage provider
@@ -90,9 +100,13 @@ pub fn register_with_dir(
     storage_dir: std::path::PathBuf,
     ctx: &mut warpui_core::AppContext,
 ) {
-    ctx.add_singleton_model(|_| -> Model {
-        Box::new(imp::SecureStorage::new_with_path(service_name, storage_dir))
-    });
+    let model = open_with_dir(service_name, storage_dir);
+    ctx.add_singleton_model(move |_| model);
+}
+
+#[cfg(target_os = "windows")]
+pub fn open_with_dir(service_name: &str, storage_dir: std::path::PathBuf) -> Model {
+    Box::new(imp::SecureStorage::new_with_path(service_name, storage_dir))
 }
 
 /// A trait representing a secure store for key-value pairs.

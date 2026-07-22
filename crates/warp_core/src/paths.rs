@@ -16,11 +16,19 @@
 
 use std::path::{Path, PathBuf};
 
-use cfg_if::cfg_if;
 use directories::BaseDirs;
 
-use crate::channel::{Channel, ChannelState};
+#[cfg(test)]
+use crate::channel::Channel;
 use crate::AppId;
+
+#[path = "paths/legacy_roots.rs"]
+mod legacy_roots;
+#[path = "paths/zyh_home.rs"]
+mod zyh_home;
+
+pub use legacy_roots::{LegacyIdentity, LegacyPlatform, LegacyRoots};
+pub use zyh_home::{AppHome, AppHomeError, AppHomeProfile, ZYH_HOME_OVERRIDE_ENV};
 
 /// The name of the directory in which to put non-global Warp-specific files.
 ///
@@ -32,29 +40,17 @@ pub const WARP_CONFIG_DIR: &str = ".warp";
 /// This is currently only used on Windows to maintain backwards compatibility.
 pub const WARP_LOGS_DIR: &str = "logs";
 
-fn base_warp_config_dir_name() -> String {
-    match ChannelState::channel() {
-        // Preview shares the same directory as Stable for backward
-        // compatibility — existing users already have config in `.warp`.
-        Channel::Stable | Channel::Preview => WARP_CONFIG_DIR.to_owned(),
-        Channel::Oss => format!("{WARP_CONFIG_DIR}-oss"),
-        Channel::Dev => format!("{WARP_CONFIG_DIR}-dev"),
-        Channel::Integration => format!("{WARP_CONFIG_DIR}-integration"),
-        Channel::Local => format!("{WARP_CONFIG_DIR}-local"),
-    }
-}
 /// Returns the home-relative Warp config directory name for the current channel and data profile.
 ///
 /// This preserves the historical `.warp*` directory shape while still isolating dev, local,
 /// integration, oss, and optional development profiles.
 pub fn warp_home_config_dir_name() -> String {
-    let base_dir_name = base_warp_config_dir_name();
-
-    if let Some(data_profile) = ChannelState::data_profile() {
-        format!("{base_dir_name}-{data_profile}")
-    } else {
-        base_dir_name
-    }
+    current_app_home()
+        .root()
+        .file_name()
+        .expect("ZYH home must end in a directory name")
+        .to_string_lossy()
+        .into_owned()
 }
 
 /// Returns the home-relative Warp config directory for the current channel and data profile.
@@ -63,7 +59,7 @@ pub fn warp_home_config_dir_name() -> String {
 /// Warp-authored, user-facing config under a `.warp*` directory in the home directory instead of
 /// using the platform XDG/AppData project directories.
 pub fn warp_home_config_dir() -> Option<PathBuf> {
-    dirs::home_dir().map(|home_dir| home_dir.join(warp_home_config_dir_name()))
+    AppHome::current().ok().map(|home| home.config_dir())
 }
 
 pub fn warp_home_skills_dir() -> Option<PathBuf> {
@@ -74,67 +70,18 @@ pub fn warp_home_mcp_config_file_path() -> Option<PathBuf> {
     warp_home_config_dir().map(|warp_config_dir| warp_config_dir.join(".mcp.json"))
 }
 
-/// Returns the macOS config directory name for the current channel.
-///
-/// Stable uses `.warp`, while other channels include a channel suffix
-/// (e.g., `.warp-dev`, `.warp-local`).
-///
-/// These suffixes are persisted on disk as directory names and must not be
-/// changed once established, or existing user data will be orphaned.
-#[cfg(target_os = "macos")]
-fn macos_config_dir_name() -> String {
-    match ChannelState::channel() {
-        Channel::Stable => WARP_CONFIG_DIR.to_owned(),
-        Channel::Preview => format!("{WARP_CONFIG_DIR}-preview"),
-        Channel::Oss => format!("{WARP_CONFIG_DIR}-oss"),
-        Channel::Dev => format!("{WARP_CONFIG_DIR}-dev"),
-        Channel::Integration => format!("{WARP_CONFIG_DIR}-integration"),
-        Channel::Local => format!("{WARP_CONFIG_DIR}-local"),
-    }
-}
-
 /// Returns the path to the directory where portable user data should be
 /// stored.
 ///
 /// This is the appropriate home for things like custom themes and workflows.
 pub fn data_dir() -> PathBuf {
-    cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            // TODO(vorporeal): We should do something better than return a
-            // relative path.
-            dirs::home_dir().unwrap_or_default().join(macos_config_dir_name())
-        } else {
-            project_dirs().map(|dirs| dirs.data_dir().to_owned()).unwrap_or_default()
-        }
-    }
+    current_app_home().data_dir()
 }
 
 /// Returns the path to the directory where non-portable configuration files
 /// should be stored.
 pub fn config_local_dir() -> PathBuf {
-    cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            // TODO(vorporeal): We should do something better than return a
-            // relative path.
-            dirs::home_dir().unwrap_or_default().join(macos_config_dir_name())
-        } else {
-            project_dirs()
-                .map(|dirs| dirs.config_local_dir().to_owned())
-                .unwrap_or_default()
-        }
-    }
-}
-
-/// Returns the macOS config directory name for the TUI front-end (`warp-tui`)
-/// for the current channel.
-///
-/// This mirrors [`macos_config_dir_name`] but under a `.warp_cli*` directory so
-/// the TUI keeps its settings separate from the GUI's `.warp*` directory. Like
-/// the GUI names, these are persisted on disk as directory names and must not be
-/// changed once established.
-#[cfg(target_os = "macos")]
-fn macos_tui_config_dir_name() -> String {
-    macos_config_dir_name().replacen(WARP_CONFIG_DIR, ".warp_cli", 1)
+    current_app_home().config_dir()
 }
 
 /// Returns the path to the directory where non-portable configuration files for
@@ -146,15 +93,7 @@ fn macos_tui_config_dir_name() -> String {
 /// whose config dirs are already app-id based — it nests under a `cli`
 /// subdirectory of the standard config dir.
 pub fn tui_config_local_dir() -> PathBuf {
-    cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            dirs::home_dir()
-                .unwrap_or_default()
-                .join(macos_tui_config_dir_name())
-        } else {
-            config_local_dir().join("cli")
-        }
-    }
+    current_app_home().tui_config_dir()
 }
 
 /// Returns the base directory for general config files. Useful for accessing the config files for
@@ -172,15 +111,7 @@ pub fn base_config_dir() -> PathBuf {
 /// contains durable but non-critical and non-portable data like what windows
 /// the user had open and cached state of known Warp Drive objects.
 pub fn state_dir() -> PathBuf {
-    let Some(project_dirs) = project_dirs() else {
-        return PathBuf::new();
-    };
-    // For platforms that don't have a notion of a "state" directory (e.g.:
-    // macOS and Windows), fall back to using the data directory.
-    project_dirs
-        .state_dir()
-        .unwrap_or_else(|| project_dirs.data_local_dir())
-        .to_owned()
+    current_app_home().state_dir()
 }
 
 /// Returns the path to the secure directory for non-portable application state data.
@@ -189,23 +120,7 @@ pub fn state_dir() -> PathBuf {
 ///
 /// On macOS, this will use the App Group container directory if available.
 pub fn secure_state_dir() -> Option<PathBuf> {
-    // Do not use the secure state directory in integration tests, which have a temporary home directory instead.
-    if ChannelState::channel() == Channel::Integration {
-        return None;
-    }
-
-    #[cfg(target_os = "macos")]
-    if let Some(app_group_root) = app_group_container_path() {
-        // The macOS project_path is the bundle ID (i.e. `dev.warp.Warp-Stable`).
-        let project_dirs = project_dirs()?;
-        return Some(
-            app_group_root
-                .join("Library/Application Support")
-                .join(project_dirs.project_path()),
-        );
-    }
-
-    None
+    AppHome::current().ok().map(|home| home.state_dir())
 }
 
 /// Returns the path to the directory where non-portable application state
@@ -218,7 +133,7 @@ pub fn secure_state_dir() -> Option<PathBuf> {
 /// the shared database out from under the older one. Like other on-disk
 /// names, the `tui` directory name must not be changed once established.
 pub fn tui_state_dir() -> PathBuf {
-    secure_state_dir().unwrap_or_else(state_dir).join("tui")
+    current_app_home().tui_state_dir()
 }
 
 /// Returns the path to the directory containing the user's custom themes.
@@ -233,18 +148,11 @@ pub fn themes_dir() -> PathBuf {
 /// we don't want to fetch on every launch of the app but can be safely
 /// deleted by the OS.
 pub fn cache_dir() -> PathBuf {
-    let Some(project_dirs) = project_dirs() else {
-        return PathBuf::new();
-    };
-    cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            // TODO(vorporeal): Given that this is just cache data; do we want
-            // change the path we use on macOS?
-            project_dirs.data_dir().to_owned()
-        } else {
-            project_dirs.cache_dir().to_owned()
-        }
-    }
+    current_app_home().cache_dir()
+}
+
+fn current_app_home() -> AppHome {
+    AppHome::current().unwrap_or_else(|error| panic!("could not resolve ZYH home: {error}"))
 }
 
 /// Returns a display-ready version of the path that is formatted in a
@@ -264,13 +172,6 @@ pub fn home_relative_path(path: &Path) -> String {
 /// and the current data profile, if one is set.
 ///
 /// This returns [`None`] if the user's home directory could not be determined.
-fn project_dirs() -> Option<directories::ProjectDirs> {
-    project_dirs_for_app_id(
-        ChannelState::app_id(),
-        ChannelState::data_profile().as_deref(),
-    )
-}
-
 /// Returns a [`directories::ProjectDirs`] configured based on the given app ID
 /// and data profile.
 ///

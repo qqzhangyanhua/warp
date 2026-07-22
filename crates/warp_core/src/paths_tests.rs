@@ -3,51 +3,130 @@ use dirs::home_dir;
 use super::*;
 
 #[test]
+fn zyh_home_profiles_use_one_home_relative_root() {
+    let home = Path::new("/users/tester");
+
+    let production = AppHome::resolve(home, AppHomeProfile::Production, None).unwrap();
+    assert_eq!(production.root(), home.join(".zyh"));
+    assert_eq!(production.config_dir(), production.root());
+    assert_eq!(production.data_dir(), production.root());
+    assert_eq!(production.state_dir(), production.root());
+    assert_eq!(production.cache_dir(), production.root().join("cache"));
+    assert_eq!(production.logs_dir(), production.root().join("logs"));
+    assert_eq!(
+        production.gui_database_file(),
+        production.root().join("warp.sqlite")
+    );
+    assert_eq!(
+        production.tui_database_file(),
+        production.root().join("tui").join("warp.sqlite")
+    );
+
+    let development = AppHome::resolve(home, AppHomeProfile::Development, None).unwrap();
+    assert_eq!(development.root(), home.join(".zyh-dev"));
+}
+
+#[test]
+fn integration_home_requires_an_explicit_isolated_root() {
+    let home = Path::new("/users/tester");
+    assert_eq!(
+        AppHome::resolve(home, AppHomeProfile::Integration, None),
+        Err(AppHomeError::MissingIntegrationRoot)
+    );
+
+    let test_root = Path::new("/tmp/zyh-integration/test-case");
+    let integration = AppHome::resolve(home, AppHomeProfile::Integration, Some(test_root)).unwrap();
+    assert_eq!(integration.root(), test_root);
+    assert!(!integration.root().starts_with(home));
+}
+
+#[test]
+fn zyh_home_paths_are_platform_independent() {
+    let unix =
+        AppHome::resolve(Path::new("/Users/tester"), AppHomeProfile::Production, None).unwrap();
+    let windows = AppHome::resolve(
+        Path::new(r"C:\Users\tester"),
+        AppHomeProfile::Production,
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(unix.root(), Path::new("/Users/tester/.zyh"));
+    assert_eq!(windows.root(), Path::new(r"C:\Users\tester").join(".zyh"));
+}
+
+#[test]
+fn legacy_roots_match_each_platforms_existing_layout() {
+    let mac = LegacyRoots::resolve(
+        Path::new("/Users/tester"),
+        LegacyPlatform::MacOs,
+        LegacyIdentity::new(Channel::Stable, "dev.warp.Warp"),
+    );
+    assert_eq!(mac.home_config_dir(), Path::new("/Users/tester/.warp"));
+    assert_eq!(mac.config_dir(), Path::new("/Users/tester/.warp"));
+    assert_eq!(mac.data_dir(), Path::new("/Users/tester/.warp"));
+    assert_eq!(
+        mac.state_dir(),
+        Path::new("/Users/tester/Library/Application Support/dev.warp.Warp")
+    );
+    assert_eq!(mac.tui_config_dir(), Path::new("/Users/tester/.warp_cli"));
+
+    let linux = LegacyRoots::resolve(
+        Path::new("/home/tester"),
+        LegacyPlatform::Linux,
+        LegacyIdentity::new(Channel::Oss, "warp-oss"),
+    );
+    assert_eq!(linux.home_config_dir(), Path::new("/home/tester/.warp-oss"));
+    assert_eq!(
+        linux.config_dir(),
+        Path::new("/home/tester/.config/warp-oss")
+    );
+    assert_eq!(
+        linux.data_dir(),
+        Path::new("/home/tester/.local/share/warp-oss")
+    );
+    assert_eq!(
+        linux.state_dir(),
+        Path::new("/home/tester/.local/state/warp-oss")
+    );
+    assert_eq!(linux.tui_config_dir(), linux.config_dir().join("cli"));
+    assert_eq!(linux.tui_state_dir(), linux.state_dir().join("tui"));
+
+    let windows = LegacyRoots::resolve(
+        Path::new(r"C:\Users\tester"),
+        LegacyPlatform::Windows,
+        LegacyIdentity::new(Channel::Oss, r"warp\WarpOss"),
+    );
+    assert_eq!(
+        windows.config_dir(),
+        Path::new(r"C:\Users\tester\AppData\Local\warp\WarpOss\config")
+    );
+    assert_eq!(
+        windows.data_dir(),
+        Path::new(r"C:\Users\tester\AppData\Roaming\warp\WarpOss\data")
+    );
+    assert_eq!(
+        windows.state_dir(),
+        Path::new(r"C:\Users\tester\AppData\Local\warp\WarpOss\data")
+    );
+}
+
+#[test]
 fn test_data_dir_path() {
     let home_dir = home_dir().expect("Should be able to compute home directory");
-    // ChannelState, by default, is configured for Channel::Oss.
-    cfg_if::cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            assert_eq!(data_dir(), home_dir.join(".warp-oss"));
-        } else if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
-            assert_eq!(data_dir(), home_dir.join(".local/share/warp-oss"));
-        } else if #[cfg(windows)] {
-            assert_eq!(data_dir(), home_dir.join("AppData\\Roaming\\warp\\WarpOss\\data"));
-        } else {
-            unimplemented!("Need to update tests for current platform!");
-        }
-    }
+    assert_eq!(data_dir(), home_dir.join(".zyh-dev"));
 }
 
 #[test]
 fn test_config_local_dir_path() {
     let home_dir = home_dir().expect("Should be able to compute home directory");
-    // ChannelState, by default, is configured for Channel::Oss.
-    cfg_if::cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            assert_eq!(config_local_dir(), home_dir.join(".warp-oss"));
-        } else if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
-            assert_eq!(config_local_dir(), home_dir.join(".config/warp-oss"));
-        } else if #[cfg(windows)] {
-            assert_eq!(config_local_dir(), home_dir.join("AppData\\Local\\warp\\WarpOss\\config"));
-        } else {
-            unimplemented!("Need to update tests for current platform!");
-        }
-    }
+    assert_eq!(config_local_dir(), home_dir.join(".zyh-dev"));
 }
 
 #[test]
 fn test_warp_home_config_dir_path() {
     let home_dir = home_dir().expect("Should be able to compute home directory");
-    let expected_dir_name = match ChannelState::data_profile() {
-        Some(data_profile) => format!(".warp-oss-{data_profile}"),
-        None => ".warp-oss".to_string(),
-    };
-
-    assert_eq!(
-        warp_home_config_dir(),
-        Some(home_dir.join(expected_dir_name))
-    );
+    assert_eq!(warp_home_config_dir(), Some(home_dir.join(".zyh-dev")));
 }
 
 #[test]
@@ -65,35 +144,14 @@ fn test_warp_home_skills_and_mcp_paths() {
 #[test]
 fn test_cache_dir_path() {
     let home_dir = home_dir().expect("Should be able to compute home directory");
-    // ChannelState, by default, is configured for Channel::Oss.
-    cfg_if::cfg_if! {
-        if #[cfg(target_os = "macos")] {
-            assert_eq!(cache_dir(), home_dir.join("Library/Application Support/dev.warp.WarpOss"));
-        } else if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
-            assert_eq!(cache_dir(), home_dir.join(".cache/warp-oss"));
-        } else if #[cfg(windows)] {
-            assert_eq!(cache_dir(), home_dir.join("AppData\\Local\\warp\\WarpOss\\cache"));
-        } else {
-            unimplemented!("Need to update tests for current platform!");
-        }
-    }
+    assert_eq!(cache_dir(), home_dir.join(".zyh-dev/cache"));
 }
 
 #[test]
 fn test_state_dir_path() {
     let home_dir = home_dir().expect("Should be able to compute home directory");
-    cfg_if::cfg_if! {
-        // ChannelState, by default, is configured for Channel::Oss.
-        if #[cfg(target_os = "macos")] {
-            assert_eq!(state_dir(), home_dir.join("Library/Application Support/dev.warp.WarpOss"));
-        } else if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
-            assert_eq!(state_dir(), home_dir.join(".local/state/warp-oss"));
-        } else if #[cfg(windows)] {
-            assert_eq!(state_dir(), home_dir.join("AppData\\Local\\warp\\WarpOss\\data"));
-        } else {
-            unimplemented!("Need to update tests for current platform!");
-        }
-    }
+    assert_eq!(state_dir(), home_dir.join(".zyh-dev"));
+    assert_eq!(secure_state_dir(), Some(home_dir.join(".zyh-dev")));
 }
 
 #[test]

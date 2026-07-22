@@ -31,6 +31,9 @@ warpui_core.workspace = true
 warpui_extras = { path = ".", features = ["test-util"] }
 tempfile.workspace = true
 
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tempfile.workspace = true
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { workspace = true, optional = true }
 objc2-foundation = { workspace = true, optional = true, features = [
@@ -49,6 +52,11 @@ secret-service = {version = "5.0.0", features = ["rt-async-io-crypto-rust"], opt
 gloo-storage = { version = "0.3.0", optional = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows = { workspace = true, features = ["Win32_Security_Cryptography", "Win32_UI_Shell"] }
+windows = { workspace = true, features = [
+    "Win32_Security_Authorization",
+    "Win32_Security_Cryptography",
+    "Win32_Storage_FileSystem",
+    "Win32_UI_Shell",
+] }
 windows-registry = { workspace = true }
 windows-result = { workspace = true }

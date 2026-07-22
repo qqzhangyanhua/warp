@@ -32,7 +32,9 @@ pub use persistence::model;
 #[cfg_attr(not(feature = "local_fs"), expect(unused_imports))]
 pub use persistence::schema;
 #[cfg(all(test, feature = "local_fs"))]
-pub(crate) use sqlite::{setup_database, start_writer};
+pub(crate) use sqlite::start_writer;
+#[cfg(feature = "local_fs")]
+pub(crate) use sqlite::{init_logging as init_sqlite_logging, setup_database};
 
 #[cfg(feature = "integration_tests")]
 pub mod testing;

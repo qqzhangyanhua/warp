@@ -247,7 +247,7 @@ fn establish_connection(database_url: &str, read_only: bool) -> Result<SqliteCon
 /// ## Safety
 /// Setting up SQLite logging is not thread-safe. No other SQLite calls may be made while this
 /// function is running.
-unsafe fn init_logging() {
+pub(crate) unsafe fn init_logging() {
     use std::ffi::{c_char, c_int, c_void, CStr};
     use std::{panic, ptr};
 
