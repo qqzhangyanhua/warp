@@ -114,7 +114,7 @@ pub fn atomic_create(path: &Path, bytes: &[u8]) -> Result<ContentHash, OwnerOnly
             "owner-only file path must have a parent directory",
         )
     })?;
-    ensure_owner_only_dir(parent)?;
+    create_missing_owner_only_dirs(parent)?;
 
     let temporary = owner_only_temporary(parent, bytes)?;
     temporary.persist_noclobber(path).map_err(|error| {
@@ -128,6 +128,52 @@ pub fn atomic_create(path: &Path, bytes: &[u8]) -> Result<ContentHash, OwnerOnly
     })?;
     sync_parent(parent)?;
     Ok(hash_bytes(bytes))
+}
+
+fn create_missing_owner_only_dirs(path: &Path) -> Result<(), OwnerOnlyFileError> {
+    let mut missing = Vec::new();
+    let mut current = path;
+    loop {
+        match fs::symlink_metadata(current) {
+            Ok(metadata) if metadata.file_type().is_dir() => break,
+            Ok(_) => {
+                return Err(OwnerOnlyFileError::UnsupportedFileType {
+                    path: current.to_path_buf(),
+                });
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                missing.push(current.to_path_buf());
+            }
+            Err(error) => return Err(error.into()),
+        }
+        current = current.parent().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "owner-only directory path must have an existing ancestor",
+            )
+        })?;
+    }
+
+    for directory in missing.into_iter().rev() {
+        match fs::create_dir(&directory) {
+            Ok(()) => set_owner_only_dir_permissions(&directory)?,
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                validate_directory(&directory)?;
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(())
+}
+
+fn validate_directory(path: &Path) -> Result<(), OwnerOnlyFileError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_dir() => Ok(()),
+        Ok(_) => Err(OwnerOnlyFileError::UnsupportedFileType {
+            path: path.to_path_buf(),
+        }),
+        Err(error) => Err(error.into()),
+    }
 }
 
 impl ExpectedContent {

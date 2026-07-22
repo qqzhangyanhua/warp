@@ -1,6 +1,8 @@
 use serde_json::{Map, Value};
 use thiserror::Error;
 
+use super::model::{MigrationOmission, MigrationOmissionReason};
+
 #[derive(Debug, Error)]
 pub(crate) enum McpSanitizationError {
     #[error("MCP configuration is not valid JSON: {0}")]
@@ -11,7 +13,7 @@ pub(crate) enum McpSanitizationError {
 
 pub(super) struct SanitizedMcp {
     pub(super) bytes: Vec<u8>,
-    pub(super) omissions: Vec<String>,
+    pub(super) omissions: Vec<MigrationOmission>,
 }
 
 pub(super) fn sanitize_mcp(bytes: &[u8]) -> Result<SanitizedMcp, McpSanitizationError> {
@@ -30,20 +32,27 @@ pub(super) fn sanitize_mcp(bytes: &[u8]) -> Result<SanitizedMcp, McpSanitization
     let mut omissions = source_object
         .keys()
         .filter(|key| key.as_str() != wrapper)
-        .map(|key| key.to_owned())
+        .map(|key| MigrationOmission {
+            path: key.to_owned(),
+            reason: MigrationOmissionReason::UnsupportedField,
+        })
         .collect::<Vec<_>>();
     let mut sanitized_servers = Map::new();
     for (name, server) in servers {
         let path = format!("{wrapper}.{name}");
         let Some(server) = server.as_object() else {
-            omissions.push(path);
+            omit(&mut omissions, path, MigrationOmissionReason::InvalidValue);
             continue;
         };
         if let Some(sanitized) = sanitize_server(server, &path, &mut omissions) {
             sanitized_servers.insert(name.to_owned(), Value::Object(sanitized));
         }
     }
-    omissions.sort();
+    omissions.sort_by(|left, right| {
+        left.path
+            .cmp(&right.path)
+            .then(left.reason.cmp(&right.reason))
+    });
 
     let mut output = Map::new();
     output.insert(wrapper.to_owned(), Value::Object(sanitized_servers));
@@ -55,14 +64,18 @@ pub(super) fn sanitize_mcp(bytes: &[u8]) -> Result<SanitizedMcp, McpSanitization
 fn sanitize_server(
     server: &Map<String, Value>,
     path: &str,
-    omissions: &mut Vec<String>,
+    omissions: &mut Vec<MigrationOmission>,
 ) -> Option<Map<String, Value>> {
     if server
         .get("args")
         .and_then(Value::as_array)
         .is_some_and(|args| contains_credential_argument(args))
     {
-        omissions.push(format!("{path}.args"));
+        omit(
+            omissions,
+            format!("{path}.args"),
+            MigrationOmissionReason::SensitiveValue,
+        );
         return None;
     }
 
@@ -79,7 +92,11 @@ fn sanitize_server(
                 output.insert("url".to_owned(), Value::String(url));
                 has_transport = true;
             }
-            None => omissions.push(format!("{path}.url")),
+            None => omit(
+                omissions,
+                format!("{path}.url"),
+                MigrationOmissionReason::InvalidValue,
+            ),
         }
     }
     copy_string_array(server, "args", path, &mut output, omissions);
@@ -101,32 +118,24 @@ fn sanitize_server(
     ];
     for key in server.keys() {
         if !approved.contains(&key.as_str()) {
-            omissions.push(format!("{path}.{key}"));
+            let reason = if contains_sensitive_name(key) {
+                MigrationOmissionReason::SensitiveValue
+            } else {
+                MigrationOmissionReason::UnsupportedField
+            };
+            omit(omissions, format!("{path}.{key}"), reason);
         }
     }
 
     if has_transport {
         Some(output)
     } else {
-        omissions.push(path.to_owned());
+        omit(omissions, path, MigrationOmissionReason::InvalidValue);
         None
     }
 }
 
 fn contains_credential_argument(args: &[Value]) -> bool {
-    const CREDENTIAL_ARGUMENTS: &[&str] = &[
-        "token",
-        "access-token",
-        "api-key",
-        "apikey",
-        "secret",
-        "password",
-        "credential",
-        "credentials",
-        "header",
-        "headers",
-    ];
-
     args.iter().filter_map(Value::as_str).any(|argument| {
         let normalized = argument.trim().to_ascii_lowercase().replace('_', "-");
         if normalized.contains("authorization:")
@@ -141,8 +150,35 @@ fn contains_credential_argument(args: &[Value]) -> bool {
             .split('=')
             .next()
             .unwrap_or(&normalized);
-        CREDENTIAL_ARGUMENTS.contains(&flag) || flag.contains("cloud") || flag.contains("managed")
+        contains_sensitive_name(flag)
     })
+}
+
+fn contains_sensitive_name(name: &str) -> bool {
+    const SENSITIVE_NAMES: &[&str] = &[
+        "api-key",
+        "apikey",
+        "auth",
+        "authorization",
+        "credential",
+        "credentials",
+        "header",
+        "headers",
+        "password",
+        "secret",
+        "token",
+    ];
+
+    let normalized = name.to_ascii_lowercase().replace('_', "-");
+    SENSITIVE_NAMES.contains(&normalized.as_str())
+        || normalized
+            .split('-')
+            .any(|part| SENSITIVE_NAMES.contains(&part))
+        || ["auth", "credential", "password", "secret", "token"]
+            .into_iter()
+            .any(|suffix| normalized.ends_with(suffix))
+        || normalized.contains("cloud")
+        || normalized.contains("managed")
 }
 
 fn copy_string(
@@ -150,13 +186,17 @@ fn copy_string(
     key: &str,
     path: &str,
     output: &mut Map<String, Value>,
-    omissions: &mut Vec<String>,
+    omissions: &mut Vec<MigrationOmission>,
 ) {
     match source.get(key) {
         Some(Value::String(value)) => {
             output.insert(key.to_owned(), Value::String(value.to_owned()));
         }
-        Some(_) => omissions.push(format!("{path}.{key}")),
+        Some(_) => omit(
+            omissions,
+            format!("{path}.{key}"),
+            MigrationOmissionReason::InvalidValue,
+        ),
         None => {}
     }
 }
@@ -166,13 +206,17 @@ fn copy_string_array(
     key: &str,
     path: &str,
     output: &mut Map<String, Value>,
-    omissions: &mut Vec<String>,
+    omissions: &mut Vec<MigrationOmission>,
 ) {
     match source.get(key) {
         Some(Value::Array(values)) if values.iter().all(Value::is_string) => {
             output.insert(key.to_owned(), Value::Array(values.to_owned()));
         }
-        Some(_) => omissions.push(format!("{path}.{key}")),
+        Some(_) => omit(
+            omissions,
+            format!("{path}.{key}"),
+            MigrationOmissionReason::InvalidValue,
+        ),
         None => {}
     }
 }
@@ -182,13 +226,17 @@ fn copy_reference_map(
     key: &str,
     path: &str,
     output: &mut Map<String, Value>,
-    omissions: &mut Vec<String>,
+    omissions: &mut Vec<MigrationOmission>,
 ) {
     let Some(value) = source.get(key) else {
         return;
     };
     let Some(values) = value.as_object() else {
-        omissions.push(format!("{path}.{key}"));
+        omit(
+            omissions,
+            format!("{path}.{key}"),
+            MigrationOmissionReason::InvalidValue,
+        );
         return;
     };
     let mut sanitized = Map::new();
@@ -200,12 +248,27 @@ fn copy_reference_map(
             Some(value) => {
                 sanitized.insert(name.to_owned(), Value::String(value.to_owned()));
             }
-            None => omissions.push(format!("{path}.{key}.{name}")),
+            None => omit(
+                omissions,
+                format!("{path}.{key}.{name}"),
+                MigrationOmissionReason::SensitiveValue,
+            ),
         }
     }
     if !sanitized.is_empty() {
         output.insert(key.to_owned(), Value::Object(sanitized));
     }
+}
+
+fn omit(
+    omissions: &mut Vec<MigrationOmission>,
+    path: impl Into<String>,
+    reason: MigrationOmissionReason,
+) {
+    omissions.push(MigrationOmission {
+        path: path.into(),
+        reason,
+    });
 }
 
 fn is_environment_reference(value: &str) -> bool {

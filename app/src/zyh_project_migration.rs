@@ -16,8 +16,9 @@ mod revalidation;
 use manifest::{ManifestEntryKind, PROJECT_MIGRATION_MANIFEST};
 use model::{DestinationSnapshot, FileHash, FileSnapshot};
 pub(crate) use model::{
-    MigrationPreview, MigrationPreviewEntry, MigrationResult, MigrationResultEntry,
-    MigrationResultStatus, PreviewStatus, ProjectMigrationError,
+    MigrationOmission, MigrationOmissionReason, MigrationPreview, MigrationPreviewEntry,
+    MigrationResult, MigrationResultEntry, MigrationResultStatus, PreviewStatus,
+    ProjectMigrationError,
 };
 use revalidation::{revalidate_snapshot, SnapshotRevalidationError};
 

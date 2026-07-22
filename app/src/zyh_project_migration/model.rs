@@ -14,12 +14,25 @@ pub(crate) enum PreviewStatus {
     Unsupported,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum MigrationOmissionReason {
+    SensitiveValue,
+    InvalidValue,
+    UnsupportedField,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct MigrationOmission {
+    pub(crate) path: String,
+    pub(crate) reason: MigrationOmissionReason,
+}
+
 #[derive(Clone)]
 pub(crate) struct MigrationPreviewEntry {
     pub(crate) source: PathBuf,
     pub(crate) destination: Option<PathBuf>,
     pub(crate) status: PreviewStatus,
-    pub(crate) omissions: Vec<String>,
+    pub(crate) omissions: Vec<MigrationOmission>,
     pub(super) snapshot: Option<FileSnapshot>,
 }
 
@@ -75,7 +88,7 @@ pub(crate) struct MigrationResultEntry {
     pub(crate) source: PathBuf,
     pub(crate) destination: Option<PathBuf>,
     pub(crate) status: MigrationResultStatus,
-    pub(crate) omissions: Vec<String>,
+    pub(crate) omissions: Vec<MigrationOmission>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

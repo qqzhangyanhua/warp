@@ -5,6 +5,9 @@ use super::{
     execute_project_migration, preview_project_migration, MigrationResultStatus, PreviewStatus,
 };
 
+#[path = "zyh_project_migration_tests/mcp_tests.rs"]
+mod mcp_tests;
+
 #[test]
 fn preview_is_read_only_and_confirmation_copies_only_supported_files() {
     let tempdir = tempfile::tempdir().unwrap();
@@ -83,177 +86,6 @@ fn confirmation_rejects_source_replaced_by_same_content_symlink() {
         entry.source == Path::new(".warp/workflows/deploy.yaml")
             && entry.status == MigrationResultStatus::Stale
     }));
-}
-
-#[test]
-fn mcp_migration_preserves_local_configuration_without_secret_values_or_cloud_references() {
-    let tempdir = tempfile::tempdir().unwrap();
-    git2::Repository::init(tempdir.path()).unwrap();
-    write(
-        &tempdir.path().join(".warp/.mcp.json"),
-        br#"{
-  "mcpServers": {
-    "local": {
-      "command": "node",
-      "args": ["server.js"],
-      "env": {
-        "TOKEN": "literal-secret",
-        "FROM_ENV": "${FROM_ENV}"
-      },
-      "cloudId": "cloud-object-123"
-    },
-    "remote": {
-      "url": "https://mcp.example.test/run?token=url-secret",
-      "headers": {
-        "Authorization": "Bearer literal-secret",
-        "X-From-Env": "${MCP_HEADER}"
-      }
-    }
-  }
-}"#,
-    );
-
-    let preview = preview_project_migration(tempdir.path()).unwrap();
-    let mcp_entry = preview
-        .entries
-        .iter()
-        .find(|entry| entry.source == Path::new(".warp/.mcp.json"))
-        .unwrap();
-    assert_eq!(mcp_entry.status, PreviewStatus::Ready);
-    assert_eq!(
-        mcp_entry.destination.as_deref(),
-        Some(Path::new(".zyh/.mcp.json"))
-    );
-    assert!(mcp_entry
-        .omissions
-        .contains(&"mcpServers.local.env.TOKEN".to_owned()));
-    assert!(mcp_entry
-        .omissions
-        .contains(&"mcpServers.local.cloudId".to_owned()));
-    assert!(mcp_entry
-        .omissions
-        .contains(&"mcpServers.remote.headers.Authorization".to_owned()));
-
-    let result = execute_project_migration(preview);
-    assert!(result.entries.iter().any(|entry| {
-        entry.source == Path::new(".warp/.mcp.json")
-            && entry.status == MigrationResultStatus::Copied
-    }));
-    let migrated = fs::read_to_string(tempdir.path().join(".zyh/.mcp.json")).unwrap();
-    assert!(!migrated.contains("literal-secret"));
-    assert!(!migrated.contains("url-secret"));
-    assert!(!migrated.contains("cloud-object-123"));
-    let migrated: serde_json::Value = serde_json::from_str(&migrated).unwrap();
-    assert_eq!(
-        migrated["mcpServers"]["local"]["env"]["FROM_ENV"],
-        "${FROM_ENV}"
-    );
-    assert_eq!(
-        migrated["mcpServers"]["remote"]["headers"]["X-From-Env"],
-        "${MCP_HEADER}"
-    );
-    assert_eq!(
-        migrated["mcpServers"]["remote"]["url"],
-        "https://mcp.example.test/run"
-    );
-}
-
-#[test]
-fn mcp_server_with_credential_argument_is_omitted_without_leaking_its_value() {
-    let tempdir = tempfile::tempdir().unwrap();
-    git2::Repository::init(tempdir.path()).unwrap();
-    write(
-        &tempdir.path().join(".warp/.mcp.json"),
-        br#"{
-  "mcpServers": {
-    "unsafe": {
-      "command": "server",
-      "args": ["--token", "argument-secret"]
-    },
-    "safe": {
-      "command": "safe-server",
-      "args": ["--stdio"]
-    }
-  }
-}"#,
-    );
-
-    let preview = preview_project_migration(tempdir.path()).unwrap();
-    let mcp_entry = preview
-        .entries
-        .iter()
-        .find(|entry| entry.source == Path::new(".warp/.mcp.json"))
-        .unwrap();
-    assert!(mcp_entry
-        .omissions
-        .contains(&"mcpServers.unsafe.args".to_owned()));
-    assert!(!format!("{mcp_entry:?}").contains("argument-secret"));
-
-    execute_project_migration(preview);
-    let migrated = fs::read_to_string(tempdir.path().join(".zyh/.mcp.json")).unwrap();
-    assert!(!migrated.contains("argument-secret"));
-    let migrated: serde_json::Value = serde_json::from_str(&migrated).unwrap();
-    assert!(migrated["mcpServers"].get("unsafe").is_none());
-    assert_eq!(migrated["mcpServers"]["safe"]["command"], "safe-server");
-}
-
-#[test]
-fn mcp_argument_secrets_and_cloud_references_omit_servers_and_preserve_transport() {
-    let tempdir = tempfile::tempdir().unwrap();
-    git2::Repository::init(tempdir.path()).unwrap();
-    write(
-        &tempdir.path().join(".warp/.mcp.json"),
-        br#"{
-  "mcpServers": {
-    "access-token": {
-      "command": "server",
-      "args": ["--access-token", "access-secret"]
-    },
-    "authorization-header": {
-      "command": "server",
-      "args": ["--header", "Authorization: Bearer header-secret"]
-    },
-    "cloud-id": {
-      "command": "server",
-      "args": ["--cloud-id", "managed-object-123"]
-    },
-    "safe": {
-      "type": "stdio",
-      "transport": "local",
-      "command": "safe-server",
-      "args": ["--stdio"]
-    }
-  }
-}"#,
-    );
-
-    let preview = preview_project_migration(tempdir.path()).unwrap();
-    let mcp_entry = preview
-        .entries
-        .iter()
-        .find(|entry| entry.source == Path::new(".warp/.mcp.json"))
-        .unwrap();
-    for server in ["access-token", "authorization-header", "cloud-id"] {
-        assert!(mcp_entry
-            .omissions
-            .contains(&format!("mcpServers.{server}.args")));
-    }
-    let debug = format!("{mcp_entry:?}");
-    assert!(!debug.contains("access-secret"));
-    assert!(!debug.contains("header-secret"));
-    assert!(!debug.contains("managed-object-123"));
-
-    execute_project_migration(preview);
-    let migrated = fs::read_to_string(tempdir.path().join(".zyh/.mcp.json")).unwrap();
-    assert!(!migrated.contains("access-secret"));
-    assert!(!migrated.contains("header-secret"));
-    assert!(!migrated.contains("managed-object-123"));
-    let migrated: serde_json::Value = serde_json::from_str(&migrated).unwrap();
-    assert!(migrated["mcpServers"].get("access-token").is_none());
-    assert!(migrated["mcpServers"].get("authorization-header").is_none());
-    assert!(migrated["mcpServers"].get("cloud-id").is_none());
-    assert_eq!(migrated["mcpServers"]["safe"]["type"], "stdio");
-    assert_eq!(migrated["mcpServers"]["safe"]["transport"], "local");
 }
 
 #[test]
@@ -373,6 +205,40 @@ fn source_read_error_is_reported_as_a_file_failure() {
         .path()
         .join(".zyh/workflows/unreadable.yaml")
         .exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn destination_write_error_fails_exact_file_while_independent_file_copies() {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let tempdir = tempfile::tempdir().unwrap();
+    git2::Repository::init(tempdir.path()).unwrap();
+    write(
+        &tempdir.path().join(".warp/workflows/blocked.yaml"),
+        b"blocked",
+    );
+    write(&tempdir.path().join(".warp/themes/copied.yaml"), b"copied");
+    let preview = preview_project_migration(tempdir.path()).unwrap();
+    let blocked_parent = tempdir.path().join(".zyh/workflows");
+    fs::create_dir_all(&blocked_parent).unwrap();
+    fs::set_permissions(&blocked_parent, fs::Permissions::from_mode(0o500)).unwrap();
+
+    let result = execute_project_migration(preview);
+
+    fs::set_permissions(&blocked_parent, fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(result.entries.iter().any(|entry| {
+        entry.source == Path::new(".warp/workflows/blocked.yaml")
+            && matches!(entry.status, MigrationResultStatus::Failed(_))
+    }));
+    assert!(result.entries.iter().any(|entry| {
+        entry.source == Path::new(".warp/themes/copied.yaml")
+            && entry.status == MigrationResultStatus::Copied
+    }));
+    assert_eq!(
+        fs::read(tempdir.path().join(".zyh/themes/copied.yaml")).unwrap(),
+        b"copied"
+    );
 }
 
 #[test]

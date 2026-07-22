@@ -78,6 +78,24 @@ fn atomic_create_uses_owner_only_permissions() {
 
 #[cfg(unix)]
 #[test]
+fn atomic_create_preserves_existing_directory_permissions() {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let tempdir = tempfile::tempdir().unwrap();
+    let existing_dir = tempdir.path().join("existing");
+    fs::create_dir(&existing_dir).unwrap();
+    fs::set_permissions(&existing_dir, fs::Permissions::from_mode(0o755)).unwrap();
+
+    atomic_create(&existing_dir.join("settings.toml"), b"private").unwrap();
+
+    assert_eq!(
+        fs::metadata(existing_dir).unwrap().permissions().mode() & 0o777,
+        0o755
+    );
+}
+
+#[cfg(unix)]
+#[test]
 fn created_directories_and_files_are_owner_only() {
     use std::os::unix::fs::PermissionsExt as _;
 

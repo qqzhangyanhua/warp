@@ -11,7 +11,10 @@ use warpui::keymap::FixedBinding;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle};
 
-use super::{MigrationPreview, MigrationResult, MigrationResultStatus, PreviewStatus};
+use super::{
+    MigrationOmission, MigrationOmissionReason, MigrationPreview, MigrationResult,
+    MigrationResultStatus, PreviewStatus,
+};
 use crate::appearance::Appearance;
 use crate::i18n::{tr, Message};
 use crate::ui_components::dialog::{dialog_styles, Dialog};
@@ -60,7 +63,7 @@ impl ProjectMigrationDialog {
                 PrimaryTheme,
             )
             .on_click(|ctx| {
-                ctx.dispatch_typed_action(ProjectMigrationDialogAction::Primary);
+                ctx.dispatch_typed_action(ProjectMigrationDialogAction::ConfirmMigration);
             })
         });
         let close_button = ctx.add_typed_action_view(|ctx| {
@@ -262,7 +265,7 @@ pub(crate) enum ProjectMigrationDialogEvent {
 
 #[derive(Debug)]
 pub(crate) enum ProjectMigrationDialogAction {
-    Primary,
+    ConfirmMigration,
     Cancel,
 }
 
@@ -275,7 +278,7 @@ impl TypedActionView for ProjectMigrationDialog {
         ctx: &mut ViewContext<Self>,
     ) {
         match action {
-            ProjectMigrationDialogAction::Primary => {
+            ProjectMigrationDialogAction::ConfirmMigration => {
                 if let ProjectMigrationDialogState::Preview(preview) = &self.state {
                     let preview = preview.clone();
                     self.state = ProjectMigrationDialogState::Running;
@@ -297,7 +300,7 @@ fn format_row(
     source: &Path,
     destination: Option<&Path>,
     status: &str,
-    omissions: &[String],
+    omissions: &[MigrationOmission],
 ) -> String {
     let destination = destination
         .map(|path| format!(" -> {}", path.display()))
@@ -306,14 +309,32 @@ fn format_row(
     format!("{}{} [{status}]{omissions}", source.display(), destination)
 }
 
-fn omission_text(app: &AppContext, omissions: &[String]) -> String {
+fn omission_text(app: &AppContext, omissions: &[MigrationOmission]) -> String {
     if omissions.is_empty() {
         String::new()
     } else {
+        let omissions = omissions
+            .iter()
+            .map(|omission| {
+                let reason = match omission.reason {
+                    MigrationOmissionReason::SensitiveValue => {
+                        Message::WorkspaceProjectMigrationOmissionSensitive
+                    }
+                    MigrationOmissionReason::InvalidValue => {
+                        Message::WorkspaceProjectMigrationOmissionInvalid
+                    }
+                    MigrationOmissionReason::UnsupportedField => {
+                        Message::WorkspaceProjectMigrationOmissionUnsupported
+                    }
+                };
+                format!("{} ({})", omission.path, tr(app, reason))
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
         format!(
             "\n  {}: {}",
             tr(app, Message::WorkspaceProjectMigrationOmitted),
-            omissions.join(", ")
+            omissions
         )
     }
 }
