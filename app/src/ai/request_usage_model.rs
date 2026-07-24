@@ -5,7 +5,6 @@ use anyhow::Context as _;
 use chrono::{DateTime, Local, Utc};
 use instant::Instant;
 use serde::{Deserialize, Serialize};
-use warp_core::features::FeatureFlag;
 use warp_core::user_preferences::GetUserPreferences as _;
 use warp_errors::report_error;
 pub use warp_graphql::billing::BonusGrantType;
@@ -14,7 +13,6 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::AIAgentExchangeId;
-use crate::auth::AuthStateProvider;
 use crate::pricing::PricingInfoModel;
 use crate::server::server_api::ai::AIClient;
 use crate::settings::AISettings;
@@ -185,7 +183,7 @@ fn get_cached_ambient_credits_banner_dismissed(app_mut: &mut AppContext) -> bool
 }
 
 pub struct AIRequestUsageModel {
-    ai_client: Arc<dyn AIClient>,
+    ai_client: Option<Arc<dyn AIClient>>,
 
     /// The last time at which `request_limit_info` was updated.
     last_update_time: Option<Instant>,
@@ -224,7 +222,7 @@ impl AIRequestUsageModel {
         let ambient_credits_banner_dismissed = get_cached_ambient_credits_banner_dismissed(ctx);
 
         Self {
-            ai_client,
+            ai_client: Some(ai_client),
             request_limit_info,
             last_update_time: None,
             bonus_grants: vec![],
@@ -233,10 +231,21 @@ impl AIRequestUsageModel {
         }
     }
 
+    pub fn new_local(ctx: &mut ModelContext<Self>) -> Self {
+        Self {
+            ai_client: None,
+            last_update_time: None,
+            request_limit_info: RequestLimitInfo::default(),
+            bonus_grants: Vec::new(),
+            buy_addon_credits_banner_dismissed: false,
+            ambient_credits_banner_dismissed: get_cached_ambient_credits_banner_dismissed(ctx),
+        }
+    }
+
     #[cfg(test)]
     pub fn new_for_test(ai_client: Arc<dyn AIClient>, ctx: &mut ModelContext<Self>) -> Self {
         Self {
-            ai_client,
+            ai_client: Some(ai_client),
             last_update_time: None,
             request_limit_info: RequestLimitInfo::default(),
             bonus_grants: vec![],
@@ -251,11 +260,9 @@ impl AIRequestUsageModel {
 
     /// Spawns a task to refresh the latest AI request usage and bonus grants, fetching from the server.
     pub fn refresh_request_usage_async(&mut self, ctx: &mut ModelContext<Self>) {
-        if !AuthStateProvider::as_ref(ctx).get().is_logged_in() {
+        let Some(ai_client) = self.ai_client.clone() else {
             return;
-        }
-
-        let ai_client = self.ai_client.clone();
+        };
         ctx.spawn(
             async move { ai_client.get_request_limit_info().await },
             |model, result, ctx| match result {
@@ -347,7 +354,9 @@ impl AIRequestUsageModel {
             return;
         }
 
-        let ai_client = self.ai_client.clone();
+        let Some(ai_client) = self.ai_client.clone() else {
+            return;
+        };
         ctx.spawn(
             async move {
                 ai_client
@@ -408,54 +417,9 @@ impl AIRequestUsageModel {
     ///    connected a Grok subscription
     /// Use this method as the starting point for AI availability checking.
     pub fn has_any_ai_remaining(&self, ctx: &AppContext) -> bool {
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-            return ApiKeyManager::as_ref(ctx)
-                .keys()
-                .has_valid_custom_endpoint();
-        }
-
-        let current_workspace = UserWorkspaces::as_ref(ctx).current_workspace();
-
-        let has_base_plan_ai_requests = self.has_requests_remaining();
-
-        let user_bonus_credits = self.total_user_interactive_bonus_credits_remaining() > 0;
-        let workspace_bonus_credits = current_workspace
-            .map(|workspace| self.total_workspace_bonus_credits_remaining(workspace.uid) > 0)
-            .unwrap_or_default();
-
-        let workspace_has_overages =
-            current_workspace.is_some_and(|workspace| workspace.are_overages_remaining());
-
-        let is_payg_enabled = current_workspace
-            .is_some_and(|w| w.billing_metadata.is_enterprise_pay_as_you_go_enabled());
-        let is_enterprise_auto_reload_enabled = current_workspace
-            .is_some_and(|w| w.billing_metadata.is_enterprise_auto_reload_enabled());
-        let is_self_serve_auto_reload_enabled = current_workspace.is_some_and(|workspace| {
-            workspace
-                .billing_metadata
-                .is_purchase_add_on_credits_policy_enabled()
-                && workspace
-                    .settings
-                    .addon_credits_settings
-                    .auto_reload_enabled
-                && PricingInfoModel::as_ref(ctx)
-                    .addon_credits_options()
-                    .and_then(|options| workspace.get_auto_reload_price_cents(options))
-                    .is_some_and(|price| !workspace.would_addon_purchase_reach_limit(price))
-        });
-
-        // If you have provided your own API key or connected a Grok
-        // subscription, it doesn't matter if you are out of warp-provided requests.
-        let has_byo_credentials = UserWorkspaces::as_ref(ctx).is_byo_api_key_enabled(ctx)
-            && ApiKeyManager::as_ref(ctx).has_any_key();
-
-        has_base_plan_ai_requests
-            || (user_bonus_credits || workspace_bonus_credits)
-            || workspace_has_overages
-            || is_payg_enabled
-            || is_enterprise_auto_reload_enabled
-            || is_self_serve_auto_reload_enabled
-            || has_byo_credentials
+        ApiKeyManager::as_ref(ctx)
+            .keys()
+            .has_valid_custom_endpoint()
     }
 
     pub fn requests_used(&self) -> usize {

@@ -114,7 +114,7 @@ impl OnboardingMainView {
                 default_model_id.clone(),
                 false,
                 false,
-                onboarding::OnboardingAuthState::LoggedOut,
+                onboarding::i18n::Locale::En,
                 ctx,
             )
         });
@@ -162,13 +162,7 @@ impl OnboardingMainView {
                 self.state = OnboardingMainState::Finished(finished_view);
                 ctx.notify();
             }
-            AgentOnboardingEvent::SyncWithOsToggled { .. }
-            | AgentOnboardingEvent::UpgradeRequested
-            | AgentOnboardingEvent::UpgradeCopyUrlRequested
-            | AgentOnboardingEvent::UpgradePasteTokenFromClipboardRequested
-            | AgentOnboardingEvent::LoginFromWelcomeRequested
-            | AgentOnboardingEvent::PrivacySettingsFromTerminalThemeSlideRequested
-            | AgentOnboardingEvent::AppBecameActive => {
+            AgentOnboardingEvent::SyncWithOsToggled { .. } => {
                 // No-op in the standalone demo binary
             }
         }

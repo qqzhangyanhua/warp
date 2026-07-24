@@ -83,7 +83,7 @@ impl TerminalView {
         let server_api = ServerApiProvider::new_for_test().get();
         let terminal_view_resources = TerminalViewResources {
             tips_completed: tips_model,
-            server_api: server_api.clone(),
+            server_api: Some(server_api.clone()),
             model_event_sender: None,
         };
 

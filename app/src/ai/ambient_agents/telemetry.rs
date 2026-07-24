@@ -131,15 +131,6 @@ pub enum CloudAgentTelemetryEvent {
         /// itself may still fail downstream, so the wire prompt is not implied.
         derived_workspace_had_content: bool,
     },
-    /// The auto-handoff sleep discoverability prompt was surfaced on wake.
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    SleepPromptShown,
-    /// User clicked "Enable" on the auto-handoff sleep prompt.
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    SleepPromptEnabled,
-    /// User clicked "Dismiss" on the auto-handoff sleep prompt.
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    SleepPromptDismissed,
 }
 
 impl TelemetryEvent for CloudAgentTelemetryEvent {
@@ -195,9 +186,6 @@ impl TelemetryEvent for CloudAgentTelemetryEvent {
             } => Some(json!({
                 "derived_workspace_had_content": derived_workspace_had_content,
             })),
-            CloudAgentTelemetryEvent::SleepPromptShown
-            | CloudAgentTelemetryEvent::SleepPromptEnabled
-            | CloudAgentTelemetryEvent::SleepPromptDismissed => None,
         }
     }
 
@@ -241,9 +229,6 @@ impl TelemetryEventDesc for CloudAgentTelemetryEventDiscriminants {
             Self::DispatchFailed => "AmbientAgent.DispatchFailed",
             Self::HandoffInitiated => "AmbientAgent.Handoff.Initiated",
             Self::HandoffSnapshotPrepared => "AmbientAgent.Handoff.SnapshotPrepared",
-            Self::SleepPromptShown => "AmbientAgent.Handoff.SleepPrompt.Shown",
-            Self::SleepPromptEnabled => "AmbientAgent.Handoff.SleepPrompt.Enabled",
-            Self::SleepPromptDismissed => "AmbientAgent.Handoff.SleepPrompt.Dismissed",
         }
     }
 
@@ -268,15 +253,6 @@ impl TelemetryEventDesc for CloudAgentTelemetryEventDiscriminants {
             Self::HandoffInitiated => "User initiated a local-to-cloud handoff",
             Self::HandoffSnapshotPrepared => {
                 "Handoff snapshot upload settled; reports whether it carried content"
-            }
-            Self::SleepPromptShown => {
-                "The auto-handoff sleep discoverability prompt was shown on wake"
-            }
-            Self::SleepPromptEnabled => {
-                "User enabled auto-handoff on sleep from the discoverability prompt"
-            }
-            Self::SleepPromptDismissed => {
-                "User dismissed the auto-handoff sleep discoverability prompt"
             }
         }
     }

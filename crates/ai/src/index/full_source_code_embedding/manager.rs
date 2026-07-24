@@ -253,7 +253,7 @@ pub struct CodebaseIndexManagerConfig {
     max_index_count: Option<usize>,
     max_files_repo_limit: usize,
     embedding_generation_batch_size: usize,
-    store_client: Arc<dyn StoreClient>,
+    store_client: Option<Arc<dyn StoreClient>>,
     indexing_enabled: bool,
     restore_persisted_indices_on_startup: bool,
 }
@@ -272,9 +272,21 @@ impl CodebaseIndexManagerConfig {
             max_index_count,
             max_files_repo_limit,
             embedding_generation_batch_size,
-            store_client,
+            store_client: Some(store_client),
             indexing_enabled,
             restore_persisted_indices_on_startup: true,
+        }
+    }
+
+    pub fn disabled() -> Self {
+        Self {
+            persisted_index_metadata: Vec::new(),
+            max_index_count: None,
+            max_files_repo_limit: 0,
+            embedding_generation_batch_size: 0,
+            store_client: None,
+            indexing_enabled: false,
+            restore_persisted_indices_on_startup: false,
         }
     }
 
@@ -290,7 +302,7 @@ pub struct CodebaseIndexManager {
 
     last_emitted_codebase_index_statuses: HashMap<PathBuf, CodebaseIndexStatusEventKey>,
 
-    store_client: Arc<dyn StoreClient>,
+    store_client: Option<Arc<dyn StoreClient>>,
 
     #[cfg(feature = "local_fs")]
     watcher: ModelHandle<BulkFilesystemWatcher>,
@@ -310,6 +322,10 @@ pub struct CodebaseIndexManager {
 }
 
 impl CodebaseIndexManager {
+    pub fn new_disabled(ctx: &mut ModelContext<Self>) -> Self {
+        Self::new_with_config(CodebaseIndexManagerConfig::disabled(), ctx)
+    }
+
     #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
     pub fn new(
         persisted_index_metadata: Vec<WorkspaceMetadata>,
@@ -456,7 +472,7 @@ impl CodebaseIndexManager {
         Self {
             codebase_indices: HashMap::new(),
             last_emitted_codebase_index_statuses: HashMap::new(),
-            store_client,
+            store_client: Some(store_client),
             #[cfg(feature = "local_fs")]
             watcher: file_watcher,
             build_queue: BuildQueue::empty(),
@@ -467,6 +483,12 @@ impl CodebaseIndexManager {
             #[cfg(feature = "local_fs")]
             snapshot_storage: SnapshotStorage::app_default(),
         }
+    }
+
+    fn store_client(&self) -> Arc<dyn StoreClient> {
+        self.store_client
+            .clone()
+            .expect("Hosted codebase indexing is unavailable in ZYH")
     }
 
     /// Check whether any of the codebases' root path was deleted and clean up its persisted
@@ -670,7 +692,7 @@ impl CodebaseIndexManager {
         };
 
         index_state.update(ctx, |codebase_index, ctx| {
-            codebase_index.incremental_update(changed_files, self.store_client.clone(), false, ctx);
+            codebase_index.incremental_update(changed_files, self.store_client(), false, ctx);
         });
     }
 
@@ -934,6 +956,7 @@ impl CodebaseIndexManager {
 
         let canonical_key =
             dunce::canonicalize(repo_path).unwrap_or_else(|_| repo_path.to_path_buf());
+        let store_client = self.store_client();
 
         let index = self
             .codebase_indices
@@ -942,7 +965,7 @@ impl CodebaseIndexManager {
                 #[cfg(feature = "local_fs")]
                 let snapshot_storage = self.snapshot_storage.clone();
                 let index = Self::build_and_sync_codebase_index_internal(
-                    self.store_client.clone(),
+                    store_client,
                     handle,
                     self.max_files_repo_limit,
                     self.embedding_generation_batch_size,
@@ -1207,7 +1230,7 @@ impl CodebaseIndexManager {
         };
 
         codebase_index.update(ctx, |codebase_index, ctx| {
-            codebase_index.retrieve_relevant_files(query, self.store_client.clone(), ctx)
+            codebase_index.retrieve_relevant_files(query, self.store_client(), ctx)
         })
     }
 

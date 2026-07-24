@@ -13,7 +13,6 @@ pub mod message_bar;
 pub mod models;
 pub mod plans;
 pub mod profiles;
-pub mod prompts;
 pub mod repos;
 pub mod rewind;
 pub mod skills;
@@ -169,7 +168,6 @@ use crate::ai::blocklist::handoff::touched_repos::{
 };
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff::{HandoffLaunchAttachments, PendingCloudLaunch};
-use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::telemetry_banner::should_collect_ai_ugc_telemetry;
 use crate::ai::blocklist::{
     ai_brand_color, ai_indicator_height, render_ai_agent_mode_icon, render_ai_follow_up_icon,
@@ -197,7 +195,6 @@ use crate::ai::predict::prompt_suggestions::{
     is_accept_prompt_suggestion_bound_to_ctrl_enter,
 };
 use crate::ai::skills::{SkillManager, SkillOpenOrigin, SkillTelemetryEvent};
-use crate::ai::AIRequestUsageModel;
 use crate::ai_assistant::execution_context::WarpAiExecutionContext;
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::channel::{Channel, ChannelState};
@@ -269,7 +266,6 @@ use crate::settings_view::{flags, SettingsSection};
 use crate::suggestions::ignored_suggestions_model::{
     IgnoredSuggestionsModel, IgnoredSuggestionsModelEvent, SuggestionType,
 };
-use crate::terminal::buy_credits_banner::{BuyCreditsBanner, BuyCreditsBannerEvent};
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::PluginModalKind;
 use crate::terminal::cli_agent_sessions::{
@@ -287,7 +283,6 @@ use crate::terminal::input::models::{
 };
 use crate::terminal::input::plans::{InlinePlanMenuEvent, InlinePlanMenuView};
 use crate::terminal::input::profiles::{InlineProfileSelectorEvent, InlineProfileSelectorView};
-use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuView};
 use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
 use crate::terminal::input::rewind::{RewindMenuEvent, RewindMenuView};
 use crate::terminal::input::skills::{InlineSkillSelectorEvent, InlineSkillSelectorView};
@@ -310,7 +305,7 @@ use crate::terminal::view::ambient_agent::{
     AuthSecretFtuxView, AuthSecretFtuxViewEvent, AuthSecretSelector, AuthSecretSelectorEvent,
     HarnessSelector, HarnessSelectorEvent, HostSelector, HostSelectorEvent, NakedHeaderButtonTheme,
 };
-use crate::terminal::view::inline_banner::{PromptSuggestionsEvent, PromptSuggestionsView};
+use crate::terminal::view::inline_banner::PromptSuggestionsView;
 use crate::terminal::view::{resolve_ai_query_routing, AIQueryRouting, CodeDiffAction};
 use crate::terminal::CLIAgent;
 use crate::ui_components::blended_colors;
@@ -326,7 +321,6 @@ use crate::voltron::{
     Voltron, VoltronEvent, VoltronFeatureView, VoltronFeatureViewHandle, VoltronFeatureViewMeta,
     VoltronItem, VoltronMetadata,
 };
-use crate::workflows::aliases::WorkflowAliases;
 use crate::workflows::command_parser::{
     compute_workflow_display_data, compute_workflow_display_data_for_history_command,
     compute_workflow_display_data_with_overrides, WorkflowArgumentIndex, WorkflowDisplayData,
@@ -583,7 +577,6 @@ pub enum TelemetryInputSuggestionsMode {
     ConversationMenu,
     ModelSelector,
     ProfileSelector,
-    PromptsMenu,
     SkillMenu,
     InlineHistoryMenu,
     IndexedReposMenu,
@@ -726,9 +719,6 @@ pub enum InputSuggestionsMode {
     /// Skill menu mode for /open-skill command.
     SkillMenu,
 
-    /// Prompts menu mode for /prompts command.
-    PromptsMenu,
-
     /// User query menu mode for selecting a query point (e.g., fork-from, rewind).
     UserQueryMenu {
         action: UserQueryMenuAction,
@@ -781,7 +771,6 @@ impl InputSuggestionsMode {
             Self::SlashCommands
                 | Self::ConversationMenu
                 | Self::ModelSelector
-                | Self::PromptsMenu
                 | Self::UserQueryMenu { .. }
                 | Self::InlineHistoryMenu { .. }
                 | Self::PlanMenu { .. }
@@ -825,7 +814,6 @@ impl InputSuggestionsMode {
             InputSuggestionsMode::SlashCommands if FeatureFlag::AgentView.is_enabled() => {
                 Some(input_text(ctx, "Search commands"))
             }
-            InputSuggestionsMode::PromptsMenu => Some(input_text(ctx, "Search prompts")),
             InputSuggestionsMode::IndexedReposMenu => Some(input_text(ctx, "Search indexed repos")),
             InputSuggestionsMode::PlanMenu { .. } => Some(input_text(ctx, "Search plans")),
             _ => None,
@@ -860,7 +848,6 @@ impl InputSuggestionsMode {
             }
             InputSuggestionsMode::ModelSelector => TelemetryInputSuggestionsMode::ModelSelector,
             InputSuggestionsMode::ProfileSelector => TelemetryInputSuggestionsMode::ProfileSelector,
-            InputSuggestionsMode::PromptsMenu => TelemetryInputSuggestionsMode::PromptsMenu,
             InputSuggestionsMode::SkillMenu => TelemetryInputSuggestionsMode::SkillMenu,
             InputSuggestionsMode::UserQueryMenu { .. } => {
                 TelemetryInputSuggestionsMode::ConversationMenu
@@ -1114,9 +1101,6 @@ pub enum Event {
     OpenAIDocumentPane {
         document_id: AIDocumentId,
         document_version: AIDocumentVersion,
-    },
-    OpenAutoReloadModal {
-        purchased_credits: i32,
     },
     AuthSecretDeleteConfirmationDialogToggled {
         is_open: bool,
@@ -1594,7 +1578,7 @@ pub struct Input {
     menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
     tips_completed: ModelHandle<TipsCompleted>,
     editor: ViewHandle<EditorView>,
-    server_api: Arc<ServerApi>,
+    server_api: Option<Arc<ServerApi>>,
     input_suggestions: ViewHandle<InputSuggestions>,
     suggestions_mode_model: ModelHandle<InputSuggestionsModeModel>,
     completions_menu_resizable_width: ResizableStateHandle,
@@ -1738,9 +1722,6 @@ pub struct Input {
     /// Whether the skill selector should invoke (true) or open (false) the skill.
     skill_selector_should_invoke: bool,
 
-    /// Inline prompts menu for /prompts command.
-    inline_prompts_menu_view: ViewHandle<InlinePromptsMenuView>,
-
     /// Inline menu for selecting a query point when forking a conversation.
     user_query_menu_view: ViewHandle<UserQueryMenuView>,
 
@@ -1767,7 +1748,6 @@ pub struct Input {
     /// Weak handle to this input view for drop target data
     weak_view_handle: WeakViewHandle<Input>,
 
-    buy_credits_banner: ViewHandle<BuyCreditsBanner>,
     agent_status_view: ViewHandle<BlocklistAIStatusBar>,
     /// Optional queued-prompts panel rendered between `agent_status_view` and the input editor.
     /// Constructed in [`Input::new`] when [`FeatureFlag::QueueSlashCommand`] is enabled.
@@ -2521,7 +2501,7 @@ impl Input {
     pub(crate) fn new(
         model: Arc<FairMutex<TerminalModel>>,
         tips_completed: ModelHandle<TipsCompleted>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
         sessions: ModelHandle<Sessions>,
         size_info: SizeInfo,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
@@ -2703,9 +2683,6 @@ impl Input {
                         ctx,
                     );
                 }
-                AgentInputFooterEvent::PromptAlert(prompt_alert_event) => {
-                    me.handle_prompt_alert(prompt_alert_event, ctx);
-                }
                 AgentInputFooterEvent::ModelSelectorOpened => {
                     me.close_overlays(false, ctx);
                 }
@@ -2759,28 +2736,7 @@ impl Input {
                         return;
                     }
 
-                    // Auto-handoff only when the input buffer is empty and the
-                    // source conversation has content. Otherwise enter `&`
-                    // compose mode so any in-flight prompt is preserved and
-                    // the user can refine before forking.
-                    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-                    let auto_handoff = me.editor.as_ref(ctx).buffer_text(ctx).trim().is_empty()
-                        && me.source_conversation_has_content(ctx);
-                    #[cfg(not(all(feature = "local_fs", not(target_family = "wasm"))))]
-                    let auto_handoff = false;
-
-                    if auto_handoff {
-                        #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-                        ctx.dispatch_typed_action_deferred(
-                            WorkspaceAction::OpenLocalToCloudHandoffPane {
-                                launch: None,
-                                environment_id: None,
-                                entry_point: HandoffEntryPoint::FooterChip,
-                            },
-                        );
-                    } else {
-                        me.activate_cloud_handoff_compose(HandoffEntryPoint::FooterChip, ctx);
-                    }
+                    me.activate_cloud_handoff_compose(HandoffEntryPoint::FooterChip, ctx);
                 }
             }
         });
@@ -3481,11 +3437,7 @@ impl Input {
             },
         );
 
-        let prompt_suggestions_view = ctx
-            .add_typed_action_view(|ctx| PromptSuggestionsView::new(ai_input_model.clone(), ctx));
-        ctx.subscribe_to_view(&prompt_suggestions_view, move |me, _, event, ctx| {
-            me.handle_prompt_suggestions_event(event, ctx);
-        });
+        let prompt_suggestions_view = ctx.add_view(PromptSuggestionsView::new);
 
         let slash_command_data_source = ctx.add_model(|ctx| {
             let args = slash_commands::GuiDataSourceArgs {
@@ -3586,19 +3538,6 @@ impl Input {
         });
         ctx.subscribe_to_view(&inline_profile_selector_view, |me, _, event, ctx| {
             me.handle_inline_profile_selector_event(event, ctx);
-        });
-
-        let inline_prompts_menu_view = ctx.add_view(|ctx| {
-            InlinePromptsMenuView::new(
-                suggestions_mode_model.clone(),
-                agent_view_controller.clone(),
-                &buffer_model,
-                &inline_terminal_menu_positioner,
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(&inline_prompts_menu_view, |me, _, event, ctx| {
-            me.handle_inline_prompts_menu_event(event, ctx);
         });
 
         let inline_skill_selector_view = ctx.add_view(|ctx| {
@@ -3710,38 +3649,6 @@ impl Input {
                         ctx.notify();
                     }
                 }
-            }
-        });
-
-        let ai_req_usage_model = AIRequestUsageModel::handle(ctx);
-        ctx.subscribe_to_model(&ai_req_usage_model, |_, _, _, ctx| {
-            ctx.notify();
-        });
-        ctx.observe(&ai_req_usage_model, |_, _, ctx| {
-            ctx.notify();
-        });
-
-        let buy_credits_banner = ctx.add_typed_action_view(BuyCreditsBanner::new);
-        ctx.subscribe_to_view(&buy_credits_banner, |me, _, event, ctx| match event {
-            BuyCreditsBannerEvent::OpenBillingAndUsage => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
-            }
-            BuyCreditsBannerEvent::RefocusInput => {
-                ctx.focus(&me.editor);
-            }
-            BuyCreditsBannerEvent::OpenAutoReloadModal { purchased_credits } => {
-                ctx.emit(Event::OpenAutoReloadModal {
-                    purchased_credits: *purchased_credits,
-                });
-            }
-            BuyCreditsBannerEvent::ShowAutoReloadError { error_message } => {
-                ctx.emit(Event::ShowToast {
-                    message: error_message.to_string(),
-                    flavor: ToastFlavor::Error,
-                });
             }
         });
 
@@ -3869,7 +3776,6 @@ impl Input {
             inline_repos_menu_view,
             inline_model_selector_view,
             inline_profile_selector_view,
-            inline_prompts_menu_view,
             inline_skill_selector_view,
             skill_selector_should_invoke: false,
             user_query_menu_view,
@@ -3880,7 +3786,6 @@ impl Input {
             cached_agent_mode_hint_text: None,
             is_editor_empty_on_last_edit: is_editor_empty,
             weak_view_handle: ctx.handle(),
-            buy_credits_banner,
             agent_status_view,
             queued_prompts_panel,
             agent_view_controller,
@@ -5148,36 +5053,6 @@ impl Input {
         self.focus_input_box(ctx);
     }
 
-    fn handle_inline_prompts_menu_event(
-        &mut self,
-        event: &InlinePromptsMenuEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let InlinePromptsMenuEvent::SelectedPrompt { id } = event;
-
-        let Some(workflow) = CloudModel::as_ref(ctx).get_workflow(id).cloned() else {
-            log::warn!("Tried to open saved prompt for id {id:?} but it does not exist");
-            return;
-        };
-
-        if self.suggestions_mode_model.as_ref(ctx).is_prompts_menu() {
-            self.suggestions_mode_model.update(ctx, |model, ctx| {
-                model.set_mode(InputSuggestionsMode::Closed, ctx);
-            });
-            ctx.notify();
-        }
-        self.clear_buffer_and_reset_undo_stack(ctx);
-        self.focus_input_box(ctx);
-
-        self.show_workflows_info_box_on_workflow_selection(
-            WorkflowType::Cloud(Box::new(workflow)),
-            WorkflowSource::WarpAI,
-            WorkflowSelectionSource::SlashMenu,
-            None,
-            ctx,
-        );
-    }
-
     fn handle_inline_skill_selector_event(
         &mut self,
         event: &InlineSkillSelectorEvent,
@@ -5305,14 +5180,6 @@ impl Input {
 
         self.suggestions_mode_model.update(ctx, |model, ctx| {
             model.set_mode(InputSuggestionsMode::ProfileSelector, ctx);
-        });
-
-        ctx.notify();
-    }
-
-    fn open_prompts_menu(&mut self, ctx: &mut ViewContext<Self>) {
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::PromptsMenu, ctx);
         });
 
         ctx.notify();
@@ -6215,10 +6082,6 @@ impl Input {
         triggered_from: ZeroStatePromptSuggestionTriggeredFrom,
         ctx: &mut ViewContext<Self>,
     ) {
-        if !AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx) {
-            return;
-        }
-
         match suggestion_type {
             ZeroStatePromptSuggestionType::Explain | ZeroStatePromptSuggestionType::Fix => {
                 self.auto_attach_last_block_for_query(ctx);
@@ -6724,37 +6587,6 @@ impl Input {
         });
     }
 
-    fn handle_prompt_alert(
-        &mut self,
-        prompt_alert: &PromptAlertEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match prompt_alert {
-            PromptAlertEvent::SignupAnonymousUser => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                ctx.emit(Event::SignupAnonymousUser {
-                    entrypoint: AnonymousUserSignupEntrypoint::SignUpAIPrompt,
-                });
-            }
-            PromptAlertEvent::OpenBillingAndUsagePage => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
-            }
-            PromptAlertEvent::OpenBillingPortal { team_uid } => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                UserWorkspaces::handle(ctx).update(ctx, |user_workspaces, ctx| {
-                    user_workspaces.generate_stripe_billing_portal_link(*team_uid, ctx);
-                });
-            }
-        }
-    }
-
     fn enable_auto_detection(&mut self, ctx: &mut ViewContext<Self>) {
         // Don't allow input mode changes for read-only viewers in shared sessions
         if self.model.lock().shared_session_status().is_reader() {
@@ -6887,9 +6719,6 @@ impl Input {
             UniversalDeveloperInputButtonBarEvent::SetAIContextMenuOpen(open) => {
                 self.focus_input_box(ctx);
                 self.set_ai_context_menu_open(*open, ctx);
-            }
-            UniversalDeveloperInputButtonBarEvent::PromptAlert(prompt_alert_event) => {
-                self.handle_prompt_alert(prompt_alert_event, ctx);
             }
             UniversalDeveloperInputButtonBarEvent::ModelSelectorOpened => {
                 self.close_overlays(false, ctx);
@@ -8710,9 +8539,6 @@ impl Input {
                         // Profile selector selection is handled separately.
                         // This shouldn't be reached since profile selector doesn't use InputSuggestions
                     }
-                    InputSuggestionsMode::PromptsMenu => {
-                        // Prompts menu selection is handled via InlinePromptsMenuView
-                    }
                     InputSuggestionsMode::SkillMenu => {
                         // Skill menu selection is handled via InlineSkillSelectorView
                     }
@@ -8871,10 +8697,6 @@ impl Input {
             }
             InputSuggestionsMode::ProfileSelector => {
                 // Profile selector selection is handled separately
-                false
-            }
-            InputSuggestionsMode::PromptsMenu => {
-                // Prompts menu selection is handled separately
                 false
             }
             InputSuggestionsMode::SkillMenu => {
@@ -9188,12 +9010,6 @@ impl Input {
             }
             InputSuggestionsMode::ProfileSelector => {
                 self.inline_profile_selector_view.update(ctx, |view, ctx| {
-                    view.select_up(ctx);
-                });
-                true
-            }
-            InputSuggestionsMode::PromptsMenu => {
-                self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_up(ctx);
                 });
                 true
@@ -9554,12 +9370,6 @@ impl Input {
             }
             InputSuggestionsMode::ProfileSelector => {
                 self.inline_profile_selector_view.update(ctx, |view, ctx| {
-                    view.select_down(ctx);
-                });
-                true
-            }
-            InputSuggestionsMode::PromptsMenu => {
-                self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_down(ctx);
                 });
                 true
@@ -10757,9 +10567,6 @@ impl Input {
                     InputSuggestionsMode::ProfileSelector => {
                         // Profile selector handles its own state
                     }
-                    InputSuggestionsMode::PromptsMenu => {
-                        // Prompts menu handles its own state
-                    }
                     InputSuggestionsMode::SkillMenu => {
                         // Skill menu handles its own state
                     }
@@ -10906,9 +10713,6 @@ impl Input {
                         }
                         InputSuggestionsMode::ProfileSelector => {
                             // Profile selector handles its own selection state
-                        }
-                        InputSuggestionsMode::PromptsMenu => {
-                            // Prompts menu handles its own selection state
                         }
                         InputSuggestionsMode::SkillMenu => {
                             // Skill menu handles its own selection state
@@ -13281,13 +13085,6 @@ impl Input {
                 return;
             }
 
-            // If the prompts menu is open, Enter selects the highlighted prompt.
-            if self.suggestions_mode_model.as_ref(ctx).is_prompts_menu() {
-                self.inline_prompts_menu_view
-                    .update(ctx, |view, ctx| view.accept_selected_item(ctx));
-                return;
-            }
-
             // If the skill selector menu is open, Enter selects the highlighted skill.
             if self.suggestions_mode_model.as_ref(ctx).is_skill_menu() {
                 self.inline_skill_selector_view
@@ -13296,7 +13093,7 @@ impl Input {
             }
 
             // If the slash commands menu is open, accept the selected item
-            // (e.g. /prompts or /skills). However, don't intercept detected
+            // (e.g. /skills). However, don't intercept detected
             // slash/skill commands in the buffer — those should be submitted
             // directly to the CLI agent so it can handle them natively.
             if matches!(
@@ -13343,12 +13140,6 @@ impl Input {
             .is_profile_selector()
         {
             self.inline_profile_selector_view
-                .update(ctx, |view, ctx| view.accept_selected_item(ctx));
-            return;
-        }
-
-        if self.suggestions_mode_model.as_ref(ctx).is_prompts_menu() {
-            self.inline_prompts_menu_view
                 .update(ctx, |view, ctx| view.accept_selected_item(ctx));
             return;
         }
@@ -13609,40 +13400,6 @@ impl Input {
 
             self.submit_ai_query_with_routing(None, ctx);
         } else {
-            if FeatureFlag::WorkflowAliases.is_enabled() {
-                let mut command_string = self.editor.as_ref(ctx).buffer_text(ctx);
-                // If the alias was inserted from the completions menu, it will have trailing
-                // whitespace - trim it in-place.
-                command_string.truncate(command_string.trim_end().len());
-
-                if let Some(alias) = WorkflowAliases::as_ref(ctx).match_alias(&command_string) {
-                    if let Some(workflow) = CloudModel::as_ref(ctx).get_workflow(&alias.workflow_id)
-                    {
-                        let owner = workflow.clone().permissions.owner.into();
-
-                        let workflow_type = WorkflowType::Cloud(Box::new(workflow.clone()));
-                        let env_vars = alias.env_vars.or(workflow.model().data.default_env_vars());
-
-                        self.insert_workflow_into_input(
-                            workflow_type,
-                            owner,
-                            WorkflowSelectionSource::Alias,
-                            alias.arguments,
-                            None,
-                            env_vars,
-                            true,
-                            ctx,
-                        );
-                        return;
-                    } else {
-                        log::warn!(
-                            "Tried to execute workflow for id {:?} but it does not exist",
-                            alias.workflow_id
-                        );
-                    };
-                }
-            }
-
             let command = self.get_command(ctx);
             if !self.try_execute_command(&command, ctx) {
                 return;
@@ -13883,7 +13640,9 @@ impl Input {
             system_context: context.to_json_string(),
         };
 
-        let server_api = self.server_api.clone();
+        let Some(server_api) = self.server_api.clone() else {
+            return;
+        };
 
         self.predict_am_queries_future_handle = Some(ctx.spawn(
             async move {
@@ -14389,42 +14148,6 @@ impl Input {
                         .is_input_type_locked(),
                 },
             });
-            return;
-        }
-
-        let has_requests_remaining = AIRequestUsageModel::as_ref(ctx).has_requests_remaining();
-
-        let has_any_ai = AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx);
-        if !has_any_ai {
-            AIRequestUsageModel::handle(ctx).update(ctx, |model, ctx| {
-                model.enable_buy_credits_banner(ctx);
-            });
-        }
-
-        if PromptAlertView::does_alert_block_ai_requests(ctx) {
-            if !has_requests_remaining {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::AgentModeUserAttemptedQueryAtRequestLimit {
-                        limit: AIRequestUsageModel::as_ref(ctx).request_limit()
-                    },
-                    ctx
-                );
-            }
-
-            AIRequestUsageModel::handle(ctx).update(ctx, |usage_model, ctx| {
-                // Rate limit requests to fetch the user's AI usage if triggered by enter
-                // keypress.
-                const USAGE_LIMIT_UPDATE_REQUEST_RATE_LIMIT: Duration = Duration::from_secs(10);
-
-                let last_update_time = usage_model.last_update_time();
-                if last_update_time
-                    .is_some_and(|time| time.elapsed() >= USAGE_LIMIT_UPDATE_REQUEST_RATE_LIMIT)
-                    || last_update_time.is_none()
-                {
-                    usage_model.refresh_request_usage_async(ctx);
-                }
-            });
-
             return;
         }
 
@@ -15957,37 +15680,6 @@ impl Input {
         InputSettings::as_ref(app).is_universal_developer_input_enabled(app)
     }
 
-    fn handle_prompt_suggestions_event(
-        &mut self,
-        event: &PromptSuggestionsEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            PromptSuggestionsEvent::SignupAnonymousUser => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                ctx.emit(Event::SignupAnonymousUser {
-                    entrypoint: AnonymousUserSignupEntrypoint::SignUpAIPrompt,
-                });
-            }
-            PromptSuggestionsEvent::OpenBillingAndUsagePage => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage))
-            }
-            PromptSuggestionsEvent::OpenBillingPortal { team_uid } => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                UserWorkspaces::handle(ctx).update(ctx, |user_workspaces, ctx| {
-                    user_workspaces.generate_stripe_billing_portal_link(*team_uid, ctx);
-                });
-            }
-        }
-    }
-
     /// Returns whether the input box is currently pinned to the top of the screen.
     fn is_input_at_top(&self, model: &TerminalModel, ctx: &AppContext) -> bool {
         match InputModeSettings::as_ref(ctx).input_mode.value() {
@@ -16389,14 +16081,6 @@ impl View for Input {
             .is_conversation_menu()
         {
             ctx.set.insert(flags::OPEN_INLINE_CONVERSATION_MENU);
-        }
-
-        if self
-            .buy_credits_banner
-            .as_ref(app)
-            .is_denomination_dropdown_open(app)
-        {
-            ctx.set.insert("BuyCreditsBannerOpen");
         }
 
         if self.is_editing_queued_prompt(app) {

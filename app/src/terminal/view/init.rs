@@ -16,7 +16,6 @@ use crate::ai::blocklist::agent_view::{
 use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
 use crate::channel::{Channel, ChannelState};
 use crate::features::FeatureFlag;
-use crate::local_mode;
 use crate::server::telemetry::{InteractionSource, ToggleBlockFilterSource};
 use crate::settings_view::flags;
 use crate::terminal::input::{
@@ -40,7 +39,7 @@ pub const TOGGLE_BLOCK_FILTER_KEYBINDING: &str =
 pub const CANCEL_COMMAND_KEYBINDING: &str = "terminal:cancel_command";
 
 fn cloud_sharing_actions_available() -> bool {
-    !local_mode::is_local_only_custom_provider_mode()
+    false
 }
 
 fn share_current_session_action_available() -> bool {
@@ -1227,7 +1226,6 @@ mod tests {
     #[test]
     #[serial]
     fn local_only_disables_share_current_session_action() {
-        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
         let _sharing = FeatureFlag::CreatingSharedSessions.override_enabled(true);
 
         assert!(!share_current_session_action_available());
@@ -1236,8 +1234,6 @@ mod tests {
     #[test]
     #[serial]
     fn local_only_disables_share_block_action() {
-        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
         assert!(!cloud_sharing_actions_available());
     }
 }

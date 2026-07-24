@@ -56,11 +56,10 @@ use crate::ai::predict::generate_am_query_suggestions::GenerateAMQuerySuggestion
 use crate::ai::predict::predict_am_queries::{PredictAMQueriesRequest, PredictAMQueriesResponse};
 use crate::ai::predict::{generate_ai_input_suggestions, generate_am_query_suggestions};
 use crate::ai::voice::transcribe::{TranscribeRequest, TranscribeResponse};
-use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_state::AuthState;
 use crate::server::telemetry::TelemetryApi;
 use crate::settings::PrivacySettingsSnapshot;
-use crate::{settings_view, ChannelState};
+use crate::ChannelState;
 
 pub const FETCH_CHANNEL_VERSIONS_TIMEOUT: std::time::Duration = Duration::from_secs(60);
 
@@ -472,7 +471,7 @@ impl ServerApi {
             });
         }
         #[cfg(any(test, feature = "test-util"))]
-        if crate::local_mode::is_local_only_custom_provider_mode() {
+        {
             install_local_only_forbidden_warp_request_guard(&mut client);
             install_local_only_forbidden_warp_request_guard(&mut telemetry_api.client);
         }
@@ -525,7 +524,7 @@ impl ServerApi {
         let mut client = http_client::Client::new_for_test();
         let mut telemetry_api = TelemetryApi::new();
         #[cfg(any(test, feature = "test-util", feature = "integration_tests"))]
-        if crate::local_mode::is_local_only_custom_provider_mode() {
+        {
             install_local_only_forbidden_warp_request_guard(&mut client);
             install_local_only_forbidden_warp_request_guard(&mut telemetry_api.client);
         }
@@ -1313,22 +1312,6 @@ impl ServerApiProvider {
             event_receiver,
             move |_, event, ctx| {
                 match event {
-                    AuthEvent::UserAccountDisabled => {
-                        // We dispatch a global action here because the log out code requires
-                        // `server_api`, causing a circular model reference panic when it calls
-                        // `ServerApiProvider` to get access.
-                        // TODO: We should remove this pattern where `ServerApiProvider` responds
-                        // to events; it's prone to these sorts of circular reference issues.
-                        ctx.dispatch_global_action("app:log_out", ());
-                    }
-                    AuthEvent::NeedsReauth => {
-                        // AuthManager depends on a reference to ServerApi, so ServerApi can't easily
-                        // hold a ref to AuthManager. To get around this, we emit an event on ServerApi
-                        // and handle calling the AuthManager here instead.
-                        AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                            auth_manager.set_needs_reauth(true, ctx);
-                        });
-                    }
                     AuthEvent::IapChallengeReceived => {
                         IapManager::handle(ctx)
                             .update(ctx, |manager, ctx| manager.handle_challenge(ctx));
@@ -1358,8 +1341,6 @@ impl ServerApiProvider {
         ServerExperiments::handle(ctx).update(ctx, |state, ctx| {
             state.apply_latest_state(experiments, ctx);
         });
-
-        settings_view::handle_experiment_change(ctx);
     }
 
     /// Constructs a new SeverApiProvider for tests.

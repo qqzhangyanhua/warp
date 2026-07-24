@@ -1,4 +1,3 @@
-use serial_test::serial;
 use warpui::platform::WindowStyle;
 use warpui::App;
 
@@ -21,9 +20,7 @@ fn initialize_app(app: &mut App) {
     initialize_settings_for_tests(app);
 
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());
-    app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
-    app.add_singleton_model(AuthManager::new_for_test);
     app.add_singleton_model(|_| NetworkStatus::new());
     app.add_singleton_model(|_| SystemStats::new());
     app.add_singleton_model(SyncQueue::mock);
@@ -38,34 +35,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| KeybindingChangedNotifier::mock());
     #[cfg(feature = "voice_input")]
     app.add_singleton_model(voice_input::VoiceInput::new);
-}
-
-#[test]
-#[serial]
-fn local_only_command_search_drive_sources_unavailable() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        app.update(|ctx| {
-            assert!(!command_search_drive_sources_available(ctx));
-        });
-    });
-}
-
-#[test]
-#[serial]
-fn standard_command_search_drive_sources_available() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        app.update(|ctx| {
-            assert!(command_search_drive_sources_available(ctx));
-        });
-    });
 }
 
 #[test]

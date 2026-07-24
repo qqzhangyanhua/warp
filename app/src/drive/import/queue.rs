@@ -7,7 +7,6 @@ use super::nodes::{self, FileId};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObjectEventEntrypoint, Owner};
 use crate::drive::folders::FolderId;
-use crate::local_mode;
 use crate::notebooks::CloudNotebookModel;
 use crate::server::cloud_objects::update_manager::{
     InitiatedBy, ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
@@ -102,14 +101,7 @@ pub(super) struct ImportQueue {
 }
 
 impl ImportQueue {
-    pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        if !local_mode::is_local_only_custom_provider_mode() {
-            let update_manager = UpdateManager::handle(ctx);
-            ctx.subscribe_to_model(&update_manager, |me, _, event, ctx| {
-                me.handle_update_manager_event(event, ctx);
-            });
-        }
-
+    pub fn new(_ctx: &mut ModelContext<Self>) -> Self {
         Self {
             queue: Vec::new(),
             client_to_server_id: HashMap::default(),

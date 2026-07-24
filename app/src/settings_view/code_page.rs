@@ -68,7 +68,6 @@ use crate::view_components::action_button::{ActionButton, SecondaryTheme};
 use crate::view_components::DismissibleToast;
 use crate::workspace::tab_settings::TabSettings;
 use crate::workspace::ToastStack;
-use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::AdminEnablementSetting;
 use crate::{send_telemetry_from_ctx, TelemetryEvent};
@@ -2705,18 +2704,6 @@ impl SettingsPageMeta for CodeSettingsPageView {
     fn should_render(&self, _ctx: &AppContext) -> bool {
         FeatureFlag::FullSourceCodeEmbedding.is_enabled()
             || FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
-    }
-
-    fn on_page_selected(&mut self, _: bool, ctx: &mut ViewContext<Self>) {
-        if crate::local_mode::is_local_only_custom_provider_mode() {
-            return;
-        }
-
-        // We want to immediately see if the user is part of a workspace rather than wait for the next poll.
-        std::mem::drop(
-            TeamUpdateManager::handle(ctx)
-                .update(ctx, |manager, ctx| manager.refresh_workspace_metadata(ctx)),
-        );
     }
 
     fn scroll_to_widget(&mut self, widget_id: &'static str) {

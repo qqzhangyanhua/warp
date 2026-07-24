@@ -5,13 +5,14 @@ use std::sync::Arc;
 
 use parking_lot::FairMutex;
 use warp::tui_export::{
-    AIAgentActionId, AIConversationId, AgentInteractionMetadata, BlockId, TerminalModel,
+    AIAgentActionId, AIConversationId, AgentInteractionMetadata, BlockId,
+    BlocklistAIControllerEvent, TerminalModel,
 };
 use warpui::EntityIdMap;
 use warpui_core::elements::tui::{TuiLayoutContext, TuiViewportWindow, TuiViewportedElement};
 use warpui_core::App;
 
-use super::hide_agent_requested_command_from_top_level;
+use super::{controller_error_message, hide_agent_requested_command_from_top_level};
 use crate::tui_block_list_viewport_source::TuiBlockListViewportSource;
 
 fn model_with_finished_block(command: &str) -> (TerminalModel, BlockId) {
@@ -27,6 +28,16 @@ fn model_with_finished_block(command: &str) -> (TerminalModel, BlockId) {
         .id()
         .clone();
     (model, block_id)
+}
+
+#[test]
+fn missing_provider_error_is_mapped_to_the_tui_hint() {
+    let message = "Configure the Provider API Key in Settings > ZYH Agent.".to_string();
+
+    assert_eq!(
+        controller_error_message(&BlocklistAIControllerEvent::ShowError(message.clone())),
+        Some(message.as_str())
+    );
 }
 
 fn mark_visible_agent_requested_command(

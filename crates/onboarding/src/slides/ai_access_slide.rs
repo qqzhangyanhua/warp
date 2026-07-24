@@ -1,13 +1,10 @@
 use ui_components::{button, Component as _, Options as _};
-use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
-use warp_core::ui::icons::Icon;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::Fill;
 use warpui_core::elements::{
-    Border, ClippedScrollStateHandle, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
-    Flex, FormattedTextElement, Hoverable, MainAxisAlignment, MainAxisSize, MouseStateHandle,
-    ParentElement, Radius, Stack,
+    Border, ClippedScrollStateHandle, Container, CornerRadius, CrossAxisAlignment, Flex,
+    FormattedTextElement, Hoverable, MainAxisSize, MouseStateHandle, ParentElement, Radius,
 };
 use warpui_core::fonts::Weight;
 use warpui_core::keymap::Keystroke;
@@ -22,26 +19,14 @@ use warpui_core::{
 
 use super::OnboardingSlide;
 use crate::i18n::{self, Locale, OnboardingMessage};
-use crate::model::{AiAccessChoice, OnboardingAuthState, OnboardingStateModel};
+use crate::model::{AiAccessChoice, OnboardingStateModel};
 use crate::slides::{bottom_nav, layout, slide_content};
 
 #[derive(Debug, Clone)]
 pub enum AiAccessSlideAction {
-    SelectSubscription,
     SelectSetUpLater,
-    CopyUpgradeUrlClicked,
-    PasteAuthTokenFromClipboardClicked,
     BackClicked,
     NextClicked,
-}
-
-/// Emitted to the parent onboarding view so the (app-crate) upgrade fallback
-/// actions can be handled at the root level — the onboarding crate can't
-/// reference them directly.
-#[derive(Debug, Clone)]
-pub enum AiAccessSlideEvent {
-    CopyUpgradeUrlRequested,
-    PasteAuthTokenFromClipboardRequested,
 }
 
 /// The "Choose how to access AI" slide (Warp Agent path). Forks between a paid
@@ -50,14 +35,10 @@ pub enum AiAccessSlideEvent {
 pub struct AiAccessSlide {
     onboarding_state: ModelHandle<OnboardingStateModel>,
     locale: Locale,
-    subscription_mouse_state: MouseStateHandle,
     set_up_later_mouse_state: MouseStateHandle,
     back_button: button::Button,
     next_button: button::Button,
     scroll_state: ClippedScrollStateHandle,
-    show_auth_prompt_bar: bool,
-    copy_url_mouse_state: MouseStateHandle,
-    paste_token_mouse_state: MouseStateHandle,
 }
 
 impl AiAccessSlide {
@@ -65,14 +46,10 @@ impl AiAccessSlide {
         Self {
             onboarding_state,
             locale,
-            subscription_mouse_state: MouseStateHandle::default(),
             set_up_later_mouse_state: MouseStateHandle::default(),
             back_button: button::Button::default(),
             next_button: button::Button::default(),
             scroll_state: ClippedScrollStateHandle::new(),
-            show_auth_prompt_bar: false,
-            copy_url_mouse_state: MouseStateHandle::default(),
-            paste_token_mouse_state: MouseStateHandle::default(),
         }
     }
 
@@ -109,11 +86,7 @@ impl AiAccessSlide {
 
         let title = appearance
             .ui_builder()
-            .paragraph(if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                i18n::tr(OnboardingMessage::ConfigureAi, self.locale)
-            } else {
-                i18n::tr(OnboardingMessage::GetAiAccess, self.locale)
-            })
+            .paragraph(i18n::tr(OnboardingMessage::ConfigureAi, self.locale))
             .with_style(UiComponentStyles {
                 font_size: Some(36.),
                 font_weight: Some(Weight::Medium),
@@ -123,11 +96,7 @@ impl AiAccessSlide {
             .finish();
 
         let subtitle = FormattedTextElement::from_str(
-            if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                i18n::tr(OnboardingMessage::AiAccessSubtitleAnonymous, self.locale)
-            } else {
-                i18n::tr(OnboardingMessage::AiAccessSubtitleLoggedIn, self.locale)
-            },
+            i18n::tr(OnboardingMessage::AiAccessSubtitleAnonymous, self.locale),
             appearance.ui_font_family(),
             16.,
         )
@@ -149,32 +118,10 @@ impl AiAccessSlide {
     }
 
     fn render_options(&self, appearance: &Appearance, choice: AiAccessChoice) -> Box<dyn Element> {
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-            return Container::new(self.render_set_up_later_card(appearance, true))
-                .with_margin_top(38.)
-                .finish();
-        }
-
-        let subscription_card = self
-            .render_subscription_card(appearance, matches!(choice, AiAccessChoice::Subscription));
-
-        let set_up_later_card =
-            self.render_set_up_later_card(appearance, matches!(choice, AiAccessChoice::SetUpLater));
-
-        Container::new(
-            Flex::column()
-                .with_main_axis_size(MainAxisSize::Min)
-                .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .with_child(
-                    Container::new(subscription_card)
-                        .with_margin_bottom(12.)
-                        .finish(),
-                )
-                .with_child(set_up_later_card)
-                .finish(),
-        )
-        .with_margin_top(38.)
-        .finish()
+        let _ = choice;
+        Container::new(self.render_set_up_later_card(appearance, true))
+            .with_margin_top(38.)
+            .finish()
     }
 
     /// Shared chrome for an option card: selected/unselected background + border,
@@ -215,89 +162,6 @@ impl AiAccessSlide {
             ctx.dispatch_typed_action(select_action.clone());
         })
         .finish()
-    }
-
-    fn render_subscription_card(
-        &self,
-        appearance: &Appearance,
-        is_selected: bool,
-    ) -> Box<dyn Element> {
-        let theme = appearance.theme();
-        let bg_solid = theme.background().into_solid();
-        let label_color = if is_selected {
-            internal_colors::text_main(theme, bg_solid)
-        } else {
-            internal_colors::text_sub(theme, bg_solid)
-        };
-        let description_color = internal_colors::text_sub(theme, bg_solid);
-
-        let label = appearance
-            .ui_builder()
-            .paragraph(i18n::tr(OnboardingMessage::Subscription, self.locale))
-            .with_style(UiComponentStyles {
-                font_size: Some(16.),
-                font_weight: Some(Weight::Semibold),
-                font_color: Some(label_color),
-                ..Default::default()
-            })
-            .build()
-            .finish();
-
-        let badge = {
-            let green = theme.ansi_fg_green();
-            let badge_text = appearance
-                .ui_builder()
-                .paragraph(i18n::tr(OnboardingMessage::BestValue, self.locale))
-                .with_style(UiComponentStyles {
-                    font_size: Some(12.),
-                    font_weight: Some(Weight::Normal),
-                    font_color: Some(green),
-                    ..Default::default()
-                })
-                .build()
-                .finish();
-            Container::new(badge_text)
-                .with_corner_radius(CornerRadius::with_all(Radius::Pixels(11.)))
-                .with_border(Border::all(1.).with_border_fill(Fill::Solid(green)))
-                .with_horizontal_padding(8.)
-                .with_vertical_padding(3.)
-                .finish()
-        };
-
-        let header_row = Flex::row()
-            .with_main_axis_size(MainAxisSize::Max)
-            .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(label)
-            .with_child(badge)
-            .finish();
-
-        let description = FormattedTextElement::from_str(
-            "Starting at $18 / mo, available with monthly or annual plans. Includes base credits, \
-             frontier models, cloud agents, collaboration, and more.",
-            appearance.ui_font_family(),
-            14.,
-        )
-        .with_color(description_color)
-        .with_weight(Weight::Normal)
-        .with_alignment(TextAlignment::Left)
-        .with_line_height_ratio(1.2)
-        .finish();
-
-        let content = Flex::column()
-            .with_main_axis_size(MainAxisSize::Min)
-            .with_cross_axis_alignment(CrossAxisAlignment::Start)
-            .with_child(header_row)
-            .with_child(Container::new(description).with_margin_top(12.).finish())
-            .finish();
-
-        Self::render_card_chrome(
-            appearance,
-            is_selected,
-            self.subscription_mouse_state.clone(),
-            AiAccessSlideAction::SelectSubscription,
-            content,
-        )
     }
 
     fn render_set_up_later_card(
@@ -405,127 +269,10 @@ impl AiAccessSlide {
             layout::FOREGROUND_LAYOUT_DEFAULT,
         )
     }
-
-    /// Full-width bar pinned below the slide's two-column layout. Shown after
-    /// the user picks Subscription and clicks "Next", so they can fall back to
-    /// copying the upgrade URL (or pasting the returned auth token) if the
-    /// browser didn't launch automatically.
-    fn render_auth_prompt_bar(&self, appearance: &Appearance) -> Box<dyn Element> {
-        const BAR_HEIGHT: f32 = 40.;
-        const ICON_SIZE: f32 = 14.;
-        const FONT_SIZE: f32 = 12.;
-
-        let theme = appearance.theme();
-        let bar_bg = theme.surface_1();
-        let bar_bg_solid = bar_bg.into_solid();
-        let text_color = internal_colors::text_sub(theme, bar_bg_solid);
-        let ui_builder = appearance.ui_builder();
-
-        let text_styles = UiComponentStyles {
-            font_color: Some(text_color),
-            font_size: Some(FONT_SIZE),
-            ..Default::default()
-        };
-        let link_styles = UiComponentStyles {
-            font_size: Some(FONT_SIZE),
-            ..Default::default()
-        };
-
-        let icon = ConstrainedBox::new(Box::new(
-            Icon::AlertCircle.to_warpui_icon(Fill::Solid(text_color)),
-        ))
-        .with_width(ICON_SIZE)
-        .with_height(ICON_SIZE)
-        .finish();
-
-        let copy_url_link = ui_builder
-            .link(
-                i18n::tr(OnboardingMessage::CopyTheUrl, self.locale).into(),
-                None,
-                Some(Box::new(|ctx| {
-                    ctx.dispatch_typed_action(AiAccessSlideAction::CopyUpgradeUrlClicked);
-                })),
-                self.copy_url_mouse_state.clone(),
-            )
-            .soft_wrap(false)
-            .with_style(link_styles)
-            .build()
-            .finish();
-
-        let paste_token_link = ui_builder
-            .link(
-                i18n::tr(OnboardingMessage::ClickHere, self.locale).into(),
-                None,
-                Some(Box::new(|ctx| {
-                    ctx.dispatch_typed_action(
-                        AiAccessSlideAction::PasteAuthTokenFromClipboardClicked,
-                    );
-                })),
-                self.paste_token_mouse_state.clone(),
-            )
-            .soft_wrap(false)
-            .with_style(link_styles)
-            .build()
-            .finish();
-
-        let text_row = Flex::row()
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(icon)
-            .with_child(
-                Container::new(
-                    ui_builder
-                        .span(i18n::tr(
-                            OnboardingMessage::IfBrowserHasntLaunched,
-                            self.locale,
-                        ))
-                        .with_style(text_styles)
-                        .build()
-                        .finish(),
-                )
-                .with_margin_left(8.)
-                .finish(),
-            )
-            .with_child(copy_url_link)
-            .with_child(
-                ui_builder
-                    .span(i18n::tr(
-                        OnboardingMessage::AndOpenThePageManually,
-                        self.locale,
-                    ))
-                    .with_style(text_styles)
-                    .build()
-                    .finish(),
-            )
-            .with_child(paste_token_link)
-            .with_child(
-                ui_builder
-                    .span(i18n::tr(OnboardingMessage::ToPasteYourToken, self.locale))
-                    .with_style(text_styles)
-                    .build()
-                    .finish(),
-            )
-            .finish();
-
-        let row = Flex::row()
-            .with_main_axis_size(MainAxisSize::Max)
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(text_row)
-            .finish();
-
-        ConstrainedBox::new(
-            Container::new(row)
-                .with_background(bar_bg)
-                .with_border(Border::top(1.).with_border_color(internal_colors::neutral_4(theme)))
-                .with_horizontal_padding(16.)
-                .finish(),
-        )
-        .with_min_height(BAR_HEIGHT)
-        .finish()
-    }
 }
 
 impl Entity for AiAccessSlide {
-    type Event = AiAccessSlideEvent;
+    type Event = ();
 }
 
 impl View for AiAccessSlide {
@@ -537,30 +284,10 @@ impl View for AiAccessSlide {
         let appearance = Appearance::as_ref(app);
         let choice = self.choice(app);
 
-        let slide = layout::static_left(
+        layout::static_left(
             || self.render_content(appearance, choice, app),
             || self.render_visual(),
-        );
-
-        // Overlay the fallback bar at the bottom (rather than adding it to the
-        // column) so the slide layout stays stable whether or not it's shown.
-        let show_bar = self.show_auth_prompt_bar
-            && !matches!(
-                self.onboarding_state.as_ref(app).auth_state(),
-                OnboardingAuthState::PayingUser,
-            );
-        if !show_bar {
-            return slide;
-        }
-
-        let mut stack = Stack::new();
-        stack.add_child(slide);
-        stack.add_child(
-            Align::new(self.render_auth_prompt_bar(appearance))
-                .bottom_center()
-                .finish(),
-        );
-        stack.finish()
+        )
     }
 }
 
@@ -578,41 +305,15 @@ impl AiAccessSlide {
         });
     }
 
-    /// Primary "Next" action. On the subscription path this advances when the
-    /// user already has a plan, otherwise it launches checkout in the browser
-    /// (the slide auto-advances once billing flips to a paying plan). The "Set
-    /// up later" path always advances.
     fn advance_or_upgrade(&mut self, ctx: &mut ViewContext<Self>) {
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-            self.next(ctx);
-            return;
-        }
-        match self.choice(ctx) {
-            AiAccessChoice::Subscription => {
-                if matches!(
-                    self.onboarding_state.as_ref(ctx).auth_state(),
-                    OnboardingAuthState::PayingUser
-                ) {
-                    self.next(ctx);
-                } else {
-                    // Surface the manual-fallback bar in case the browser
-                    // doesn't launch; it's hidden again once billing flips to
-                    // PayingUser.
-                    self.show_auth_prompt_bar = true;
-                    self.onboarding_state.update(ctx, |model, ctx| {
-                        model.request_upgrade(ctx);
-                    });
-                    ctx.notify();
-                }
-            }
-            AiAccessChoice::SetUpLater => self.next(ctx),
-        }
+        self.select_choice(AiAccessChoice::SetUpLater, ctx);
+        self.next(ctx);
     }
 }
 
 impl OnboardingSlide for AiAccessSlide {
     fn on_up(&mut self, ctx: &mut ViewContext<Self>) {
-        self.select_choice(AiAccessChoice::Subscription, ctx);
+        self.select_choice(AiAccessChoice::SetUpLater, ctx);
     }
 
     fn on_down(&mut self, ctx: &mut ViewContext<Self>) {
@@ -629,17 +330,8 @@ impl TypedActionView for AiAccessSlide {
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
-            AiAccessSlideAction::SelectSubscription => {
-                self.select_choice(AiAccessChoice::Subscription, ctx);
-            }
             AiAccessSlideAction::SelectSetUpLater => {
                 self.select_choice(AiAccessChoice::SetUpLater, ctx);
-            }
-            AiAccessSlideAction::CopyUpgradeUrlClicked => {
-                ctx.emit(AiAccessSlideEvent::CopyUpgradeUrlRequested);
-            }
-            AiAccessSlideAction::PasteAuthTokenFromClipboardClicked => {
-                ctx.emit(AiAccessSlideEvent::PasteAuthTokenFromClipboardRequested);
             }
             AiAccessSlideAction::BackClicked => {
                 self.onboarding_state.update(ctx, |model, ctx| {

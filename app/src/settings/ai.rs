@@ -28,8 +28,6 @@ use warpui::platform::OperatingSystem;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity, UpdateModel};
 
 use crate::ai::request_usage_model::RequestLimitInfo;
-use crate::auth::AuthStateProvider;
-use crate::settings::PrivacySettings;
 use crate::terminal::CLIAgent;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
@@ -1401,30 +1399,6 @@ define_settings_group!(AISettings, settings: [
         private: true,
     }
 
-    // Used to determine whether the "What's new in Oz" section of the agent view
-    // zero state is expanded or collapsed by default.
-    should_expand_oz_updates: ShouldExpandOzUpdates {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Never,
-        surface: settings::SettingSurfaces::GUI,
-        private: true,
-    }
-
-    // Used to determine whether the "What's new in Oz" section of the agent view
-    // zero state is shown or hidden.
-    should_show_oz_updates_in_zero_state: ShouldShowOzUpdatesInZeroState {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        surface: settings::SettingSurfaces::GUI,
-        private: false,
-        toml_path: "agents.warp_agent.other.should_show_oz_updates_in_zero_state",
-        description: "Whether the \"What's new\" section is shown in the agent view.",
-    }
-
     // Whether or not the user has enabled fallback to Warp credits for user-provided models.
     can_use_warp_credits_for_fallback: CanUseWarpCreditsForFallback {
         type: bool,
@@ -1721,31 +1695,6 @@ define_settings_group!(AISettings, settings: [
         description: "Whether to force-disable the & prefix for cloud handoff compose mode.",
     }
 
-    auto_handoff_on_sleep_enabled: AutoHandoffOnSleepEnabled {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::MAC,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        surface: settings::SettingSurfaces::GUI,
-        private: false,
-        toml_path: "agents.warp_agent.other.auto_handoff_on_sleep_enabled",
-        description: "Whether Warp automatically hands off local agent conversations to cloud when the computer is about to sleep.",
-    }
-
-    // This is not a user-visible setting - it's merely a one-time flag to track if the
-    // auto-handoff sleep modal has been shown to the user.
-    //
-    // We model it as a setting so it's only shown once to a given user regardless of the number of
-    // devices they use.
-    did_show_auto_handoff_sleep_modal: DidShowAutoHandoffSleepModal {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::No),
-        surface: settings::SettingSurfaces::GUI,
-        private: true,
-    }
-
     // Not a user-visible setting - it tracks which one-time feature-intro popups the
     // user has already seen, keyed by the feature-intro id (see `FEATURE_INTROS`).
     //
@@ -1797,14 +1746,7 @@ impl AISettings {
     }
 
     pub fn is_any_ai_enabled(&self, app: &AppContext) -> bool {
-        // Disable AI for anonymous and logged-out users.
-        let is_anonymous_or_logged_out = AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out();
-
-        *self.is_any_ai_enabled
-            && (!is_anonymous_or_logged_out || FeatureFlag::AnonymousOnlyMode.is_enabled())
-            && !self.is_ai_disabled_due_to_remote_session_org_policy(app)
+        *self.is_any_ai_enabled && !self.is_ai_disabled_due_to_remote_session_org_policy(app)
     }
 
     pub fn default_session_mode(&self, app: &AppContext) -> DefaultSessionMode {
@@ -1944,37 +1886,11 @@ impl AISettings {
     /// False when the user/org has disabled it, cloud conversations are off,
     /// or AI is globally off.
     pub fn is_cloud_handoff_enabled(&self, app: &warpui::AppContext) -> bool {
-        if FeatureFlag::AnonymousOnlyMode.is_enabled()
-            || !self.is_any_ai_enabled(app)
-            || *self.should_force_disable_cloud_handoff
-        {
-            return false;
-        }
-        if !FeatureFlag::OzHandoff.is_enabled()
-            || !FeatureFlag::HandoffLocalCloud.is_enabled()
-            || !cfg!(all(feature = "local_fs", not(target_family = "wasm")))
-        {
-            return false;
-        }
-        let privacy = PrivacySettings::as_ref(app);
-        if !privacy.is_cloud_conversation_storage_enabled {
-            return false;
-        }
-        !matches!(
-            UserWorkspaces::as_ref(app).get_cloud_conversation_storage_enablement_setting(),
-            crate::workspaces::workspace::AdminEnablementSetting::Disable
-        )
+        let _ = app;
+        false
     }
     pub fn is_ampersand_handoff_enabled(&self, app: &warpui::AppContext) -> bool {
         self.is_cloud_handoff_enabled(app) && !*self.should_force_disable_ampersand_handoff
-    }
-
-    pub fn is_auto_handoff_on_sleep_enabled(&self, app: &warpui::AppContext) -> bool {
-        self.is_cloud_handoff_enabled(app)
-            && self
-                .auto_handoff_on_sleep_enabled
-                .is_supported_on_current_platform()
-            && *self.auto_handoff_on_sleep_enabled
     }
 
     /// Determines whether a quota reset banner should be displayed to the user.

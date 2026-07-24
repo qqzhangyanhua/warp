@@ -247,7 +247,6 @@ use crate::ai::blocklist::model::{
 };
 use crate::ai::blocklist::orchestration_topology::OrchestrationNavigationDirection;
 use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
 use crate::ai::blocklist::summarization_cancel_dialog::SummarizationCancelDialog;
 use crate::ai::blocklist::telemetry_banner::{should_collect_ai_ugc_telemetry, TelemetryBanner};
 use crate::ai::blocklist::usage::conversation_usage_view::{
@@ -285,11 +284,8 @@ use crate::ai::predict::prompt_suggestions::{
 use crate::ai_assistant::{AskAIType, ASK_AI_ASSISTANT_TEXT};
 use crate::antivirus::AntivirusInfo;
 use crate::appearance::{Appearance, AppearanceEvent};
-use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
-use crate::auth::{AuthStateProvider, UserUid};
-use crate::autoupdate::{self, get_update_state, AutoupdateStage};
+use crate::auth::UserUid;
 use crate::banner::{
     Banner, BannerAction, BannerEvent, BannerState, BannerTextButton, BannerTextContent,
     DismissalType,
@@ -319,7 +315,6 @@ use crate::context_chips::prompt::{Prompt, PromptSelection};
 use crate::context_chips::prompt_type::PromptType;
 use crate::context_chips::ContextChipKind;
 use crate::drive::settings::WarpDriveSettings;
-use crate::drive::sharing::ShareableObject;
 use crate::drive::CloudObjectTypeAndId;
 use crate::editor::{AutosuggestionType, CrdtOperation, EditorAction};
 use crate::env_vars::env_var_collection_block::{
@@ -348,11 +343,11 @@ use crate::server::ids::{ObjectUid, SyncId};
 use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
     self, AgentModeAttachContextMethod, AgentModeEntrypoint, AgentModeRewindEntrypoint,
-    AnonymousUserSignupEntrypoint, BlockLatencyInfo, BootstrappingInfo,
-    CommandCorrectionAcceptedType, CommandCorrectionEvent, InteractionSource, LinkOpenMethod,
-    NotificationAgentVariant, NotificationsTurnedOnSource, PaletteSource, PromptSuggestionViewType,
-    SaveAsWorkflowModalSource, SecretInteraction, SharingDialogSource, SlowBootstrapInfo,
-    TelemetryEvent, ToggleBlockFilterSource, WorkflowTelemetryMetadata,
+    AnonymousUserSignupEntrypoint, BootstrappingInfo, CommandCorrectionAcceptedType,
+    CommandCorrectionEvent, InteractionSource, LinkOpenMethod, NotificationAgentVariant,
+    NotificationsTurnedOnSource, PaletteSource, PromptSuggestionViewType,
+    SaveAsWorkflowModalSource, SecretInteraction, SlowBootstrapInfo, TelemetryEvent,
+    ToggleBlockFilterSource, WorkflowTelemetryMetadata,
 };
 use crate::session_management::{CommandContext, SessionNavigationPromptElements};
 use crate::settings::ai::FocusedTerminalInfo;
@@ -542,9 +537,8 @@ use crate::workspace::{
 use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 use crate::workspaces::workspace::CustomerType;
 use crate::{
-    safe_error, safe_warn, send_telemetry_from_ctx, send_telemetry_on_executor,
-    send_telemetry_sync_from_ctx, AIAgentActionResultType, AIRequestUsageModel,
-    ActiveSession as WindowActiveSession,
+    safe_error, safe_warn, send_telemetry_from_ctx, send_telemetry_sync_from_ctx,
+    AIAgentActionResultType, ActiveSession as WindowActiveSession,
 };
 
 lazy_static! {
@@ -1455,20 +1449,12 @@ pub enum ContextMenuAction {
     CopyServerRequestId {
         request_id: ServerConversationToken,
     },
-    // Copy the share link for a conversation in the blocklist.
-    CopyConversationShareLink {
-        conversation_id: AIConversationId,
-    },
     // Copy the text of a conversation in the blocklist.
     CopyConversationText {
         conversation_id: AIConversationId,
     },
     // Fork a conversation in the blocklist into a new pane.
     ForkAIConversation {
-        conversation_id: AIConversationId,
-    },
-    /// Opens the sharing dialog for a conversation from the AI block context menu
-    OpenConversationShareDialog {
         conversation_id: AIConversationId,
     },
     OpenShareSessionModal,
@@ -1585,10 +1571,8 @@ impl fmt::Debug for ContextMenuAction {
             CopyExternalDebuggingId { .. } => f.write_str("CopyExternalDebuggingId"),
             CopyConversationId { .. } => f.write_str("CopyConversationId"),
             CopyServerRequestId { .. } => f.write_str("CopyServerRequestId"),
-            CopyConversationShareLink { .. } => f.write_str("CopyConversationShareLink"),
             CopyConversationText { .. } => f.write_str("CopyConversationText"),
             ForkAIConversation { .. } => f.write_str("ForkAIConversation"),
-            OpenConversationShareDialog { .. } => f.write_str("OpenConversationShareDialog"),
             ForkAIConversationFromBlock { .. } => f.write_str("ForkAIConversationFromBlock"),
             ForkAIConversationFromExactExchange { .. } => {
                 f.write_str("ForkAIConversationFromExactExchange")
@@ -1758,9 +1742,6 @@ pub enum Event {
     OpenWarpDriveObjectInPane(ObjectUid),
     OpenSuggestedAgentModeWorkflowModal {
         workflow_and_id: SuggestedAgentModeWorkflowAndId,
-    },
-    OpenSuggestedRuleDialog {
-        rule_and_id: SuggestedRuleAndId,
     },
     OpenAIFactCollection {
         /// If set, open the fact collection to the specific rule.
@@ -2039,9 +2020,6 @@ pub enum Event {
     SlowBootstrap,
     OpenAgentProfileEditor {
         profile_id: ClientProfileId,
-    },
-    OpenAutoReloadModal {
-        purchased_credits: i32,
     },
     #[cfg(not(target_family = "wasm"))]
     OpenPluginInstructionsPane(CLIAgent, PluginModalKind),
@@ -2635,8 +2613,8 @@ pub struct TerminalView {
 
     mouse_states: TerminalViewMouseStates,
 
-    server_api: Arc<ServerApi>,
-    auth_state: Arc<AuthState>,
+    server_api: Option<Arc<ServerApi>>,
+    auth_state: Option<Arc<AuthState>>,
 
     /// A sender used to handle messages for whenever the entire terminal view
     /// changes size.  Note that this size contains not just the content element
@@ -2964,9 +2942,6 @@ pub struct TerminalView {
     conversation_details_panel_toggle_mouse_state: warpui::elements::MouseStateHandle,
     /// Mouse state handle for the ambient agent cancel button in the pane header.
     ambient_agent_cancel_mouse_state: warpui::elements::MouseStateHandle,
-
-    /// First-time cloud agent setup view (full-screen overlay for creating initial environment).
-    first_time_cloud_agent_setup_view: ViewHandle<ambient_agent::FirstTimeCloudAgentSetupView>,
 
     /// Environment setup mode selector modal for /create-environment command.
     environment_setup_mode_selector: ViewHandle<EnvironmentSetupModeSelector>,
@@ -4254,13 +4229,6 @@ impl TerminalView {
             }
         });
 
-        let first_time_cloud_agent_setup_view =
-            ctx.add_typed_action_view(ambient_agent::FirstTimeCloudAgentSetupView::new);
-
-        ctx.subscribe_to_view(&first_time_cloud_agent_setup_view, |me, _, event, ctx| {
-            me.handle_first_time_cloud_agent_setup_event(event, ctx);
-        });
-
         let environment_setup_mode_selector =
             ctx.add_typed_action_view(EnvironmentSetupModeSelector::new);
 
@@ -4387,7 +4355,7 @@ impl TerminalView {
             open_grid_link_tool_tip: None,
             open_rich_content_link_tool_tip: None,
             server_api: resources.server_api.clone(),
-            auth_state: AuthStateProvider::as_ref(ctx).get().clone(),
+            auth_state: None,
             find_bar,
             resize_tx,
             pending_agent_scroll_target: None,
@@ -4510,7 +4478,6 @@ impl TerminalView {
             active_init_project_model: None,
             is_pending_aws_login: false,
             manual_pty_shutdown_requested: false,
-            first_time_cloud_agent_setup_view,
             environment_setup_mode_selector,
             is_environment_setup_mode_selector_open: false,
             pane_stack: None,
@@ -4884,8 +4851,6 @@ impl TerminalView {
         if let Some(restoration) = conversation_restoration {
             terminal_view.restore_conversations_on_view_creation(restoration, ctx);
         }
-
-        send_telemetry_from_ctx!(TelemetryEvent::SessionCreation, ctx);
 
         terminal_view
     }
@@ -10216,11 +10181,6 @@ impl TerminalView {
             }
         };
 
-        // Return early if we've run out of AI usage.
-        if !AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx) {
-            return false;
-        }
-
         let Some(banner_state) = &self.inline_banners_state.prompt_suggestions_banner else {
             return false;
         };
@@ -12863,26 +12823,6 @@ impl TerminalView {
                 }
             }
             ModelEvent::Handler(_) => {}
-            ModelEvent::FinishUpdate(data) => {
-                let AutoupdateStage::UpdateReady {
-                    update_id: expected_update_id,
-                    ..
-                } = get_update_state(ctx)
-                else {
-                    log::warn!(
-                        "Got a FinishUpdate event without AutoupdateState being UpdateReady!"
-                    );
-                    return;
-                };
-                if expected_update_id == data.update_id {
-                    // Terminate this shell session so that it doesn't come
-                    // back when we restore sessions after the relaunch.
-                    self.shutdown_pty(ctx);
-                    autoupdate::initiate_relaunch_for_update(ctx);
-                } else {
-                    log::warn!("Got a FinishUpdate event with non-matching update id!");
-                }
-            }
             ModelEvent::SelectedTextChanged => {
                 ctx.emit(Event::SelectedTextChanged);
             }
@@ -13662,12 +13602,6 @@ impl TerminalView {
         self.is_login_shell_bootstrapped = true;
         self.hide_slow_bootstrap_banner(ctx);
 
-        if self.auth_state.is_anonymous_or_logged_out()
-            && !FeatureFlag::OpenWarpNewSettingsModes.is_enabled()
-        {
-            self.insert_anonymous_user_ai_sign_up_banner(ctx);
-        }
-
         if self.should_display_vim_banner(&session, ctx) {
             self.insert_vim_mode_banner(ctx);
         }
@@ -13773,12 +13707,6 @@ impl TerminalView {
 
         self.ignore_next_set_title_event = true;
 
-        let auth_state = AuthStateProvider::as_ref(ctx).get();
-        let is_onboarded = auth_state.is_onboarded().unwrap_or(true);
-        let is_anonymous_or_logged_out = auth_state.is_anonymous_or_logged_out();
-        let should_show_onboarding = FeatureFlag::AgentOnboarding.is_enabled()
-            && !is_onboarded
-            && !is_anonymous_or_logged_out;
         let is_launch_modal_open = OneTimeModalModel::as_ref(ctx).is_oz_launch_modal_open();
 
         let has_plugin_instructions_block = self.rich_content_views.iter().any(|rc| {
@@ -13791,7 +13719,6 @@ impl TerminalView {
         if FeatureFlag::AgentView.is_enabled()
             && TerminalSettings::as_ref(ctx).should_show_zero_state_block(ctx)
             && !self.model.lock().block_list().is_restored_session()
-            && !should_show_onboarding
             && self.onboarding_callout_view.is_none()
             && !is_launch_modal_open
             && !is_subshell_or_ssh
@@ -20403,11 +20330,6 @@ impl TerminalView {
                     workflow_and_id: workflow_and_id.clone(),
                 });
             }
-            AIBlockEvent::OpenSuggestedRuleDialog { rule_and_id } => {
-                ctx.emit(Event::OpenSuggestedRuleDialog {
-                    rule_and_id: rule_and_id.clone(),
-                });
-            }
             AIBlockEvent::FocusTerminal => {
                 self.redetermine_global_focus(ctx);
             }
@@ -21046,33 +20968,7 @@ impl TerminalView {
         block_index: BlockIndex,
         ctx: &mut ViewContext<Self>,
     ) {
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    "Share Block",
-                    AuthViewVariant::ShareRequirementCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ContextMenuOpenShareModal(self.selected_blocks.cardinality()),
-            ctx
-        );
-        self.tips_completed.update(ctx, |tips, ctx| {
-            mark_feature_used_and_write_to_user_defaults(
-                Tip::Hint(TipHint::BlockAction),
-                tips,
-                ctx,
-            );
-            ctx.notify();
-        });
-        ctx.emit(Event::ShareModalOpened(block_index));
+        log::warn!("Block sharing is unavailable in ZYH: {block_index:?}");
         self.close_context_menu(ctx, true);
         ctx.notify();
     }
@@ -21843,11 +21739,6 @@ impl TerminalView {
                     document_id: *document_id,
                     document_version: *document_version,
                     is_auto_open: false,
-                });
-            }
-            InputEvent::OpenAutoReloadModal { purchased_credits } => {
-                ctx.emit(Event::OpenAutoReloadModal {
-                    purchased_credits: *purchased_credits,
                 });
             }
             InputEvent::AuthSecretDeleteConfirmationDialogToggled { is_open } => {
@@ -24885,24 +24776,11 @@ impl TerminalView {
                     request_id.as_str().to_string(),
                 ));
             }
-            CopyConversationShareLink { conversation_id } => {
-                if let Some(link) = ShareableObject::AIConversation(*conversation_id).link(ctx) {
-                    ctx.clipboard().write(ClipboardContent::plain_text(link));
-                }
-            }
             CopyConversationText { conversation_id } => {
                 self.copy_conversation_text(*conversation_id, ctx);
             }
             ForkAIConversation { conversation_id } => {
                 self.fork_ai_conversation(*conversation_id, None, ctx);
-            }
-            OpenConversationShareDialog { conversation_id } => {
-                // Set the shareable object and open the sharing dialog via the pane header
-                let shareable_object = ShareableObject::AIConversation(*conversation_id);
-                self.pane_configuration.update(ctx, |pane_config, ctx| {
-                    pane_config.set_shareable_object(Some(shareable_object), ctx);
-                    pane_config.toggle_sharing_dialog(SharingDialogSource::AIBlockContextMenu, ctx);
-                });
             }
             CopyAgentCommand { ai_block_view_id } => {
                 for rich_content in self.rich_content_views.iter() {
@@ -25304,7 +25182,7 @@ impl TerminalView {
     // It doesn't matter when this method is called, as long as it's before the next frame is drawn.
     fn install_block_latency_telemetry_callback(
         &mut self,
-        block_latency_data: BlockLatencyData,
+        _block_latency_data: BlockLatencyData,
         ctx: &mut ViewContext<Self>,
     ) {
         let session_info = self
@@ -25315,22 +25193,7 @@ impl TerminalView {
                 (session.is_ssh_wrapper_session(), shell_name)
             });
 
-        if let Some((is_ssh, shell)) = session_info {
-            let auth_state = self.auth_state.clone();
-            let executor = ctx.background_executor().clone();
-            ctx.on_next_frame_drawn(move || {
-                let block_event = TelemetryEvent::BaselineCommandLatency(BlockLatencyInfo {
-                    command: block_latency_data.command,
-                    shell,
-                    is_ssh,
-                    // The execution time is from the time the block started (i.e. user hit
-                    // enter) to when the first frame after the block completed is finished
-                    // drawing.
-                    execution_ms: block_latency_data.started_at.elapsed().as_millis() as u64,
-                });
-                send_telemetry_on_executor!(auth_state, block_event, executor);
-            })
-        } else {
+        if session_info.is_none() {
             log::warn!("Could not log block latency telemetry since session info was none");
         }
     }
@@ -25532,7 +25395,7 @@ impl TerminalView {
             // TODO(CORE-2300): This appears to be used for invoking env vars.
             // Before we close out CORE-2300, we should evaluate if we need to add
             // shell info here.
-            let shell_starter = get_shell_starter(None, &self.auth_state, ctx)?;
+            let shell_starter = get_shell_starter(None, ctx)?;
             let shell_path = match &shell_starter {
                 ShellStarter::Direct(direct_shell_starter)
                 | ShellStarter::MSYS2(direct_shell_starter) => direct_shell_starter
@@ -26908,7 +26771,11 @@ impl TypedActionView for TerminalView {
                     .lock()
                     .shared_session_status()
                     .is_sharer_or_viewer()
-                    || self.auth_state.is_anonymous_or_logged_out()
+                    || self.auth_state.is_none()
+                    || self
+                        .auth_state
+                        .as_ref()
+                        .is_some_and(|state| state.is_anonymous_or_logged_out())
                 {
                     return;
                 };
@@ -27068,13 +26935,7 @@ impl TypedActionView for TerminalView {
                 ctx.open_url(&hyperlink.url);
             }
             AttemptLoginGatedFeature => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.attempt_login_gated_feature(
-                        "Upgrade AI Usage",
-                        AuthViewVariant::RequireLoginCloseable,
-                        ctx,
-                    )
-                });
+                log::warn!("Warp AI usage upgrades are unavailable in ZYH");
             }
             StartFileDropTarget => {
                 let Some(session) = self
@@ -27431,12 +27292,7 @@ impl TypedActionView for TerminalView {
                     page: Some(MCPServersSettingsPage::Edit { item_id: None }),
                 });
             }
-            OpenBillingAndUsagePane => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return;
-                }
-                ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
-            }
+            OpenBillingAndUsagePane => {}
             OpenAddRulePane => {
                 ctx.emit(Event::OpenAddRulePane);
             }
@@ -28159,14 +28015,6 @@ impl View for TerminalView {
         }
 
         // Render first-time cloud agent setup view when in Setup status
-        if self
-            .ambient_agent_view_model
-            .as_ref()
-            .is_some_and(|model| model.as_ref(app).is_in_setup())
-        {
-            stack.add_child(ChildView::new(&self.first_time_cloud_agent_setup_view).finish());
-        }
-
         if self.ssh_file_upload.as_ref(app).has_upload() {
             stack.add_child(
                 Align::new(ChildView::new(&self.ssh_file_upload).finish())
@@ -28619,7 +28467,9 @@ impl Drop for TerminalView {
                 let was_ever_visible = self.was_ever_visible;
                 let duration_since_start =
                     self.bootstrap_start.unwrap_or_else(Instant::now).elapsed();
-                let server_api = self.server_api.clone();
+                let Some(server_api) = self.server_api.clone() else {
+                    return;
+                };
                 let privacy_settings_snapshot = self.privacy_settings_snapshot;
                 let task = self.background_executor.spawn(async move {
                     if let Err(error) = server_api

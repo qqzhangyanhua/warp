@@ -19,8 +19,6 @@ use crate::test_util::settings::initialize_settings_for_tests;
 #[test]
 #[serial_test::serial]
 fn local_only_model_initializes_without_cloud_managers() {
-    let _local_only_guard = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
         let model = app.add_model(AIDocumentModel::new);
@@ -41,8 +39,6 @@ fn initialize_app_for_ai_document_tests(app: &mut App) {
 #[test]
 #[serial_test::serial]
 fn local_only_plan_publication_skips_warp_drive_sync() {
-    let _local_only_guard = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_app_for_ai_document_tests(&mut app);
         let model = app.add_model(AIDocumentModel::new);

@@ -40,18 +40,15 @@ pub use crate::ai::blocklist::history_model::{
 pub use crate::ai::blocklist::view_util::format_credits;
 pub use crate::ai::blocklist::{
     AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIContextModel,
-    BlocklistAIController, BlocklistAIInputModel, InputConfig, InputModePolicy,
-    InputModePolicyHandle, InputType, InputTypeAutoDetectionSource, PolicyConfigUpdate,
-    RequestFileEditsExecutor, ShellCommandExecutor, ShellCommandExecutorEvent,
+    BlocklistAIController, BlocklistAIControllerEvent, BlocklistAIInputModel, InputConfig,
+    InputModePolicy, InputModePolicyHandle, InputType, InputTypeAutoDetectionSource,
+    PolicyConfigUpdate, RequestFileEditsExecutor, ShellCommandExecutor, ShellCommandExecutorEvent,
 };
 pub use crate::ai::get_relevant_files::controller::GetRelevantFilesController;
 pub use crate::ai::llms::{LLMId, LLMInfo, LLMPreferences, LLMPreferencesEvent};
 pub use crate::ai::skills::SkillManager;
 pub use crate::appearance::Appearance;
 pub use crate::banner::BannerState;
-pub use crate::changelog_model::{
-    ChangelogModel, ChangelogRequestType, ChangelogState, Event as ChangelogModelEvent,
-};
 pub use crate::code::DiffResult;
 pub use crate::code_review::git_repo_model::{
     GitRepoModels, GitRepoStatusModel, GitStatusMetadata,

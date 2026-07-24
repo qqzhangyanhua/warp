@@ -20,7 +20,6 @@ use warpui::windowing::WindowManager;
 use warpui::{AppContext, SingletonEntity};
 
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::auth::AuthStateProvider;
 use crate::default_terminal::DefaultTerminal;
 use crate::features::{runtime_flags_menu_items, FeatureFlag};
 use crate::root_view::OpenLaunchConfigArg;
@@ -36,7 +35,6 @@ use crate::user_config::WarpConfig;
 use crate::util::bindings::{self, trigger_to_keystroke, CustomAction};
 use crate::util::links;
 use crate::workspace::sync_inputs::SyncedInputState;
-use crate::{auth, local_mode};
 
 type CheckmarkStatusGetter = dyn 'static + Fn(&mut AppContext) -> bool;
 
@@ -252,13 +250,6 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         preferences_menu_items,
     )));
 
-    if FeatureFlag::Changelog.is_enabled() {
-        menu_items.push(updateable_custom_item_without_checkmark(
-            CustomAction::ViewChangelog,
-            ctx,
-        ));
-    }
-
     #[cfg(target_os = "macos")]
     {
         menu_items.push(MenuItem::Services);
@@ -300,23 +291,6 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
         None,
     )));
     menu_items.push(MenuItem::Separator);
-    if account_and_cloud_actions_available() {
-        menu_items.push(MenuItem::Custom(CustomMenuItem::new(
-            app_menu_text(ctx, "Log out").as_ref(),
-            auth::maybe_log_out,
-            move |_, ctx| {
-                let is_anonymous = AuthStateProvider::handle(ctx)
-                    .as_ref(ctx)
-                    .get()
-                    .is_anonymous_or_logged_out();
-                MenuItemPropertyChanges {
-                    disabled: Some(is_anonymous),
-                    ..Default::default()
-                }
-            },
-            None,
-        )));
-    }
     menu_items.push(MenuItem::Standard(StandardAction::Quit));
     Menu::new(crate::product::PRODUCT_DISPLAY_NAME, menu_items)
 }
@@ -702,11 +676,6 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
         updateable_custom_item_without_checkmark(CustomAction::OpenMCPServerCollection, ctx),
     ]);
 
-    items.push(updateable_custom_item_without_checkmark(
-        CustomAction::SharePaneContents,
-        ctx,
-    ));
-
     if FeatureFlag::CreatingSharedSessions.is_enabled() {
         items.extend([
             MenuItem::Separator,
@@ -718,12 +687,11 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
 }
 
 fn account_and_cloud_actions_available() -> bool {
-    !FeatureFlag::AnonymousOnlyMode.is_enabled()
-        && !local_mode::is_local_only_custom_provider_mode()
+    false
 }
 
 fn drive_menu_available() -> bool {
-    !local_mode::is_local_only_custom_provider_mode()
+    false
 }
 
 /// Returns [`MenuItem`]s that aid debugging to be included in the Block menu.
@@ -1305,21 +1273,8 @@ mod tests {
 
     #[test]
     #[serial]
-    fn local_only_app_menu_disables_account_and_cloud_surfaces() {
-        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+    fn zyh_app_menu_disables_account_and_cloud_surfaces() {
         assert!(!drive_menu_available());
         assert!(!account_and_cloud_actions_available());
-    }
-
-    #[test]
-    #[serial]
-    fn standard_app_menu_keeps_account_and_cloud_surfaces() {
-        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-        assert!(drive_menu_available());
-        assert!(account_and_cloud_actions_available());
     }
 }

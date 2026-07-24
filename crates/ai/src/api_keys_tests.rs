@@ -28,6 +28,12 @@ fn make_manager_with_geap(geap_credentials_state: GeapCredentialsState) -> ApiKe
     manager
 }
 
+#[test]
+fn empty_secure_storage_payloads_are_treated_as_absent() {
+    assert_eq!(deserialize_api_keys("  ").unwrap(), ApiKeys::default());
+    assert!(deserialize_grok_tokens("").unwrap().is_none());
+}
+
 fn grok_tokens(access_token: &str, expires_in: Option<u64>) -> GrokTokens {
     GrokTokens {
         access_token: access_token.into(),

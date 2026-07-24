@@ -33,8 +33,6 @@ use crate::editor::{
     TextOptions,
 };
 use crate::i18n::{tr, tr_cached, Message};
-use crate::local_mode;
-use crate::network::NetworkStatus;
 use crate::search_bar::SearchBar;
 use crate::server::cloud_objects::update_manager::{UpdateManager, UpdateManagerEvent};
 use crate::server::ids::{ClientId, SyncId};
@@ -45,7 +43,6 @@ use crate::util::path::display_path_with_host;
 use crate::view_components::action_button::{ActionButton, NakedTheme};
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 pub const HEADER_TEXT: &str = "Rules";
 fn description_text() -> &'static str {
@@ -177,25 +174,6 @@ pub struct RuleView {
 
 impl RuleView {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
-        if !local_mode::is_local_only_custom_provider_mode() {
-            let update_manager = UpdateManager::handle(ctx);
-            ctx.subscribe_to_model(&update_manager, |me, _, event, ctx| {
-                me.handle_update_manager_event(event, ctx);
-            });
-        }
-
-        let cloud_model = CloudModel::handle(ctx);
-        ctx.subscribe_to_model(&cloud_model, |me, _, event, ctx| {
-            me.handle_cloud_model_event(event, ctx);
-        });
-
-        let network_status = NetworkStatus::handle(ctx);
-        ctx.subscribe_to_model(&network_status, |_me, _, _event, ctx| {
-            ctx.notify();
-        });
-
-        let owner = UserWorkspaces::as_ref(ctx).personal_drive(ctx);
-
         ctx.subscribe_to_model(&AISettings::handle(ctx), |_, _, event, ctx| {
             if matches!(
                 event,
@@ -205,22 +183,6 @@ impl RuleView {
                 ctx.notify();
             }
         });
-
-        let ai_rules: Vec<CloudAIFact> = {
-            let cloud_model = CloudModel::handle(ctx);
-            cloud_model
-                .as_ref(ctx)
-                .get_all_objects_of_type::<GenericStringObjectId, CloudAIFactModel>()
-                .cloned()
-                .collect()
-        };
-        let ai_rules: Vec<CloudRuleRow> = ai_rules
-            .into_iter()
-            .map(|fact| CloudRuleRow {
-                fact,
-                mouse_states: Default::default(),
-            })
-            .collect();
 
         let project_context = ProjectContextModel::handle(ctx);
         let project_rules = project_context
@@ -317,8 +279,8 @@ impl RuleView {
         });
 
         Self {
-            owner,
-            cloud_global_rules: ai_rules,
+            owner: None,
+            cloud_global_rules: Default::default(),
             file_backed_global_rules,
             project_rules,
             search_editor,
@@ -600,16 +562,9 @@ impl RuleView {
     }
 
     fn render_add_button(&self) -> Box<dyn Element> {
-        Container::new(
-            ChildView::new(if self.current_scope == RuleScope::ProjectBased {
-                &self.initialize_button
-            } else {
-                &self.add_button
-            })
-            .finish(),
-        )
-        .with_margin_left(style::SECTION_MARGIN)
-        .finish()
+        Container::new(ChildView::new(&self.initialize_button).finish())
+            .with_margin_left(style::SECTION_MARGIN)
+            .finish()
     }
 
     fn render_disabled_banner(&self, appearance: &Appearance) -> Box<dyn Element> {
@@ -673,7 +628,7 @@ impl RuleView {
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_child(Expanded::new(1., ChildView::new(&self.search_bar).finish()).finish());
 
-        if !filtered_rules.is_empty() {
+        if !filtered_rules.is_empty() && self.current_scope == RuleScope::ProjectBased {
             row.add_child(self.render_add_button());
         }
         Container::new(row.finish())
@@ -911,25 +866,23 @@ impl RuleView {
             .build()
             .finish();
 
+        let mut zero_state = Flex::column()
+            .with_main_axis_size(MainAxisSize::Max)
+            .with_main_axis_alignment(MainAxisAlignment::Center)
+            .with_cross_axis_alignment(CrossAxisAlignment::Center)
+            .with_child(
+                Container::new(Align::new(centered_text).top_center().finish())
+                    .with_horizontal_padding(style::ROW_HORIZONTAL_PADDING)
+                    .finish(),
+            );
+        if self.current_scope == RuleScope::ProjectBased {
+            zero_state.add_child(self.render_add_button());
+        }
+
         Container::new(
-            ConstrainedBox::new(
-                Align::new(
-                    Flex::column()
-                        .with_main_axis_size(MainAxisSize::Max)
-                        .with_main_axis_alignment(MainAxisAlignment::Center)
-                        .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                        .with_child(
-                            Container::new(Align::new(centered_text).top_center().finish())
-                                .with_horizontal_padding(style::ROW_HORIZONTAL_PADDING)
-                                .finish(),
-                        )
-                        .with_child(self.render_add_button())
-                        .finish(),
-                )
+            ConstrainedBox::new(Align::new(zero_state.finish()).finish())
+                .with_height(style::ZERO_STATE_HEIGHT)
                 .finish(),
-            )
-            .with_height(style::ZERO_STATE_HEIGHT)
-            .finish(),
         )
         .with_horizontal_padding(style::ROW_HORIZONTAL_PADDING)
         .with_border(

@@ -1,28 +1,21 @@
-//! [`RootTuiView`]: the login-gated root view of the `warp-tui` front-end.
+//! [`RootTuiView`]: the root view of the `warp-tui` front-end.
 
 use warp::tui_export::TerminalSurfaceInit;
-use warp::{TuiLoginModel, TuiLoginPhase};
 use warpui_core::elements::tui::{TuiChildView, TuiElement};
 use warpui_core::keymap::macros::*;
 use warpui_core::keymap::FixedBinding;
 use warpui_core::platform::TerminationMode;
 use warpui_core::{
-    keymap, AppContext, Entity, EntityId, SingletonEntity, TuiView, TypedActionView, ViewContext,
-    ViewHandle,
+    keymap, AppContext, Entity, EntityId, TuiView, TypedActionView, ViewContext, ViewHandle,
 };
 
 use crate::keybindings::TUI_BINDING_GROUP;
 use crate::terminal_session_view::TuiTerminalSessionView;
-use crate::ui::{login_failed, login_placeholder, terminal_starting};
+use crate::ui::terminal_starting;
 
-/// Whether the authenticated terminal session has been created yet. Mirrors the
-/// GUI root view's `AuthOnboardingState` split between the pre-session login gate
-/// and the live terminal session.
+/// Whether the local terminal session has been created yet.
 enum RootTuiState {
-    /// Login gate: no terminal session exists yet. The placeholder shown is
-    /// chosen from the current [`TuiLoginPhase`].
-    Auth,
-    /// The authenticated terminal session.
+    Starting,
     Terminal(ViewHandle<TuiTerminalSessionView>),
 }
 
@@ -31,12 +24,11 @@ enum RootTuiState {
 pub enum RootTuiAction {
     /// Exit the app. Bound to ctrl-c in the root's keymap context; the
     /// terminal session's deeper `Interrupt` binding wins while a session
-    /// exists, so this fires only on the pre-session placeholders (which say
-    /// "Press Ctrl-C to exit") — keeping the app exitable in every state.
+    /// exists, so this fires only while the local terminal is starting.
     ExitApp,
 }
 
-/// The app-level TUI shell. It gates the authenticated terminal session on login state.
+/// The app-level TUI shell.
 pub struct RootTuiView {
     state: RootTuiState,
 }
@@ -55,12 +47,10 @@ pub fn init(app: &mut AppContext) {
 impl RootTuiView {
     pub(crate) fn new() -> Self {
         Self {
-            state: RootTuiState::Auth,
+            state: RootTuiState::Starting,
         }
     }
-    /// Creates the terminal child view once login has completed, or returns the
-    /// existing one if it was already created. Callers notify the root so it
-    /// re-renders from the login placeholder to the terminal session.
+    /// Creates the terminal child view, or returns the existing one.
     pub(crate) fn create_terminal_session(
         &mut self,
         surface_init: TerminalSurfaceInit,
@@ -90,23 +80,16 @@ impl TuiView for RootTuiView {
         // live terminal session participates.
         match &self.state {
             RootTuiState::Terminal(terminal_session) => vec![terminal_session.id()],
-            RootTuiState::Auth => Vec::new(),
+            RootTuiState::Starting => Vec::new(),
         }
     }
 
-    fn render(&self, ctx: &AppContext) -> Box<dyn TuiElement> {
+    fn render(&self, _ctx: &AppContext) -> Box<dyn TuiElement> {
         match &self.state {
             RootTuiState::Terminal(terminal_session) => {
                 TuiChildView::new(terminal_session).finish()
             }
-            RootTuiState::Auth => match TuiLoginModel::as_ref(ctx).phase() {
-                TuiLoginPhase::LoggedIn => terminal_starting(),
-                TuiLoginPhase::AwaitingLogin {
-                    verification_uri,
-                    user_code,
-                } => login_placeholder(verification_uri.as_deref(), user_code.as_deref()),
-                TuiLoginPhase::Failed { message } => login_failed(message.as_str()),
-            },
+            RootTuiState::Starting => terminal_starting(),
         }
     }
 

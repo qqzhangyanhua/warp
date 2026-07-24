@@ -986,8 +986,11 @@ fn handle_terminal_view_event(
                 }
             }
             Event::ShareModalOpened(block_id) => {
+                let Some(share_block_modal) = group.share_block_modal.clone() else {
+                    return;
+                };
                 group.terminal_with_open_share_block_modal = Some(terminal_pane_id);
-                group.share_block_modal.update(ctx, |share_modal, ctx| {
+                share_block_modal.update(ctx, |share_modal, ctx| {
                     if let Some(session) = group.terminal_view_from_pane_id(pane_id, ctx) {
                         let model = session.read(ctx, |view, _| view.model.clone());
                         share_modal.open_with_model_update(model, *block_id, ctx);
@@ -1063,11 +1066,6 @@ fn handle_terminal_view_event(
             }
             Event::OpenSettings(section) => {
                 ctx.emit(pane_group::Event::OpenSettings(*section));
-            }
-            Event::OpenAutoReloadModal { purchased_credits } => {
-                ctx.emit(pane_group::Event::OpenAutoReloadModal {
-                    purchased_credits: *purchased_credits,
-                });
             }
             #[cfg(not(target_family = "wasm"))]
             Event::OpenPluginInstructionsPane(agent, kind) => {
@@ -1225,11 +1223,6 @@ fn handle_terminal_view_event(
             Event::OpenSuggestedAgentModeWorkflowModal { workflow_and_id } => {
                 ctx.emit(pane_group::Event::OpenSuggestedAgentModeWorkflowModal {
                     workflow_and_id: workflow_and_id.clone(),
-                });
-            }
-            Event::OpenSuggestedRuleDialog { rule_and_id } => {
-                ctx.emit(pane_group::Event::OpenSuggestedRuleModal {
-                    rule_and_id: rule_and_id.clone(),
                 });
             }
             Event::OpenAIFactCollection { sync_id } => {

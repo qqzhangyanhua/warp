@@ -780,12 +780,6 @@ impl Input {
             init if command.name == commands::INIT.name => {
                 ctx.dispatch_typed_action(&TerminalAction::InitProject);
             }
-            changelog if command.name == commands::CHANGELOG.name => {
-                if !FeatureFlag::Changelog.is_enabled() {
-                    return false;
-                }
-                ctx.dispatch_typed_action(&WorkspaceAction::ViewLatestChangelog);
-            }
             feedback if command.name == commands::FEEDBACK.name => {
                 ctx.dispatch_typed_action(&WorkspaceAction::SendFeedback);
             }
@@ -904,17 +898,6 @@ impl Input {
 
                 self.open_profile_selector(ctx);
             }
-            prompts if command.name == commands::PROMPTS.name => {
-                if self.is_cloud_mode_input_v2_composing(ctx) {
-                    self.apply_v2_slash_section_filter(CloudModeV2Section::Prompts, ctx);
-                    return true;
-                }
-                if FeatureFlag::AgentView.is_enabled() {
-                    self.open_prompts_menu(ctx);
-                } else {
-                    return false;
-                }
-            }
             rewind if command.name == commands::REWIND.name => {
                 self.open_rewind_menu(ctx);
             }
@@ -939,12 +922,7 @@ impl Input {
                     )
                 });
             }
-            usage if command.name == commands::USAGE.name => {
-                if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-                    return false;
-                }
-                ctx.dispatch_typed_action(&TerminalAction::OpenBillingAndUsagePane);
-            }
+            usage if command.name == commands::USAGE.name => return false,
             remote_control if command.name == commands::REMOTE_CONTROL.name => {
                 if !FeatureFlag::CreatingSharedSessions.is_enabled()
                     || !FeatureFlag::HOARemoteControl.is_enabled()

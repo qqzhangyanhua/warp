@@ -204,7 +204,7 @@ pub struct ResponseStream {
 
 impl ResponseStream {
     fn max_retries(&self) -> usize {
-        retry_limit(crate::local_mode::is_local_only_custom_provider_mode())
+        retry_limit(true)
     }
 
     /// Emits a synthetic successful response event through the normal controller subscription.
@@ -550,11 +550,10 @@ impl ResponseStream {
                 }
 
                 let is_online = NetworkStatus::as_ref(ctx).is_online();
-                let local_only = crate::local_mode::is_local_only_custom_provider_mode();
                 let max_retries = self.max_retries();
                 match recovery_action(
                     self.has_received_client_actions,
-                    is_recoverable_for_request(e, local_only),
+                    is_recoverable_for_request(e, true),
                     self.retry_count < max_retries,
                     self.can_attempt_resume_on_error,
                     is_online,

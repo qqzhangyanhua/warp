@@ -1,7 +1,5 @@
 mod action;
 mod active_session;
-pub(crate) mod auto_handoff;
-pub mod bonus_grant_notification_model;
 #[cfg(target_os = "macos")]
 pub(crate) mod cli_install;
 mod close_session_confirmation_dialog;
@@ -25,8 +23,8 @@ pub mod util;
 pub mod view;
 
 pub use action::{
-    AutoCloudHandoffTrigger, CommandSearchOptions, InitContent, RestoreConversationLayout,
-    TabContextMenuAnchor, VerticalTabsPaneContextMenuTarget, WorkspaceAction,
+    CommandSearchOptions, InitContent, RestoreConversationLayout, TabContextMenuAnchor,
+    VerticalTabsPaneContextMenuTarget, WorkspaceAction,
 };
 pub use active_session::ActiveSession;
 pub use global_actions::{
@@ -52,7 +50,7 @@ use crate::server::telemetry::{AgentModeEntrypoint, PaletteSource};
 use crate::settings_view::{self, flags, SettingsSection};
 use crate::tab::{uses_vertical_tabs, NewSessionMenuItem};
 use crate::util::bindings::{self, cmd_or_ctrl_shift, is_binding_pty_compliant, CustomAction};
-use crate::{code, local_mode, modal, notebooks, tab_configs};
+use crate::{code, modal, notebooks, tab_configs};
 
 // Helper function to access panel header corner radius from other modules
 pub fn panel_header_corner_radius() -> warpui::elements::CornerRadius {
@@ -60,7 +58,7 @@ pub fn panel_header_corner_radius() -> warpui::elements::CornerRadius {
 }
 
 fn account_and_cloud_actions_available() -> bool {
-    !local_mode::is_local_only_custom_provider_mode()
+    false
 }
 
 pub use one_time_modal_model::OneTimeModalModel;
@@ -97,7 +95,6 @@ pub fn init(app: &mut AppContext) {
     view::openwarp_launch_modal::init(app);
     view::orchestration_launch_modal::init(app);
     view::feature_intro_modal::init(app);
-    view::auto_handoff_sleep_modal::init(app);
     view::cloud_agent_capacity_modal::init(app);
     view::codex_modal::init(app);
     view::free_ai_removal_modal::init(app);
@@ -241,24 +238,6 @@ pub fn init(app: &mut AppContext) {
                     "workspace:reset_feature_intro_modal_state",
                     "[Debug] Reset Feature Intro Modal State",
                     WorkspaceAction::ResetFeatureIntroModalState,
-                )
-                .with_context_predicate(id!("Workspace")),
-                EditableBinding::new(
-                    "workspace:open_auto_handoff_sleep_modal",
-                    "[Debug] Open Auto-Handoff Sleep Modal",
-                    WorkspaceAction::OpenAutoHandoffSleepModal,
-                )
-                .with_context_predicate(id!("Workspace")),
-                EditableBinding::new(
-                    "workspace:reset_auto_handoff_sleep_modal_state",
-                    "[Debug] Reset Auto-Handoff Sleep Modal State",
-                    WorkspaceAction::ResetAutoHandoffSleepModalState,
-                )
-                .with_context_predicate(id!("Workspace")),
-                EditableBinding::new(
-                    "workspace:trigger_auto_handoff_to_cloud",
-                    "[Debug] Trigger Auto-Handoff to Cloud",
-                    WorkspaceAction::TriggerAutoHandoffToCloud,
                 )
                 .with_context_predicate(id!("Workspace")),
                 EditableBinding::new(
@@ -1199,28 +1178,6 @@ pub fn init(app: &mut AppContext) {
         .with_enabled(account_and_cloud_actions_available),
     ]);
 
-    if FeatureFlag::Autoupdate.is_enabled() {
-        app.register_editable_bindings([
-            EditableBinding::new(
-                "workspace:update_and_relaunch",
-                "Install update and relaunch",
-                // TODO(vorporeal): I wonder if we should change wording here?
-                WorkspaceAction::ApplyUpdate,
-            )
-            .with_group(bindings::BindingGroup::AutoUpdate.as_str())
-            .with_context_predicate(id!("Workspace") & id!("AutoupdateState_UpdateReady"))
-            .with_enabled(|| ContextFlag::PromptForVersionUpdates.is_enabled()),
-            EditableBinding::new(
-                "workspace:check_for_updates",
-                "Check for updates",
-                WorkspaceAction::CheckForUpdate,
-            )
-            .with_group(bindings::BindingGroup::AutoUpdate.as_str())
-            .with_context_predicate(id!("Workspace") & !id!("AutoupdateState_UpdateReady"))
-            .with_enabled(|| ContextFlag::PromptForVersionUpdates.is_enabled()),
-        ]);
-    }
-
     app.register_editable_bindings([EditableBinding::new(
         "workspace:log_out",
         "Log out",
@@ -1289,34 +1246,6 @@ pub fn init(app: &mut AppContext) {
                 .with_context_predicate(id!("Workspace")),
             ]);
         }
-    }
-
-    if FeatureFlag::Changelog.is_enabled() {
-        app.register_editable_bindings([
-            // Always show the "View latest changelog" action in the command palette,
-            // but without a keybinding when the update toast is not visible.
-            EditableBinding::new(
-                "workspace:view_changelog",
-                "View latest changelog",
-                WorkspaceAction::ViewLatestChangelog,
-            )
-            .with_context_predicate(id!("Workspace") & !id!("UpdateToastVisible"))
-            .with_group(bindings::BindingGroup::Settings.as_str())
-            // Note that while the changelog resides in WarpEssentials, we should gate access to
-            // the changelog based on whether WarpEssentials is an available view.
-            .with_enabled(|| ContextFlag::WarpEssentials.is_enabled()),
-            // When the update toast is visible, register the keybinding as well.
-            EditableBinding::new(
-                "workspace:view_changelog",
-                "View latest changelog",
-                WorkspaceAction::ViewLatestChangelog,
-            )
-            .with_context_predicate(id!("Workspace") & id!("UpdateToastVisible"))
-            .with_group(bindings::BindingGroup::Settings.as_str())
-            .with_custom_action(CustomAction::ViewChangelog)
-            .with_linux_or_windows_key_binding(format!("alt-{}", cmd_or_ctrl_shift("o")))
-            .with_enabled(|| ContextFlag::WarpEssentials.is_enabled()),
-        ]);
     }
 
     // We use the same binding name for the AI Assistant and block list AI to preserve custom
@@ -1562,7 +1491,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             "Open Settings: Account",
             WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
         )
-        .with_enabled(|| SettingsSection::Account.command_entrypoint_enabled_in_current_mode())
+        .with_enabled(|| SettingsSection::Account.command_entrypoint_enabled())
         .with_context_predicate(id!("Workspace"))
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_custom_action(CustomAction::ShowAccount),
@@ -1588,7 +1517,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "View Shared Blocks..."),
             WorkspaceAction::ShowSettingsPage(SettingsSection::SharedBlocks),
         )
-        .with_enabled(|| SettingsSection::SharedBlocks.command_entrypoint_enabled_in_current_mode())
+        .with_enabled(|| SettingsSection::SharedBlocks.command_entrypoint_enabled())
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::ViewSharedBlocks),
@@ -1618,10 +1547,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open Team Settings"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
         )
-        .with_enabled(|| {
-            !FeatureFlag::AnonymousOnlyMode.is_enabled()
-                && SettingsSection::Teams.command_entrypoint_enabled_in_current_mode()
-        })
+        .with_enabled(|| SettingsSection::Teams.command_entrypoint_enabled())
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_custom_action(CustomAction::OpenTeamSettings)
         .with_context_predicate(id!("Workspace")),
@@ -1653,10 +1579,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             BindingDescription::new("Open Settings: Billing and usage"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::BillingAndUsage),
         )
-        .with_enabled(|| {
-            !FeatureFlag::AnonymousOnlyMode.is_enabled()
-                && SettingsSection::BillingAndUsage.command_entrypoint_enabled_in_current_mode()
-        })
+        .with_enabled(|| SettingsSection::BillingAndUsage.command_entrypoint_enabled())
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
@@ -1671,10 +1594,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             BindingDescription::new("Open Settings: Referrals"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::Referrals),
         )
-        .with_enabled(|| {
-            !FeatureFlag::AnonymousOnlyMode.is_enabled()
-                && SettingsSection::Referrals.command_entrypoint_enabled_in_current_mode()
-        })
+        .with_enabled(|| SettingsSection::Referrals.command_entrypoint_enabled())
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
@@ -1682,9 +1602,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             BindingDescription::new("Open Settings: Environments"),
             WorkspaceAction::ShowSettingsPage(SettingsSection::CloudEnvironments),
         )
-        .with_enabled(|| {
-            SettingsSection::CloudEnvironments.command_entrypoint_enabled_in_current_mode()
-        })
+        .with_enabled(|| SettingsSection::CloudEnvironments.command_entrypoint_enabled())
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
         EditableBinding::new(
@@ -1715,10 +1633,7 @@ fn add_overflow_menu_items_as_editable_binding(app: &mut AppContext) {
             "Invite People...",
             WorkspaceAction::ShowReferralSettingsPage,
         )
-        .with_enabled(|| {
-            !FeatureFlag::AnonymousOnlyMode.is_enabled()
-                && SettingsSection::Referrals.command_entrypoint_enabled_in_current_mode()
-        })
+        .with_enabled(|| SettingsSection::Referrals.command_entrypoint_enabled())
         .with_context_predicate(id!("Workspace"))
         .with_custom_action(CustomAction::ReferAFriend),
         EditableBinding::new(
@@ -1811,31 +1726,13 @@ mod tests {
 
     #[test]
     #[serial]
-    fn local_only_workspace_bindings_disable_account_and_cloud_actions() {
-        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+    fn zyh_workspace_bindings_disable_account_and_cloud_actions() {
         assert!(!account_and_cloud_actions_available());
 
         App::test((), |mut app| async move {
             register_test_cloud_binding(&mut app);
 
             assert!(!has_test_cloud_binding(&mut app));
-        });
-    }
-
-    #[test]
-    #[serial]
-    fn standard_workspace_bindings_keep_account_and_cloud_actions() {
-        let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-        let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-        assert!(account_and_cloud_actions_available());
-
-        App::test((), |mut app| async move {
-            register_test_cloud_binding(&mut app);
-
-            assert!(has_test_cloud_binding(&mut app));
         });
     }
 }

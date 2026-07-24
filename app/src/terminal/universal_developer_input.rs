@@ -17,8 +17,7 @@ use warp_core::ui::theme;
 use warp_core::ui::theme::color::internal_colors;
 use warpui::elements::{
     ChildView, Clipped, Container, CornerRadius, CrossAxisAlignment, Fill, Flex, MainAxisAlignment,
-    MainAxisSize, ParentElement, Radius, Rect, Shrinkable, SizeConstraintCondition,
-    SizeConstraintSwitch,
+    MainAxisSize, ParentElement, Radius, Rect, SizeConstraintCondition, SizeConstraintSwitch,
 };
 use warpui::ui_components::components::UiComponentStyles;
 use warpui::ui_components::segmented_control::{
@@ -30,17 +29,14 @@ use warpui::{
 };
 
 use crate::ai::blocklist::block::cli_controller::CLISubagentController;
-use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::prompt::PromptIconButtonTheme;
 use crate::ai::blocklist::{
     BlocklistAIHistoryEvent, BlocklistAIInputModel, InputConfig, InputType,
 };
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::llms::LLMPreferences;
-use crate::ai::AIRequestUsageModel;
 use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::i18n::{tr, Message};
-use crate::network::NetworkStatus;
 #[cfg(not(target_family = "wasm"))]
 use crate::search::ai_context_menu::view::AIContextMenu;
 #[cfg(not(target_family = "wasm"))]
@@ -64,7 +60,6 @@ use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{
     ActionButton, ActionButtonTheme, ButtonSize, NakedTheme, TooltipAlignment,
 };
-use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::BlocklistAIHistoryModel;
 
 pub enum AtContextMenuDisabledReason {
@@ -297,8 +292,6 @@ pub struct UniversalDeveloperInputButtonBar {
     profile_model_selector_full: ViewHandle<ProfileModelSelector>,
     profile_model_selector_compact: ViewHandle<ProfileModelSelector>,
     segmented_control: ViewHandle<SegmentedControl<InputToggleMode>>,
-    prompt_alert: ViewHandle<PromptAlertView>,
-
     cached_ui_state: Rc<RefCell<CachedUIState>>,
     terminal_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
 }
@@ -319,7 +312,6 @@ pub enum UniversalDeveloperInputButtonBarEvent {
     EnableAutoDetection,
     SelectFile,
     SetAIContextMenuOpen(bool),
-    PromptAlert(PromptAlertEvent),
     ModelSelectorOpened,
     ModelSelectorClosed,
     OpenSettings(SettingsSection),
@@ -524,23 +516,6 @@ impl UniversalDeveloperInputButtonBar {
             ctx.notify();
         });
 
-        let prompt_alert = ctx.add_typed_action_view(PromptAlertView::new);
-        ctx.subscribe_to_view(&prompt_alert, |_, _, event, ctx| {
-            ctx.emit(UniversalDeveloperInputButtonBarEvent::PromptAlert(
-                event.clone(),
-            ));
-        });
-
-        ctx.subscribe_to_model(&NetworkStatus::handle(ctx), |_, _, _, ctx| {
-            ctx.notify();
-        });
-        ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |_, _, _, ctx| {
-            ctx.notify();
-        });
-        ctx.subscribe_to_model(&AIRequestUsageModel::handle(ctx), |_, _, _, ctx| {
-            ctx.notify()
-        });
-
         ctx.subscribe_to_model(&SessionSettings::handle(ctx), |_, _, event, ctx| {
             if let SessionSettingsChangedEvent::ShowModelSelectorsInPrompt { .. } = event {
                 ctx.notify();
@@ -603,7 +578,6 @@ impl UniversalDeveloperInputButtonBar {
             profile_model_selector_full,
             profile_model_selector_compact,
             segmented_control: segmented_control_view,
-            prompt_alert,
             cached_ui_state,
             terminal_model,
         };
@@ -849,16 +823,6 @@ impl View for UniversalDeveloperInputButtonBar {
                 buttons = buttons
                     .with_child(create_divider())
                     .with_child(model_selector_element);
-            }
-
-            if !self.prompt_alert.as_ref(app).is_no_alert() {
-                buttons = buttons.with_child(
-                    Shrinkable::new(
-                        1.,
-                        Clipped::new(ChildView::new(&self.prompt_alert).finish()).finish(),
-                    )
-                    .finish(),
-                );
             }
 
             buttons.finish()

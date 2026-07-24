@@ -55,7 +55,6 @@ use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::ai::blocklist::history_model::CloudConversationData;
 use crate::ai::blocklist::inline_action::code_diff_view::CodeDiffView;
 use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::blocklist::BlocklistAIHistoryEvent;
 use crate::ai::blocklist::{BlocklistAIHistoryModel, InputConfig, SerializedBlockListItem};
@@ -72,9 +71,6 @@ use crate::app_state::{
     TerminalPaneSnapshot, WorkflowPaneSnapshot,
 };
 use crate::appearance::Appearance;
-use crate::auth::auth_manager::AuthManager;
-use crate::auth::auth_view_modal::AuthViewVariant;
-use crate::auth::AuthStateProvider;
 use crate::banner::{Banner, BannerEvent, BannerState, BannerTextContent, DismissalType};
 use crate::channel::{Channel, ChannelState};
 use crate::cloud_object::Space;
@@ -107,7 +103,7 @@ use crate::resource_center::{
 #[cfg(target_family = "wasm")]
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ObjectUid, SyncId};
-use crate::server::server_api::{ServerApi, ServerApiProvider};
+use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
     AnonymousUserSignupEntrypoint, PaletteSource, SharingDialogSource, TelemetryEvent,
 };
@@ -515,9 +511,6 @@ pub enum Event {
         pane_id: PaneId,
     },
     OpenSettings(SettingsSection),
-    OpenAutoReloadModal {
-        purchased_credits: i32,
-    },
     AskAIAssistant(AskAIType),
     /// Pass input sync event up from underlying TerminalViews
     /// to the Workspace to sync throughout the window.
@@ -639,9 +632,6 @@ pub enum Event {
     },
     OpenSuggestedAgentModeWorkflowModal {
         workflow_and_id: SuggestedAgentModeWorkflowAndId,
-    },
-    OpenSuggestedRuleModal {
-        rule_and_id: SuggestedRuleAndId,
     },
     OpenAIFactCollection {
         /// If set, open the fact collection to the specific rule.
@@ -892,7 +882,7 @@ pub struct PaneGroup {
     /// Mapping from pane IDs to their contents.
     pane_contents: HashMap<PaneId, Box<dyn AnyPaneContent>>,
 
-    server_api: Arc<ServerApi>,
+    server_api: Option<Arc<ServerApi>>,
 
     /// The terminal session with an open share block modal. Only terminal panes use the share block modal.
     terminal_with_open_share_block_modal: Option<TerminalPaneId>,
@@ -900,7 +890,7 @@ pub struct PaneGroup {
     // We are only holding one instance of share modal view in the pane group and
     // update it with the correct terminal model and size info when triggered by
     // the context menu event.
-    share_block_modal: ViewHandle<ShareBlockModal>,
+    share_block_modal: Option<ViewHandle<ShareBlockModal>>,
     dragged_border: Option<DraggedBorder>,
     user_default_shell_changed_banner: ViewHandle<Banner<PaneGroupAction>>,
 
@@ -997,7 +987,7 @@ pub enum SplitPaneState {
 #[derive(Clone)]
 pub struct TerminalViewResources {
     pub tips_completed: ModelHandle<TipsCompleted>,
-    pub server_api: Arc<ServerApi>,
+    pub server_api: Option<Arc<ServerApi>>,
     pub model_event_sender: Option<SyncSender<ModelEvent>>,
 }
 
@@ -2572,36 +2562,9 @@ impl PaneGroup {
         open_source: SharedSessionActionSource,
         ctx: &mut ViewContext<Self>,
     ) {
-        let Some(terminal_view) = self.terminal_view_from_pane_id(terminal_pane_id, ctx) else {
-            log::warn!("Tried to open share session modal for non-existent terminal pane");
-            return;
-        };
-
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    "Share Session",
-                    AuthViewVariant::ShareRequirementCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
-        self.share_session_modal.update(ctx, |modal, ctx| {
-            modal.open(
-                terminal_pane_id,
-                open_source,
-                terminal_view.as_ref(ctx).model.clone(),
-                terminal_view.id(),
-                ctx,
-            );
-        });
-        self.terminal_with_open_share_session_modal = Some(terminal_pane_id);
-        ctx.focus(&self.share_session_modal);
+        log::warn!(
+            "Session sharing is unavailable in ZYH: pane={terminal_pane_id:?}, source={open_source:?}"
+        );
         ctx.notify();
     }
 
@@ -2995,7 +2958,7 @@ impl PaneGroup {
     fn new_internal(
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         initial_layout_callback: InitialLayoutCallback,
         ctx: &mut ViewContext<Self>,
@@ -3041,13 +3004,6 @@ impl PaneGroup {
         });
         ctx.subscribe_to_model(&focus_state, |me, _, event, ctx| {
             me.handle_focus_state_event(event, ctx);
-        });
-
-        let block_client = ServerApiProvider::as_ref(ctx).get_block_client();
-        let share_modal =
-            ctx.add_typed_action_view(|ctx| ShareBlockModal::new(None, block_client, ctx));
-        ctx.subscribe_to_view(&share_modal, move |me, _, event, ctx| {
-            me.handle_share_block_modal_event(event, ctx);
         });
 
         ctx.subscribe_to_model(&PaneSettings::handle(ctx), |_, _, _, ctx| {
@@ -3133,7 +3089,7 @@ impl PaneGroup {
             pane_contents,
             server_api,
             terminal_with_open_share_block_modal: None,
-            share_block_modal: share_modal,
+            share_block_modal: None,
             dragged_border: None,
             user_default_shell_changed_banner,
             terminal_with_open_share_session_modal: None,
@@ -3373,7 +3329,7 @@ impl PaneGroup {
     pub fn new_with_panes_layout(
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
         panes_layout: PanesLayout,
         block_lists: Arc<HashMap<PaneUuid, Vec<SerializedBlockListItem>>>,
         model_event_sender: Option<SyncSender<ModelEvent>>,
@@ -3481,7 +3437,7 @@ impl PaneGroup {
         pane: Box<dyn AnyPaneContent>,
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -3514,7 +3470,7 @@ impl PaneGroup {
         session_id: SessionId,
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         is_ambient_agent: bool,
         ctx: &mut ViewContext<Self>,
@@ -3564,7 +3520,7 @@ impl PaneGroup {
         ambient_agent_task_id: Option<AmbientAgentTaskId>,
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -3607,7 +3563,7 @@ impl PaneGroup {
     pub fn new_for_conversation_transcript_viewer_loading(
         tips_completed: ModelHandle<TipsCompleted>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
         model_event_sender: Option<SyncSender<ModelEvent>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -8046,12 +8002,15 @@ impl View for PaneGroup {
         // "circular view reference". The per-pane views (and their backing
         // terminal/editor views) are reached via the structural parent graph
         // and `PaneView::child_view_ids`.
-        vec![
-            self.share_block_modal.id(),
+        let mut child_view_ids = vec![
             self.share_session_modal.id(),
             self.shared_session_role_change_modal.id(),
             self.user_default_shell_changed_banner.id(),
-        ]
+        ];
+        if let Some(view) = &self.share_block_modal {
+            child_view_ids.push(view.id());
+        }
+        child_view_ids
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
@@ -8089,9 +8048,11 @@ impl View for PaneGroup {
 
         // Render the share modals on the pane group level so that their
         // size is not restricted to within the terminal view.
-        if self.terminal_with_open_share_block_modal.is_some() {
-            stack
-                .add_child(Clipped::new(ChildView::new(&self.share_block_modal).finish()).finish());
+        if let Some(view) = self
+            .terminal_with_open_share_block_modal
+            .and(self.share_block_modal.as_ref())
+        {
+            stack.add_child(Clipped::new(ChildView::new(view).finish()).finish());
         } else if FeatureFlag::CreatingSharedSessions.is_enabled()
             && self.terminal_with_open_share_session_modal.is_some()
         {

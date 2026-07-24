@@ -56,13 +56,6 @@ impl UICustomizationSettings {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OnboardingAuthState {
-    LoggedOut,
-    FreeUser,
-    PayingUser,
-}
-
 #[derive(Clone, Debug)]
 pub enum SelectedSettings {
     Terminal {
@@ -148,14 +141,12 @@ impl std::fmt::Display for AiSetupChoice {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum AiAccessChoice {
     #[default]
-    Subscription,
     SetUpLater,
 }
 
 impl std::fmt::Display for AiAccessChoice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AiAccessChoice::Subscription => write!(f, "subscription"),
             AiAccessChoice::SetUpLater => write!(f, "set_up_later"),
         }
     }
@@ -175,8 +166,6 @@ pub(crate) enum OnboardingStateEvent {
     SelectedSlideChanged,
     IntentionChanged,
     Completed,
-    UpgradeRequested,
-    AuthStateChanged,
     NoAiConfirmationChanged,
 }
 
@@ -196,8 +185,6 @@ pub(crate) struct OnboardingStateModel {
     ai_setup_choice: AiSetupChoice,
     /// The access method selected on the "Choose how to access AI" slide.
     ai_access_choice: AiAccessChoice,
-    /// Auth / billing state of the user.
-    auth_state: OnboardingAuthState,
     /// When set, the "Are you sure you don't want AI?" confirmation modal is
     /// shown; the value records which entry point triggered it.
     no_ai_confirmation: Option<NoAiConfirmationSource>,
@@ -210,7 +197,6 @@ impl OnboardingStateModel {
         default_model_id: LLMId,
         workspace_enforces_autonomy: bool,
         agent_modality_enabled: bool,
-        auth_state: OnboardingAuthState,
     ) -> Self {
         Self {
             step: OnboardingStep::Intro,
@@ -223,25 +209,8 @@ impl OnboardingStateModel {
             agent_modality_enabled,
             ai_setup_choice: AiSetupChoice::default(),
             ai_access_choice: AiAccessChoice::default(),
-            auth_state,
             no_ai_confirmation: None,
         }
-    }
-
-    pub(crate) fn auth_state(&self) -> OnboardingAuthState {
-        self.auth_state
-    }
-
-    pub(crate) fn set_auth_state(
-        &mut self,
-        auth_state: OnboardingAuthState,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if self.auth_state == auth_state {
-            return;
-        }
-        self.auth_state = auth_state;
-        ctx.emit(OnboardingStateEvent::AuthStateChanged);
     }
 
     pub(crate) fn settings(&self) -> SelectedSettings {
@@ -630,10 +599,6 @@ impl OnboardingStateModel {
 
     pub(crate) fn set_intention_agent_driven_development(&mut self, ctx: &mut ModelContext<Self>) {
         self.set_intention(OnboardingIntention::AgentDrivenDevelopment, ctx);
-    }
-
-    pub(crate) fn request_upgrade(&mut self, ctx: &mut ModelContext<Self>) {
-        ctx.emit(OnboardingStateEvent::UpgradeRequested);
     }
 
     pub(crate) fn on_user_selected_model(&mut self, model_id: LLMId, ctx: &mut ModelContext<Self>) {

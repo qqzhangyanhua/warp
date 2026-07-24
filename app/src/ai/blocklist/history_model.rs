@@ -49,7 +49,7 @@ use crate::server::server_api::ServerApiProvider;
 use crate::terminal::model::block::BlockId;
 use crate::terminal::view::blocklist_filter;
 use crate::ui_components::icons::Icon;
-use crate::{local_mode, GlobalResourceHandlesProvider};
+use crate::GlobalResourceHandlesProvider;
 
 mod conversation_loader;
 mod runtime_recovery;
@@ -323,9 +323,7 @@ fn runtime_binding_for_new_conversation(
         return AgentRuntimeBinding::Rust;
     }
 
-    if !FeatureFlag::PiAgentRuntime.is_enabled()
-        || !local_mode::is_local_only_custom_provider_mode()
-    {
+    if !FeatureFlag::PiAgentRuntime.is_enabled() {
         return AgentRuntimeBinding::Rust;
     }
 

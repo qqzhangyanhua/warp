@@ -84,9 +84,6 @@ impl ServerOutputId {
 pub enum CancellationReason {
     /// The user explicitly cancelled without providing a follow-up.
     ManuallyCancelled,
-    /// Warp automatically cancelled the local run so it could continue in Cloud Mode.
-    AutomaticCloudHandoff,
-
     /// The user submitted a follow-up query during streaming which implicitly cancelled the current one.
     FollowUpSubmitted {
         is_for_same_conversation: bool,
@@ -146,7 +143,6 @@ impl Display for CancellationReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CancellationReason::ManuallyCancelled => write!(f, "manual cancellation"),
-            CancellationReason::AutomaticCloudHandoff => write!(f, "automatic cloud handoff"),
             CancellationReason::FollowUpSubmitted { .. } => write!(f, "follow-up submission"),
             CancellationReason::UserCommandExecuted => write!(f, "user command execution"),
             CancellationReason::Reverted => write!(f, "revert"),
@@ -207,7 +203,6 @@ impl CancellationReason {
             // terminal `Error`, so the cancellation machinery must not stamp a status.
             CancellationReason::AgentExitedShell => CancellationOutcome::FinalizedExternally,
             CancellationReason::ManuallyCancelled
-            | CancellationReason::AutomaticCloudHandoff
             | CancellationReason::UserCommandExecuted
             | CancellationReason::Deleted
             | CancellationReason::FollowUpSubmitted {

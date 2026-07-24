@@ -71,7 +71,6 @@ use crate::ai::blocklist::PersistedAIInput;
 use crate::ai::mcp::TemplatableMCPServerInstallation;
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::AppState;
-use crate::auth::auth_manager::PersistedCurrentUserInformation;
 use crate::cloud_object::model::actions::ObjectAction;
 use crate::cloud_object::model::generic_string_model::CloudStringObject;
 use crate::cloud_object::{
@@ -88,6 +87,11 @@ use crate::terminal::model::session::SessionId;
 use crate::workflows::CloudWorkflow;
 use crate::workspaces::user_profiles::UserProfileWithUID;
 use crate::workspaces::workspace::{Workspace as WorkspaceMetadata, WorkspaceUid};
+
+#[derive(Clone, Debug)]
+pub struct PersistedCurrentUserInformation {
+    pub email: String,
+}
 
 #[derive(Clone)]
 pub enum PersistenceScope {

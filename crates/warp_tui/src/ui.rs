@@ -54,52 +54,7 @@ pub(crate) fn centered(content: TuiFlex) -> Box<dyn TuiElement> {
         .finish()
 }
 
-/// Placeholder shown while the user completes device-authorization login. The
-/// verification URL/code are surfaced once known (the browser also auto-opens).
-pub(crate) fn login_placeholder(
-    verification_uri: Option<&str>,
-    user_code: Option<&str>,
-) -> Box<dyn TuiElement> {
-    let dim = TuiStyle::default().add_modifier(Modifier::DIM);
-    let mut content =
-        TuiFlex::column().child(TuiText::new("Sign in to continue").truncate().finish());
-    match (verification_uri, user_code) {
-        (Some(uri), Some(code)) => {
-            content = content
-                .child(
-                    TuiText::new(format!("Open {uri} in your browser"))
-                        .with_style(dim)
-                        .truncate()
-                        .finish(),
-                )
-                .child(
-                    TuiText::new(format!("and enter code: {code}"))
-                        .with_style(dim)
-                        .truncate()
-                        .finish(),
-                );
-        }
-        (Some(uri), None) => {
-            content = content.child(
-                TuiText::new(format!("Open {uri} in your browser"))
-                    .with_style(dim)
-                    .truncate()
-                    .finish(),
-            );
-        }
-        _ => {
-            content = content.child(
-                TuiText::new("Opening your browser…")
-                    .with_style(dim)
-                    .truncate()
-                    .finish(),
-            );
-        }
-    }
-    centered(content)
-}
-
-/// Placeholder shown between login completion and terminal session creation.
+/// Placeholder shown while the local terminal session is created.
 pub(crate) fn terminal_starting() -> Box<dyn TuiElement> {
     let dim = TuiStyle::default().add_modifier(Modifier::DIM);
     centered(
@@ -110,24 +65,6 @@ pub(crate) fn terminal_starting() -> Box<dyn TuiElement> {
                 .finish(),
         ),
     )
-}
-
-/// Placeholder shown when login fails; the user can quit with `Ctrl-C`.
-pub(crate) fn login_failed(message: &str) -> Box<dyn TuiElement> {
-    let dim = TuiStyle::default().add_modifier(Modifier::DIM);
-    let content = TuiFlex::column()
-        .child(
-            TuiText::new(format!("Login failed: {message}"))
-                .truncate()
-                .finish(),
-        )
-        .child(
-            TuiText::new("Press Ctrl-C to exit.")
-                .with_style(dim)
-                .truncate()
-                .finish(),
-        );
-    centered(content)
 }
 
 #[cfg(test)]

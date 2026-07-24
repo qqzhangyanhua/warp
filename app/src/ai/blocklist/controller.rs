@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use ai::api_keys::ApiKeyManager;
 use ai::skills::SkillPathOrigin;
 use anyhow::anyhow;
 use chrono::{DateTime, Local};
@@ -35,15 +36,16 @@ use super::action_model::{BlocklistAIActionEvent, BlocklistAIActionModel};
 use super::context_model::{BlocklistAIContextModel, PendingAttachment, PendingFile};
 use super::conversation_selection::{ConversationSelectionEvent, ConversationSelectionHandle};
 use super::history_model::BlocklistAIHistoryModel;
-use super::orchestration_event_streamer::{
-    OrchestrationEventStreamer, OrchestrationEventStreamerEvent,
-};
+use super::orchestration_event_streamer::OrchestrationEventStreamer;
 use super::orchestration_events::{OrchestrationEventService, OrchestrationEventServiceEvent};
 use super::queued_query::{QueuedQueryId, QueuedQueryModel};
 use super::{BlocklistAIInputModel, ResponseStreamId};
 use crate::ai::agent::api::{self, ServerConversationToken};
 use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
-use crate::ai::agent::runtime::{AgentRuntimeService, AgentRuntimeServiceEvent};
+use crate::ai::agent::runtime::{
+    validate_provider_configuration, validate_provider_inventory, AgentRuntimeService,
+    AgentRuntimeServiceEvent, MissingProviderField,
+};
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{
     extract_user_query_mode, AIAgentActionResult, AIAgentActionResultType, AIAgentAttachment,
@@ -61,17 +63,14 @@ use crate::ai::document::ai_document_model::{
     AIDocumentId, AIDocumentModel, AIDocumentUserEditStatus,
 };
 use crate::ai::llms::{LLMId, LLMPreferences};
-use crate::ai::AIRequestUsageModel;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::features::FeatureFlag;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
-use crate::i18n::{tr, Message};
 use crate::network::NetworkStatus;
 use crate::notebooks::editor::model::FileLinkResolutionContext;
 use crate::persistence::model::AgentRuntimeBinding;
 use crate::persistence::ModelEvent;
 use crate::send_telemetry_from_ctx;
-use crate::server::server_api::AIApiError;
 #[cfg(not(target_family = "wasm"))]
 use crate::server::server_api::ServerApiProvider;
 use crate::server::telemetry::TelemetryEvent;
@@ -84,9 +83,6 @@ use crate::terminal::model::session::SessionType;
 use crate::terminal::model::terminal_model::TerminalModel;
 use crate::terminal::view::inline_banner::ZeroStatePromptSuggestionType;
 use crate::terminal::ShellLaunchData;
-use crate::workspace::OneTimeModalModel;
-use crate::workspaces::update_manager::TeamUpdateManager;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 #[derive(Debug, Clone)]
 pub struct SessionContext {
@@ -670,18 +666,6 @@ impl BlocklistAIController {
             let OrchestrationEventServiceEvent::EventsReady { conversation_id } = event;
             me.handle_pending_events_ready(*conversation_id, ctx);
         });
-        let streamer = OrchestrationEventStreamer::handle(ctx);
-        ctx.subscribe_to_model(&streamer, move |me, _, event, ctx| match event {
-            OrchestrationEventStreamerEvent::DormantClaudeWakeReady {
-                conversation_id,
-                wake_message,
-            } => {
-                me.handle_dormant_claude_wake_ready(*conversation_id, wake_message.clone(), ctx);
-            }
-            // Viewer-mode events are handled by `OrchestrationViewerModel`.
-            OrchestrationEventStreamerEvent::ChildSpawned { .. }
-            | OrchestrationEventStreamerEvent::ChildStatusChanged { .. } => {}
-        });
         let runtime_service = AgentRuntimeService::handle(ctx);
         ctx.subscribe_to_model(&runtime_service, |me, _, event, ctx| {
             let AgentRuntimeServiceEvent::RunFinished { conversation_id } = event;
@@ -977,7 +961,9 @@ impl BlocklistAIController {
         // If the request failed, re-insert the dirty events so they aren't
         // silently lost.
         if let Err(e) = &send_result {
-            report_error!(e);
+            if e.downcast_ref::<MissingProviderField>().is_none() {
+                report_error!(e);
+            }
             if !taken_dirty_events.is_empty() {
                 AIDocumentModel::handle(ctx).update(ctx, |model, _| {
                     model.set_dirty_orchestration_events(conversation_id, taken_dirty_events);
@@ -2119,25 +2105,14 @@ impl BlocklistAIController {
         );
     }
 
-    /// Schedules an auto-resume-after-error for the conversation once the network is online
-    /// and the auto-handoff sleep modal is closed, so the resume doesn't race the user's
-    /// enable/dismiss decision on wake.
+    /// Schedules an auto-resume-after-error for the conversation once the network is online.
     fn schedule_auto_resume_after_error(
         &mut self,
         conversation_id: AIConversationId,
         ctx: &mut ModelContext<Self>,
     ) {
         let wait_for_online = NetworkStatus::as_ref(ctx).wait_until_online();
-        let wait_for_modal_closed =
-            OneTimeModalModel::as_ref(ctx).wait_until_auto_handoff_sleep_modal_closed();
-        let wait = async move {
-            wait_for_online.await;
-            // Await the modal second: the future reads live modal state at
-            // poll time, so a modal surfaced on wake (after connectivity
-            // returns) is still observed.
-            wait_for_modal_closed.await;
-        };
-        let handle = ctx.spawn(wait, move |me, _, ctx| {
+        let handle = ctx.spawn(wait_for_online, move |me, _, ctx| {
             // Clean up the pending handle now that the resume is executing.
             me.pending_auto_resume_handles.remove(&conversation_id);
             me.resume_conversation(
@@ -2551,18 +2526,20 @@ impl BlocklistAIController {
             &conversation_data.server_conversation_token,
         );
 
-        // Safety net: re-arm the Gemini Enterprise (GEAP) credential refresh
-        // chain if it was parked or never armed, so upcoming requests can
-        // authenticate. The connected Grok subscription's request-time OAuth
-        // refresh is handled in the response stream's send path
-        // (`ResponseStream::spawn_request`).
-        #[cfg(not(target_family = "wasm"))]
-        {
-            use ::ai::api_keys::ApiKeyManager;
-
-            ApiKeyManager::handle(ctx).update(ctx, |manager, ctx| {
-                crate::ai::geap_credentials::refresh_geap_credentials_if_needed(manager, ctx);
-            });
+        let provider_keys = ApiKeyManager::as_ref(ctx).keys();
+        let provider_validation = validate_provider_inventory(provider_keys).and_then(|_| {
+            validate_provider_configuration(provider_keys, request_input.model_id.as_str())
+        });
+        if let Err(field) = provider_validation {
+            let message = format!(
+                "Configure the Provider {} in Settings > ZYH Agent.",
+                field.display_name()
+            );
+            ctx.emit(BlocklistAIControllerEvent::ShowError(message.clone()));
+            ctx.emit(BlocklistAIControllerEvent::OpenSettings(
+                SettingsSection::WarpAgent,
+            ));
+            return Err(anyhow::Error::new(field));
         }
 
         let mut request_params = api::RequestParams::new(
@@ -2587,17 +2564,6 @@ impl BlocklistAIController {
             safe: ("Agent request custom inference routing: base_is_custom={base_is_custom} coding_is_custom={coding_is_custom} cli_agent_is_custom={cli_agent_is_custom} computer_use_is_custom={computer_use_is_custom} custom_model_count={} warp_credit_fallback={}", request_params.custom_provider_model_count(), request_params.allow_use_of_warp_credits),
             full: ("Agent request custom inference routing: base_model={} coding_model={} cli_agent_model={} computer_use_model={} base_is_custom={base_is_custom} coding_is_custom={coding_is_custom} cli_agent_is_custom={cli_agent_is_custom} computer_use_is_custom={computer_use_is_custom} custom_model_count={} warp_credit_fallback={}", request_params.model, request_params.coding_model, request_params.cli_agent_model, request_params.computer_use_model, request_params.custom_provider_model_count(), request_params.allow_use_of_warp_credits)
         );
-
-        if FeatureFlag::AnonymousOnlyMode.is_enabled()
-            && !request_params.model_config_is_backed_by_custom_providers()
-        {
-            let message = tr(ctx, Message::AnonymousOnlyRequiresCustomEndpoint).to_string();
-            ctx.emit(BlocklistAIControllerEvent::ShowError(message.clone()));
-            ctx.emit(BlocklistAIControllerEvent::OpenSettings(
-                SettingsSection::WarpAgent,
-            ));
-            return Err(anyhow!("{message}"));
-        }
 
         if runtime_binding == AgentRuntimeBinding::Pi {
             let response_stream_id = ResponseStreamId::new();
@@ -3255,22 +3221,6 @@ impl BlocklistAIController {
                         }
                     }
                     Err(e) => {
-                        if matches!(e.as_ref(), AIApiError::QuotaLimit { .. }) {
-                            // If the error is a quota limit, we want to refresh workspace metadata
-                            // So the current state of AI overages is immediately up to date.
-                            TeamUpdateManager::handle(ctx).update(
-                                ctx,
-                                |team_update_manager, ctx| {
-                                    std::mem::drop(
-                                        team_update_manager.refresh_workspace_metadata(ctx),
-                                    );
-                                },
-                            );
-                            AIRequestUsageModel::handle(ctx).update(ctx, |model, ctx| {
-                                model.enable_buy_credits_banner(ctx);
-                            });
-                        }
-
                         // A resume scheduled for this failure keeps the conversation in
                         // the non-terminal TransientError status instead of Error.
                         let recovery_pending = response_stream
@@ -3476,11 +3426,6 @@ impl BlocklistAIController {
                     stream_id,
                     conversation_id,
                 });
-                AIRequestUsageModel::handle(ctx).update(ctx, |request_usage_model, ctx| {
-                    request_usage_model.refresh_request_usage_async(ctx);
-                });
-
-                self.maybe_refresh_ai_overages(ctx);
             }
         }
     }
@@ -3501,38 +3446,6 @@ impl BlocklistAIController {
                 ctx,
             );
         });
-    }
-
-    /// Checks if we should refresh AI overage information after an AI request completes.
-    /// This is used to ensure the UI matches the state of the workspace,
-    /// especially because overages are not real-time communicated to clients.
-    fn maybe_refresh_ai_overages(&mut self, ctx: &mut ModelContext<Self>) {
-        let workspace = UserWorkspaces::as_ref(ctx).current_workspace();
-        let Some(workspace) = workspace else {
-            return;
-        };
-
-        // We want to minimize the number of times we ping our backend for updated usage information;
-        // doing it after every AI query finishes would be very expensive.
-
-        // If a user is below their personal limits, then we know that they won't eat into overages,
-        // so we don't need to refresh.
-        let has_no_requests_remaining = !AIRequestUsageModel::as_ref(ctx).has_requests_remaining();
-        // If overages aren't enabled, we're not going to reap the benefit of refreshing at all anyway.
-        let are_overages_enabled = workspace.are_overages_enabled();
-
-        if are_overages_enabled && has_no_requests_remaining {
-            // Give a one second delay to ensure that Stripe has been charged and the database is completely updated,
-            // before syncing new AI overages data.
-            ctx.spawn(
-                async move { Timer::after(Duration::from_secs(1)).await },
-                |_, _, ctx| {
-                    UserWorkspaces::handle(ctx).update(ctx, |user_workspaces, ctx| {
-                        user_workspaces.refresh_ai_overages(ctx);
-                    });
-                },
-            );
-        }
     }
 
     pub(super) fn handle_response_stream_finished(
@@ -3882,3 +3795,7 @@ fn get_running_command(terminal_model: &TerminalModel) -> Option<RunningCommand>
 #[cfg(test)]
 #[path = "controller_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "controller_missing_provider_tests.rs"]
+mod missing_provider_tests;

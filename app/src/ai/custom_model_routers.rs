@@ -22,16 +22,11 @@ use warp_multi_agent_api as api;
 use super::llms::{LLMContextWindow, LLMId, LLMInfo, LLMProvider, LLMUsageMetadata};
 
 /// The shared `config_key` namespace prefix for all custom model routers.
-/// Both local (YAML-authored) and cloud/team (server-synced) routers live under
-/// this prefix: local routers use `custom-router:local:` and cloud/team routers
-/// use `custom-router:cloud:`. Use [`is_custom_router_id`] to match either.
+/// Local YAML-authored routers use the `custom-router:local:` namespace.
 pub const CUSTOM_ROUTER_PREFIX: &str = "custom-router:";
 
 /// The `config_key` prefix for local (YAML-authored) custom model routers.
 pub const LOCAL_CUSTOM_ROUTER_PREFIX: &str = "custom-router:local:";
-
-/// The `config_key` prefix for cloud/team (server-synced) custom model routers.
-pub const CLOUD_CUSTOM_ROUTER_PREFIX: &str = "custom-router:cloud:";
 
 /// The routing strategy for a custom model router.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -296,13 +291,6 @@ pub fn is_custom_router_id(id: &str) -> bool {
 /// routers, including cloud/team ones.
 pub fn is_local_custom_router_id(id: &str) -> bool {
     id.starts_with(LOCAL_CUSTOM_ROUTER_PREFIX)
-}
-
-/// Returns whether an id is the `config_key` of a *cloud/team* (server-synced)
-/// custom model router specifically. Used to gate cloud routers behind the same
-/// feature flag as local routers so the whole feature is controlled by one flag.
-pub fn is_cloud_custom_router_id(id: &str) -> bool {
-    id.starts_with(CLOUD_CUSTOM_ROUTER_PREFIX)
 }
 
 // ── Serialization back to YAML ───────────────────────────────────────────────

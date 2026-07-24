@@ -132,7 +132,7 @@ pub struct ZeroStateSuggestionInfo {
 pub struct NextCommandModel {
     sessions: ModelHandle<Sessions>,
     model: Arc<FairMutex<TerminalModel>>,
-    server_api: Arc<ServerApi>,
+    server_api: Option<Arc<ServerApi>>,
     #[cfg(feature = "local_fs")]
     conn: Option<Arc<Mutex<SqliteConnection>>>,
 
@@ -156,7 +156,7 @@ impl NextCommandModel {
     pub fn new(
         sessions: ModelHandle<Sessions>,
         model: Arc<FairMutex<TerminalModel>>,
-        server_api: Arc<ServerApi>,
+        server_api: Option<Arc<ServerApi>>,
     ) -> Self {
         #[cfg(feature = "local_fs")]
         let conn = database_file_path_for_current_scope()
@@ -342,7 +342,9 @@ impl NextCommandModel {
         previous_result: Option<IntelligentAutosuggestionResult>,
         ctx: &mut ModelContext<Self>,
     ) {
-        let server_api = self.server_api.clone();
+        let Some(server_api) = self.server_api.clone() else {
+            return;
+        };
         let terminal_model = self.model.clone();
         let cached_next_command_context = self.cached_zerostate_next_command_context.clone();
 

@@ -698,7 +698,7 @@ fn settings_section(page: String) -> Result<SettingsSection, ControlError> {
             "surface.settings.open does not open Warp Drive settings",
         ));
     }
-    Ok(section.redirect_for_local_only_mode())
+    Ok(section.redirect_unavailable_section())
 }
 
 fn surface_palette_open(

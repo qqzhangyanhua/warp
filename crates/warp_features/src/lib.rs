@@ -647,9 +647,6 @@ pub enum FeatureFlag {
     /// Enables Oz identity federation commands.
     OzIdentityFederation,
 
-    /// Gates populating/reading oz updates from channel versions in the changelog model.
-    OzChangelogUpdates,
-
     /// Enables image upload for ambient agents.
     AmbientAgentsImageUpload,
 
@@ -803,14 +800,6 @@ pub enum FeatureFlag {
     /// anonymous user. The user remains fully logged out (no credentials) and
     /// login-gated features are disabled until they sign in.
     SkipFirebaseAnonymousUser,
-
-    /// Runs the product without Warp account sign-in while retaining an anonymous service
-    /// identity for supported features.
-    AnonymousOnlyMode,
-
-    /// Runs the product without Warp account sign-in, Anonymous Sessions, or Warp network
-    /// services. AI requests use user-configured OpenAI-compatible Providers.
-    LocalOnlyCustomProviderMode,
 
     /// Routes eligible Local-only Interactive Agent Conversations through the Pi Agent Runtime.
     PiAgentRuntime,

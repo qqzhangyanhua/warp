@@ -90,10 +90,6 @@ pub struct RemoteServerIdentityArgs {
 /// Global options that apply to all CLI commands.
 #[derive(Debug, Default, Clone, clap::Args)]
 pub struct GlobalOptions {
-    /// API key for server authentication.
-    #[arg(long = "api-key", global = true, env = "WARP_API_KEY")]
-    pub api_key: Option<String>,
-
     /// Set the output format.
     #[arg(
         long = "output-format",
@@ -105,23 +101,12 @@ pub struct GlobalOptions {
     pub output_format: OutputFormat,
 }
 
-/// Normal argument parser for the shared Warp executable across all channels.
-///
-/// Oz commands are subcommands of this parser, so invoking an `oz` symlink does
-/// not require a mode flag. Warp Control uses its separate [`local_control::ControlArgs`]
-/// parser, selected before this parser sees the arguments.
+/// Normal argument parser for the ZYH executable.
 #[derive(Debug, Default, Parser, Clone)]
 #[command(
-    name = "oz",
-    display_name = "Oz",
-    about = r#"The orchestration platform for cloud agents
-
-The Oz CLI is a tool for running, managing, and orchestrating coding agents at scale.
-Use the CLI to:
-* Launch and inspect cloud agents
-* Schedule cloud agents to run in the future
-* Manage the environments that cloud agents run in
-* Upload secrets to Oz's secure storage"#
+    name = "zyh",
+    display_name = "ZYH",
+    about = "Local terminal and agentic development tools"
 )]
 #[clap(args_conflicts_with_subcommands = true)]
 pub struct Args {
@@ -435,11 +420,6 @@ impl Args {
         &self.global_options
     }
 
-    /// Returns the API key if provided.
-    pub fn api_key(&self) -> Option<&String> {
-        self.global_options.api_key.as_ref()
-    }
-
     /// Returns the output format.
     pub fn output_format(&self) -> OutputFormat {
         self.global_options.output_format
@@ -549,13 +529,6 @@ pub enum CliCommand {
     #[command(subcommand)]
     Memory(crate::memory_store::MemoryCommand),
 
-    /// Log in to Warp.
-    Login,
-    /// Log out of Warp.
-    Logout,
-    /// Print information about the logged-in user.
-    Whoami,
-
     /// Manage providers.
     #[command(subcommand)]
     Provider(crate::provider::ProviderCommand),
@@ -599,9 +572,6 @@ impl CliCommand {
             CliCommand::MCP(command) => command.as_str_for_tracing(),
             CliCommand::Run(command) => command.as_str_for_tracing(),
             CliCommand::Model(command) => command.as_str_for_tracing(),
-            CliCommand::Login => "login",
-            CliCommand::Logout => "logout",
-            CliCommand::Whoami => "whoami",
             CliCommand::Provider(command) => command.as_str_for_tracing(),
             CliCommand::Integration(command) => command.as_str_for_tracing(),
             CliCommand::Schedule(command) => command.as_str_for_tracing(),

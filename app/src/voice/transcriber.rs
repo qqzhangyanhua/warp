@@ -48,6 +48,10 @@ impl ResolvedVoiceTranscriber {
 }
 
 impl VoiceTranscriber {
+    pub fn disabled() -> Self {
+        Self { transcriber: None }
+    }
+
     pub fn new(transcriber: Arc<dyn Transcriber>) -> Self {
         Self {
             transcriber: Some(transcriber),
@@ -85,10 +89,7 @@ impl VoiceTranscriber {
         &self,
         app: &AppContext,
     ) -> Result<ResolvedVoiceTranscriber, VoiceTranscriptionConfigError> {
-        self.resolve(
-            ApiKeyManager::as_ref(app).keys(),
-            crate::local_mode::is_local_only_custom_provider_mode(),
-        )
+        self.resolve(ApiKeyManager::as_ref(app).keys(), true)
     }
 }
 

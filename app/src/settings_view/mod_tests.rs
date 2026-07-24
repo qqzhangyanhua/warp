@@ -1,9 +1,9 @@
 use settings_page::MatchData;
 
 use super::*;
-use crate::workspace::view::tests::{initialize_app, initialize_app_without_cloud_update_managers};
+use crate::workspace::view::tests::initialize_app_without_cloud_update_managers;
 
-const FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS: [SettingsSection; 8] = [
+const UNAVAILABLE_ZYH_SETTINGS_SECTIONS: [SettingsSection; 8] = [
     SettingsSection::Account,
     SettingsSection::BillingAndUsage,
     SettingsSection::Teams,
@@ -34,7 +34,7 @@ impl TypedActionView for TestRootView {
     type Action = ();
 }
 
-fn assert_local_only_selection_redirects_to_warp_agent(
+fn assert_unavailable_selection_redirects_to_warp_agent(
     settings_view: &ViewHandle<SettingsView>,
     section: SettingsSection,
     app: &mut warpui::App,
@@ -48,7 +48,7 @@ fn assert_local_only_selection_redirects_to_warp_agent(
     assert_eq!(
         current_section,
         SettingsSection::WarpAgent,
-        "{section:?} should resolve to WarpAgent in Local-only Mode"
+        "{section:?} should resolve to WarpAgent in ZYH"
     );
 }
 
@@ -174,18 +174,14 @@ fn non_subpage_sections_map_to_themselves() {
     );
 }
 
-// ── Product mode visibility ────────────────────────────────────────────────
+// ── Permanent ZYH product visibility ──────────────────────────────────────
 
 #[test]
-#[serial_test::serial]
-fn local_only_mode_hides_account_and_cloud_settings_sections() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
+fn zyh_hides_account_and_cloud_settings_sections() {
+    for section in UNAVAILABLE_ZYH_SETTINGS_SECTIONS {
         assert!(
-            section.hidden_in_current_mode(),
-            "{section:?} should be hidden in Local-only Mode"
+            section.unavailable_in_zyh(),
+            "{section:?} should be unavailable in ZYH"
         );
     }
 
@@ -204,91 +200,51 @@ fn local_only_mode_hides_account_and_cloud_settings_sections() {
         SettingsSection::About,
     ] {
         assert!(
-            !section.hidden_in_current_mode(),
-            "{section:?} should remain visible in Local-only Mode"
+            !section.unavailable_in_zyh(),
+            "{section:?} should remain visible in ZYH"
         );
     }
 }
 
 #[test]
-#[serial_test::serial]
-fn standard_mode_does_not_hide_account_and_cloud_settings_sections_by_mode() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
-        assert!(
-            !section.hidden_in_current_mode(),
-            "{section:?} should remain visible in standard mode"
-        );
-    }
-}
-
-#[test]
-#[serial_test::serial]
-fn local_only_mode_defaults_to_visible_settings_section() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+fn zyh_defaults_to_provider_settings() {
     assert_eq!(
-        SettingsSection::default_for_current_mode(),
+        SettingsSection::default_for_zyh(),
         SettingsSection::WarpAgent
     );
 }
 
 #[test]
 #[serial_test::serial]
-fn standard_mode_defaults_to_account_settings() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    assert_eq!(
-        SettingsSection::default_for_current_mode(),
-        SettingsSection::Account
-    );
-}
-
-#[test]
-#[serial_test::serial]
-fn local_only_mode_disabled_scripting_initial_page_uses_visible_default() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
+fn zyh_disabled_scripting_initial_page_uses_visible_default() {
     let _scripting = FeatureFlag::WarpControlCli.override_enabled(false);
 
     assert_eq!(
-        SettingsSection::initial_page_for_current_mode(Some(SettingsSection::Scripting)),
+        SettingsSection::initial_page_for_zyh(Some(SettingsSection::Scripting)),
         SettingsSection::WarpAgent
     );
 }
 
 #[test]
-#[serial_test::serial]
-fn local_only_mode_hidden_cloud_subpage_initial_page_uses_visible_default() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+fn zyh_cloud_subpage_initial_page_uses_visible_default() {
     for section in [
         SettingsSection::CloudEnvironments,
         SettingsSection::OzCloudAPIKeys,
     ] {
         assert_eq!(
-            SettingsSection::initial_page_for_current_mode(Some(section)),
+            SettingsSection::initial_page_for_zyh(Some(section)),
             SettingsSection::WarpAgent
         );
     }
 }
 
 #[test]
-#[serial_test::serial]
-fn local_only_mode_redirects_forbidden_settings_requests_to_warp_agent() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
+fn zyh_redirects_unavailable_settings_requests_to_warp_agent() {
+    for section in UNAVAILABLE_ZYH_SETTINGS_SECTIONS {
         assert_eq!(
-            section.redirect_for_local_only_mode(),
+            section.redirect_unavailable_section(),
             SettingsSection::WarpAgent,
-            "{section:?} should redirect to WarpAgent in Local-only Mode"
+            "{section:?} should redirect to WarpAgent in ZYH"
         );
     }
 
@@ -300,49 +256,27 @@ fn local_only_mode_redirects_forbidden_settings_requests_to_warp_agent() {
         SettingsSection::Privacy,
     ] {
         assert_eq!(
-            section.redirect_for_local_only_mode(),
+            section.redirect_unavailable_section(),
             section,
-            "{section:?} should remain directly openable in Local-only Mode"
+            "{section:?} should remain directly openable in ZYH"
         );
     }
 }
 
 #[test]
-#[serial_test::serial]
-fn standard_mode_keeps_settings_request_targets_unchanged() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    for section in [
-        SettingsSection::Account,
-        SettingsSection::BillingAndUsage,
-        SettingsSection::CloudEnvironments,
-        SettingsSection::OzCloudAPIKeys,
-    ] {
-        assert_eq!(section.redirect_for_local_only_mode(), section);
-    }
-}
-
-#[test]
-#[serial_test::serial]
-fn local_only_mode_does_not_instantiate_forbidden_settings_pages() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
+fn zyh_disables_unavailable_settings_command_entrypoints() {
+    for section in UNAVAILABLE_ZYH_SETTINGS_SECTIONS {
         assert!(
-            !section.should_instantiate_in_current_mode(),
-            "{section:?} should not be instantiated in Local-only Mode"
+            !section.command_entrypoint_enabled(),
+            "{section:?} should not have a command entrypoint in ZYH"
         );
     }
+    assert!(SettingsSection::WarpAgent.command_entrypoint_enabled());
+    assert!(SettingsSection::Keybindings.command_entrypoint_enabled());
 }
 
 #[test]
-#[serial_test::serial]
-fn local_only_settings_view_without_cloud_update_managers_omits_and_redirects_forbidden_pages() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+fn zyh_settings_view_omits_and_redirects_unavailable_pages() {
     warpui::App::test((), |mut app| async move {
         initialize_app_without_cloud_update_managers(&mut app);
         let (window_id, _root_view) = app
@@ -362,10 +296,10 @@ fn local_only_settings_view_without_cloud_update_managers_omits_and_redirects_fo
                 .map(|page| page.section)
                 .collect();
 
-            for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
+            for section in UNAVAILABLE_ZYH_SETTINGS_SECTIONS {
                 assert!(
                     !sections.contains(&section),
-                    "{section:?} should not be instantiated in Local-only Mode"
+                    "{section:?} should not be instantiated in ZYH"
                 );
             }
             assert_eq!(
@@ -374,62 +308,10 @@ fn local_only_settings_view_without_cloud_update_managers_omits_and_redirects_fo
             );
         });
 
-        for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
-            assert_local_only_selection_redirects_to_warp_agent(&settings_view, section, &mut app);
+        for section in UNAVAILABLE_ZYH_SETTINGS_SECTIONS {
+            assert_unavailable_selection_redirects_to_warp_agent(&settings_view, section, &mut app);
         }
     });
-}
-
-#[test]
-#[serial_test::serial]
-fn standard_settings_view_keeps_account_and_cloud_settings_pages() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    warpui::App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        let (window_id, _root_view) = app
-            .add_window(warpui::platform::WindowStyle::NotStealFocus, |_| {
-                TestRootView
-            });
-
-        let settings_view = app.update(|ctx| {
-            ctx.add_typed_action_view(window_id, |ctx| {
-                SettingsView::new(Some(SettingsSection::BillingAndUsage), ctx)
-            })
-        });
-        settings_view.read(&app, |settings_view, _ctx| {
-            let sections: Vec<_> = settings_view
-                .settings_pages
-                .iter()
-                .map(|page| page.section)
-                .collect();
-
-            for section in FORBIDDEN_LOCAL_ONLY_SETTINGS_SECTIONS {
-                assert!(
-                    sections.contains(&section),
-                    "{section:?} should be instantiated in standard mode"
-                );
-            }
-            assert_eq!(
-                settings_view.current_settings_page,
-                SettingsSection::BillingAndUsage
-            );
-        });
-    });
-}
-
-#[test]
-#[serial_test::serial]
-fn local_only_mode_disables_forbidden_settings_command_entrypoints() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    assert!(!SettingsSection::Account.command_entrypoint_enabled_in_current_mode());
-    assert!(!SettingsSection::BillingAndUsage.command_entrypoint_enabled_in_current_mode());
-    assert!(!SettingsSection::CloudEnvironments.command_entrypoint_enabled_in_current_mode());
-    assert!(SettingsSection::WarpAgent.command_entrypoint_enabled_in_current_mode());
-    assert!(SettingsSection::Keybindings.command_entrypoint_enabled_in_current_mode());
 }
 
 // ── ai_subpages list ────────────────────────────────────────────────────────

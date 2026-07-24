@@ -16,12 +16,12 @@ use crate::pane_group::{BackingView, PaneConfiguration, PaneId, PaneView};
 use crate::server::server_api::team::MockTeamClient;
 use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
+use crate::server::sync_queue::SyncQueue;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::terminal::shared_session::permissions_manager::SessionPermissionsManager;
 use crate::test_util::settings::initialize_settings_for_tests;
-use crate::{
-    NetworkStatus, SyncQueue, TeamTesterStatus, UpdateManager, UserProfiles, UserWorkspaces,
-};
+use crate::workspaces::team_tester::TeamTesterStatus;
+use crate::{NetworkStatus, UpdateManager, UserProfiles, UserWorkspaces};
 
 /// A dummy view that is also a backing pane view for testing purposes.
 struct TestView {

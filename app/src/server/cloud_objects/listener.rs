@@ -11,7 +11,6 @@ use warpui::{Entity, ModelContext, ModelHandle, RequestState, SingletonEntity};
 
 use super::update_manager::UpdateManager;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::local_mode;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::server::retry_strategies::LISTENER_RETRY_STRATEGY;
 use crate::server::server_api::object::ObjectClient;
@@ -74,58 +73,8 @@ pub struct Listener {
 }
 
 impl Listener {
-    pub fn new(cloud_objects_client: Arc<dyn ObjectClient>, ctx: &mut ModelContext<Self>) -> Self {
-        if local_mode::is_local_only_custom_provider_mode() {
-            return Self::new_disabled(cloud_objects_client);
-        }
-
-        let (subscription_ready_tx, subscription_ready_rx) = async_channel::unbounded();
-        let mut listener = Self {
-            cloud_objects_client,
-            should_subscribe_to_updates: false,
-            current_subscription_abort_handle: None,
-            subscription_ready_tx,
-            last_disconnected_at: None,
-            pending_refresh_abort_handle: None,
-        };
-
-        // When the websocket signals readiness, decide whether to refresh cloud objects
-        // based on how long the connection was down.
-        let _ = ctx.spawn_stream_local(
-            subscription_ready_rx,
-            Self::on_subscription_ready,
-            |_, _| {},
-        );
-
-        ctx.subscribe_to_model(&SystemStats::handle(ctx), Self::handle_cpu_event);
-
-        ctx.subscribe_to_model(
-            &NetworkStatus::handle(ctx),
-            Self::handle_network_status_changed_event,
-        );
-
-        // To prevent creating unnecessary websockets, we only open a websocket if
-        // - a user is known to be part of a team
-        // - or a user has access to >= 1 cloud object
-        // In either of these cases, it's worth creating a websocket for cloud object updates.
-        //
-        // Note that we also want a websocket for CloudPreferences, but this is handled via listening
-        // to the cloud model for the creation of cloud preferences objects (which happens when settings sync
-        // is enabled for the first time).
-        ctx.subscribe_to_model(
-            &UserWorkspaces::handle(ctx),
-            Self::handle_user_workspaces_event,
-        );
-        ctx.subscribe_to_model(&CloudModel::handle(ctx), Self::handle_cloud_model_event);
-
-        // We need to do a one-time check of cloud objects when starting
-        // because the Cloud Model was initialized before this model and we could have populated
-        // its object cache with objects from sqlite.
-        if listener.has_non_welcome_cloud_objects(ctx) {
-            listener.start_listener(ctx);
-        }
-
-        listener
+    pub fn new(cloud_objects_client: Arc<dyn ObjectClient>, _ctx: &mut ModelContext<Self>) -> Self {
+        Self::new_disabled(cloud_objects_client)
     }
 
     fn new_disabled(cloud_objects_client: Arc<dyn ObjectClient>) -> Self {

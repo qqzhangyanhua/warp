@@ -1,4 +1,3 @@
-use crate::i18n::{tr_cached, Message};
 use pathfinder_color::ColorU;
 use warpui::elements::{
     Align, Container, CrossAxisAlignment, Flex, MouseStateHandle, ParentElement, Shrinkable,
@@ -11,6 +10,7 @@ use warpui::Element;
 
 use super::render_block_banner;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::view::{RememberForWarpification, TerminalAction};
 use crate::themes::theme::Fill;
 use crate::ui_components::blended_colors;

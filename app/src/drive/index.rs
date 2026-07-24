@@ -49,14 +49,13 @@ use super::items::mcp_server_collection::WarpDriveMCPServerCollection;
 use super::items::WarpDriveItemId;
 use super::settings::WarpDriveSettings;
 use super::sharing::dialog::{SharingDialog, SharingDialogEvent};
-use super::sharing::{ContentEditability, ShareableObject};
+use super::sharing::ContentEditability;
 use super::{CloudObjectTypeAndId, DriveObjectType, DriveSortOrder};
 use crate::ai::document::ai_document_model::AIDocumentId;
 use crate::ai::facts::{AIFact, AIMemory};
 use crate::appearance::Appearance;
-use crate::auth::auth_manager::{AuthManager, LoginGatedFeature};
+use crate::auth::auth_manager::LoginGatedFeature;
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::model::view::{CloudViewModel, CloudViewModelEvent, UpdateTimestamp};
@@ -78,9 +77,7 @@ use crate::server::cloud_objects::update_manager::{
 };
 use crate::server::ids::{ClientId, ObjectUid, ServerId, SyncId};
 use crate::server::sync_queue::SyncQueue;
-use crate::server::telemetry::{
-    AnonymousUserSignupEntrypoint, SharingDialogSource, TelemetryEvent,
-};
+use crate::server::telemetry::TelemetryEvent;
 use crate::settings::app_installation_detection::{
     UserAppInstallDetectionSettings, UserAppInstallStatus,
 };
@@ -3457,7 +3454,7 @@ impl DriveIndex {
 
         match object_type {
             DriveObjectType::Notebook { .. } => {
-                if has_feature_gated_anonymous_user_reached_notebook_limit(ctx) {
+                if has_feature_gated_anonymous_user_reached_notebook_limit() {
                     return;
                 }
 
@@ -3490,7 +3487,7 @@ impl DriveIndex {
                 }
             }
             DriveObjectType::EnvVarCollection => {
-                if has_feature_gated_anonymous_user_reached_env_var_limit(ctx) {
+                if has_feature_gated_anonymous_user_reached_env_var_limit() {
                     return;
                 }
 
@@ -3501,7 +3498,7 @@ impl DriveIndex {
                 })
             }
             DriveObjectType::Workflow => {
-                if has_feature_gated_anonymous_user_reached_workflow_limit(ctx) {
+                if has_feature_gated_anonymous_user_reached_workflow_limit() {
                     return;
                 }
 
@@ -3514,7 +3511,7 @@ impl DriveIndex {
                 })
             }
             DriveObjectType::AgentModeWorkflow => {
-                if has_feature_gated_anonymous_user_reached_workflow_limit(ctx) {
+                if has_feature_gated_anonymous_user_reached_workflow_limit() {
                     return;
                 }
 
@@ -3674,12 +3671,12 @@ impl DriveIndex {
                 }
                 Space::Personal => match cloud_object_type_and_id {
                     CloudObjectTypeAndId::Notebook(_) => {
-                        if has_feature_gated_anonymous_user_reached_notebook_limit(ctx) {
+                        if has_feature_gated_anonymous_user_reached_notebook_limit() {
                             return;
                         }
                     }
                     CloudObjectTypeAndId::Workflow(_) => {
-                        if has_feature_gated_anonymous_user_reached_workflow_limit(ctx) {
+                        if has_feature_gated_anonymous_user_reached_workflow_limit() {
                             return;
                         }
                     }
@@ -3688,7 +3685,7 @@ impl DriveIndex {
                             GenericStringObjectFormat::Json(JsonObjectType::EnvVarCollection),
                         id: _,
                     } => {
-                        if has_feature_gated_anonymous_user_reached_env_var_limit(ctx) {
+                        if has_feature_gated_anonymous_user_reached_env_var_limit() {
                             return;
                         }
                     }
@@ -4919,43 +4916,6 @@ impl DriveIndex {
         ctx.notify();
     }
 
-    pub fn toggle_share_dialog(
-        &mut self,
-        warp_drive_item_id: &WarpDriveItemId,
-        invitee_email: Option<String>,
-        source: SharingDialogSource,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let WarpDriveItemId::Object(cloud_object_type_and_id) = warp_drive_item_id else {
-            return;
-        };
-
-        if self.auth_state.is_anonymous_or_logged_out() {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    "Share Object",
-                    AuthViewVariant::ShareRequirementCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
-        self.reset_menus(ctx);
-        if let Some(server_id) = cloud_object_type_and_id.server_id() {
-            self.share_dialog_open_for_object = Some(*warp_drive_item_id);
-            self.sharing_dialog.update(ctx, |sharing_dialog, ctx| {
-                sharing_dialog.set_target(Some(ShareableObject::WarpDriveObject(server_id)), ctx);
-                if let Some(invitee_email) = invitee_email {
-                    sharing_dialog.add_invitee_email(invitee_email, ctx);
-                }
-                sharing_dialog.report_open(source, ctx);
-            });
-            ctx.focus(&self.sharing_dialog);
-        }
-        ctx.notify();
-    }
-
     fn toggle_space_menu(&mut self, space: &Space, offset: Vector2F, ctx: &mut ViewContext<Self>) {
         self.space_menu_open_for_space = Some(SpaceMenuState {
             space: *space,
@@ -5259,18 +5219,6 @@ impl TypedActionView for DriveIndex {
     type Action = DriveIndexAction;
 
     fn handle_action(&mut self, action: &DriveIndexAction, ctx: &mut ViewContext<Self>) {
-        // Block anonymous users from performing team actions
-        if self.auth_state.is_anonymous_or_logged_out() && action.blocked_for_anonymous_user() {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         match action {
             DriveIndexAction::CreateObject {
                 object_type,
@@ -5285,7 +5233,7 @@ impl TypedActionView for DriveIndex {
                 content,
                 is_for_agent_mode,
             } => {
-                if has_feature_gated_anonymous_user_reached_workflow_limit(ctx) {
+                if has_feature_gated_anonymous_user_reached_workflow_limit() {
                     return;
                 }
 
@@ -5664,18 +5612,10 @@ impl TypedActionView for DriveIndex {
                 });
             }
             DriveIndexAction::ToggleShareDialog { warp_drive_item_id } => {
-                self.toggle_share_dialog(
-                    warp_drive_item_id,
-                    None,
-                    SharingDialogSource::DriveIndex,
-                    ctx,
-                );
+                log::warn!("Object sharing is unavailable in ZYH: {warp_drive_item_id:?}");
             }
             DriveIndexAction::SignupAnonymousUser => {
-                let entrypoint = AnonymousUserSignupEntrypoint::SignUpButton;
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.initiate_anonymous_user_linking(entrypoint, ctx);
-                });
+                log::warn!("Account sign-up is unavailable in ZYH");
             }
             DriveIndexAction::DismissPersonalObjectLimits => {
                 self.dismiss_personal_object_limit_status(ctx);

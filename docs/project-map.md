@@ -38,8 +38,8 @@
   - GUI desktop app in `app/`, using `warpui` and `crates/warpui_core` GPU/pixel rendering.
   - Headless TUI in `crates/warp_tui`, using cell-grid `TuiElement` rendering in `crates/warpui_core/src/elements/tui`.
 - Shared patterns include the global `App` entity store, `ViewHandle<T>` references, `AppContext`/`ViewContext` access, and action dispatch.
-- Main app feature areas include terminal emulation, AI/Agent Mode, Warp Drive/cloud objects, auth, settings, workspace/session management, billing, and server APIs.
-- Identity modes include Account Sign-in, Anonymous-only Mode, and Local-only Mode. Local-only Mode is build-gated (`local_only_custom_provider_mode`), uses a local identity from `app/src/local_mode.rs`, and skips Warp account/cloud/network initialization where that mode owns startup.
+- Main app feature areas include terminal emulation, local Agent execution, settings, and workspace/session management. Legacy hosted-service modules remain only while retained consumers are removed in ADR-0009 order.
+- ZYH has one permanent local-product startup policy. It creates no account, anonymous, or local identity state and registers no hosted-service startup clients.
 
 ## Important Flows
 - Contribution flow starts from GitHub Issues. Features generally need readiness labels and specs under `specs/`; bug fixes can proceed once actionable. See `CONTRIBUTING.md`.
@@ -50,7 +50,7 @@
 - Integration tests use the custom framework in `crates/integration/`; see `crates/integration/tests/INTEGRATION_TESTING.md`.
 - Database migrations live under `crates/persistence/migrations/`; schema generation guidance is in `app/src/persistence/README.md`.
 - GraphQL schema/client surfaces include `crates/warp_graphql_schema/`, `crates/graphql/`, `app/src/server/graphql/`, and `crates/warp_server_client/`.
-- Agent requests enter through `app/src/ai/agent/api/impl.rs`. Local-only Mode routes them through `app/src/ai/agent/api/local_provider.rs` directly to the configured OpenAI-compatible Provider's `/chat/completions` endpoint. Other modes use `crates/warp_multi_agent_client/` and the configured Warp server's `/ai/multi-agent` endpoint.
+- Agent requests enter through `app/src/ai/blocklist/controller.rs`. New local conversations use the Pi Agent Runtime with an explicitly configured OpenAI-compatible Provider; legacy Rust-bound conversations remain view-only during the ADR-0009 migration.
 - Environment variable collections are documented in `app/src/env_vars/README.md`.
 
 ## Generated Files
@@ -61,7 +61,7 @@
 - Needs human confirmation: exact source-of-truth commands for regenerating GraphQL client files outside the detected `crates/warp_graphql_schema/package.json` `generate` script.
 
 ## Ownership / Risk
-- High risk: auth, permissions, billing, database migrations, managed secrets, external secrets, public API/protocol files, GraphQL clients/schema, release/deployment workflows, generated files, and Local-only/Anonymous-only mode boundaries.
+- High risk: legacy identity removal, permissions, billing, database migrations, managed secrets, external secrets, public API/protocol files, GraphQL clients/schema, release/deployment workflows, generated files, and the permanent ZYH network boundary.
 - Medium risk: shared crates, WarpUI core, terminal model locking, cloud object sync, settings, telemetry, and integration test framework.
 - Low risk: docs, isolated tests, UI copy, and narrowly scoped examples.
 

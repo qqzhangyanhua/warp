@@ -1,9 +1,5 @@
 use thiserror::Error;
-#[cfg(test)]
-pub use warp_server_client::auth::MockAuthClient;
-pub use warp_server_client::auth::{
-    AuthClient, FetchUserResult, MintCustomTokenError, SyncedUserSettings, UserAuthenticationError,
-};
+pub use warp_server_client::auth::{AuthClient, UserAuthenticationError};
 
 #[derive(Error, Debug)]
 /// Error type when creating anonymous users.

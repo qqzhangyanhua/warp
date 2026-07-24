@@ -38,8 +38,8 @@ use warp_errors::report_if_error;
 use warpui::elements::{
     ChildAnchor, ChildView, Clipped, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
     DispatchEventResult, Element, Empty, EventHandler, Flex, MainAxisAlignment, MainAxisSize,
-    OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Radius, Shrinkable, Stack,
-    Wrap, WrapFill, WrapFillEntireRun,
+    OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Radius, Stack, Wrap,
+    WrapFill, WrapFillEntireRun,
 };
 use warpui::r#async::{SpawnedFutureHandle, Timer};
 use warpui::{
@@ -54,14 +54,11 @@ pub(crate) use self::environment_selector::{
 };
 use crate::ai::blocklist::agent_view::is_in_cloud_context;
 use crate::ai::blocklist::history_model::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
-use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::usage::icon_for_context_window_usage;
 use crate::ai::blocklist::BlocklistAIInputModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
-use crate::ai::AIRequestUsageModel;
 use crate::appearance::Appearance;
-use crate::auth::{AuthManager, AuthStateProvider};
 use crate::completer::SessionContext;
 use crate::context_chips::display_chip::{DisplayChip, DisplayChipConfig, PromptChipShellCommand};
 use crate::context_chips::prompt_type::PromptType;
@@ -70,7 +67,6 @@ use crate::context_chips::{self, ContextChipKind};
 use crate::editor::Transcriber;
 use crate::features::FeatureFlag;
 use crate::i18n::{tr, tr_cached, Message};
-use crate::network::NetworkStatus;
 use crate::send_telemetry_from_ctx;
 #[cfg(feature = "voice_input")]
 use crate::server::server_api::TranscribeError;
@@ -117,7 +113,6 @@ use crate::workspace::view::TOGGLE_PROJECT_EXPLORER_BINDING_NAME;
 use crate::workspace::ToastStack;
 #[cfg(not(target_family = "wasm"))]
 use crate::workspace::WorkspaceAction;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 const ENABLE_NLD_TOOLTIP: &str = "Enable terminal command autodetection";
 const DISABLE_NLD_TOOLTIP: &str = "Disable terminal command autodetection";
@@ -297,8 +292,6 @@ pub struct AgentInputFooter {
     new_cloud_vm_indicator: ViewHandle<ActionButton>,
     model_selector: ViewHandle<ProfileModelSelector>,
     environment_selector: Option<ViewHandle<EnvironmentSelector>>,
-    handoff_environment_selector: ViewHandle<EnvironmentSelector>,
-    prompt_alert: ViewHandle<PromptAlertView>,
     ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
     handoff_compose_state: ModelHandle<HandoffComposeState>,
     left_display_chips: Vec<ViewHandle<DisplayChip>>,
@@ -849,56 +842,6 @@ impl AgentInputFooter {
         // Built by the ambient setter (construction + lazy viewer path share that single point).
         let environment_selector: Option<ViewHandle<EnvironmentSelector>> = None;
 
-        let handoff_environment_selector = ctx.add_typed_action_view(|ctx| {
-            EnvironmentSelector::new(
-                menu_positioning_provider.clone(),
-                EnvironmentSelectorTarget::Handoff(handoff_compose_state.clone()),
-                ctx,
-            )
-        });
-
-        ctx.subscribe_to_view(
-            &handoff_environment_selector,
-            |_, _, event, ctx| match event {
-                EnvironmentSelectorEvent::MenuVisibilityChanged { open } => {
-                    ctx.emit(AgentInputFooterEvent::ToggledChipMenu { open: *open });
-                    if !*open {
-                        ctx.emit(AgentInputFooterEvent::EnvironmentSelectorClosed);
-                    }
-                }
-                EnvironmentSelectorEvent::OpenEnvironmentManagementPane => {
-                    ctx.emit(AgentInputFooterEvent::OpenEnvironmentManagementPane);
-                }
-            },
-        );
-
-        ctx.subscribe_to_model(
-            &handoff_compose_state,
-            |me, handoff_compose_state, _, ctx| {
-                if !handoff_compose_state.as_ref(ctx).is_active() {
-                    me.handoff_environment_selector
-                        .update(ctx, |selector, ctx| {
-                            selector.set_menu_visibility(false, ctx)
-                        });
-                }
-                ctx.notify();
-            },
-        );
-
-        let prompt_alert = ctx.add_typed_action_view(PromptAlertView::new);
-        ctx.subscribe_to_view(&prompt_alert, |_, _, event, ctx| {
-            ctx.emit(AgentInputFooterEvent::PromptAlert(event.clone()));
-        });
-
-        ctx.subscribe_to_model(&NetworkStatus::handle(ctx), |_, _, _, ctx| {
-            ctx.notify();
-        });
-        ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |_, _, _, ctx| {
-            ctx.notify();
-        });
-        ctx.subscribe_to_model(&AIRequestUsageModel::handle(ctx), |_, _, _, ctx| {
-            ctx.notify()
-        });
         ctx.subscribe_to_model(&AISettings::handle(ctx), |_, _, event, ctx| {
             if matches!(
                 event,
@@ -922,13 +865,6 @@ impl AgentInputFooter {
                 me.sync_fast_forward_button(ctx);
             },
         );
-
-        // Keep the remote-control chip in sync with login state so we can
-        // disable it and swap the tooltip when the user is anonymous or
-        // logged out.
-        ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, _, _, ctx| {
-            me.sync_remote_control_button(ctx);
-        });
 
         let prompt_for_session_settings = prompt.clone();
         ctx.subscribe_to_model(
@@ -1038,8 +974,6 @@ impl AgentInputFooter {
             new_cloud_vm_indicator,
             model_selector: profile_model_selector_full,
             environment_selector,
-            handoff_environment_selector,
-            prompt_alert,
             terminal_model,
             handoff_compose_state,
             left_display_chips: vec![],
@@ -1057,7 +991,6 @@ impl AgentInputFooter {
             prompt_cache_expired: false,
         };
         me.sync_fast_forward_button(ctx);
-        me.sync_remote_control_button(ctx);
         me.update_context_window_button(ctx);
         me.update_display_chips(&prompt, ctx);
         // Route ambient wiring through the setter so construction and the lazy shared-session
@@ -1832,10 +1765,7 @@ impl AgentInputFooter {
             .environment_selector
             .as_ref()
             .is_some_and(|selector| selector.as_ref(app).is_menu_open());
-        let has_open_handoff_env_selector =
-            self.handoff_environment_selector.as_ref(app).is_menu_open();
-
-        has_open_display_chip || has_open_env_selector || has_open_handoff_env_selector
+        has_open_display_chip || has_open_env_selector
     }
 
     pub fn is_model_selector_open(&self, app: &AppContext) -> bool {
@@ -1949,16 +1879,6 @@ impl AgentInputFooter {
                             return;
                         }
                     };
-                if resolved.uses_warp_voice()
-                    && !crate::ai::AIRequestUsageModel::as_ref(ctx).can_request_voice()
-                {
-                    self.show_cli_voice_error_toast(
-                        &footer_text(ctx, "Voice input limit reached").into_owned(),
-                        ctx,
-                    );
-                    return;
-                }
-
                 let session_result = voice_input::VoiceInput::handle(ctx)
                     .update(ctx, |voice_input, ctx| {
                         voice_input.start_listening(ctx, source.clone())
@@ -2176,31 +2096,6 @@ impl AgentInputFooter {
             button.set_tooltip(Some(tooltip), ctx);
             button.set_active(is_active, ctx);
             button.set_disabled(is_force_enabled, ctx);
-        });
-    }
-
-    /// Disable the start-remote-control chip and swap its tooltip when the
-    /// user is anonymous or logged out, since session sharing requires a
-    /// real account.
-    ///
-    /// Builds without account sign-in (Anonymous-only / Local-only) never show
-    /// a login CTA — remote control is hidden for those modes instead.
-    fn sync_remote_control_button(&self, ctx: &mut ViewContext<Self>) {
-        let account_sign_in_unavailable = FeatureFlag::AnonymousOnlyMode.is_enabled()
-            || crate::local_mode::is_local_only_custom_provider_mode();
-        let login_required = !account_sign_in_unavailable
-            && AuthStateProvider::as_ref(ctx)
-                .get()
-                .is_anonymous_or_logged_out();
-        let tooltip = if login_required {
-            tr_cached(Message::FooterStartRemoteControlLogin)
-        } else {
-            tr_cached(Message::FooterStartRemoteControl)
-        }
-        .to_owned();
-        self.start_remote_control_button.update(ctx, |button, ctx| {
-            button.set_disabled(login_required, ctx);
-            button.set_tooltip(Some(tooltip), ctx);
         });
     }
 
@@ -2476,9 +2371,6 @@ impl View for AgentInputFooter {
                 left_buttons =
                     left_buttons.with_child(ChildView::new(environment_selector).finish());
             }
-        } else if self.handoff_compose_state.as_ref(app).is_active() {
-            left_buttons = left_buttons
-                .with_child(ChildView::new(&self.handoff_environment_selector).finish());
         }
 
         let terminal_model = self.terminal_model.lock();
@@ -2533,26 +2425,15 @@ impl View for AgentInputFooter {
             .with_main_axis_size(MainAxisSize::Min)
             .with_spacing(4.);
 
-        let has_prompt_alert = !self.prompt_alert.as_ref(app).is_no_alert();
-        if has_prompt_alert {
-            right_buttons.add_child(
-                Shrinkable::new(
-                    1.,
-                    Clipped::new(ChildView::new(&self.prompt_alert).finish()).finish(),
-                )
-                .finish(),
-            );
-        } else {
-            for item in &right_items {
-                if let Some(element) = self.render_toolbar_item(
-                    item,
-                    shared_status,
-                    is_cloud_context,
-                    is_conversation_transcript_context,
-                    app,
-                ) {
-                    right_buttons.add_child(element);
-                }
+        for item in &right_items {
+            if let Some(element) = self.render_toolbar_item(
+                item,
+                shared_status,
+                is_cloud_context,
+                is_conversation_transcript_context,
+                app,
+            ) {
+                right_buttons.add_child(element);
             }
         }
 
@@ -2571,12 +2452,10 @@ impl View for AgentInputFooter {
             })
             .finish();
 
-        let mut container = Container::new(content).with_padding_bottom(8.0);
-        if !has_prompt_alert {
-            container = container.with_padding_right(16.);
-        }
-
-        container.finish()
+        Container::new(content)
+            .with_padding_bottom(8.0)
+            .with_padding_right(16.)
+            .finish()
     }
 }
 
@@ -2830,7 +2709,6 @@ pub enum AgentInputFooterEvent {
         open: bool,
     },
     TryExecuteChipCommand(PromptChipShellCommand),
-    PromptAlert(PromptAlertEvent),
     ModelSelectorOpened,
     ModelSelectorClosed,
     EnvironmentSelectorClosed,

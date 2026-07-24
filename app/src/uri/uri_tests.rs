@@ -37,16 +37,12 @@ fn test_find_matching_config() {
 }
 
 #[test]
-#[serial_test::serial]
-fn local_only_settings_deeplink_targets_redirect_forbidden_pages_to_warp_agent() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+fn zyh_settings_deeplinks_redirect_unavailable_pages_to_warp_agent() {
     for subpage in ["billing_and_usage", "platform"] {
         let section = settings_section_for_simple_subpage(subpage)
             .expect("settings deeplink subpage should resolve");
         assert_eq!(
-            section.redirect_for_local_only_mode(),
+            section.redirect_unavailable_section(),
             SettingsSection::WarpAgent
         );
     }
@@ -536,57 +532,6 @@ fn test_action_cloud_agent_setup_parse() {
     let action = Action::parse(&url).unwrap();
     assert!(matches!(action, Action::CloudAgentSetup));
 }
-#[test]
-fn test_action_auto_handoff_to_cloud_parse_default_trigger() {
-    let url = Url::parse(&format!(
-        "{}://action/auto_handoff_to_cloud",
-        ChannelState::url_scheme()
-    ))
-    .unwrap();
-
-    let action = Action::parse(&url).unwrap();
-    assert!(matches!(
-        action,
-        Action::AutoHandoffToCloud {
-            trigger: AutoCloudHandoffTrigger::Uri,
-        }
-    ));
-}
-
-#[test]
-fn test_action_auto_handoff_to_cloud_parse_alias_path() {
-    let url = Url::parse(&format!(
-        "{}://action/auto-handoff-to-cloud",
-        ChannelState::url_scheme()
-    ))
-    .unwrap();
-
-    let action = Action::parse(&url).unwrap();
-    assert!(matches!(
-        action,
-        Action::AutoHandoffToCloud {
-            trigger: AutoCloudHandoffTrigger::Uri,
-        }
-    ));
-}
-
-#[test]
-fn test_action_auto_handoff_to_cloud_parse_sleep_trigger() {
-    let url = Url::parse(&format!(
-        "{}://action/auto_handoff_to_cloud?trigger=sleep",
-        ChannelState::url_scheme()
-    ))
-    .unwrap();
-
-    let action = Action::parse(&url).unwrap();
-    assert!(matches!(
-        action,
-        Action::AutoHandoffToCloud {
-            trigger: AutoCloudHandoffTrigger::MacOsSleep,
-        }
-    ));
-}
-
 #[test]
 fn test_action_new_cloud_agent_conversation_parse() {
     let url = Url::parse(&format!(

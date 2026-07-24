@@ -38,7 +38,6 @@ use crate::ai::codebase_auto_indexing::{
     auto_index_candidate_roots, should_auto_index_codebase, CodebaseAutoIndexingSurface,
 };
 use crate::ai::metadata_project_rules::read_project_rule_contents;
-use crate::ai::AIRequestUsageModel;
 #[cfg(feature = "local_fs")]
 use crate::code::language_server_shutdown_manager::LanguageServerShutdownManager;
 #[cfg(feature = "local_fs")]
@@ -656,15 +655,6 @@ impl PersistedWorkspace {
         manager: &mut CodebaseIndexManager,
         ctx: &mut ModelContext<CodebaseIndexManager>,
     ) {
-        let request_model = AIRequestUsageModel::handle(ctx);
-        let codebase_limits = request_model.as_ref(ctx).codebase_context_limits();
-        manager.update_max_limits(
-            codebase_limits.max_indices_allowed,
-            codebase_limits.max_files_per_repo,
-            codebase_limits.embedding_generation_batch_size,
-            ctx,
-        );
-
         #[cfg(feature = "local_fs")]
         if should_auto_index_codebase(CodebaseAutoIndexingSurface::Local, ctx) {
             let roots = all_working_directories(ctx).into_iter().filter_map(|dir| {

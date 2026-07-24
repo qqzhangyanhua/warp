@@ -26,7 +26,6 @@ use warpui::elements::{
 use warpui::fonts::{Properties, Weight};
 use warpui::keymap::{ContextPredicate, Keystroke};
 use warpui::platform::Cursor;
-use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::ui_components::slider::SliderStateHandle;
 use warpui::ui_components::switch::{SwitchStateHandle, TooltipConfig};
@@ -75,12 +74,6 @@ use crate::ai::llms::{
 };
 use crate::ai::mcp::TemplatableMCPServerManager;
 use crate::ai::paths::host_native_absolute_path;
-use crate::auth::auth_manager::{AuthManager, LoginGatedFeature};
-use crate::auth::auth_view_modal::AuthViewVariant;
-use crate::auth::AuthStateProvider;
-use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::cloud_object::GenericStringObjectFormat::Json;
-use crate::cloud_object::{JsonObjectType, ObjectType};
 use crate::editor::{
     EditorOptions, InteractionState, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextColors,
@@ -97,9 +90,8 @@ use crate::settings::{
     LongRunningCommandSubmissionMode, MemoryEnabled, NLDInTerminalEnabled,
     NaturalLanguageAutosuggestionsEnabled, OrchestrationMessageDisplayMode, PromptSubmissionMode,
     RuleSuggestionsEnabled, SharedBlockTitleGenerationEnabled, ShouldRenderCLIAgentToolbar,
-    ShouldRenderUseAgentToolbarForUserCommands, ShouldShowOzUpdatesInZeroState, ShowAgentTips,
-    ShowConversationHistory, ShowHintText, ThinkingDisplayMode, VoiceInputEnabled,
-    WarpDriveContextEnabled,
+    ShouldRenderUseAgentToolbarForUserCommands, ShowAgentTips, ShowConversationHistory,
+    ShowHintText, ThinkingDisplayMode, VoiceInputEnabled, WarpDriveContextEnabled,
 };
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
 use crate::terminal::CLIAgent;
@@ -148,7 +140,6 @@ use std::sync::LazyLock;
 use markdown_parser::{FormattedText, FormattedTextFragment, FormattedTextLine};
 use warp_errors::{report_error, report_if_error};
 
-use crate::ai::{AIRequestUsageModel, AIRequestUsageModelEvent};
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::editor::{EditorView, Event as EditorEvent, TextOptions};
 use crate::menu::{MenuItem, MenuItemFields};
@@ -288,29 +279,6 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
         )
         .with_group(bindings::BindingGroup::WarpAi)
         .with_enabled(|| FeatureFlag::AgentTips.is_enabled())],
-        app,
-    );
-    ToggleSettingActionPair::add_toggle_setting_action_pairs_as_bindings(
-        vec![ToggleSettingActionPair::custom(
-            SettingActionPairDescriptions::new(
-                tr(app, Message::AiShowOzChangelog),
-                tr(app, Message::AiHideOzChangelog),
-            ),
-            builder(SettingsAction::AI(
-                AISettingsPageAction::ToggleShowOzUpdatesInZeroState,
-            )),
-            SettingActionPairContexts::new(
-                context.clone()
-                    & id!(flags::IS_ANY_AI_ENABLED)
-                    & !id!(flags::SHOW_OZ_UPDATES_IN_ZERO_STATE_FLAG),
-                context.clone()
-                    & id!(flags::IS_ANY_AI_ENABLED)
-                    & id!(flags::SHOW_OZ_UPDATES_IN_ZERO_STATE_FLAG),
-            ),
-            None,
-        )
-        .with_group(bindings::BindingGroup::WarpAi)
-        .with_enabled(|| FeatureFlag::AgentView.is_enabled())],
         app,
     );
     {
@@ -1146,11 +1114,6 @@ impl AISettingsPageView {
             },
         );
 
-        let request_usage_model = AIRequestUsageModel::handle(ctx);
-        ctx.subscribe_to_model(&request_usage_model, |_, _, _, ctx| {
-            ctx.notify();
-        });
-
         ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, _handle, _event, ctx| {
             // Re-render if teams-related data changed that may affect whether features such as voice input are enabled.
             Self::refresh_base_model_menu(&me.base_model_dropdown, ctx);
@@ -1177,24 +1140,6 @@ impl AISettingsPageView {
                 ctx.notify();
             },
         );
-
-        let cloud_model = CloudModel::handle(ctx);
-        ctx.subscribe_to_model(&cloud_model, |me, _, event, ctx| {
-            let added_or_deleted_mcp_servers = matches!(
-                event,
-                CloudModelEvent::ObjectCreated { type_and_id } | CloudModelEvent::ObjectDeleted { type_and_id, .. }
-                if matches!(
-                    type_and_id.object_type(),
-                    ObjectType::GenericStringObject(Json(JsonObjectType::MCPServer))
-                )
-            );
-
-            if added_or_deleted_mcp_servers {
-                Self::refresh_mcp_allowlist_dropdown(&me.mcp_allowlist_dropdown, ctx);
-                Self::refresh_mcp_denylist_dropdown(&me.mcp_denylist_dropdown, ctx);
-                ctx.notify();
-            }
-        });
 
         let templatable_manager = TemplatableMCPServerManager::handle(ctx);
         ctx.subscribe_to_model(&templatable_manager, |me, _, _event, ctx| {
@@ -1754,17 +1699,6 @@ impl AISettingsPageView {
             }
         });
 
-        let ai_request_model = AIRequestUsageModel::handle(ctx);
-        ctx.subscribe_to_model(&ai_request_model, |me, _, event, ctx| {
-            match event {
-                AIRequestUsageModelEvent::RequestUsageUpdated => ctx.notify(),
-                AIRequestUsageModelEvent::RequestBonusRefunded { .. } => ctx.notify(),
-                AIRequestUsageModelEvent::AmbientCreditsBannerDismissed => {}
-            }
-            Self::refresh_base_model_menu(&me.base_model_dropdown, ctx);
-            Self::refresh_coding_model_menu(&me.coding_model_dropdown, ctx);
-        });
-
         let profile_views = Self::create_profile_views(ctx);
 
         // Custom model router views
@@ -2063,11 +1997,7 @@ impl AISettingsPageView {
         ctx: &mut ViewContext<Self>,
     ) {
         let keys = ApiKeyManager::as_ref(ctx).keys();
-        let default_label = if crate::local_mode::is_local_only_custom_provider_mode() {
-            "Not configured"
-        } else {
-            "Warp Voice"
-        };
+        let default_label = "Not configured";
         let mut items = vec![DropdownItem::new(
             default_label,
             AISettingsPageAction::SetVoiceProvider(None),
@@ -2269,18 +2199,8 @@ impl AISettingsPageView {
     /// who are out of monthly (base-plan) credits, since only they hit the
     /// "no credits" error with an `auto` model. Also skips when the current
     /// default is already served by a BYO credential.
-    fn should_offer_default_model_switch(ctx: &AppContext) -> bool {
-        // Exclude only confirmed paid plans. Solo/individual users have no
-        // `current_workspace`, and billing may not have loaded yet (Unknown), so
-        // treat both as eligible and rely on the out-of-credits check below to
-        // filter anyone who can still run Warp-hosted models. (A strict
-        // `is_free_plan()` check here meant solo free users — the common case —
-        // never saw the prompt.)
-        let on_paid_plan = UserWorkspaces::as_ref(ctx)
-            .current_workspace()
-            .is_some_and(|workspace| workspace.billing_metadata.is_user_on_paid_plan());
-        let out_of_monthly_credits = !AIRequestUsageModel::as_ref(ctx).has_requests_remaining();
-        !on_paid_plan && out_of_monthly_credits && !Self::active_base_model_is_byo_covered(ctx)
+    fn should_offer_default_model_switch(_ctx: &AppContext) -> bool {
+        false
     }
 
     /// Detects a provider key that was just added (absent -> present) by diffing
@@ -2935,9 +2855,7 @@ impl AISettingsPageView {
             None => {
                 // Full page: all widgets (legacy behavior)
                 widgets.push(Box::new(GlobalAIWidget::default()));
-                if !FeatureFlag::UsageBasedPricing.is_enabled() {
-                    widgets.push(Box::new(UsageWidget::default()));
-                }
+                if !FeatureFlag::UsageBasedPricing.is_enabled() {}
                 if ai_settings
                     .intelligent_autosuggestions_enabled_internal
                     .is_supported_on_current_platform()
@@ -3029,9 +2947,7 @@ impl AISettingsPageView {
                 }
             }
             Some(AISubpage::Profiles) => {
-                if !FeatureFlag::UsageBasedPricing.is_enabled() {
-                    widgets.push(Box::new(UsageWidget::default()));
-                }
+                if !FeatureFlag::UsageBasedPricing.is_enabled() {}
                 widgets.push(Box::new(AgentsWidget::default()));
             }
             Some(AISubpage::Knowledge) => {
@@ -3759,12 +3675,10 @@ pub enum AISettingsPageAction {
     ToggleCodebaseContext,
     ToggleShowInputHintText,
     ToggleShowAgentTips,
-    ToggleShowOzUpdatesInZeroState,
     SetThinkingDisplayMode(ThinkingDisplayMode),
     SetOrchestrationMessageDisplayMode(OrchestrationMessageDisplayMode),
     SetPromptSubmissionMode(PromptSubmissionMode),
     SetLongRunningCommandSubmissionMode(LongRunningCommandSubmissionMode),
-    AttemptLoginGatedUpgrade,
     RemoveCLIAgentToolbarEnabledCommand(String),
     RemoveFromCommandExecutionAllowlist(AgentModeCommandExecutionPredicate),
     RemoveFromCommandExecutionDenylist(AgentModeCommandExecutionPredicate),
@@ -3822,7 +3736,6 @@ pub enum AISettingsPageAction {
     SetConversationLayout(crate::util::file::external_editor::settings::OpenConversationPreference),
     ToggleCloudHandoff,
     ToggleAmpersandHandoff,
-    ToggleAutoHandoffOnSleep,
     ToggleShowConversationHistory,
     ToggleAutoToggleRichInput,
     ToggleAutoOpenRichInputOnCLIAgentStart,
@@ -3832,16 +3745,6 @@ pub enum AISettingsPageAction {
         pattern: String,
         agent: Option<CLIAgent>,
     },
-}
-
-impl From<&AISettingsPageAction> for LoginGatedFeature {
-    fn from(val: &AISettingsPageAction) -> LoginGatedFeature {
-        use AISettingsPageAction::*;
-        match val {
-            AttemptLoginGatedUpgrade => tr_cached(Message::AiUpgradeAiUsage),
-            _ => "Unknown reason",
-        }
-    }
 }
 
 impl TypedActionView for AISettingsPageView {
@@ -4278,14 +4181,6 @@ impl TypedActionView for AISettingsPageView {
                 });
                 ctx.notify();
             }
-            AISettingsPageAction::ToggleShowOzUpdatesInZeroState => {
-                AISettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings
-                        .should_show_oz_updates_in_zero_state
-                        .toggle_and_save_value(ctx));
-                });
-                ctx.notify();
-            }
             AISettingsPageAction::SetThinkingDisplayMode(mode) => {
                 AISettings::handle(ctx).update(ctx, |settings, ctx| {
                     report_if_error!(settings.thinking_display_mode.set_value(*mode, ctx));
@@ -4315,15 +4210,6 @@ impl TypedActionView for AISettingsPageView {
                         .set_value(*mode, ctx));
                 });
                 ctx.notify();
-            }
-            AISettingsPageAction::AttemptLoginGatedUpgrade => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.attempt_login_gated_feature(
-                        action.into(),
-                        AuthViewVariant::RequireLoginCloseable,
-                        ctx,
-                    )
-                });
             }
             AISettingsPageAction::RemoveCLIAgentToolbarEnabledCommand(command) => {
                 AISettings::handle(ctx).update(ctx, |settings, ctx| {
@@ -4686,14 +4572,6 @@ impl TypedActionView for AISettingsPageView {
                 });
                 ctx.notify();
             }
-            AISettingsPageAction::ToggleAutoHandoffOnSleep => {
-                AISettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings
-                        .auto_handoff_on_sleep_enabled
-                        .toggle_and_save_value(ctx));
-                });
-                ctx.notify();
-            }
             AISettingsPageAction::ToggleAgentAttribution => {
                 // The updated value syncs to warp-server automatically via
                 // `CloudPreferencesSyncer` as a `JsonPreference` GSO keyed
@@ -4743,11 +4621,7 @@ impl SettingsPageMeta for AISettingsPageView {
         FeatureFlag::AgentMode.is_enabled()
     }
 
-    fn on_page_selected(&mut self, _: bool, ctx: &mut ViewContext<Self>) {
-        AIRequestUsageModel::handle(ctx).update(ctx, |ai_request_usage_model, ctx| {
-            ai_request_usage_model.refresh_request_usage_async(ctx)
-        });
-    }
+    fn on_page_selected(&mut self, _: bool, _ctx: &mut ViewContext<Self>) {}
 
     fn update_filter(&mut self, query: &str, ctx: &mut ViewContext<Self>) -> MatchData {
         self.page.update_filter(query, ctx)
@@ -4949,7 +4823,6 @@ fn render_ai_list(
 #[derive(Default)]
 struct GlobalAIWidget {
     switch_state: SwitchStateHandle,
-    sign_up_button: MouseStateHandle,
 }
 
 impl SettingsWidget for GlobalAIWidget {
@@ -4969,11 +4842,6 @@ impl SettingsWidget for GlobalAIWidget {
         let ui_builder = appearance.ui_builder();
         let is_ai_disabled_due_to_remote_session_org_policy =
             AISettings::as_ref(app).is_ai_disabled_due_to_remote_session_org_policy(app);
-
-        let is_anonymous = !FeatureFlag::AnonymousOnlyMode.is_enabled()
-            && AuthStateProvider::as_ref(app)
-                .get()
-                .is_anonymous_or_logged_out();
 
         let mut row = Flex::row()
             .with_main_axis_size(MainAxisSize::Max)
@@ -5011,384 +4879,23 @@ impl SettingsWidget for GlobalAIWidget {
             );
         }
 
-        // Show sign-up button for anonymous users, toggle for logged-in users
-        if is_anonymous {
-            row.add_child(
-                Flex::row()
-                    .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                    .with_child(
-                        Container::new(
-                            Text::new_inline(
-                                tr(app, Message::AiToUseAiCreateAccount),
-                                appearance.ui_font_family(),
-                                14.,
-                            )
-                            .with_color(
-                                appearance
-                                    .theme()
-                                    .sub_text_color(appearance.theme().surface_2())
-                                    .into_solid(),
-                            )
-                            .finish(),
-                        )
-                        .with_margin_right(16.)
-                        .finish(),
-                    )
-                    .with_child(
-                        Container::new(
-                            ui_builder
-                                .button(ButtonVariant::Accent, self.sign_up_button.clone())
-                                .with_style(UiComponentStyles {
-                                    font_size: Some(14.),
-                                    font_weight: Some(Weight::Semibold),
-                                    border_radius: Some(CornerRadius::with_all(Radius::Pixels(4.))),
-                                    padding: Some(Coords {
-                                        top: 8.,
-                                        bottom: 8.,
-                                        left: 24.,
-                                        right: 24.,
-                                    }),
-                                    ..Default::default()
-                                })
-                                .with_text_label(tr(app, Message::AiSignUp).to_owned())
-                                .build()
-                                .on_click(move |ctx, _, _| {
-                                    ctx.dispatch_typed_action(
-                                        AISettingsPageAction::SignupAnonymousUser,
-                                    );
-                                })
-                                .finish(),
-                        )
-                        .with_padding_right(TOGGLE_BUTTON_RIGHT_PADDING)
-                        .finish(),
-                    )
+        row.add_child(
+            Container::new(
+                ui_builder
+                    .switch(self.switch_state.clone())
+                    .check(AISettings::as_ref(app).is_any_ai_enabled(app))
+                    .build()
+                    .on_click(move |ctx, _, _| {
+                        ctx.dispatch_typed_action(AISettingsPageAction::ToggleGlobalAI);
+                    })
                     .finish(),
-            );
-        } else {
-            row.add_child(
-                Container::new(
-                    ui_builder
-                        .switch(self.switch_state.clone())
-                        .check(AISettings::as_ref(app).is_any_ai_enabled(app))
-                        .build()
-                        .on_click(move |ctx, _, _| {
-                            ctx.dispatch_typed_action(AISettingsPageAction::ToggleGlobalAI);
-                        })
-                        .finish(),
-                )
-                .with_padding_right(TOGGLE_BUTTON_RIGHT_PADDING)
-                .finish(),
-            );
-        }
+            )
+            .with_padding_right(TOGGLE_BUTTON_RIGHT_PADDING)
+            .finish(),
+        );
 
         Container::new(row.finish())
             .with_padding_bottom(15.)
-            .finish()
-    }
-}
-
-#[derive(Default)]
-struct UsageWidget {
-    requests_highlight_index: HighlightedHyperlink,
-}
-
-impl UsageWidget {
-    fn render_request_usage_count(
-        &self,
-        used: usize,
-        limit: usize,
-        is_unlimited: bool,
-        workspace_is_delinquent_due_to_payment_issue: bool,
-        appearance: &Appearance,
-    ) -> Box<dyn warpui::Element> {
-        let mut row = Flex::row();
-        if used >= limit || workspace_is_delinquent_due_to_payment_issue {
-            row.add_child(
-                ConstrainedBox::new(
-                    Icon::AlertTriangle
-                        .to_warpui_icon(appearance.theme().ui_error_color().into())
-                        .finish(),
-                )
-                .with_height(16.)
-                .with_width(16.)
-                .finish(),
-            )
-        }
-
-        let request_count_label = if workspace_is_delinquent_due_to_payment_issue {
-            tr_cached(Message::AiRestrictedDueToBilling).to_string()
-        } else if is_unlimited {
-            tr_cached(Message::AiUnlimited).to_string()
-        } else {
-            format!("{used}/{limit}")
-        };
-
-        row.add_child(
-            appearance
-                .ui_builder()
-                .paragraph(request_count_label)
-                .with_style(UiComponentStyles {
-                    font_color: {
-                        if used >= limit {
-                            Some(appearance.theme().ui_error_color())
-                        } else {
-                            Some(blended_colors::text_sub(
-                                appearance.theme(),
-                                appearance.theme().surface_1(),
-                            ))
-                        }
-                    },
-                    font_size: Some(16.),
-                    margin: Some(Coords {
-                        top: 0.,
-                        bottom: 0.,
-                        left: 8.,
-                        right: 0.,
-                    }),
-                    ..Default::default()
-                })
-                .build()
-                .finish(),
-        );
-
-        row.finish()
-    }
-
-    /// Renders a row of what is being limited, along with the current used/limit.
-    #[allow(clippy::too_many_arguments)]
-    fn render_ai_usage_limit_row(
-        &self,
-        header: impl Into<Cow<'static, str>>,
-        description: impl Into<Cow<'static, str>>,
-        used: usize,
-        limit: usize,
-        is_unlimited: bool,
-        workspace_is_delinquent_due_to_payment_issue: bool,
-        appearance: &Appearance,
-    ) -> Box<dyn warpui::Element> {
-        let request_usage_details = Flex::column()
-            .with_cross_axis_alignment(CrossAxisAlignment::End)
-            .with_child(self.render_request_usage_count(
-                used,
-                limit,
-                is_unlimited,
-                workspace_is_delinquent_due_to_payment_issue,
-                appearance,
-            ));
-
-        let request_usage_description = FormattedTextElement::from_str(
-            description,
-            appearance.ui_font_family(),
-            appearance.ui_font_size(),
-        )
-        .with_color(blended_colors::text_sub(
-            appearance.theme(),
-            appearance.theme().surface_1(),
-        ));
-
-        Flex::row()
-            .with_child(
-                Shrinkable::new(
-                    2.,
-                    Container::new(
-                        Flex::column()
-                            .with_child(
-                                appearance
-                                    .ui_builder()
-                                    .paragraph(header)
-                                    .with_style(UiComponentStyles {
-                                        font_color: Some(blended_colors::text_main(
-                                            appearance.theme(),
-                                            appearance.theme().surface_1(),
-                                        )),
-                                        margin: Some(Coords {
-                                            top: 0.,
-                                            bottom: 4.,
-                                            left: 0.,
-                                            right: 0.,
-                                        }),
-                                        ..Default::default()
-                                    })
-                                    .build()
-                                    .finish(),
-                            )
-                            .with_child(request_usage_description.finish())
-                            .finish(),
-                    )
-                    .with_margin_bottom(16.)
-                    .finish(),
-                )
-                .finish(),
-            )
-            .with_child(
-                Shrinkable::new(
-                    1.,
-                    Container::new(request_usage_details.finish())
-                        .with_margin_bottom(16.)
-                        .finish(),
-                )
-                .finish(),
-            )
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
-            .with_main_axis_size(MainAxisSize::Max)
-            .finish()
-    }
-}
-
-impl SettingsWidget for UsageWidget {
-    type View = AISettingsPageView;
-
-    fn search_terms(&self) -> &str {
-        "a.i. ai usage limit plan"
-    }
-
-    fn should_render(&self, _app: &AppContext) -> bool {
-        !FeatureFlag::AnonymousOnlyMode.is_enabled()
-    }
-
-    fn render(
-        &self,
-        _view: &Self::View,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let ai_request_usage_model = AIRequestUsageModel::as_ref(app);
-        let next_refresh_time = ai_request_usage_model.next_refresh_time();
-        let formatted_next_refresh_time = next_refresh_time.format("%b %d").to_string();
-        let workspace_is_delinquent_due_to_payment_issue = UserWorkspaces::as_ref(app)
-            .current_team()
-            .map(|team| team.billing_metadata.is_delinquent_due_to_payment_issue())
-            .unwrap_or_default();
-
-        let usage_header = Container::new(
-            Flex::row()
-                .with_main_axis_size(MainAxisSize::Max)
-                .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
-                .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                .with_child(
-                    build_sub_header(
-                        appearance,
-                        tr_cached(Message::AiUsage),
-                        Some(styles::header_font_color(true, app)),
-                    )
-                    .finish(),
-                )
-                .with_child(
-                    appearance
-                        .ui_builder()
-                        .paragraph(
-                            tr_cached(Message::AiResetsAt)
-                                .replace("{time}", &formatted_next_refresh_time),
-                        )
-                        .with_style(UiComponentStyles {
-                            font_color: Some(blended_colors::text_sub(
-                                appearance.theme(),
-                                appearance.theme().surface_1(),
-                            )),
-                            ..Default::default()
-                        })
-                        .build()
-                        .finish(),
-                )
-                .finish(),
-        )
-        .with_padding_bottom(HEADER_PADDING)
-        .finish();
-
-        let request_limit_description = format!(
-            "This is the {} limit of AI credits for your account.",
-            ai_request_usage_model.refresh_duration_to_string()
-        );
-
-        let request_usage_row = self.render_ai_usage_limit_row(
-            tr_cached(Message::AiCredits),
-            request_limit_description,
-            ai_request_usage_model.requests_used(),
-            ai_request_usage_model.request_limit(),
-            ai_request_usage_model.is_unlimited(),
-            workspace_is_delinquent_due_to_payment_issue,
-            appearance,
-        );
-
-        let auth_state = AuthStateProvider::as_ref(app).get();
-        let upgrade_cta_text_fragments = if let Some(team) =
-            UserWorkspaces::as_ref(app).current_team()
-        {
-            let current_user_email = auth_state.user_email().unwrap_or_default();
-            let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-            if team.billing_metadata.can_upgrade_to_higher_tier_plan() {
-                let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
-                if has_admin_permissions {
-                    vec![
-                        FormattedTextFragment::hyperlink(
-                            tr_cached(Message::AiUpgrade),
-                            upgrade_url,
-                        ),
-                        FormattedTextFragment::plain_text(tr_cached(
-                            Message::AiToGetMoreUsageSuffix,
-                        )),
-                    ]
-                } else {
-                    // The /upgrade page says to contact their administrator.
-                    vec![
-                        FormattedTextFragment::hyperlink(
-                            tr_cached(Message::AiComparePlans),
-                            upgrade_url,
-                        ),
-                        FormattedTextFragment::plain_text(tr_cached(Message::AiForMoreUsageSuffix)),
-                    ]
-                }
-            } else {
-                vec![
-                    FormattedTextFragment::hyperlink(
-                        tr_cached(Message::AiContactSupport),
-                        "mailto:support@warp.dev",
-                    ),
-                    FormattedTextFragment::plain_text(tr_cached(Message::AiForMoreUsageSuffix)),
-                ]
-            }
-        } else {
-            let user_id = auth_state.user_id().unwrap_or_default();
-            let upgrade_url = UserWorkspaces::upgrade_link(user_id);
-            vec![
-                FormattedTextFragment::hyperlink(tr_cached(Message::AiUpgrade), upgrade_url),
-                FormattedTextFragment::plain_text(tr_cached(Message::AiToGetMoreUsageSuffix)),
-            ]
-        };
-
-        let mut upgrade_cta = FormattedTextElement::new(
-            FormattedText::new([FormattedTextLine::Line(upgrade_cta_text_fragments)]),
-            appearance.ui_font_size(),
-            appearance.ui_font_family(),
-            appearance.ui_font_family(),
-            styles::description_font_color(true, app).into(),
-            self.requests_highlight_index.clone(),
-        )
-        .with_hyperlink_font_color(appearance.theme().accent().into_solid());
-
-        if AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            upgrade_cta = upgrade_cta.register_default_click_handlers(|_, ctx, _| {
-                ctx.dispatch_typed_action(AISettingsPageAction::AttemptLoginGatedUpgrade);
-            });
-        } else {
-            upgrade_cta = upgrade_cta.register_default_click_handlers(|url, ctx, _| {
-                ctx.dispatch_typed_action(AISettingsPageAction::HyperlinkClick(url));
-            })
-        }
-
-        Flex::column()
-            .with_children([
-                render_separator(appearance),
-                usage_header,
-                request_usage_row,
-                Container::new(upgrade_cta.finish())
-                    .with_margin_bottom(16.)
-                    .finish(),
-            ])
             .finish()
     }
 }
@@ -7407,7 +6914,6 @@ impl SettingsWidget for VoiceWidget {
 }
 #[derive(Default)]
 struct OtherAIWidget {
-    show_oz_updates_in_zero_state_toggle: SwitchStateHandle,
     use_agent_footer_toggle: SwitchStateHandle,
     show_conversation_history_toggle: SwitchStateHandle,
 }
@@ -7573,15 +7079,6 @@ impl SettingsWidget for OtherAIWidget {
 
         if FeatureFlag::AgentView.is_enabled() {
             let mut agent_view_column = Flex::column()
-                .with_child(render_ai_setting_toggle::<ShouldShowOzUpdatesInZeroState>(
-                    tr_cached(Message::AiShowOzChangelogInNewConversation),
-                    AISettingsPageAction::ToggleShowOzUpdatesInZeroState,
-                    *ai_settings.should_show_oz_updates_in_zero_state,
-                    is_toggleable,
-                    self.show_oz_updates_in_zero_state_toggle.clone(),
-                    &view.local_only_icon_tooltip_states,
-                    app,
-                ))
                 .with_child(render_ai_setting_toggle::<
                     ShouldRenderUseAgentToolbarForUserCommands,
                 >(
@@ -8205,7 +7702,6 @@ impl SettingsWidget for CloudAgentComputerUseWidget {
 #[derive(Default)]
 struct CloudHandoffWidget {
     handoff_toggle: SwitchStateHandle,
-    auto_handoff_on_sleep_toggle: SwitchStateHandle,
     ampersand_toggle: SwitchStateHandle,
 }
 
@@ -8300,38 +7796,6 @@ impl SettingsWidget for CloudHandoffWidget {
             ));
 
         if ai_settings.is_cloud_handoff_enabled(app) {
-            if ai_settings
-                .auto_handoff_on_sleep_enabled
-                .is_supported_on_current_platform()
-            {
-                let auto_handoff_on_sleep_toggle = ui_builder
-                    .switch(self.auto_handoff_on_sleep_toggle.clone())
-                    .check(*ai_settings.auto_handoff_on_sleep_enabled)
-                    .build()
-                    .on_click(move |ctx, _, _| {
-                        ctx.dispatch_typed_action(AISettingsPageAction::ToggleAutoHandoffOnSleep);
-                    })
-                    .finish();
-                let auto_handoff_on_sleep_row = build_toggle_element(
-                    render_body_item_label::<AISettingsPageAction>(
-                        tr_cached(Message::AiAutoHandoffBeforeSleep).to_string(),
-                        Some(styles::header_font_color(true, app)),
-                        None,
-                        LocalOnlyIconState::Hidden,
-                        ToggleState::Enabled,
-                        appearance,
-                    ),
-                    auto_handoff_on_sleep_toggle,
-                    appearance,
-                    None,
-                );
-                column.add_child(auto_handoff_on_sleep_row);
-                column.add_child(render_ai_setting_description(
-                    "When macOS is about to sleep, automatically moves the most recently focused running local ZYH Agent conversation to Cloud Mode so it can keep working.",
-                    true,
-                    app,
-                ));
-            }
             let ampersand_toggle = ui_builder
                 .switch(self.ampersand_toggle.clone())
                 .check(!*ai_settings.should_force_disable_ampersand_handoff)
@@ -8379,7 +7843,6 @@ struct ApiKeysWidget {
     grok_disconnect_button: ViewHandle<ActionButton>,
 
     can_use_warp_credits_for_fallback: SwitchStateHandle,
-    upgrade_highlight_index: HighlightedHyperlink,
     openai_team_key_info_tooltip: MouseStateHandle,
     anthropic_team_key_info_tooltip: MouseStateHandle,
     google_team_key_info_tooltip: MouseStateHandle,
@@ -8620,7 +8083,6 @@ impl ApiKeysWidget {
             grok_disconnect_button,
 
             can_use_warp_credits_for_fallback: Default::default(),
-            upgrade_highlight_index: Default::default(),
             openai_team_key_info_tooltip: Default::default(),
             anthropic_team_key_info_tooltip: Default::default(),
             google_team_key_info_tooltip: Default::default(),
@@ -9208,12 +8670,10 @@ impl CustomInferenceVisibility {
         let is_any_ai_enabled = AISettings::as_ref(app).is_any_ai_enabled(app);
         let is_byo_enabled = workspaces.is_byo_api_key_enabled(app);
         let is_custom_inference_enabled = workspaces.is_custom_inference_enabled(app);
-        let member_byo_keys_allowed = workspaces.are_member_byo_keys_allowed();
         let member_byo_endpoints_allowed = workspaces.are_member_byo_endpoints_allowed();
 
         // BYOK: shown even when BYO is off so the upgrade CTA can render.
-        let show_provider_keys =
-            member_byo_keys_allowed && !FeatureFlag::AnonymousOnlyMode.is_enabled();
+        let show_provider_keys = false;
         let provider_keys_enabled = show_provider_keys && is_any_ai_enabled && is_byo_enabled;
 
         // BYOE (custom endpoints).
@@ -9427,94 +8887,6 @@ impl SettingsWidget for ApiKeysWidget {
                     .with_margin_top(16.)
                     .finish(),
             );
-        }
-
-        // Upgrade CTA if BYOK not enabled
-        if !is_byo_enabled && show_provider_keys {
-            let auth_state = AuthStateProvider::as_ref(app).get();
-            let upgrade_text_fragments =
-                if let Some(team) = UserWorkspaces::as_ref(app).current_team() {
-                    if team.billing_metadata.customer_type == CustomerType::Enterprise {
-                        vec![
-                            FormattedTextFragment::hyperlink(
-                                tr_cached(Message::AiContactSales),
-                                "mailto:sales@warp.dev",
-                            ),
-                            FormattedTextFragment::plain_text(tr_cached(
-                                Message::AiEnableApiKeysEnterpriseSuffix,
-                            )),
-                        ]
-                    } else {
-                        let current_user_email = auth_state.user_email().unwrap_or_default();
-                        let has_admin_permissions = team.has_admin_permissions(&current_user_email);
-                        let upgrade_url = UserWorkspaces::upgrade_link_for_team(team.uid);
-                        if has_admin_permissions {
-                            vec![
-                                FormattedTextFragment::hyperlink(
-                                    tr_cached(Message::AiUpgradeToBuildPlan),
-                                    upgrade_url,
-                                ),
-                                FormattedTextFragment::plain_text(tr_cached(
-                                    Message::AiUseYourOwnApiKeysSuffix,
-                                )),
-                            ]
-                        } else {
-                            vec![FormattedTextFragment::plain_text(tr_cached(
-                                Message::AiAskAdminUpgradeToBuildPlan,
-                            ))]
-                        }
-                    }
-                } else if FeatureFlag::SoloUserByok.is_enabled()
-                    && auth_state.is_anonymous_or_logged_out()
-                {
-                    vec![
-                        FormattedTextFragment::hyperlink_action(
-                            tr_cached(Message::AuthCreateAnAccount),
-                            AISettingsPageAction::SignupAnonymousUser,
-                        ),
-                        FormattedTextFragment::plain_text(tr_cached(
-                            Message::AiUseYourOwnApiKeysSuffix,
-                        )),
-                    ]
-                } else {
-                    let user_id = auth_state.user_id().unwrap_or_default();
-                    let upgrade_url = UserWorkspaces::upgrade_link(user_id);
-                    vec![
-                        FormattedTextFragment::hyperlink(
-                            tr_cached(Message::AiUpgradeToBuildPlan),
-                            upgrade_url,
-                        ),
-                        FormattedTextFragment::plain_text(tr_cached(
-                            Message::AiUseYourOwnApiKeysSuffix,
-                        )),
-                    ]
-                };
-
-            let upgrade_text_element = FormattedTextElement::new(
-                FormattedText::new([FormattedTextLine::Line(upgrade_text_fragments)]),
-                appearance.ui_font_size(),
-                appearance.ui_font_family(),
-                appearance.ui_font_family(),
-                blended_colors::text_sub(appearance.theme(), appearance.theme().surface_1()),
-                self.upgrade_highlight_index.clone(),
-            )
-            .with_hyperlink_font_color(appearance.theme().accent().into_solid())
-            .register_default_click_handlers_with_action_support(|hyperlink_lens, event, ctx| {
-                match hyperlink_lens {
-                    HyperlinkLens::Url(url) => {
-                        ctx.open_url(url);
-                    }
-                    HyperlinkLens::Action(action_ref) => {
-                        if let Some(action) =
-                            action_ref.as_any().downcast_ref::<AISettingsPageAction>()
-                        {
-                            event.dispatch_typed_action(action.clone());
-                        }
-                    }
-                }
-            });
-
-            column.add_child(Container::new(upgrade_text_element.finish()).finish());
         }
 
         column.finish()

@@ -16,15 +16,19 @@ mod history;
 mod launch;
 mod lifecycle;
 mod provider;
+#[cfg(test)]
+#[path = "service/provider_tests.rs"]
+mod provider_tests;
 mod run_result;
 #[cfg(test)]
 mod test_support;
 mod ui_events;
 
-pub(crate) use errors::RuntimeStartError;
+pub(crate) use errors::{MissingProviderField, RuntimeStartError};
 use history::PendingHistoryEdit;
 use launch::runtime_launch_config;
 use provider::selected_custom_provider;
+pub(crate) use provider::{validate_provider_configuration, validate_provider_inventory};
 use run_result::interrupted_message_ids;
 use ui_events::{add_message_action, append_message_action, RuntimeUiEvent, StreamedMessageKey};
 
@@ -154,8 +158,8 @@ impl AgentRuntimeService {
             .model_event_sender
             .clone()
             .ok_or(RuntimeStartError::MissingPersistence)?;
-        let provider =
-            selected_custom_provider(&request_params).ok_or(RuntimeStartError::MissingProvider)?;
+        let provider = selected_custom_provider(&request_params)
+            .map_err(RuntimeStartError::MissingProvider)?;
         let tool_catalog = ToolCatalog::initial(request_params.mcp_context.as_ref())
             .map_err(|_| RuntimeStartError::InvalidRunConfiguration)?;
         let resources = ResourceSnapshotBuilder::default()

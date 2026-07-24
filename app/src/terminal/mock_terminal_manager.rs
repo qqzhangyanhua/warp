@@ -180,7 +180,7 @@ mod testing {
             let (window_id, _) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
                 let resources = TerminalViewResources {
                     tips_completed: tips_model,
-                    server_api,
+                    server_api: Some(server_api),
                     model_event_sender: None,
                 };
                 let terminal_init = MockTerminalManager::create_model(

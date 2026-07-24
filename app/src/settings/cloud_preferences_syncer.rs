@@ -7,7 +7,6 @@ use cloud_object_models::JsonSerializer;
 use lazy_static::lazy_static;
 use settings::{Setting as _, SyncToCloud};
 use warp_core::execution_mode::AppExecutionMode;
-use warp_core::features::FeatureFlag;
 use warp_core::r#async::debounce;
 use warp_core::settings::ChangeEventReason;
 use warp_core::user_preferences::GetUserPreferences;
@@ -24,7 +23,6 @@ use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObjectEventEntrypoint, GenericStringObjectFormat, JsonObjectType};
 use crate::drive::CloudObjectTypeAndId;
-use crate::local_mode;
 use crate::server::cloud_objects::update_manager::{
     GenericStringObjectInput, InitiatedBy, UpdateManager, UpdateManagerEvent,
 };
@@ -100,9 +98,7 @@ pub fn initialize_cloud_preferences_syncer(
 
     // The settings surface decides whether this process participates in cloud
     // sync at all (e.g. the TUI keeps its config local).
-    let sync_enabled = settings::settings_mode().should_sync_to_cloud()
-        && !FeatureFlag::AnonymousOnlyMode.is_enabled()
-        && !local_mode::is_local_only_custom_provider_mode();
+    let sync_enabled = false;
     CloudPreferencesSyncer::new(
         force_local_wins_on_startup,
         toml_file_path,

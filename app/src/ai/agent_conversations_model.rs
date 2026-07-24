@@ -41,10 +41,8 @@ use crate::ai::blocklist::{
 };
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::conversation_navigation::ConversationNavigationData;
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::CloudObjectLookup as _;
-use crate::local_mode;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::server::cloud_objects::update_manager::{UpdateManager, UpdateManagerEvent};
 use crate::server::ids::{ServerId, SyncId};
@@ -621,19 +619,6 @@ impl AgentConversationsModel {
             };
         }
 
-        let local_only = local_mode::is_local_only_custom_provider_mode();
-        if !local_only {
-            // Subscribe to network status and window manager to inform whether we should poll for new task data
-            let network_status = NetworkStatus::handle(ctx);
-            ctx.subscribe_to_model(&network_status, Self::handle_network_status_changed);
-            let window_manager = WindowManager::handle(ctx);
-            ctx.subscribe_to_model(&window_manager, Self::handle_window_state_changed);
-
-            // Subscribe to auth events to retry initial sync when user becomes available
-            let auth_manager = AuthManager::handle(ctx);
-            ctx.subscribe_to_model(&auth_manager, Self::handle_auth_manager_event);
-        }
-
         let history_model = BlocklistAIHistoryModel::handle(ctx);
         ctx.subscribe_to_model(&history_model, move |me, _, event, ctx| {
             me.handle_history_event(event, ctx);
@@ -643,12 +628,6 @@ impl AgentConversationsModel {
         ctx.subscribe_to_model(&active_views_model, |me, _, _event, ctx| {
             me.sync_conversations(ctx);
         });
-
-        // Subscribe to UpdateManager for RTC task updates
-        if !local_only && FeatureFlag::AmbientAgentsRTC.is_enabled() {
-            let update_manager = UpdateManager::handle(ctx);
-            ctx.subscribe_to_model(&update_manager, Self::handle_update_manager_event);
-        }
 
         let mut model = Self {
             tasks: HashMap::new(),
@@ -667,9 +646,7 @@ impl AgentConversationsModel {
         // here to avoid duplicate requests at startup.
         if AppExecutionMode::as_ref(ctx).can_fetch_agent_runs_for_management() {
             model.sync_conversations(ctx);
-            if local_only {
-                model.has_finished_initial_load = true;
-            }
+            model.has_finished_initial_load = true;
         } else {
             model.has_finished_initial_load = true;
         }
@@ -711,22 +688,6 @@ impl AgentConversationsModel {
                     self.update_polling_state(ctx);
                 }
             }
-        }
-    }
-
-    fn handle_auth_manager_event(
-        &mut self,
-        _: ModelHandle<AuthManager>,
-        event: &AuthManagerEvent,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // When auth completes, retry the initial task sync if we haven't loaded tasks yet
-        // Only sync if we're not in CLI mode
-        if matches!(event, AuthManagerEvent::AuthComplete)
-            && !self.has_finished_initial_load
-            && AppExecutionMode::as_ref(ctx).can_fetch_agent_runs_for_management()
-        {
-            self.fetch_ambient_agent_tasks_and_cloud_convo_metadata(ctx);
         }
     }
 
@@ -1069,35 +1030,8 @@ impl AgentConversationsModel {
     }
 
     /// Returns true if we should be polling: online, not loading, and active window has the view open.
-    fn should_be_polling(&self, ctx: &ModelContext<Self>) -> bool {
-        if local_mode::is_local_only_custom_provider_mode() {
-            return false;
-        }
-
-        if !self.has_finished_initial_load {
-            return false;
-        }
-
-        // Don't poll if we're using RTC
-        if FeatureFlag::AmbientAgentsRTC.is_enabled() {
-            return false;
-        }
-
-        let is_online = NetworkStatus::as_ref(ctx).is_online();
-
-        if !is_online {
-            return false;
-        }
-
-        let active_window = WindowManager::as_ref(ctx).active_window();
-
-        match active_window {
-            Some(window_id) => self
-                .active_data_consumers_per_window
-                .get(&window_id)
-                .is_some_and(|views| !views.is_empty()),
-            None => false,
-        }
+    fn should_be_polling(&self, _: &ModelContext<Self>) -> bool {
+        false
     }
 
     /// Abort the current in-flight poll (does NOT abort initial sync)
@@ -1739,12 +1673,6 @@ impl AgentConversationsModel {
                 Some((name, uid))
             })
             .collect();
-
-        // Include the current user since they may have local conversations
-        let auth_state = AuthStateProvider::as_ref(app).get();
-        if let (Some(name), Some(uid)) = (auth_state.display_name(), auth_state.user_id()) {
-            creators.push((name, uid.to_string()));
-        }
 
         creators.sort_by(|a, b| a.0.cmp(&b.0));
         creators.dedup_by(|a, b| a.0 == b.0);

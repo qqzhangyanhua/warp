@@ -33,7 +33,7 @@ integration_tests! {
     test_open_and_close_resource_center,
     test_open_and_close_context_menu_with_keybinding,
     test_open_and_close_settings,
-    test_local_only_gui_startup_and_settings_respect_network_boundary,
+    test_zyh_gui_startup_and_settings_respect_network_boundary,
     #[ignore = "Affected by agent_view feature flag UI changes"]
     test_scroll_to_hidden_block_and_open_context_menu_with_keybinding,
     #[ignore = "Affected by agent_view feature flag UI changes"]

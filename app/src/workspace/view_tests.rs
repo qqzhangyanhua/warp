@@ -41,6 +41,7 @@ use crate::ai::persisted_workspace::PersistedWorkspace;
 use crate::ai::restored_conversations::RestoredAgentConversations;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
+use crate::auth::{AuthManager, AuthStateProvider};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::view::CloudViewModel;
 use crate::context_chips::prompt::Prompt;
@@ -92,10 +93,7 @@ use crate::{
 
 #[test]
 #[serial_test::serial]
-fn local_only_workspace_settings_actions_redirect_forbidden_sections_to_warp_agent() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+fn zyh_workspace_settings_actions_redirect_forbidden_sections_to_warp_agent() {
     for section in [
         SettingsSection::Account,
         SettingsSection::BillingAndUsage,
@@ -112,10 +110,7 @@ fn local_only_workspace_settings_actions_redirect_forbidden_sections_to_warp_age
 
 #[test]
 #[serial_test::serial]
-fn local_only_workspace_settings_action_handlers_open_warp_agent_for_forbidden_sections() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+fn zyh_workspace_settings_action_handlers_open_warp_agent_for_forbidden_sections() {
     App::test((), |mut app| async move {
         initialize_app(&mut app);
         let workspace = mock_workspace(&mut app);
@@ -143,27 +138,11 @@ fn local_only_workspace_settings_action_handlers_open_warp_agent_for_forbidden_s
                             | SettingsSection::CloudEnvironments
                             | SettingsSection::OzCloudAPIKeys
                     ),
-                    "{current_section:?} should not be directly openable in Local-only Mode"
+                    "{current_section:?} should not be directly openable in ZYH"
                 );
             });
         }
     });
-}
-
-#[test]
-#[serial_test::serial]
-fn standard_workspace_settings_actions_keep_section_targets() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    assert_eq!(
-        settings_section_for_workspace_action(SettingsSection::BillingAndUsage),
-        SettingsSection::BillingAndUsage
-    );
-    assert_eq!(
-        settings_section_for_workspace_action(SettingsSection::CloudEnvironments),
-        SettingsSection::CloudEnvironments
-    );
 }
 
 #[test]
@@ -206,7 +185,6 @@ fn initialize_app_with_cloud_update_managers(
     app.add_singleton_model(AuthManager::new_for_test);
     app.add_singleton_model(|_ctx| PtySpawner::new_for_test());
     app.add_singleton_model(|_| Prompt::mock());
-    app.add_singleton_model(|ctx| AutoupdateState::new(ServerApiProvider::as_ref(ctx).get()));
     app.add_singleton_model(|_| NetworkStatus::new());
     app.add_singleton_model(|_| SystemStats::new());
     app.add_singleton_model(SyncQueue::mock);
@@ -226,8 +204,6 @@ fn initialize_app_with_cloud_update_managers(
     app.add_singleton_model(|_| DisplayCount::mock());
     app.add_singleton_model(PrivacySettings::mock);
     app.add_singleton_model(|_| KeybindingChangedNotifier::new());
-    app.add_singleton_model(|_ctx| RelaunchModel::new());
-    app.add_singleton_model(|ctx| ChangelogModel::new(ServerApiProvider::as_ref(ctx).get()));
     app.add_singleton_model(|_| GitHubAuthNotifier::new());
     app.add_singleton_model(|_ctx| SyncedInputState::mock());
     app.add_singleton_model(|_| ResizableData::default());
@@ -339,9 +315,6 @@ fn initialize_app_with_cloud_update_managers(
 
     app.update(experiments::init);
 
-    app.add_singleton_model(
-        crate::workspace::bonus_grant_notification_model::BonusGrantNotificationModel::new,
-    );
     app.add_singleton_model(|ctx| {
         CodebaseIndexManager::new_for_test(ServerApiProvider::as_ref(ctx).get(), ctx)
     });
@@ -366,7 +339,6 @@ pub(crate) fn mock_workspace(app: &mut App) -> ViewHandle<Workspace> {
     let (_, workspace) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
         Workspace::new(
             global_resource_handles,
-            None,
             NewWorkspaceSource::Empty {
                 previous_active_window: active_window_id,
                 shell: None,
@@ -385,7 +357,6 @@ fn restored_workspace(
     let (_, workspace) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
         Workspace::new(
             global_resource_handles,
-            None,
             NewWorkspaceSource::Restored {
                 window_snapshot,
                 block_lists: Arc::new(HashMap::new()),
@@ -404,7 +375,6 @@ fn transferred_tab_workspace(
     let (_, workspace) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
         Workspace::new(
             global_resource_handles,
-            None,
             NewWorkspaceSource::TransferredTab {
                 tab_color: None,
                 custom_title: None,
@@ -952,7 +922,6 @@ fn mock_workspace_with_shared_session(app: &mut App) -> ViewHandle<Workspace> {
     let (_, workspace) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
         Workspace::new(
             global_resource_handles,
-            None,
             NewWorkspaceSource::Empty {
                 previous_active_window: None,
                 shell: None,
@@ -1003,7 +972,6 @@ fn mock_workspace_viewing_shared_session(app: &mut App) -> ViewHandle<Workspace>
     let (_, workspace) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
         Workspace::new(
             global_resource_handles,
-            None,
             NewWorkspaceSource::SharedSessionAsViewer { session_id },
             ctx,
         )
@@ -2369,84 +2337,6 @@ fn test_view_only_session() {
         // Ensure command search doesn't work for read-only shared sessions
         workspace.read(&app, |workspace, _ctx| {
             assert!(!workspace.current_workspace_state.is_command_search_open);
-        });
-    });
-}
-
-#[test]
-// This tests the end-to-end behavior to correctly switch focus among panels.
-// (The only panels that can be focused currently are WD, workspace, & the agent panel.)
-fn test_switch_focus_panels() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        let workspace = mock_workspace(&mut app);
-
-        workspace.update(&mut app, |view, ctx| {
-            view.focus_active_tab(ctx);
-        });
-        workspace.update(&mut app, |view, ctx| {
-            assert!(
-                view.active_tab_pane_group().is_self_or_child_focused(ctx),
-                "Expected terminal to be focused"
-            );
-        });
-
-        // Shift focus from terminal to left panel when WD is open
-        workspace.update(&mut app, |view, ctx| {
-            view.current_workspace_state.is_warp_drive_open = true;
-            view.focus_left_panel(ctx);
-        });
-        workspace.update(&mut app, |view, ctx| {
-            assert!(
-                view.left_panel_view.is_self_or_child_focused(ctx),
-                "Expected Warp Drive panel to be focused"
-            );
-        });
-
-        // Shift focus from WD to left panel when AI panel is open
-        workspace.update(&mut app, |view, ctx| {
-            view.current_workspace_state.is_ai_assistant_panel_open = true;
-            view.focus_left_panel(ctx);
-        });
-        workspace.update(&mut app, |view, ctx| {
-            assert!(
-                view.ai_assistant_panel.is_self_or_child_focused(ctx),
-                "Expected AI panel to be focused"
-            );
-        });
-
-        // Shift focus from AI panel to left panel (terminal)
-        workspace.update(&mut app, |view, ctx| {
-            view.focus_left_panel(ctx);
-        });
-        workspace.update(&mut app, |_view, ctx| {
-            assert!(
-                workspace.is_self_or_child_focused(ctx),
-                "Expected terminal to be focused"
-            );
-        });
-
-        // Shift focus from workspace to right panel when the agent panel is open
-        workspace.update(&mut app, |view, ctx| {
-            view.current_workspace_state.is_ai_assistant_panel_open = true;
-            view.focus_right_panel(ctx);
-        });
-        workspace.update(&mut app, |view, ctx| {
-            assert!(
-                view.ai_assistant_panel.is_self_or_child_focused(ctx),
-                "Expected AI panel to be focused"
-            );
-        });
-
-        // Shift focus from WD to right panel (terminal)
-        workspace.update(&mut app, |view, ctx| {
-            view.focus_right_panel(ctx);
-        });
-        workspace.update(&mut app, |_view, ctx| {
-            assert!(
-                workspace.is_self_or_child_focused(ctx),
-                "Expected terminal to be focused"
-            );
         });
     });
 }
@@ -4532,8 +4422,6 @@ fn test_tools_panel_warp_drive_toggle_updates_available_views() {
 #[test]
 #[serial_test::serial]
 fn local_only_tools_panel_does_not_initialize_warp_drive() {
-    let _flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_app(&mut app);
         let workspace = mock_workspace(&mut app);

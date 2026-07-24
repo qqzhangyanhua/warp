@@ -213,9 +213,7 @@ pub enum Message {
     SettingsLanguageSystemDisplaysEnglish,
     SettingsLanguageSystemDisplaysSimplifiedChinese,
 
-    // Anonymous-only / provider setup copy
-    AnonymousOnlyModeToast,
-    AnonymousOnlyRequiresCustomEndpoint,
+    // Provider setup copy
     CustomInferenceHttpPlaintextWarning,
     CustomInferenceEndpointName,
     CustomInferenceEndpointUrl,
@@ -594,7 +592,6 @@ pub enum Message {
     AiCloudHandoff,
     AiCloudHandoffTitle,
     AiCloudHandoffDescription,
-    AiAutoHandoffBeforeSleep,
     AiUseAmpersandToTriggerHandoff,
     AiTypeAmpersandHandoffCompose,
     AiConnect,
@@ -1795,7 +1792,6 @@ pub enum Message {
     AgentForTerminal,
     InstallNvm,
     NvmInstallNode,
-    EnableAutoHandoffQuestion,
     WarpNowOpenSource,
     CodeReviewCommentCount,
     CodeReviewCommentsCount,

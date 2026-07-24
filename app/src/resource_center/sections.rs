@@ -9,7 +9,7 @@ use super::{
 use crate::i18n::{tr, Message};
 
 pub fn sections(ctx: &mut ViewContext<ResourceCenterMainView>) -> Vec<Section> {
-    let mut sections = vec![Section::Changelog()];
+    let mut sections = vec![];
 
     if FeatureFlag::AvatarInTabBar.is_enabled() {
         return sections;

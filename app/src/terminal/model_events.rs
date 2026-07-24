@@ -5,10 +5,8 @@ use warpui::{Entity, ModelContext, ModelHandle, SingletonEntity};
 
 use super::event::{BootstrappedEvent, SshLoginStatus};
 use super::model::ansi;
-use super::model::ansi::FinishUpdateValue;
 use super::model::block::BlockId;
 use super::model::completions::ShellCompletion;
-use super::model::lifecycle::LifecycleTelemetryEvent;
 use super::model::session::{IsSSHWrapperSession, SessionId, SessionInfo};
 use super::model::terminal_model::{CommandType, ExitReason, HandlerEvent};
 use crate::features::FeatureFlag;
@@ -226,7 +224,6 @@ impl ModelEventDispatcher {
             Event::PromptUpdated => ModelEvent::PromptUpdated,
             Event::HonorPS1OutOfSync => ModelEvent::HonorPS1OutOfSync,
             Event::Typeahead => ModelEvent::Typeahead,
-            Event::FinishUpdate(data) => ModelEvent::FinishUpdate(data),
             Event::TextSelectionChanged => ModelEvent::SelectedTextChanged,
             Event::ShellSpawned(shell_type) => ModelEvent::ShellSpawned(shell_type),
             Event::SendCompletionsPrompt => ModelEvent::SendCompletionsPrompt,
@@ -251,8 +248,8 @@ impl ModelEventDispatcher {
                 ModelEvent::PluggableNotification { title, body }
             }
             Event::ExitShell { session_id } => ModelEvent::ExitShell { session_id },
-            Event::LifecycleRecovery(record) => {
-                crate::send_telemetry_from_ctx!(LifecycleTelemetryEvent::Recovery(record), ctx);
+            Event::LifecycleRecovery(_) => {
+                log::info!("Recovered terminal lifecycle state");
                 return;
             }
             _ => return,
@@ -282,7 +279,7 @@ impl ModelEventDispatcher {
             session_info,
             spawning_command,
             restored_block_commands,
-            rcfiles_duration_seconds,
+            rcfiles_duration_seconds: _,
         } = event;
 
         let (is_ssh_wrapper_session, session_id, shell_type_name, shell_path) = (
@@ -315,7 +312,6 @@ impl ModelEventDispatcher {
                 *session_info,
                 spawning_command,
                 restored_block_commands,
-                rcfiles_duration_seconds,
                 ctx,
             );
         });
@@ -411,7 +407,6 @@ pub enum ModelEvent {
     /// handling logic is mostly executed on that event loop thread, they would otherwise be
     /// inaccessible to views/models.
     Handler(AnsiHandlerEvent),
-    FinishUpdate(FinishUpdateValue),
     SelectedTextChanged,
     ShellSpawned(ShellType),
     CompletionsFinished(Vec<ShellCompletion>),

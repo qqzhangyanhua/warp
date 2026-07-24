@@ -18,7 +18,6 @@ use crate::cloud_object::{
     JsonObjectType, Owner, Revision,
 };
 use crate::drive::CloudObjectTypeAndId;
-use crate::local_mode;
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
 };
@@ -121,14 +120,7 @@ pub struct ScheduledAgentManager {
 
 #[cfg_attr(target_family = "wasm", allow(dead_code))]
 impl ScheduledAgentManager {
-    pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        if !local_mode::is_local_only_custom_provider_mode() {
-            ctx.subscribe_to_model(
-                &UpdateManager::handle(ctx),
-                Self::handle_update_manager_event,
-            );
-        }
-
+    pub fn new(_ctx: &mut ModelContext<Self>) -> Self {
         Self {
             pending_deletes: Default::default(),
         }

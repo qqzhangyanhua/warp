@@ -36,10 +36,7 @@ fn unavailable_surface_open_returns_structured_error() {
 
 #[test]
 #[serial_test::serial]
-fn local_only_surface_settings_open_redirects_forbidden_pages_to_warp_agent() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
+fn zyh_surface_settings_open_redirects_forbidden_pages_to_warp_agent() {
     for page in ["Account", "Billing and usage", "CloudEnvironments"] {
         assert_eq!(
             settings_section(page.to_string()).expect("page should resolve"),
@@ -50,25 +47,7 @@ fn local_only_surface_settings_open_redirects_forbidden_pages_to_warp_agent() {
 
 #[test]
 #[serial_test::serial]
-fn standard_surface_settings_open_keeps_supported_page_targets() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(false);
-
-    assert_eq!(
-        settings_section("Billing and usage".to_string()).expect("page should resolve"),
-        SettingsSection::BillingAndUsage
-    );
-    assert_eq!(
-        settings_section("CloudEnvironments".to_string()).expect("page should resolve"),
-        SettingsSection::CloudEnvironments
-    );
-}
-
-#[test]
-#[serial_test::serial]
 fn surface_settings_open_still_rejects_warp_drive() {
-    let _local_only = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     let error = settings_section("ZYH Drive".to_string()).expect_err("Warp Drive is unsupported");
     assert_eq!(error.code, ErrorCode::UnsupportedAction);
 }

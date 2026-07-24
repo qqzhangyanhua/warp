@@ -64,7 +64,7 @@ use crate::workspace::view::{
     TOGGLE_PROJECT_EXPLORER_BINDING_NAME, TOGGLE_WARP_DRIVE_BINDING_NAME,
 };
 use crate::workspace::WorkspaceAction;
-use crate::{local_mode, TelemetryEvent};
+use crate::TelemetryEvent;
 
 #[derive(Default)]
 struct MouseStateHandles {
@@ -216,11 +216,7 @@ impl LeftPanelView {
                 resizable_state_handle(600.0)
             }
         };
-        let warp_drive_view = if local_mode::is_local_only_custom_provider_mode() {
-            None
-        } else {
-            Some(ctx.add_typed_action_view(DrivePanel::new))
-        };
+        let warp_drive_view: Option<ViewHandle<DrivePanel>> = None;
         let conversation_list_view = ctx.add_typed_action_view(ConversationListView::new);
 
         if let Some(warp_drive_view) = &warp_drive_view {
@@ -246,13 +242,10 @@ impl LeftPanelView {
             }
         });
 
-        let active_view = views.first().copied().unwrap_or_else(|| {
-            if local_mode::is_local_only_custom_provider_mode() {
-                ToolPanelView::ProjectExplorer
-            } else {
-                ToolPanelView::WarpDrive
-            }
-        });
+        let active_view = views
+            .first()
+            .copied()
+            .unwrap_or(ToolPanelView::ProjectExplorer);
         let toolbelt_buttons = views
             .iter()
             .map(|view| Self::create_toolbelt_button_config(view, ctx))

@@ -10,8 +10,6 @@ use warpui::platform::Cursor;
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
 use crate::appearance::Appearance;
-use crate::drive::settings::{WarpDriveSettings, WarpDriveSettingsChangedEvent};
-use crate::local_mode;
 use crate::search::{FilterChipRenderer, QueryFilter};
 use crate::settings::{AISettings, AISettingsChangedEvent};
 
@@ -21,14 +19,9 @@ lazy_static! {
     /// These are rendered as clickable 'chips' in the zero state.
     static ref SAMPLE_QUERY_TO_FILTER: HashMap<&'static str, QueryFilter> = HashMap::from([
         ("history: git checkout", QueryFilter::History),
-        ("workflows: run dev server", QueryFilter::Workflows),
         (
             "# find \"foo\" in files",
             QueryFilter::NaturalLanguage
-        ),
-        (
-            "notebooks: deploy production server",
-            QueryFilter::Notebooks
         ),
     ]);
 }
@@ -53,12 +46,6 @@ impl CommandSearchZeroStateView {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
         ctx.subscribe_to_model(&AISettings::handle(ctx), |_, _, event, ctx| {
             if let AISettingsChangedEvent::IsAnyAIEnabled { .. } = event {
-                ctx.notify();
-            }
-        });
-
-        ctx.subscribe_to_model(&WarpDriveSettings::handle(ctx), |_, _, event, ctx| {
-            if let WarpDriveSettingsChangedEvent::EnableWarpDrive { .. } = event {
                 ctx.notify();
             }
         });
@@ -290,18 +277,7 @@ fn valid_query_filters(app: &AppContext) -> Vec<QueryFilter> {
     let mut filters = vec![QueryFilter::History];
 
     if FeatureFlag::AgentMode.is_enabled() && AISettings::as_ref(app).is_any_ai_enabled(app) {
-        if FeatureFlag::AgentModeWorkflows.is_enabled() {
-            filters.push(QueryFilter::AgentModeWorkflows);
-        }
         filters.push(QueryFilter::PromptHistory);
-    }
-
-    if WarpDriveSettings::is_warp_drive_enabled(app)
-        && !local_mode::is_local_only_custom_provider_mode()
-    {
-        filters.extend([QueryFilter::Workflows, QueryFilter::Notebooks]);
-
-        filters.push(QueryFilter::EnvironmentVariables);
     }
 
     filters

@@ -10,7 +10,6 @@ use warpui::elements::{ConstrainedBox, Container, Text};
 use warpui::{AppContext, Element, SingletonEntity};
 
 use super::workflows::{WorkflowIdentity, WorkflowSearchItem};
-use crate::ai::AIRequestUsageModel;
 use crate::ai_assistant::execution_context::WarpAiExecutionContext;
 use crate::ai_assistant::{GenerateCommandsFromNaturalLanguageError, AI_ASSISTANT_LOGO_COLOR};
 use crate::appearance::Appearance;
@@ -226,11 +225,7 @@ impl AsyncDataSource for WarpAIDataSource {
         })
     }
 
-    fn on_query_finished(&self, app: &mut AppContext) {
-        AIRequestUsageModel::handle(app).update(app, |request_usage_model, ctx| {
-            request_usage_model.refresh_request_usage_async(ctx);
-        });
-    }
+    fn on_query_finished(&self, _app: &mut AppContext) {}
 }
 
 impl DataSourceRunError for GenerateCommandsFromNaturalLanguageError {

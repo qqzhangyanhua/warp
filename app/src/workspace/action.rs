@@ -118,12 +118,6 @@ impl VerticalTabsPaneContextMenuTarget {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AutoCloudHandoffTrigger {
-    MacOsSleep,
-    Uri,
-}
-
 #[derive(Debug, Clone)]
 pub enum WorkspaceAction {
     ActivateTab(usize),
@@ -172,7 +166,6 @@ pub enum WorkspaceAction {
         width: f32,
     },
     TabHoverWidthEnd,
-    ToggleTabBarOverflowMenu,
     ToggleWelcomeTips,
     CloseTab(usize),
     CloseActiveTab,
@@ -280,11 +273,8 @@ pub enum WorkspaceAction {
         anchor: NewSessionMenuAnchor,
     },
     SelectNewSessionMenuItem(NewSessionMenuItem),
-    AutoupdateFailureLink,
-    ApplyUpdate,
     LogOut,
     CopyVersion(&'static str),
-    DownloadNewVersion,
     ConfigureKeybindingSettings {
         keybinding_name: Option<String>,
     },
@@ -316,7 +306,6 @@ pub enum WorkspaceAction {
     ShowReferralSettingsPage,
     JoinSlack,
     ViewUserDocs,
-    ViewLatestChangelog,
     ViewPrivacyPolicy,
     SendFeedback,
     /// Open the log directory in the system file explorer with the current log file selected.
@@ -326,7 +315,6 @@ pub enum WorkspaceAction {
     ToggleBlockSnackbar,
     ToggleErrorUnderlining,
     ToggleSyntaxHighlighting,
-    CheckForUpdate,
     ExportAllWarpDriveObjects,
     SetA11yVerbosityLevel(AccessibilityVerbosity),
     ToggleNotifications,
@@ -467,9 +455,6 @@ pub enum WorkspaceAction {
     },
     CopySharedSessionLinkFromTab {
         tab_index: usize,
-    },
-    OpenSharedSessionQrCode {
-        session_id: SessionId,
     },
     AddWindow,
     AddWindowWithShell {
@@ -645,13 +630,6 @@ pub enum WorkspaceAction {
         environment_id: Option<crate::server::ids::SyncId>,
         entry_point: crate::ai::ambient_agents::telemetry::HandoffEntryPoint,
     },
-    /// Automatically hand off the active running local agent conversation in the
-    /// given terminal view to Cloud Mode.
-    AutoHandoffActiveAgentToCloud {
-        terminal_view_id: EntityId,
-        conversation_id: AIConversationId,
-        trigger: AutoCloudHandoffTrigger,
-    },
     /// Show the environment creation modal during `&` handoff compose when no
     /// environments exist.
     ShowHandoffEnvironmentCreationModal,
@@ -752,16 +730,6 @@ pub enum WorkspaceAction {
     /// Reset the feature intro seen state (for debugging)
     #[cfg(debug_assertions)]
     ResetFeatureIntroModalState,
-    /// Open the auto-handoff sleep modal (for debugging)
-    #[cfg(debug_assertions)]
-    OpenAutoHandoffSleepModal,
-    /// Reset the auto-handoff sleep modal shown state (for debugging)
-    #[cfg(debug_assertions)]
-    ResetAutoHandoffSleepModalState,
-    /// Trigger the auto-handoff-to-cloud flow in-process, as if the machine
-    /// were about to sleep (for debugging)
-    #[cfg(debug_assertions)]
-    TriggerAutoHandoffToCloud,
     /// Open the Free AI Removal Modal (for debugging)
     #[cfg(debug_assertions)]
     OpenFreeAiRemovalModal,
@@ -1002,10 +970,7 @@ impl WorkspaceAction {
             | OpenVerticalTabsPanel => true, // actions that actually change a state of the state of user's
             // workspace would most likely require a save, so that if the app gets
             // restarted, the user can continue working
-            AutoupdateFailureLink
-            | ApplyUpdate
-            | CopyVersion(_)
-            | DownloadNewVersion
+            CopyVersion(_)
             | ConfigureKeybindingSettings { .. }
             | ExportAllWarpDriveObjects
             | ShowSettings
@@ -1025,7 +990,6 @@ impl WorkspaceAction {
             | ShowReferralSettingsPage
             | JoinSlack
             | ViewUserDocs
-            | ViewLatestChangelog
             | ViewPrivacyPolicy
             | SendFeedback
             | ChangeCursor(_)
@@ -1041,8 +1005,6 @@ impl WorkspaceAction {
             | ToggleTabConfigsMenu
             | ToggleNewSessionMenu { .. }
             | SelectNewSessionMenuItem(_)
-            | ToggleTabBarOverflowMenu
-            | CheckForUpdate
             | SetA11yVerbosityLevel(_)
             | ToggleNotifications
             | DispatchToSettingsTab { .. }
@@ -1125,7 +1087,6 @@ impl WorkspaceAction {
             | StopSharingSessionFromTabMenu { .. }
             | StopSharingAllSessionsInTab { .. }
             | CopySharedSessionLinkFromTab { .. }
-            | OpenSharedSessionQrCode { .. }
             | ReopenClosedSession
             | FocusLeftPanel
             | FocusRightPanel
@@ -1195,7 +1156,6 @@ impl WorkspaceAction {
             | OpenSettingsFile
             | FixSettingsWithOz { .. }
             | OpenLocalToCloudHandoffPane { .. }
-            | AutoHandoffActiveAgentToCloud { .. }
             | ShowHandoffEnvironmentCreationModal
             | ShowCloudModeV2EnvironmentCreationModal
             | OpenCreateAuthSecretModal { .. }
@@ -1216,9 +1176,6 @@ impl WorkspaceAction {
             | ResetOrchestrationLaunchModalState
             | OpenFeatureIntroModal
             | ResetFeatureIntroModalState
-            | OpenAutoHandoffSleepModal
-            | ResetAutoHandoffSleepModalState
-            | TriggerAutoHandoffToCloud
             | OpenFreeAiRemovalModal
             | ResetFreeAiRemovalModalState
             | InstallOpenCodeWarpPlugin

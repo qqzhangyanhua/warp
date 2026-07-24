@@ -1,4 +1,3 @@
-use crate::i18n::{tr_cached, Message};
 use std::borrow::Cow;
 
 use email_address::EmailAddress;
@@ -40,6 +39,7 @@ use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::model::view::CloudViewModel;
 use crate::cloud_object::{CloudObject, Owner, ServerGuestSubject};
 use crate::editor::PropagateAndNoOpNavigationKeys;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, UpdateManager, UpdateManagerEvent,

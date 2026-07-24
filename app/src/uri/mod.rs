@@ -36,9 +36,7 @@ use crate::root_view::{
 };
 use crate::server::ids::ServerId;
 use crate::server::telemetry::{LaunchConfigUiLocation, TelemetryEvent};
-use crate::settings_view::{
-    settings_widget_deeplink_target, OpenTeamsSettingsModalArgs, SettingsSection,
-};
+use crate::settings_view::{settings_widget_deeplink_target, SettingsSection};
 use crate::tab_configs::TabConfig;
 use crate::user_config::{load_launch_configs, load_tab_configs, tab_configs_dir};
 use crate::util::openable_file_type::{
@@ -46,11 +44,9 @@ use crate::util::openable_file_type::{
     renders_in_warp_notebook_viewer, starts_with_shebang,
 };
 use crate::view_components::DismissibleToast;
-use crate::workspace::auto_handoff::trigger_auto_handoff_to_cloud;
 use crate::workspace::util::PaneViewLocator;
 use crate::workspace::{
-    active_terminal_in_window, AutoCloudHandoffTrigger, ToastStack, Workspace, WorkspaceAction,
-    WorkspaceRegistry,
+    active_terminal_in_window, ToastStack, Workspace, WorkspaceAction, WorkspaceRegistry,
 };
 use crate::{
     quake_mode_window_id, quake_mode_window_is_open, safe_info, send_telemetry_from_app_ctx,
@@ -380,17 +376,6 @@ impl UriHost {
                     .map(|s| s.to_string());
 
                 match settings_sub_page.as_deref() {
-                    Some("teams") => {
-                        let invite_email = query_string.get("invite").map(|s| s.to_string());
-                        let args = OpenTeamsSettingsModalArgs { invite_email };
-                        dispatch_action_in_new_or_existing_window(
-                            primary_window_id,
-                            "root_view:open_team_settings_with_email_invite_in_existing_window",
-                            "root_view:open_team_settings_with_email_invite_in_new_window",
-                            &args,
-                            ctx,
-                        );
-                    }
                     Some("environments") => {
                         // Notify that GitHub auth completed so views can refresh
                         GitHubAuthNotifier::handle(ctx).update(ctx, |notifier, ctx| {
@@ -900,19 +885,6 @@ fn parse_open_file_editor_url(url: &Url) -> Result<(PathBuf, Option<LineAndColum
     ))
 }
 
-fn parse_auto_handoff_trigger(url: &Url) -> AutoCloudHandoffTrigger {
-    match url
-        .query_pairs()
-        .find(|(k, _)| k == "trigger")
-        .map(|(_, v)| v)
-    {
-        Some(trigger) if matches!(trigger.as_ref(), "sleep" | "macos_sleep" | "macos-sleep") => {
-            AutoCloudHandoffTrigger::MacOsSleep
-        }
-        Some(_) | None => AutoCloudHandoffTrigger::Uri,
-    }
-}
-
 #[derive(Debug)]
 enum Action {
     NewTab,
@@ -930,9 +902,6 @@ enum Action {
         repos: Vec<String>,
     },
     FocusCloudMode,
-    AutoHandoffToCloud {
-        trigger: AutoCloudHandoffTrigger,
-    },
 }
 
 impl Action {
@@ -958,9 +927,6 @@ impl Action {
                 Ok(Self::CreateEnvironment { repos })
             }
             "/focus_cloud_mode" => Ok(Self::FocusCloudMode),
-            "/auto_handoff_to_cloud" | "/auto-handoff-to-cloud" => Ok(Self::AutoHandoffToCloud {
-                trigger: parse_auto_handoff_trigger(url),
-            }),
             _ => Err(anyhow!(
                 "Received \"action\" intent with unexpected action: {}",
                 url.path()
@@ -1178,9 +1144,6 @@ impl Action {
                     ctx,
                 );
             }
-            Action::AutoHandoffToCloud { trigger } => {
-                trigger_auto_handoff_to_cloud(*trigger, ctx);
-            }
         }
     }
 
@@ -1196,8 +1159,7 @@ impl Action {
             | Self::CloudAgentSetup
             | Self::NewCloudAgentConversation
             | Self::NewAgentConversation
-            | Self::FocusCloudMode
-            | Self::AutoHandoffToCloud { .. } => W::default(),
+            | Self::FocusCloudMode => W::default(),
             Self::NewTab => W::ShowPrimaryWindow(WindowActivationFallbackBehavior::Notify {
                 title: tr_cached(Message::ToastNewTabCreated).to_owned(),
                 description: "Go to ZYH to see your new tab.".to_owned(),
@@ -1659,6 +1621,7 @@ fn dispatch_action_in_new_or_existing_window<T: 'static>(
 fn settings_section_for_simple_subpage(subpage: &str) -> Option<SettingsSection> {
     match subpage {
         "billing_and_usage" => Some(SettingsSection::BillingAndUsage),
+        "teams" => Some(SettingsSection::Teams),
         "platform" => Some(SettingsSection::OzCloudAPIKeys),
         "appearance" => Some(SettingsSection::Appearance),
         "warp_agent" => Some(SettingsSection::WarpAgent),

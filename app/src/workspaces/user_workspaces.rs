@@ -88,8 +88,8 @@ pub struct UserWorkspaces {
     current_workspace_uid: Tracked<Option<WorkspaceUid>>,
     workspaces: Tracked<Vec<Workspace>>,
     joinable_teams: Vec<DiscoverableTeam>,
-    team_client: Arc<dyn TeamClient>,
-    workspace_client: Arc<dyn WorkspaceClient>,
+    team_client: Option<Arc<dyn TeamClient>>,
+    workspace_client: Option<Arc<dyn WorkspaceClient>>,
 }
 
 /// Represents the workspaces a user potentially has access to.
@@ -136,8 +136,8 @@ impl UserWorkspaces {
             current_workspace_uid: cached_workspaces.first().map(|w| w.uid).into(),
             workspaces: cached_workspaces.into(),
             joinable_teams: Default::default(),
-            team_client,
-            workspace_client,
+            team_client: Some(team_client),
+            workspace_client: Some(workspace_client),
         }
     }
 
@@ -184,9 +184,47 @@ impl UserWorkspaces {
             current_workspace_uid: current_workspace_uid.into(),
             workspaces: cached_workspaces.into(),
             joinable_teams: Default::default(),
-            team_client,
-            workspace_client,
+            team_client: Some(team_client),
+            workspace_client: Some(workspace_client),
         }
+    }
+
+    pub fn new_local(ctx: &mut ModelContext<Self>) -> Self {
+        ctx.subscribe_to_model(
+            &CodeSettings::handle(ctx),
+            |_, _, code_settings_event, ctx| match code_settings_event {
+                CodeSettingsChangedEvent::CodebaseContextEnabled { .. }
+                | CodeSettingsChangedEvent::AutoIndexingEnabled { .. } => {
+                    ctx.emit(UserWorkspacesEvent::CodebaseContextEnablementChanged);
+                }
+                _ => {}
+            },
+        );
+        ctx.subscribe_to_model(&AISettings::handle(ctx), |_, _, ai_settings_event, ctx| {
+            if let AISettingsChangedEvent::IsAnyAIEnabled { .. } = ai_settings_event {
+                ctx.emit(UserWorkspacesEvent::CodebaseContextEnablementChanged);
+            }
+        });
+
+        Self {
+            current_workspace_uid: None.into(),
+            workspaces: Vec::new().into(),
+            joinable_teams: Vec::new(),
+            team_client: None,
+            workspace_client: None,
+        }
+    }
+
+    fn team_client(&self) -> Arc<dyn TeamClient> {
+        self.team_client
+            .clone()
+            .expect("Warp team operations are unavailable in ZYH")
+    }
+
+    fn workspace_client(&self) -> Arc<dyn WorkspaceClient> {
+        self.workspace_client
+            .clone()
+            .expect("Warp workspace operations are unavailable in ZYH")
     }
 
     pub fn upgrade_link(user_id: UserUid) -> String {
@@ -476,20 +514,9 @@ impl UserWorkspaces {
                 })
     }
 
-    /// Whether BYO API key is enabled for the current user, based on the active policies.
-    /// Note that the value may be incorrect if called before the team's billing metadata has been fetched.
-    /// For solo users (no workspace), this is controlled by the `SoloUserByok` feature flag.
-    /// Anonymous or logged-out users are not allowed to use BYO API keys.
-    pub fn is_byo_api_key_enabled(&self, app: &AppContext) -> bool {
-        if AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            return false;
-        }
-        self.current_workspace()
-            .map(|workspace| workspace.is_byo_api_key_enabled())
-            .unwrap_or(FeatureFlag::SoloUserByok.is_enabled())
+    /// Legacy provider-specific API keys are not part of the ZYH Provider contract.
+    pub fn is_byo_api_key_enabled(&self, _app: &AppContext) -> bool {
+        false
     }
 
     /// Whether the current workspace's managed BYOK/BYOE policy allows members
@@ -508,23 +535,9 @@ impl UserWorkspaces {
                     })
         })
     }
-    /// Whether custom inference endpoints are enabled for the current user.
-    /// Anonymous or logged-out users are not allowed to use custom inference.
-    /// Controlled by the BYO_ENDPOINT billing policy.
-    pub fn is_custom_inference_enabled(&self, app: &AppContext) -> bool {
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-            return true;
-        }
-        if AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            return false;
-        }
-
-        self.current_workspace()
-            .map(|workspace| workspace.billing_metadata.is_byo_endpoint_enabled())
-            .unwrap_or(true)
+    /// Explicitly configured OpenAI-compatible Providers are always available in ZYH.
+    pub fn is_custom_inference_enabled(&self, _app: &AppContext) -> bool {
+        true
     }
 
     /// Whether the current workspace's managed BYOK/BYOE policy allows members
@@ -741,11 +754,8 @@ impl UserWorkspaces {
 
     // Returns the [`Owner`] for the user's personal drive. If the user is not authenticated, this
     // returns `None`.
-    pub fn personal_drive(&self, ctx: &AppContext) -> Option<Owner> {
-        AuthStateProvider::as_ref(ctx)
-            .get()
-            .user_id()
-            .map(|user_uid| Owner::User { user_uid })
+    pub fn personal_drive(&self, _ctx: &AppContext) -> Option<Owner> {
+        None
     }
 
     // Maps a [`Space`] into an [`Owner`], based on the user's team memberships. If the space
@@ -938,7 +948,7 @@ impl UserWorkspaces {
         entrypoint: CloudObjectEventEntrypoint,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move {
                 team_client
@@ -971,7 +981,7 @@ impl UserWorkspaces {
         ctx: &mut ModelContext<Self>,
     ) {
         for domain in domains {
-            let team_client = self.team_client.clone();
+            let team_client = self.team_client();
             let _ = ctx.spawn(
                 async move {
                     team_client
@@ -1004,7 +1014,7 @@ impl UserWorkspaces {
         domain_uid: ServerId,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move {
                 team_client
@@ -1037,7 +1047,7 @@ impl UserWorkspaces {
         ctx: &mut ModelContext<Self>,
     ) {
         for email in emails {
-            let team_client = self.team_client.clone();
+            let team_client = self.team_client();
             let _ = ctx.spawn(
                 async move { team_client.send_team_invite_email(team_uid, email).await },
                 Self::on_email_invite_sent,
@@ -1066,7 +1076,7 @@ impl UserWorkspaces {
         new_value: bool,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move {
                 team_client
@@ -1093,7 +1103,7 @@ impl UserWorkspaces {
     }
 
     pub fn reset_invite_links(&mut self, team_uid: ServerId, ctx: &mut ModelContext<Self>) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move { team_client.reset_invite_links(team_uid).await },
             Self::on_invite_links_reset,
@@ -1121,7 +1131,7 @@ impl UserWorkspaces {
         discoverable: bool,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move {
                 team_client
@@ -1152,7 +1162,7 @@ impl UserWorkspaces {
         team_uid: ServerId,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move { team_client.join_team_with_team_discovery(team_uid).await },
             Self::on_join_team_with_team_discovery,
@@ -1174,7 +1184,7 @@ impl UserWorkspaces {
 
     /// Make request to get list of discoverable teams for a user
     pub fn fetch_discoverable_teams(&mut self, ctx: &mut ModelContext<Self>) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move { team_client.get_discoverable_teams().await },
             Self::on_fetch_discoverable_teams,
@@ -1201,7 +1211,7 @@ impl UserWorkspaces {
         new_owner_email: String,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move { team_client.transfer_team_ownership(new_owner_email).await },
             Self::on_team_ownership_transferred,
@@ -1230,7 +1240,7 @@ impl UserWorkspaces {
         role: MembershipRole,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move {
                 team_client
@@ -1262,7 +1272,7 @@ impl UserWorkspaces {
         invitee_email: String,
         ctx: &mut ModelContext<Self>,
     ) {
-        let team_client = self.team_client.clone();
+        let team_client = self.team_client();
         let _ = ctx.spawn(
             async move {
                 team_client
@@ -1316,7 +1326,7 @@ impl UserWorkspaces {
         team_uid: ServerId,
         ctx: &mut ModelContext<Self>,
     ) {
-        let workspace_client = self.workspace_client.clone();
+        let workspace_client = self.workspace_client();
         let _ = ctx.spawn(
             async move {
                 workspace_client
@@ -1334,7 +1344,7 @@ impl UserWorkspaces {
         max_monthly_spend_cents: Option<u32>,
         ctx: &mut ModelContext<Self>,
     ) {
-        let workspace_client = self.workspace_client.clone();
+        let workspace_client = self.workspace_client();
         let _ = ctx.spawn(
             async move {
                 workspace_client
@@ -1380,7 +1390,7 @@ impl UserWorkspaces {
         credits: i32,
         ctx: &mut ModelContext<Self>,
     ) {
-        let workspace_client = self.workspace_client.clone();
+        let workspace_client = self.workspace_client();
         let _ = ctx.spawn(
             async move {
                 workspace_client
@@ -1415,7 +1425,7 @@ impl UserWorkspaces {
     }
 
     pub fn refresh_ai_overages(&mut self, ctx: &mut ModelContext<Self>) {
-        let workspace_client = self.workspace_client.clone();
+        let workspace_client = self.workspace_client();
         let _ = ctx.spawn(
             async move { workspace_client.refresh_ai_overages().await },
             Self::on_refresh_ai_overages,
@@ -1430,7 +1440,7 @@ impl UserWorkspaces {
         selected_auto_reload_credit_denomination: Option<i32>,
         ctx: &mut ModelContext<Self>,
     ) {
-        let workspace_client = self.workspace_client.clone();
+        let workspace_client = self.workspace_client();
         let _ = ctx.spawn(
             async move {
                 workspace_client

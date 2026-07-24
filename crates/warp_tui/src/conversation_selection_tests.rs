@@ -88,8 +88,6 @@ fn tui_selection_creates_and_selects_terminal_surface_scoped_conversation() {
 #[serial_test::serial]
 fn tui_selection_binds_eligible_local_conversation_to_pi_runtime() {
     let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
-    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         app.update(|ctx| warpui_extras::secure_storage::register_noop("test", ctx));
         app.add_singleton_model(ApiKeyManager::new);

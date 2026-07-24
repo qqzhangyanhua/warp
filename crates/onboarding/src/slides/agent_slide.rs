@@ -155,11 +155,9 @@ impl AgentSlide {
                     let model_count = state.models().len();
                     me.ensure_mouse_states_for_models(model_count, ctx);
                 }
-                OnboardingStateEvent::AuthStateChanged
-                | OnboardingStateEvent::SelectedSlideChanged
+                OnboardingStateEvent::SelectedSlideChanged
                 | OnboardingStateEvent::IntentionChanged
                 | OnboardingStateEvent::Completed
-                | OnboardingStateEvent::UpgradeRequested
                 | OnboardingStateEvent::NoAiConfirmationChanged => {}
             }
         });

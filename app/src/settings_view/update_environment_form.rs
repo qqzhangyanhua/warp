@@ -50,7 +50,7 @@ use crate::view_components::{
     WarningBoxConfig,
 };
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::{local_mode, ChannelState};
+use crate::ChannelState;
 
 const SUBMIT_BUTTON_FOCUSED: &str = "SubmitButtonFocused";
 
@@ -392,11 +392,7 @@ enum RepoDropdownSelectionDirection {
 
 impl UpdateEnvironmentForm {
     pub fn new(init_args: EnvironmentFormInitArgs, ctx: &mut ViewContext<Self>) -> Self {
-        Self::new_impl(
-            init_args,
-            !local_mode::is_local_only_custom_provider_mode(),
-            ctx,
-        )
+        Self::new_impl(init_args, false, ctx)
     }
 
     #[cfg(test)]

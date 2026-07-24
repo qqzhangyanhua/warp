@@ -131,8 +131,12 @@ impl CustomEndpointModel {
 }
 
 impl CustomEndpoint {
+    pub fn url_is_valid(&self) -> bool {
+        is_valid_custom_endpoint_url(&self.url)
+    }
+
     pub fn is_valid_for_voice(&self) -> bool {
-        is_valid_custom_endpoint_url(&self.url) && !self.api_key.trim().is_empty()
+        self.url_is_valid() && !self.api_key.trim().is_empty()
     }
 
     pub fn is_valid_for_request(&self) -> bool {
@@ -328,6 +332,22 @@ pub struct ApiKeyManager {
     pub(crate) geap_credentials_state: GeapCredentialsState,
     secure_storage_write_version: u64,
     grok_secure_storage_write_version: u64,
+}
+
+fn deserialize_api_keys(json: &str) -> serde_json::Result<ApiKeys> {
+    if json.trim().is_empty() {
+        Ok(ApiKeys::default())
+    } else {
+        serde_json::from_str(json)
+    }
+}
+
+fn deserialize_grok_tokens(json: &str) -> serde_json::Result<Option<GrokTokens>> {
+    if json.trim().is_empty() {
+        Ok(None)
+    } else {
+        serde_json::from_str(json).map(Some)
+    }
 }
 
 impl ApiKeyManager {
@@ -716,7 +736,7 @@ impl ApiKeyManager {
             }
         };
 
-        match serde_json::from_str(&key_json) {
+        match deserialize_api_keys(&key_json) {
             Ok(keys) => keys,
             Err(e) => {
                 report_error!(anyhow::Error::new(e).context("Failed to deserialize API keys"));
@@ -766,8 +786,8 @@ impl ApiKeyManager {
             }
         };
 
-        match serde_json::from_str(&json) {
-            Ok(tokens) => Some(tokens),
+        match deserialize_grok_tokens(&json) {
+            Ok(tokens) => tokens,
             Err(e) => {
                 report_error!(anyhow::Error::new(e).context("Failed to deserialize Grok tokens"));
                 None

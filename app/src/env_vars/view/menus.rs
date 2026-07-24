@@ -421,7 +421,7 @@ impl EnvVarCollectionView {
 
     pub(super) fn untrash_env_var_collection(&self, ctx: &mut ViewContext<Self>) {
         if let Some(env_var_collection_id) = self.active_env_var_collection_data.as_ref(ctx).id() {
-            if has_feature_gated_anonymous_user_reached_env_var_limit(ctx) {
+            if has_feature_gated_anonymous_user_reached_env_var_limit() {
                 return;
             }
 

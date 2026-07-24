@@ -7,7 +7,6 @@ use integration::test::*;
 use integration::{Builder, CLI_STARTUP_BASELINE_ENV};
 use warp_cli::WorkerCommand;
 use warp_core::channel::{Channel, ChannelConfig, ChannelState, OzConfig, WarpServerConfig};
-use warp_core::features::FeatureFlag;
 use warp_core::AppId;
 
 #[path = "integration/environment.rs"]
@@ -29,7 +28,7 @@ pub struct Args {
 
 pub fn main() -> Result<()> {
     let cli_startup_baseline = env::var_os(CLI_STARTUP_BASELINE_ENV).is_some();
-    let mut channel_state = ChannelState::new(
+    let channel_state = ChannelState::new(
         Channel::Integration,
         ChannelConfig {
             app_id: AppId::new(
@@ -63,10 +62,6 @@ pub fn main() -> Result<()> {
             mcp_static_config: None,
         },
     );
-    if cli_startup_baseline {
-        channel_state =
-            channel_state.with_additional_features(&[FeatureFlag::LocalOnlyCustomProviderMode]);
-    }
     ChannelState::set(channel_state);
 
     if cli_startup_baseline {
@@ -172,7 +167,7 @@ fn register_tests() -> HashMap<&'static str, BoxedBuilderFn> {
     register_test!(test_long_running_block_height_updated);
     register_test!(test_unnecessary_resizes);
     register_test!(test_open_and_close_settings);
-    register_test!(test_local_only_gui_startup_and_settings_respect_network_boundary);
+    register_test!(test_zyh_gui_startup_and_settings_respect_network_boundary);
     register_test!(test_suggestions_menu_positioning);
     register_test!(test_open_and_close_theme_creator_modal);
     register_test!(test_removing_tabs_out_of_order);

@@ -47,7 +47,6 @@ use crate::workspace::WorkspaceAction;
 #[test]
 #[serial_test::serial]
 fn local_only_model_initializes_without_cloud_managers() {
-    let _local_only_guard = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
     let _management_guard = FeatureFlag::AgentManagementView.override_enabled(true);
     let _interactive_guard =
         FeatureFlag::InteractiveConversationManagementView.override_enabled(false);

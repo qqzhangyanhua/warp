@@ -18,7 +18,7 @@ use warpui::{
 
 use crate::search::data_source::QueryFilter;
 use crate::search::item::SearchItemDetail;
-use crate::search::mixer::{AddAsyncSourceOptions, SearchMixer, SearchMixerEvent};
+use crate::search::mixer::{SearchMixer, SearchMixerEvent};
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
 use crate::search::slash_command_menu::static_commands::commands::COMMAND_REGISTRY;
 use crate::terminal::input::buffer_model::{InputBufferModel, InputBufferUpdateEvent};
@@ -26,8 +26,8 @@ use crate::terminal::input::inline_menu::{styles as inline_styles, QueryResultRe
 use crate::terminal::input::slash_command_model::{SlashCommandEntryState, SlashCommandModel};
 use crate::terminal::input::slash_commands::view::CloseReason;
 use crate::terminal::input::slash_commands::{
-    saved_prompts_data_source, slash_command_query, AcceptSlashCommandOrSavedPrompt,
-    GuiSlashCommandDataSource, GuiZeroStateDataSource, SlashCommandsEvent, UpdatedActiveCommands,
+    slash_command_query, AcceptSlashCommandOrSavedPrompt, GuiSlashCommandDataSource,
+    GuiZeroStateDataSource, SlashCommandsEvent, UpdatedActiveCommands,
 };
 use crate::terminal::input::suggestions_mode_model::{
     InputSuggestionsModeEvent, InputSuggestionsModeModel,
@@ -219,23 +219,11 @@ impl CloudModeV2SlashCommandView {
 
         let zero_state_source =
             ctx.add_model(|_| GuiZeroStateDataSource::new(&slash_commands_source));
-        let saved_prompts_source = saved_prompts_data_source();
-
         let mixer = ctx.add_model(|ctx| {
             let mut mixer = SearchMixer::<AcceptSlashCommandOrSavedPrompt>::new();
             mixer.add_sync_source(
                 slash_commands_source.clone(),
                 [QueryFilter::StaticSlashCommands],
-            );
-            mixer.add_async_source(
-                saved_prompts_source,
-                [QueryFilter::StaticSlashCommands],
-                AddAsyncSourceOptions {
-                    debounce_interval: None,
-                    run_in_zero_state: false,
-                    run_when_unfiltered: false,
-                },
-                ctx,
             );
             mixer.add_sync_source(
                 zero_state_source.clone(),

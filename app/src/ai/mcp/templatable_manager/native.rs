@@ -35,10 +35,9 @@ use crate::ai::mcp::{
     TemplatableMCPServer, TemplatableMCPServerInstallation, TransportType,
 };
 use crate::auth::AuthStateProvider;
-use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{
     CloudObject, CloudObjectLocation, CloudObjectLookup as _, CloudObjectMetadataExt,
-    CloudObjectUuidLookup as _, GenericStringObjectFormat, JsonObjectType, Space,
+    GenericStringObjectFormat, JsonObjectType, Space,
 };
 use crate::drive::CloudObjectTypeAndId;
 use crate::i18n::{tr_cached, Message};
@@ -54,7 +53,7 @@ use crate::settings::AISettings;
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::{local_mode, send_telemetry_from_ctx, GlobalResourceHandlesProvider};
+use crate::{send_telemetry_from_ctx, GlobalResourceHandlesProvider};
 
 /// Controls the behavior of `spawn_server_impl`.
 enum SpawnMode {
@@ -220,7 +219,6 @@ impl TemplatableMCPServerManager {
     pub fn new(
         locally_installed_servers: HashMap<Uuid, TemplatableMCPServerInstallation>,
         running_server_uuids: Vec<Uuid>,
-        running_legacy_server_uuids: &[Uuid],
         ctx: &mut ModelContext<Self>,
     ) -> Self {
         // Subscribe to FileBasedMCPManager events.
@@ -240,101 +238,6 @@ impl TemplatableMCPServerManager {
             // Notification for cloud-environment readiness; handled by the AgentDriver.
             FileBasedMCPManagerEvent::CloudEnvMcpScanComplete { .. } => {}
         });
-
-        if !local_mode::is_local_only_custom_provider_mode() {
-            // TemplatableMCPServerManager is the source of truth for templatable MCP servers stored on the cloud
-            let cloud_model = CloudModel::handle(ctx);
-            ctx.subscribe_to_model(&cloud_model, |me, _, event, ctx| match event {
-                CloudModelEvent::ObjectUpdated {
-                    type_and_id:
-                        CloudObjectTypeAndId::GenericStringObject {
-                            object_type: GenericStringObjectFormat::Json(
-                                JsonObjectType::TemplatableMCPServer,
-                            ),
-                            id: _,
-                        },
-                    source: _,
-                }
-                | CloudModelEvent::ObjectTrashed {
-                    type_and_id:
-                        CloudObjectTypeAndId::GenericStringObject {
-                            object_type: GenericStringObjectFormat::Json(
-                                JsonObjectType::TemplatableMCPServer,
-                            ),
-                            id: _,
-                        },
-                    source: _,
-                }
-                | CloudModelEvent::ObjectUntrashed {
-                    type_and_id:
-                        CloudObjectTypeAndId::GenericStringObject {
-                            object_type: GenericStringObjectFormat::Json(
-                                JsonObjectType::TemplatableMCPServer,
-                            ),
-                            id: _,
-                        },
-                    source: _,
-                }
-                | CloudModelEvent::ObjectDeleted {
-                    type_and_id:
-                        CloudObjectTypeAndId::GenericStringObject {
-                            object_type: GenericStringObjectFormat::Json(
-                                JsonObjectType::TemplatableMCPServer,
-                            ),
-                            id: _,
-                        },
-                    folder_id: _,
-                }
-                | CloudModelEvent::ObjectSynced {
-                    type_and_id:
-                        CloudObjectTypeAndId::GenericStringObject {
-                            object_type: GenericStringObjectFormat::Json(
-                                JsonObjectType::TemplatableMCPServer,
-                            ),
-                            id: _,
-                        },
-                    client_id: _,
-                    server_id: _,
-                }
-                | CloudModelEvent::ObjectMoved {
-                    type_and_id:
-                        CloudObjectTypeAndId::GenericStringObject {
-                            object_type: GenericStringObjectFormat::Json(
-                                JsonObjectType::TemplatableMCPServer,
-                            ),
-                            id: _,
-                        },
-                    source: _,
-                    from_folder: _,
-                    to_folder: _,
-                } => {
-                    me.fetch_cloud_servers(ctx);
-                },
-                CloudModelEvent::ObjectCreated {
-                    type_and_id:
-                        CloudObjectTypeAndId::GenericStringObject {
-                            object_type: GenericStringObjectFormat::Json(
-                                JsonObjectType::TemplatableMCPServer,
-                            ),
-                            id: new_sync_id,
-                        },
-                } => {
-                    log::debug!("A new MCP server template was found with sync id {new_sync_id}");
-                    if let Some(new_server) = CloudTemplatableMCPServer::get_by_id(new_sync_id, ctx)
-                    {
-                        let uuid = new_server.model().string_model.uuid;
-                        if let Some(legacy_server) = CloudMCPServer::get_by_uuid(&uuid, ctx) {
-                            let old_sync_id = legacy_server.sync_id();
-                            me.delete_legacy_mcp_server(old_sync_id, InitiatedBy::System, ctx);
-                            log::info!("Successfully converted MCP server {old_sync_id} into {uuid} with sync id {new_sync_id}.");
-                            ctx.emit(TemplatableMCPServerManagerEvent::LegacyServerConverted);
-                        }
-                    }
-                    me.fetch_cloud_servers(ctx);
-                },
-                _ => {}
-            });
-        }
 
         let database_connection =
             database_file_path_for_current_scope()
@@ -361,10 +264,6 @@ impl TemplatableMCPServerManager {
             cli_spawned_server_uuids: Default::default(),
         };
 
-        if !local_mode::is_local_only_custom_provider_mode() {
-            me.fetch_cloud_servers(ctx);
-        }
-
         // If we're not in a test, try to load credentials from secure storage.
         if !cfg!(test) {
             me.server_credentials = load_credentials_from_secure_storage::<PersistedCredentialsMap>(
@@ -385,13 +284,6 @@ impl TemplatableMCPServerManager {
             for installation_uuid in running_server_uuids {
                 me.spawn_server(installation_uuid, ctx)
             }
-        }
-
-        if !local_mode::is_local_only_custom_provider_mode() {
-            // Migrate legacy MCPs to be templatables on app start. Uses UpdateManager
-            let servers_to_restart: HashSet<Uuid> =
-                running_legacy_server_uuids.iter().cloned().collect();
-            me.convert_all_legacy_to_templatable(servers_to_restart, ctx);
         }
 
         me

@@ -79,7 +79,6 @@ use super::inline_action::requested_action::{CTRL_C_KEYSTROKE, ENTER_KEYSTROKE};
 use super::inline_action::requested_command_attribution::is_command_copied_from_document;
 use super::permissions::is_agent_mode_autonomy_allowed;
 use super::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use super::suggested_rule_modal::SuggestedRuleAndId;
 use super::telemetry_banner::should_collect_ai_ugc_telemetry;
 use super::{
     BlocklistAIActionModel, BlocklistAIController, BlocklistAIHistoryEvent,
@@ -95,8 +94,8 @@ use crate::ai::agent::{
     CreateDocumentsRequest, CreateDocumentsResult, DocumentToCreate, EditDocumentsResult,
     MessageId, PassiveSuggestionTrigger, ProgrammingLanguage, RenderableAIError,
     RequestCommandOutputResult, RequestFileEditsResult, SearchCodebaseResult, ServerOutputId,
-    SubagentCall, SubagentType, SuggestPromptRequest, SuggestPromptResult, SuggestedLoggingId,
-    SummarizationType, TodoOperation,
+    SubagentCall, SubagentType, SuggestPromptRequest, SuggestPromptResult, SummarizationType,
+    TodoOperation,
 };
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
 use crate::ai::ai_document_view::DEFAULT_PLANNING_DOCUMENT_TITLE;
@@ -141,17 +140,13 @@ use crate::ai::blocklist::{
 };
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel, AIDocumentVersion};
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::ai::facts::{AIFact, AIMemory, CloudAIFactModel};
 use crate::ai::get_relevant_files::controller::{
     GetRelevantFilesController, GetRelevantFilesControllerEvent,
 };
 #[cfg(feature = "local_fs")]
 use crate::ai::skills::SkillOpenOrigin;
 use crate::ai::skills::{SkillManager, SkillTelemetryEvent};
-use crate::ai::{AIRequestUsageModel, AIRequestUsageModelEvent};
 use crate::auth::{AuthStateProvider, UserUid};
-use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::code::editor::comment_editor::create_readonly_comment_markdown_editor;
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorRenderOptions, CodeEditorView};
 use crate::code::editor_management::CodeSource;
@@ -1260,33 +1255,6 @@ impl AIBlock {
         let manage_rules_button = ctx.add_typed_action_view(|_| {
             ActionButton::new(tr_cached(Message::BlockManageRules), NakedTheme)
                 .on_click(|ctx| ctx.dispatch_typed_action(AIBlockAction::OpenAIFactCollection))
-        });
-
-        ctx.subscribe_to_model(&AIRequestUsageModel::handle(ctx), |me, _, event, ctx| {
-            if let AIRequestUsageModelEvent::RequestBonusRefunded {
-                requests_refunded,
-                server_conversation_id,
-                request_id,
-            } = event
-            {
-                let server_conversation_token = BlocklistAIHistoryModel::as_ref(ctx)
-                    .conversation(&me.client_ids.conversation_id)
-                    .and_then(|conversation| conversation.server_conversation_token())
-                    .cloned();
-
-                let server_output_id = me.model.server_output_id(ctx);
-
-                if let (Some(server_conversation_token), Some(server_output_id)) =
-                    (server_conversation_token, server_output_id)
-                {
-                    if request_id.eq(server_output_id.to_string().as_str())
-                        && server_conversation_id.eq(server_conversation_token.as_str())
-                    {
-                        me.request_refunded_count = Some(*requests_refunded);
-                        ctx.notify();
-                    }
-                }
-            }
         });
 
         // Note: UpdatedStreamingExchange is handled by the dedicated on_updated_output()
@@ -2536,53 +2504,6 @@ impl AIBlock {
             suggestions.extend(output_suggestions);
         }
 
-        if FeatureFlag::SuggestedRules.is_enabled()
-            && AISettings::as_ref(ctx).is_rule_suggestions_enabled(ctx)
-        {
-            // Ensure we don't suggest rules that were already suggested and saved by checking the logging id.
-            let existing_suggestions = self
-                .suggested_rules
-                .iter()
-                .map(|rule| rule.read(ctx, |rule, _| rule.logging_id()))
-                .collect_vec();
-
-            let existing_rules: HashSet<SuggestedLoggingId> = {
-                CloudModel::as_ref(ctx)
-                    .get_all_objects_of_type::<GenericStringObjectId, CloudAIFactModel>()
-                    .filter_map(|fact| {
-                        let AIFact::Memory(AIMemory {
-                            suggested_logging_id,
-                            ..
-                        }) = fact.model().string_model.clone();
-                        suggested_logging_id
-                    })
-                    .collect()
-            };
-
-            for rule in suggestions.rules.into_iter() {
-                if existing_rules.contains(&rule.logging_id)
-                    || existing_suggestions.contains(&rule.logging_id)
-                {
-                    continue;
-                }
-
-                let rule_view =
-                    ctx.add_typed_action_view(|ctx| SuggestionChipView::new_rule_chip(rule, ctx));
-                ctx.subscribe_to_view(&rule_view, |_me, _view, event, ctx| match event {
-                    SuggestedChipViewEvent::OpenAIFactCollection { sync_id } => {
-                        ctx.emit(AIBlockEvent::OpenAIFactCollection { sync_id: *sync_id });
-                    }
-                    SuggestedChipViewEvent::ShowSuggestedRuleDialog { rule_and_id } => {
-                        ctx.emit(AIBlockEvent::OpenSuggestedRuleDialog {
-                            rule_and_id: rule_and_id.clone(),
-                        });
-                    }
-                    _ => {}
-                });
-                self.suggested_rules.push(rule_view);
-            }
-        }
-
         // Only show the agent mode workflow if there are no rules.
         if FeatureFlag::SuggestedAgentModeWorkflows.is_enabled() && self.suggested_rules.is_empty()
         {
@@ -2601,7 +2522,6 @@ impl AIBlock {
                             workflow_and_id: workflow_and_id.clone(),
                         });
                     }
-                    _ => {}
                 });
                 self.suggested_agent_mode_workflow = Some(workflow_view);
             }
@@ -6075,9 +5995,6 @@ pub enum AIBlockEvent {
     OpenSuggestedAgentModeWorkflowModal {
         workflow_and_id: SuggestedAgentModeWorkflowAndId,
     },
-    OpenSuggestedRuleDialog {
-        rule_and_id: SuggestedRuleAndId,
-    },
     FocusTerminal,
     OpenThemeChooser,
     #[cfg(windows)]
@@ -6674,21 +6591,6 @@ impl TypedActionView for AIBlock {
                 if self.response_rating.set(rating).is_err() {
                     // A rating was already set for this block. This should be unreachable.
                     return;
-                }
-
-                if matches!(rating, AIBlockResponseRating::Negative) {
-                    if let Some(output_id) = output_id.clone() {
-                        let request_usage_model = AIRequestUsageModel::handle(ctx);
-                        request_usage_model.update(ctx, |request_usage_model, ctx| {
-                            request_usage_model
-                                .provide_negative_feedback_response_for_ai_conversation(
-                                    self.client_ids.conversation_id,
-                                    output_id.to_string(),
-                                    self.client_ids.client_exchange_id,
-                                    ctx,
-                                );
-                        });
-                    }
                 }
 
                 let window_id = ctx.window_id();

@@ -9,7 +9,7 @@ use serde_json::Value;
 use strum::IntoEnumIterator;
 use warpui_core::{AppContext, Entity, SingletonEntity};
 
-use crate::channel::{Channel, ChannelState};
+use crate::channel::Channel;
 use crate::features::FeatureFlag;
 
 /// Core trait defining telemetry event behavior.
@@ -210,16 +210,13 @@ pub enum EnablementState {
 
 impl EnablementState {
     pub fn is_enabled(&self) -> bool {
-        match self {
-            EnablementState::Always => true,
-            EnablementState::Flag(flag) => flag.is_enabled(),
-            EnablementState::ChannelSpecific { channels } => {
-                let app_channel = ChannelState::channel();
-                channels.contains(&app_channel)
-            }
-        }
+        false
     }
 }
+
+#[cfg(test)]
+#[path = "telemetry_tests.rs"]
+mod tests;
 
 /// Trait for the context provider that allows us to send telemetry payloads.
 pub trait TelemetryContextProvider {

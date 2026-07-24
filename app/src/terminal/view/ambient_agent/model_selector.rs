@@ -1,4 +1,3 @@
-use crate::i18n::{tr_cached, Message};
 use std::sync::Arc;
 
 use pathfinder_geometry::vector::vec2f;
@@ -28,6 +27,7 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpEscapeKey, PropagateAndNoOpNavigationKeys,
     SingleLineEditorOptions, TextOptions,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuVariant};
 use crate::terminal::input::{MenuPositioning, MenuPositioningProvider};
 use crate::terminal::view::ambient_agent::{AmbientAgentViewModel, AmbientAgentViewModelEvent};

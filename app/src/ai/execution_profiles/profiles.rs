@@ -127,6 +127,40 @@ pub struct AIExecutionProfilesModel {
 }
 
 impl AIExecutionProfilesModel {
+    pub fn new_local(launch_mode: &LaunchMode, ctx: &mut ModelContext<Self>) -> Self {
+        let id = ClientProfileId::new();
+        let default_profile_state = match launch_mode {
+            LaunchMode::CommandLine {
+                is_sandboxed,
+                computer_use_override,
+                ..
+            } => DefaultProfileState::Cli {
+                profile: AIExecutionProfile::create_default_cli_profile(
+                    *is_sandboxed,
+                    *computer_use_override,
+                ),
+                id,
+            },
+            _ => DefaultProfileState::Unsynced {
+                id,
+                profile: super::create_default_from_legacy_settings(ctx),
+            },
+        };
+
+        ctx.subscribe_to_model(
+            &TemplatableMCPServerManager::handle(ctx),
+            |me, _, event, ctx| {
+                me.handle_templatable_mcp_server_manager_event(event, ctx);
+            },
+        );
+
+        Self {
+            default_profile_state,
+            profile_id_to_sync_id: HashMap::new(),
+            active_profiles_per_session: HashMap::new(),
+        }
+    }
+
     #[allow(unused_variables)]
     pub fn new(launch_mode: &LaunchMode, ctx: &mut ModelContext<Self>) -> Self {
         cfg_if::cfg_if! {

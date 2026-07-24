@@ -1,5 +1,4 @@
 use remote_server::codebase_index_proto::{RemoteCodebaseIndexState, RemoteCodebaseIndexStatus};
-use warp_core::features::FeatureFlag;
 use warpui::platform::WindowStyle;
 use warpui::App;
 
@@ -55,8 +54,6 @@ fn other_unavailable_failures_are_not_index_limit_failures() {
 #[test]
 #[serial_test::serial]
 fn selecting_code_settings_in_local_only_mode_does_not_require_team_update_manager() {
-    let _flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         app.add_singleton_model(|_| Appearance::mock());
         let (_, code_settings) =

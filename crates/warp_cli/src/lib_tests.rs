@@ -518,25 +518,24 @@ fn legacy_memory_store_memory_commands_are_rejected() {
 }
 
 #[test]
-fn login_parses() {
-    let args = Args::try_parse_from(["warp", "login"]).unwrap();
+fn identity_commands_are_rejected() {
+    for command in ["login", "logout", "whoami"] {
+        let error = Args::try_parse_from(["warp", command])
+            .expect_err("identity commands must not be part of the ZYH CLI");
 
-    let Some(Command::CommandLine(boxed_cmd)) = args.command else {
-        panic!("Expected `warp login` command");
-    };
-
-    assert!(matches!(boxed_cmd.as_ref(), CliCommand::Login));
+        assert!(matches!(
+            error.kind(),
+            clap::error::ErrorKind::InvalidSubcommand | clap::error::ErrorKind::ValueValidation
+        ));
+    }
 }
 
 #[test]
-fn logout_parses() {
-    let args = Args::try_parse_from(["warp", "logout"]).unwrap();
+fn identity_api_key_option_is_rejected() {
+    let error = Args::try_parse_from(["zyh", "--api-key", "identity-key", "mcp", "list"])
+        .expect_err("identity API keys must not be part of the ZYH CLI");
 
-    let Some(Command::CommandLine(boxed_cmd)) = args.command else {
-        panic!("Expected `warp logout` command");
-    };
-
-    assert!(matches!(boxed_cmd.as_ref(), CliCommand::Logout));
+    assert_eq!(error.kind(), clap::error::ErrorKind::UnknownArgument);
 }
 
 #[test]
@@ -2298,7 +2297,7 @@ fn hidden_server_overrides_parse_from_env() {
         "ws://127.0.0.1:8081",
     );
 
-    let args = Args::try_parse_from(["warp", "whoami"]).unwrap();
+    let args = Args::try_parse_from(["warp", "mcp", "list"]).unwrap();
 
     restore_env_var(SERVER_ROOT_URL_OVERRIDE_ENV, previous_server_root);
     restore_env_var(WS_SERVER_URL_OVERRIDE_ENV, previous_ws);

@@ -26,7 +26,7 @@ use warpui::r#async::executor::Background;
 use warpui::AppContext;
 
 use super::super::{AltScreen, BlockList};
-use super::ansi::{BootstrappedValue, FinishUpdateValue, InputBufferValue, Mode, PendingHook};
+use super::ansi::{BootstrappedValue, InputBufferValue, Mode, PendingHook};
 use super::block::{
     AgentInteractionMetadata, Block, BlockId, BlockMetadata, BlockSize, BlockState,
     BlocklistEnvVarMetadata, SerializedBlock,
@@ -3153,11 +3153,6 @@ impl ansi::Handler for TerminalModel {
                 }
             }
         }
-    }
-
-    fn finish_update(&mut self, data: FinishUpdateValue) {
-        self.event_proxy
-            .send_terminal_event(Event::FinishUpdate(data));
     }
 
     fn start_in_band_command_output(&mut self) {

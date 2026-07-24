@@ -45,9 +45,9 @@ impl Drop for ReapingChild {
 }
 
 #[test]
-fn local_only_tui_reaches_terminal_input_without_device_authorization() {
+fn zyh_tui_reaches_terminal_input_without_device_authorization() {
     let recorder = RequestRecorder::start().expect("startup request recorder should start");
-    let home = tempfile::tempdir().expect("Local-only TUI smoke HOME should be created");
+    let home = tempfile::tempdir().expect("ZYH TUI smoke HOME should be created");
     let pty = openpty(
         Some(&Winsize {
             ws_row: 40,
@@ -68,6 +68,7 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_warp-tui-oss"));
     command
         .env("HOME", home.path())
+        .env("ZYH_HOME", home.path())
         .env("TERM", "xterm-256color")
         .envs(recorder.proxy_environment());
     let mut child = ReapingChild(
@@ -76,7 +77,7 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
             .stdout(Stdio::from(child_stdout))
             .stderr(Stdio::from(slave))
             .spawn()
-            .expect("Local-only TUI smoke child should start"),
+            .expect("ZYH TUI smoke child should start"),
     );
 
     let mut reader = master.try_clone().expect("PTY reader should clone");
@@ -103,6 +104,7 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
     let started_at = Instant::now();
     let mut last_probe = started_at;
     let mut output = Vec::new();
+    let mut terminal_surface_rendered = false;
     let mut reached_terminal_input = false;
 
     while started_at.elapsed() < STARTUP_TIMEOUT {
@@ -110,7 +112,9 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
             output.extend_from_slice(&chunk);
         }
 
-        if String::from_utf8_lossy(&output).contains("shell mode") {
+        let rendered = String::from_utf8_lossy(&output);
+        terminal_surface_rendered |= rendered.contains("ZYH Agent");
+        if rendered.contains("shell mode") {
             reached_terminal_input = true;
             break;
         }
@@ -120,14 +124,12 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
             .expect("TUI child status should be readable")
         {
             panic!(
-                "Local-only TUI exited before reaching terminal input ({status}):\n{}",
+                "ZYH TUI exited before reaching terminal input ({status}):\n{}",
                 String::from_utf8_lossy(&output)
             );
         }
 
-        if started_at.elapsed() >= Duration::from_secs(1)
-            && last_probe.elapsed() >= Duration::from_millis(500)
-        {
+        if terminal_surface_rendered && last_probe.elapsed() >= Duration::from_millis(500) {
             writer
                 .write_all(b"!")
                 .expect("terminal input probe should be written");
@@ -144,7 +146,7 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
         drop(output_rx);
         reader_thread.join().expect("PTY reader should stop");
         panic!(
-            "Local-only TUI did not reach terminal input:\n{}",
+            "ZYH TUI did not reach terminal input:\n{}",
             String::from_utf8_lossy(&output)
         );
     }
@@ -152,13 +154,32 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
     let rendered = String::from_utf8_lossy(&output);
     assert!(
         !rendered.contains("Sign in to continue"),
-        "Local-only TUI entered device authorization:\n{rendered}"
+        "ZYH TUI entered device authorization:\n{rendered}"
     );
 
     writer
-        .write_all(&[3, 3])
-        .expect("Ctrl-C shutdown should be written");
-    writer.flush().expect("Ctrl-C shutdown should flush");
+        .write_all(&[3])
+        .expect("first Ctrl-C should be written");
+    writer.flush().expect("first Ctrl-C should flush");
+
+    let exit_confirmation_deadline = Instant::now() + Duration::from_secs(2);
+    while Instant::now() < exit_confirmation_deadline {
+        if let Ok(chunk) = output_rx.recv_timeout(Duration::from_millis(100)) {
+            output.extend_from_slice(&chunk);
+        }
+        if String::from_utf8_lossy(&output).contains("ctrl-c again to exit") {
+            break;
+        }
+    }
+    assert!(
+        String::from_utf8_lossy(&output).contains("ctrl-c again to exit"),
+        "ZYH TUI did not arm Ctrl-C exit confirmation:\n{}",
+        String::from_utf8_lossy(&output)
+    );
+    writer
+        .write_all(&[3])
+        .expect("second Ctrl-C should be written");
+    writer.flush().expect("second Ctrl-C should flush");
 
     let shutdown_deadline = Instant::now() + Duration::from_secs(5);
     let mut shutdown_status = None;
@@ -179,12 +200,18 @@ fn local_only_tui_reaches_terminal_input_without_device_authorization() {
             .wait()
             .expect("terminated TUI smoke child should reap");
     }
-    drop(output_rx);
     reader_shutdown.store(true, Ordering::Release);
     drop(writer);
     reader_thread.join().expect("PTY reader should stop");
+    while let Ok(chunk) = output_rx.try_recv() {
+        output.extend_from_slice(&chunk);
+    }
     if let Some(status) = shutdown_status {
-        assert!(status.success(), "Local-only TUI shutdown failed: {status}");
+        assert!(
+            status.success(),
+            "ZYH TUI shutdown failed ({status}):\n{}",
+            String::from_utf8_lossy(&output)
+        );
     }
     let requests = recorder
         .requests()

@@ -1,5 +1,5 @@
 use startup_request_recorder::RequestRecorder;
-use warp::features::FeatureFlag;
+use warp::integration_testing::registered_zyh_hosted_singletons;
 use warp::integration_testing::step::new_step_with_default_assertions;
 use warp::integration_testing::tab::{assert_pane_title, assert_tab_title};
 use warp::integration_testing::terminal::{
@@ -12,8 +12,7 @@ use warpui_core::{async_assert_eq, ViewHandle};
 
 use crate::Builder;
 
-pub fn test_local_only_gui_startup_and_settings_respect_network_boundary() -> Builder {
-    FeatureFlag::LocalOnlyCustomProviderMode.set_enabled(true);
+pub fn test_zyh_gui_startup_and_settings_respect_network_boundary() -> Builder {
     let recorder = RequestRecorder::start().expect("startup request recorder should start");
     for (variable, value) in recorder.proxy_environment() {
         std::env::set_var(variable, value);
@@ -21,13 +20,11 @@ pub fn test_local_only_gui_startup_and_settings_respect_network_boundary() -> Bu
 
     Builder::new()
         .with_step(
-            wait_until_bootstrapped_single_pane_for_tab(0).add_named_assertion(
-                "Local-only terminal input is focused",
-                assert_input_is_focused(),
-            ),
+            wait_until_bootstrapped_single_pane_for_tab(0)
+                .add_named_assertion("ZYH terminal input is focused", assert_input_is_focused()),
         )
         .with_step(
-            new_step_with_default_assertions("Open Settings in Local-only Mode")
+            new_step_with_default_assertions("Open ZYH Settings")
                 .with_keystrokes(&["cmdorctrl-,"])
                 .add_assertion(assert_tab_count(2))
                 .add_assertion(assert_tab_title(1, "Settings"))
@@ -48,6 +45,16 @@ pub fn test_local_only_gui_startup_and_settings_respect_network_boundary() -> Bu
                         })
                     },
                 ),
+        )
+        .with_step(
+            TestStep::new("Reject hosted service registrations").add_assertion(|app, _| {
+                let registered = registered_zyh_hosted_singletons(app);
+                assert!(
+                    registered.is_empty(),
+                    "ZYH startup registered hosted service singletons: {registered:#?}"
+                );
+                AssertionOutcome::Success
+            }),
         )
         .with_step(
             TestStep::new("Record GUI startup network baseline").add_assertion(move |_, _| {

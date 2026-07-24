@@ -4,22 +4,13 @@ use warp_core::telemetry::testing::MockTelemetryContextProvider;
 use warpui_core::{App, ModelHandle};
 
 use crate::model::{
-    AiSetupChoice, NoAiConfirmationSource, OnboardingAuthState, OnboardingStateModel,
-    OnboardingStep, SelectedSettings,
+    AiSetupChoice, NoAiConfirmationSource, OnboardingStateModel, OnboardingStep, SelectedSettings,
 };
 use crate::OnboardingIntention;
 
 fn add_test_model(app: &mut App) -> ModelHandle<OnboardingStateModel> {
     app.update(MockTelemetryContextProvider::register);
-    app.add_model(|_| {
-        OnboardingStateModel::new(
-            Vec::new(),
-            LLMId::from("auto"),
-            false,
-            true,
-            OnboardingAuthState::FreeUser,
-        )
-    })
+    app.add_model(|_| OnboardingStateModel::new(Vec::new(), LLMId::from("auto"), false, true))
 }
 
 fn step(app: &App, model: &ModelHandle<OnboardingStateModel>) -> OnboardingStep {

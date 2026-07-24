@@ -31,7 +31,6 @@ use crate::cloud_object::{CloudObject, CloudObjectEventEntrypoint, Owner};
 use crate::drive::folders::CloudFolder;
 use crate::drive::CloudObjectTypeAndId;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
-use crate::local_mode;
 use crate::notebooks::editor::model::{
     FileLinkResolutionContext, NotebooksEditorModel, RichTextEditorModelEvent,
 };
@@ -192,15 +191,6 @@ pub struct AIDocumentModel {
 
 impl AIDocumentModel {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        if !local_mode::is_local_only_custom_provider_mode() {
-            ctx.subscribe_to_model(&UpdateManager::handle(ctx), |me, _, event, ctx| {
-                me.handle_update_manager_event(event, ctx);
-            });
-            ctx.subscribe_to_model(&CloudModel::handle(ctx), |me, _, event, ctx| {
-                me.handle_cloud_model_event(event, ctx);
-            });
-        }
-
         // Subscribe to history events so we can hydrate the orchestration
         // config from OrchestrationConfigSnapshot messages that arrive
         // in the conversation's task message list.
@@ -249,48 +239,8 @@ impl AIDocumentModel {
     /// Sends a request to create a new cloud notebook with the document's contents.
     /// Returns true if the create document request was sent successfully (or if there was already a notebook entry).
     /// Actually creating the notebook is done asynchronously in the background.
-    pub fn sync_to_warp_drive(&mut self, id: AIDocumentId, ctx: &mut ModelContext<Self>) -> bool {
-        if local_mode::is_local_only_custom_provider_mode() {
-            return false;
-        }
-
-        if self.reconcile_document_server_backing(&id, ctx) {
-            return true;
-        }
-        let Some(document) = self.documents.get(&id) else {
-            return false;
-        };
-        if document.sync_id.is_some() {
-            // Already created. Return early.
-            return true;
-        }
-
-        let title = document.title.clone();
-        let content = document.editor.as_ref(ctx).markdown(ctx);
-
-        let Some(owner) = Self::get_plan_owner(ctx) else {
-            log::warn!("Failed to get owner while saving AI Document to Warp Drive. Skipping");
-            return false;
-        };
-
-        let Some(plan_folder_id) = self.get_or_create_plan_folder(owner, ctx).into_server() else {
-            // Plan folder is still being created (has ClientId only).
-            // If we save using the ClientId as the parent folder, the document
-            // will end up in a broken state once the folder is saved.
-            // Queue the document for creation until the folder gets a ServerId.
-            self.pending_document_queue
-                .push(PendingDocument { id, title, content });
-
-            if let Some(document) = self.documents.get_mut(&id) {
-                let client_id = ClientId::new();
-                document.sync_id = Some(SyncId::ClientId(client_id));
-            }
-            return true;
-        };
-
-        self.create_notebook_in_plan_folder(id, &title, &content, owner, plan_folder_id, ctx);
-        ctx.emit(AIDocumentModelEvent::DocumentSaveStatusUpdated(id));
-        true
+    pub fn sync_to_warp_drive(&mut self, _: AIDocumentId, _: &mut ModelContext<Self>) -> bool {
+        false
     }
 
     pub fn get_document_save_status(&self, id: &AIDocumentId) -> AIDocumentSaveStatus {
@@ -307,70 +257,19 @@ impl AIDocumentModel {
     /// Publishes every document owned by a conversation before child-agent launch.
     pub(in crate::ai) fn publish_documents_for_conversation(
         &mut self,
-        conversation_id: AIConversationId,
-        ctx: &mut ModelContext<Self>,
+        _: AIConversationId,
+        _: &mut ModelContext<Self>,
     ) -> Vec<AIDocumentId> {
-        if local_mode::is_local_only_custom_provider_mode() {
-            return Vec::new();
-        }
-
-        self.reconcile_all_document_server_backing(ctx);
-        let document_ids = self
-            .documents
-            .iter()
-            .filter_map(|(document_id, document)| {
-                (document.conversation_id == conversation_id).then_some(*document_id)
-            })
-            .collect::<Vec<_>>();
-        let mut awaiting_server_backing = Vec::new();
-
-        for document_id in document_ids {
-            match self.get_document_save_status(&document_id) {
-                AIDocumentSaveStatus::Saved => {
-                    self.maybe_update_cloud_notebook_data(&document_id, ctx);
-                }
-                AIDocumentSaveStatus::Saving => {
-                    self.refresh_saving_document_content(&document_id, ctx);
-                    awaiting_server_backing.push(document_id);
-                }
-                AIDocumentSaveStatus::NotSaved => {
-                    if !self.sync_to_warp_drive(document_id, ctx) {
-                        report_error!(
-                            "Failed to publish plan document to ZYH Drive before child-agent launch.",
-                            extra: { "document_id" => %document_id }
-                        );
-                    } else if !self.get_document_save_status(&document_id).is_saved() {
-                        awaiting_server_backing.push(document_id);
-                    }
-                }
-            }
-        }
-
-        awaiting_server_backing
+        Vec::new()
     }
 
     /// Reconciles a document with an existing server-backed Warp Drive notebook.
     fn reconcile_document_server_backing(
         &mut self,
-        document_id: &AIDocumentId,
-        ctx: &mut ModelContext<Self>,
+        _: &AIDocumentId,
+        _: &mut ModelContext<Self>,
     ) -> bool {
-        if local_mode::is_local_only_custom_provider_mode() {
-            return false;
-        }
-
-        let server_sync_id = CloudModel::as_ref(ctx)
-            .get_all_active_notebooks()
-            .find(|notebook| {
-                notebook.id.into_server().is_some()
-                    && notebook.model().ai_document_id.as_ref() == Some(document_id)
-            })
-            .map(|notebook| notebook.id);
-        let Some(server_sync_id) = server_sync_id else {
-            return false;
-        };
-        self.set_document_server_backing(*document_id, server_sync_id, ctx);
-        true
+        false
     }
 
     /// Reconciles all loaded documents with server-backed Warp Drive notebooks.
@@ -1242,26 +1141,7 @@ impl AIDocumentModel {
         }
     }
 
-    fn maybe_update_cloud_notebook_data(
-        &mut self,
-        id: &AIDocumentId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if local_mode::is_local_only_custom_provider_mode() {
-            return;
-        }
-
-        let Some(doc) = self.documents.get(id) else {
-            return;
-        };
-        let Some(sync_id) = doc.sync_id else {
-            return;
-        };
-        let content = doc.editor.as_ref(ctx).markdown(ctx);
-        UpdateManager::handle(ctx).update(ctx, |update_manager, ctx| {
-            update_manager.update_notebook_data(content.into(), sync_id, ctx);
-        });
-    }
+    fn maybe_update_cloud_notebook_data(&mut self, _: &AIDocumentId, _: &mut ModelContext<Self>) {}
 
     /// Get a specific version of a document by version.
     pub fn get_earlier_document_version(

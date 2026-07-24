@@ -258,15 +258,6 @@ pub const OPEN_SETTINGS_FILE: StaticCommand = StaticCommand {
     argument: None,
 };
 
-pub const CHANGELOG: StaticCommand = StaticCommand {
-    name: "/changelog",
-    description: "Open the latest changelog",
-    icon_path: "bundled/svg/book-open.svg",
-    availability: Availability::ALWAYS,
-    auto_enter_ai_mode: false,
-    argument: None,
-};
-
 // Accepts an optional argument so that buffers like `/feedback some text` still parse to
 // this command (the trailing text is ignored on execution). Without this, typing any
 // argument after `/feedback` would fall through and be treated as plain input.
@@ -513,15 +504,6 @@ pub const CONVERSATIONS: StaticCommand = StaticCommand {
     argument: None,
 };
 
-pub static PROMPTS: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
-    name: "/prompts",
-    description: "Search saved prompts",
-    icon_path: "bundled/svg/prompt.svg",
-    availability: Availability::AI_ENABLED,
-    auto_enter_ai_mode: false,
-    argument: None,
-});
-
 pub const REWIND: StaticCommand = StaticCommand {
     name: "/rewind",
     description: "Rewind to a previous point in the conversation",
@@ -650,24 +632,6 @@ fn all_commands() -> Vec<StaticCommand> {
 
     if FeatureFlag::LocalDockerSandbox.is_enabled() {
         commands.push(CREATE_DOCKER_SANDBOX);
-    }
-
-    // Remote control depends on account auth + cloud session sharing. Hide it
-    // when the build has no account sign-in path (Anonymous-only / Local-only).
-    if FeatureFlag::CreatingSharedSessions.is_enabled()
-        && FeatureFlag::HOARemoteControl.is_enabled()
-        && !FeatureFlag::AnonymousOnlyMode.is_enabled()
-        && !crate::local_mode::is_local_only_custom_provider_mode()
-    {
-        commands.push(REMOTE_CONTROL);
-    }
-
-    if FeatureFlag::Changelog.is_enabled() {
-        commands.push(CHANGELOG);
-    }
-
-    if FeatureFlag::AgentView.is_enabled() {
-        commands.push(PROMPTS.clone());
     }
 
     commands.push(OPEN_CODE_REVIEW);

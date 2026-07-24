@@ -638,7 +638,6 @@ default = [
     "richtext_multiselect",
     "inline_profile_selector",
     "web_fetch_ui",
-    "oz_changelog_updates",
     "skill_arguments",
     "incremental_auto_reload",
     "active_conversation_requires_interaction",
@@ -678,7 +677,6 @@ default = [
     "trim_trailing_blank_lines",
     "open_warp_new_settings_modes",
     "skip_firebase_anonymous_user",
-    "anonymous_only_mode",
     "settings_file",
     "directory_tab_colors",
     "git_credential_refresh",
@@ -803,7 +801,6 @@ mcp_server = []
 mcp_oauth = []
 mcp_debugging_ids = []
 notebook_parameter = []
-oz_changelog_updates = []
 personal_cloud_objects = []
 # Remote-backed tty that connects to a PTY-like interface via a server.
 remote_tty = []
@@ -1014,8 +1011,6 @@ hoa_notifications = []
 open_code_notifications = []
 transfer_control_tool = []
 skip_firebase_anonymous_user = []
-anonymous_only_mode = []
-local_only_custom_provider_mode = []
 pi_agent_runtime = []
 custom_model_routers = []
 solo_user_byok = []

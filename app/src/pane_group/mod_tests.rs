@@ -62,7 +62,7 @@ use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::user::TEST_USER_UID;
-use crate::changelog_model::ChangelogModel;
+use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{Owner, Revision, ServerMetadata, ServerPermissions};
 use crate::context_chips::prompt::Prompt;
@@ -122,7 +122,6 @@ fn initialize_app(app: &mut App) {
             ctx,
         )
     });
-    app.add_singleton_model(|ctx| ChangelogModel::new(ServerApiProvider::as_ref(ctx).get()));
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
     app.add_singleton_model(AuthManager::new_for_test);
@@ -246,7 +245,7 @@ fn mock_pane_group(app: &mut App, options: MockOptions) -> ViewHandle<PaneGroup>
             PaneGroup::new_with_panes_layout(
                 tips_model,
                 user_default_shell_changed_banner_dismissal_model_handle,
-                ServerApiProvider::as_ref(ctx).get(),
+                Some(ServerApiProvider::as_ref(ctx).get()),
                 options.layout,
                 block_lists,
                 None,
@@ -2648,14 +2647,6 @@ fn test_start_shared_session_from_modal() {
             let shared_views = manager.shared_views(ctx).collect_vec();
             assert_eq!(shared_views.len(), 1);
             assert_eq!(shared_views[0].id(), terminal_view.id());
-
-            let terminal_pane = pane_group.terminal_session_by_pane_index(0).unwrap();
-            assert!(terminal_pane
-                .pane_view()
-                .as_ref(ctx)
-                .header()
-                .as_ref(ctx)
-                .has_shareable_object(ctx));
         });
     });
 }
@@ -2730,13 +2721,6 @@ fn test_stop_shared_session() {
             let manager = shared_session::manager::Manager::as_ref(ctx);
             let shared_views = manager.shared_views(ctx).collect_vec();
             assert!(shared_views.is_empty());
-
-            assert!(!terminal_pane
-                .pane_view()
-                .as_ref(ctx)
-                .header()
-                .as_ref(ctx)
-                .has_shareable_object(ctx));
         });
     });
 }
@@ -3087,7 +3071,7 @@ fn test_focused_pane_is_synchronized_with_application_focus() {
                     PaneGroup::new_with_panes_layout(
                         tips_model,
                         user_default_shell_changed_banner_dismissal_model_handle,
-                        ServerApiProvider::as_ref(ctx).get(),
+                        Some(ServerApiProvider::as_ref(ctx).get()),
                         panes_layout,
                         block_lists,
                         None,

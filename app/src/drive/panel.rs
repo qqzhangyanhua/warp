@@ -415,12 +415,12 @@ impl DrivePanel {
                 }
                 Space::Personal => match cloud_object_type_and_id {
                     CloudObjectTypeAndId::Notebook(_) => {
-                        if has_feature_gated_anonymous_user_reached_notebook_limit(ctx) {
+                        if has_feature_gated_anonymous_user_reached_notebook_limit() {
                             return;
                         }
                     }
                     CloudObjectTypeAndId::Workflow(_) => {
-                        if has_feature_gated_anonymous_user_reached_workflow_limit(ctx) {
+                        if has_feature_gated_anonymous_user_reached_workflow_limit() {
                             return;
                         }
                     }
@@ -429,7 +429,7 @@ impl DrivePanel {
                             GenericStringObjectFormat::Json(JsonObjectType::EnvVarCollection),
                         id: _,
                     } => {
-                        if has_feature_gated_anonymous_user_reached_env_var_limit(ctx) {
+                        if has_feature_gated_anonymous_user_reached_env_var_limit() {
                             return;
                         }
                     }
@@ -646,15 +646,15 @@ impl DrivePanel {
     pub fn open_object_sharing_settings(
         &mut self,
         object_id: CloudObjectTypeAndId,
-        invitee_email: Option<String>,
-        source: SharingDialogSource,
+        _invitee_email: Option<String>,
+        _source: SharingDialogSource,
         ctx: &mut ViewContext<Self>,
     ) {
         let warp_drive_item_id = WarpDriveItemId::Object(object_id);
         self.index_view.update(ctx, |index, ctx| {
             index.set_focused_item(warp_drive_item_id, true, ctx);
-            index.toggle_share_dialog(&warp_drive_item_id, invitee_email, source, ctx);
         });
+        log::warn!("Drive object sharing is unavailable in ZYH");
     }
 
     pub fn has_warp_drive_initialized_sections(

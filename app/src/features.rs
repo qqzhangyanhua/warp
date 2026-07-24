@@ -399,8 +399,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::OzPlatformSkills,
         #[cfg(feature = "oz_identity_federation")]
         FeatureFlag::OzIdentityFederation,
-        #[cfg(feature = "oz_changelog_updates")]
-        FeatureFlag::OzChangelogUpdates,
         #[cfg(feature = "bundled_skills")]
         FeatureFlag::BundledSkills,
         #[cfg(feature = "oz_launch_modal")]
@@ -481,10 +479,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::GPTConfigurableContextWindow,
         #[cfg(feature = "skip_firebase_anonymous_user")]
         FeatureFlag::SkipFirebaseAnonymousUser,
-        #[cfg(feature = "anonymous_only_mode")]
-        FeatureFlag::AnonymousOnlyMode,
-        #[cfg(feature = "local_only_custom_provider_mode")]
-        FeatureFlag::LocalOnlyCustomProviderMode,
         #[cfg(feature = "pi_agent_runtime")]
         FeatureFlag::PiAgentRuntime,
         #[cfg(feature = "hoa_onboarding_flow")]

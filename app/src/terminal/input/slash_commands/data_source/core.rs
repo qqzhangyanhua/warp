@@ -42,7 +42,7 @@ const SCORE_MULTIPLIER: OrderedFloat<f64> = OrderedFloat(1000.0);
 /// Slash commands that are available in CLI agent rich input mode.
 /// Add command names here to make them accessible when composing prompts
 /// for a running CLI agent (Claude Code, Codex, etc.).
-const CLI_AGENT_INPUT_ALLOWED_COMMANDS: &[&str] = &["/prompts", "/skills"];
+const CLI_AGENT_INPUT_ALLOWED_COMMANDS: &[&str] = &["/skills"];
 
 fn split_command_and_argument(buffer: &str) -> (&str, Option<&str>) {
     buffer
@@ -503,7 +503,6 @@ pub trait SlashCommandDataSource {
             &*commands::CREATE_ENVIRONMENT,
             &*commands::EDIT,
             &commands::CONVERSATIONS,
-            &commands::PROMPTS,
             &*commands::PLAN,
             &commands::AGENT,
         ];
@@ -587,26 +586,6 @@ impl InlineItem {
             name: command.name.to_owned(),
             description: Some(localized_command_description(app, command.description).to_owned()),
             font_family: appearance.monospace_font_family(),
-            name_match_result: None,
-            description_match_result: None,
-            score: OrderedFloat(f64::MIN),
-            compact_layout: false,
-        }
-    }
-
-    pub(crate) fn from_saved_prompt(
-        saved_prompt: &crate::workflows::CloudWorkflow,
-        app: &AppContext,
-    ) -> Self {
-        let appearance = Appearance::as_ref(app);
-        Self {
-            action: AcceptSlashCommandOrSavedPrompt::SavedPrompt {
-                id: saved_prompt.id,
-            },
-            icon_path: "bundled/svg/prompt.svg",
-            name: saved_prompt.model().data.name().to_owned(),
-            description: None,
-            font_family: appearance.ui_font_family(),
             name_match_result: None,
             description_match_result: None,
             score: OrderedFloat(f64::MIN),

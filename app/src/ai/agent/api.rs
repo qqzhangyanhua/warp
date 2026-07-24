@@ -36,7 +36,6 @@ use crate::ai::llms::{LLMId, LLMPreferences};
 use crate::ai::mcp::TemplatableMCPServerManager;
 use crate::server::server_api::AIApiError;
 use crate::settings::AISettings;
-use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// Unique, server-generated conversation-scoped token to be roundtripped to the API when sending
@@ -113,7 +112,6 @@ pub struct RequestParams {
     pub context_window_limit: Option<u32>,
     pub mcp_context: Option<MCPContext>,
     pub planning_enabled: bool,
-    should_redact_secrets: bool,
 
     /// User-provided API keys for AI providers (BYO API Key).
     pub api_keys: Option<warp_multi_agent_api::request::settings::ApiKeys>,
@@ -247,7 +245,6 @@ impl RequestParams {
             context_window_limit: None,
             mcp_context: None,
             planning_enabled: false,
-            should_redact_secrets: false,
             api_keys: None,
             custom_model_providers: None,
             custom_model_routers: None,
@@ -343,8 +340,6 @@ impl RequestParams {
             })
         };
 
-        let should_redact_secrets = get_secret_obfuscation_mode(app).should_redact_secret();
-
         let user_workspaces = UserWorkspaces::as_ref(app);
         let api_key_manager = ApiKeyManager::as_ref(app);
         let is_byo_enabled = user_workspaces.is_byo_api_key_enabled(app);
@@ -366,8 +361,7 @@ impl RequestParams {
                 &request_input.coding_model_id,
             )
         });
-        let allow_use_of_warp_credits = !FeatureFlag::AnonymousOnlyMode.is_enabled()
-            && *AISettings::as_ref(app).can_use_warp_credits_for_fallback;
+        let allow_use_of_warp_credits = false;
 
         let app_execution_mode = AppExecutionMode::as_ref(app);
         let autonomy_level = if app_execution_mode.is_autonomous() {
@@ -440,7 +434,6 @@ impl RequestParams {
             warp_drive_context_enabled,
             mcp_context,
             planning_enabled: true,
-            should_redact_secrets,
             api_keys,
             custom_model_providers,
             custom_model_routers,

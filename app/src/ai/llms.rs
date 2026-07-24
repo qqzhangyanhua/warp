@@ -16,13 +16,11 @@ use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
 
 use super::custom_model_routers::{self, CustomModelRouter, ModelConfigError};
 use super::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
-use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::AISettings;
 use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
-use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
+use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// Checks if a user's' API key is being used for the given provider.
 /// Returns `true` if BYO API key is enabled and a key exists for the provider.
@@ -723,33 +721,7 @@ pub struct LLMPreferences {
 
 impl LLMPreferences {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        let models_by_feature = get_cached_models(ctx).unwrap_or_default();
-
-        ctx.subscribe_to_model(&NetworkStatus::handle(ctx), |me, _, event, ctx| {
-            if let NetworkStatusEvent::NetworkStatusChanged {
-                new_status: NetworkStatusKind::Online,
-            } = event
-            {
-                me.refresh_authed_models(ctx);
-            }
-        });
-
-        // TODO: Instead of querying this ad-hoc upon a successful log in, we should add the
-        // available LLMs query to the general workspace metadata query which is polled
-        // and hooked up to workspace changes. For that to work, each user would need to
-        // have a personal workspace. This is a stop-gap.
-        ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, _, event, ctx| {
-            if let AuthManagerEvent::AuthComplete = event {
-                me.refresh_authed_models(ctx);
-            }
-        });
-
-        ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, _, event, ctx| {
-            if let UserWorkspacesEvent::TeamsChanged = event {
-                me.sanitize_disabled_custom_model_preferences(ctx);
-                me.refresh_authed_models(ctx);
-            }
-        });
+        let models_by_feature = ModelsByFeature::default();
 
         // Re-reconcile disabled model preferences when BYOK keys change, since
         // RequiresUpgrade models may become usable or unusable.
@@ -855,15 +827,8 @@ impl LLMPreferences {
         available: &'a AvailableLLMs,
         app: &AppContext,
     ) -> &'a LLMInfo {
-        if FeatureFlag::AnonymousOnlyMode.is_enabled() {
-            return self
-                .custom_llm_choices(app)
-                .next()
-                .unwrap_or_else(|| available.default_llm_info());
-        }
-        available
-            .usable_default_llm_info(app)
-            .or_else(|| self.custom_llm_choices(app).next())
+        self.custom_llm_choices(app)
+            .next()
             .unwrap_or_else(|| available.default_llm_info())
     }
 
@@ -880,10 +845,8 @@ impl LLMPreferences {
         id: &LLMId,
         app: &AppContext,
     ) -> Option<&'a LLMInfo> {
-        (!FeatureFlag::AnonymousOnlyMode.is_enabled())
-            .then(|| Self::server_info_for_id_router_gated(available, id))
-            .flatten()
-            .or_else(|| self.custom_llm_info_for_id_if_enabled(id, app))
+        let _ = available;
+        self.custom_llm_info_for_id_if_enabled(id, app)
             .or_else(|| self.custom_router_llm_info_for_id_if_enabled(id))
     }
 
@@ -933,85 +896,22 @@ impl LLMPreferences {
             .unwrap_or_else(|| self.fallback_llm_info(&self.models_by_feature.coding, app))
     }
 
-    /// Resolves `id` against a server-provided model list, but hides cloud/team
-    /// custom routers when the custom-router feature flag is off. Mirrors the
-    /// gating applied to local routers (see
-    /// [`Self::custom_router_llm_info_for_id_if_enabled`]) so the whole
-    /// custom-router feature is controlled by a single client flag.
-    fn server_info_for_id_router_gated<'a>(
-        available: &'a AvailableLLMs,
-        id: &LLMId,
-    ) -> Option<&'a LLMInfo> {
-        let info = available.info_for_id(id)?;
-        if !FeatureFlag::CustomModelRouters.is_enabled()
-            && custom_model_routers::is_cloud_custom_router_id(info.id.as_str())
-        {
-            return None;
-        }
-        Some(info)
-    }
-
     /// Returns the set of LLMs available for Agent Mode use.
     pub fn get_base_llm_choices_for_agent_mode(
         &self,
         app: &AppContext,
     ) -> impl Iterator<Item = &LLMInfo> {
-        // Don't show admin-disabled models in the dropdown
-        let routers_enabled = FeatureFlag::CustomModelRouters.is_enabled();
-        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
-        self.models_by_feature
-            .agent_mode
-            .choices
-            .iter()
-            .filter(|llm| !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled)))
-            // Gate cloud/team routers behind the same flag as local routers so
-            // the entire custom-router feature is controlled by one flag.
-            .filter(move |llm| {
-                !anonymous_only
-                    && (routers_enabled
-                        || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str()))
-            })
-            .chain(self.custom_llm_choices(app))
-            .chain(
-                self.custom_router_choices()
-                    .filter(move |_| !anonymous_only),
-            )
+        self.custom_llm_choices(app)
     }
 
     /// Returns the set of LLMs available for coding.
     pub fn get_coding_llm_choices(&self, app: &AppContext) -> impl Iterator<Item = &LLMInfo> {
-        // Don't show admin-disabled models in the dropdown
-        let routers_enabled = FeatureFlag::CustomModelRouters.is_enabled();
-        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
-        self.models_by_feature
-            .coding
-            .choices
-            .iter()
-            .filter(|llm| !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled)))
-            // Gate cloud/team routers behind the same flag as local routers.
-            .filter(move |llm| {
-                !anonymous_only
-                    && (routers_enabled
-                        || !custom_model_routers::is_cloud_custom_router_id(llm.id.as_str()))
-            })
-            .chain(self.custom_llm_choices(app))
-            .chain(
-                self.custom_router_choices()
-                    .filter(move |_| !anonymous_only),
-            )
+        self.custom_llm_choices(app)
     }
 
     /// Returns the set of LLMs available for CLI agent.
     pub fn get_cli_agent_llm_choices(&self, app: &AppContext) -> impl Iterator<Item = &LLMInfo> {
-        // Don't show admin-disabled models in the dropdown
-        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
-        self.get_cli_agent_available()
-            .choices
-            .iter()
-            .filter(move |llm| {
-                !anonymous_only && !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled))
-            })
-            .chain(self.custom_llm_choices(app))
+        self.custom_llm_choices(app)
     }
 
     /// Returns the `LLMInfo` for the CLI agent model.
@@ -1051,11 +951,7 @@ impl LLMPreferences {
 
     /// Returns the set of LLMs available for computer use agent.
     pub fn get_computer_use_llm_choices(&self) -> impl Iterator<Item = &LLMInfo> {
-        let anonymous_only = FeatureFlag::AnonymousOnlyMode.is_enabled();
-        self.get_computer_use_available()
-            .choices
-            .iter()
-            .filter(move |_| !anonymous_only)
+        std::iter::empty()
     }
 
     /// Returns the `LLMInfo` for the computer use agent model.
@@ -1193,16 +1089,6 @@ impl LLMPreferences {
             .is_enabled()
             .then(|| self.custom_router_llm_info_for_id(id))
             .flatten()
-    }
-
-    /// Iterator over the custom router picker entries, gated on the feature flag.
-    /// Mirrors [`Self::custom_llm_choices`].
-    pub fn custom_router_choices(&self) -> impl Iterator<Item = &LLMInfo> {
-        let enabled = FeatureFlag::CustomModelRouters.is_enabled();
-        self.custom_model_routers
-            .iter()
-            .filter(move |_| enabled)
-            .map(|m| &m.info)
     }
 
     /// Builds the custom_model_routers registry for an outbound request.
@@ -1357,81 +1243,6 @@ impl LLMPreferences {
     /// edits, and removals all propagate immediately.
     fn rebuild_custom_llms(&mut self, app: &AppContext) {
         self.custom_llms = build_custom_llm_infos(ApiKeyManager::as_ref(app).keys());
-    }
-
-    fn sanitize_disabled_custom_model_preferences(&mut self, ctx: &mut ModelContext<Self>) {
-        if Self::custom_inference_enabled(ctx) || self.custom_llms.is_empty() {
-            return;
-        }
-
-        let custom_ids: HashSet<_> = self
-            .custom_llms
-            .iter()
-            .map(|info| info.id.clone())
-            .collect();
-        let mut updated_agent_mode = false;
-        let mut updated_coding = false;
-        let mut updated_other = false;
-
-        self.base_llm_for_terminal_view.retain(|_, id| {
-            let keep = !custom_ids.contains(id);
-            updated_agent_mode |= !keep;
-            keep
-        });
-
-        AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles, ctx| {
-            for profile_id in profiles.get_all_profile_ids() {
-                let Some(profile) = profiles.get_profile_by_id(profile_id, ctx) else {
-                    continue;
-                };
-                let profile_data = profile.data();
-
-                if profile_data
-                    .base_model
-                    .as_ref()
-                    .is_some_and(|id| custom_ids.contains(id))
-                {
-                    profiles.set_base_model(profile_id, None, ctx);
-                    profiles.set_context_window_limit(profile_id, None, ctx);
-                    updated_agent_mode = true;
-                }
-                if profile_data
-                    .coding_model
-                    .as_ref()
-                    .is_some_and(|id| custom_ids.contains(id))
-                {
-                    profiles.set_coding_model(profile_id, None, ctx);
-                    updated_coding = true;
-                }
-                if profile_data
-                    .cli_agent_model
-                    .as_ref()
-                    .is_some_and(|id| custom_ids.contains(id))
-                {
-                    profiles.set_cli_agent_model(profile_id, None, ctx);
-                    updated_other = true;
-                }
-                if profile_data
-                    .computer_use_model
-                    .as_ref()
-                    .is_some_and(|id| custom_ids.contains(id))
-                {
-                    profiles.set_computer_use_model(profile_id, None, ctx);
-                    updated_other = true;
-                }
-            }
-        });
-
-        if updated_agent_mode {
-            self.trigger_snapshot_save(ctx);
-            ctx.emit(LLMPreferencesEvent::UpdatedActiveAgentModeLLM);
-        }
-        if updated_coding {
-            ctx.emit(LLMPreferencesEvent::UpdatedActiveCodingLLM);
-        }
-        if updated_other {
-            ctx.emit(LLMPreferencesEvent::UpdatedAvailableLLMs);
-        }
     }
 
     /// Returns the effective default base model as a fallback

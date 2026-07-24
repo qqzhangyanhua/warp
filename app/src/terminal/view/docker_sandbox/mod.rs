@@ -205,7 +205,7 @@ impl TerminalView {
 
         let resources = TerminalViewResources {
             tips_completed: self.tips_completed.clone(),
-            server_api: ServerApiProvider::as_ref(ctx).get(),
+            server_api: Some(ServerApiProvider::as_ref(ctx).get()),
             model_event_sender: self.model_event_sender.clone(),
         };
         let pane_configuration = self.pane_configuration().clone();

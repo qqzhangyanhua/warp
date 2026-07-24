@@ -303,10 +303,7 @@ impl AgentToolbarItemKind {
     /// Remote control needs cloud session sharing and a Warp account. Hide it
     /// entirely when the build has no account sign-in path.
     pub(crate) fn remote_control_available() -> bool {
-        FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-            && !FeatureFlag::AnonymousOnlyMode.is_enabled()
-            && !crate::local_mode::is_local_only_custom_provider_mode()
+        false
     }
 
     /// Returns the appropriate defaults and available items for a given editor mode.

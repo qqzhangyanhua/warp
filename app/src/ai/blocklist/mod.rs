@@ -25,7 +25,6 @@ mod permissions;
 mod persistence;
 pub mod prompt;
 pub mod suggested_agent_mode_workflow_modal;
-pub mod suggested_rule_modal;
 mod suggestion_chip_view;
 pub mod summarization_cancel_dialog;
 pub(crate) mod telemetry;
@@ -67,10 +66,8 @@ pub use controller::input_context::{
 #[cfg(test)]
 pub(crate) use controller::response_stream::ResponseStream;
 pub(crate) use controller::response_stream::ResponseStreamId;
-pub use controller::BlocklistAIController;
-pub(crate) use controller::{
-    BlocklistAIControllerEvent, ClientIdentifiers, SessionContext, SlashCommandRequest,
-};
+pub use controller::{BlocklistAIController, BlocklistAIControllerEvent};
+pub(crate) use controller::{ClientIdentifiers, SessionContext, SlashCommandRequest};
 pub(crate) use conversation_selection::{
     ConversationSelection, ConversationSelectionEvent, ConversationSelectionHandle,
     PendingQueryState,
@@ -100,7 +97,6 @@ pub(crate) use queued_query::{
     QueuedQueryModel, QueuedQueryOrigin,
 };
 pub use suggestion_chip_view::*;
-pub use view_util::error_color;
 pub(crate) use view_util::{
     ai_brand_color, ai_indicator_height, format_credits,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,

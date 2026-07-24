@@ -49,7 +49,6 @@ use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
-use crate::changelog_model::ChangelogModel;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::context_chips::prompt::Prompt;
 use crate::editor::{DisplayPoint, EditorAction, Point, TextStyleOperation};
@@ -208,7 +207,6 @@ pub fn initialize_app(app: &mut App) {
 
     // Initialize any global models required by the Input view.
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());
-    app.add_singleton_model(|ctx| ChangelogModel::new(ServerApiProvider::as_ref(ctx).get()));
     app.add_singleton_model(|_| NetworkStatus::new());
     app.add_singleton_model(|_| SystemStats::new());
     app.add_singleton_model(|_| Prompt::mock());
@@ -355,14 +353,13 @@ fn bootstrap_terminal(
             let BootstrappedEvent {
                 session_info,
                 restored_block_commands,
-                rcfiles_duration_seconds,
+                rcfiles_duration_seconds: _,
                 spawning_command,
             } = bootstrapped_event;
             sessions.initialize_bootstrapped_session(
                 *session_info,
                 spawning_command,
                 restored_block_commands,
-                rcfiles_duration_seconds,
                 ctx,
             );
         });
@@ -4002,33 +3999,6 @@ fn test_open_slash_command_requires_path() {
     });
 }
 
-#[test]
-fn test_changelog_slash_command_clears_buffer_on_success() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        let terminal = add_window_with_bootstrapped_terminal(
-            &mut app, None, /* history_file_commands */
-            None,
-        )
-        .await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        input.update(&mut app, |input, ctx| {
-            input.editor.update(ctx, |editor, ctx| {
-                editor.set_buffer_text(commands::CHANGELOG.name, ctx)
-            });
-        });
-
-        input.update(&mut app, |input, ctx| {
-            input.input_enter(ctx);
-        });
-
-        input.read(&app, |input, ctx| {
-            assert_eq!(input.buffer_text(ctx), "");
-        });
-    });
-}
 #[test]
 fn test_open_slash_command_opens_files_palette_when_entered_from_slash_menu() {
     App::test((), |mut app| async move {

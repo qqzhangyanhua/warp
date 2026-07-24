@@ -20,10 +20,10 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 /// enables AI when `has_account` is true; skipping login leaves AI off.
 pub fn apply_onboarding_settings(
     selected_settings: &SelectedSettings,
-    has_account: bool,
+    _has_account: bool,
     app: &mut AppContext,
 ) {
-    let has_ai_identity = has_account || FeatureFlag::AnonymousOnlyMode.is_enabled();
+    let has_ai_identity = true;
     let is_ai_enabled = match selected_settings {
         SelectedSettings::AgentDrivenDevelopment {
             agent_settings,
@@ -93,10 +93,7 @@ fn apply_ui_customization_settings(
     });
 
     WarpDriveSettings::handle(app).update(app, |settings, ctx| {
-        report_if_error!(settings.enable_warp_drive.set_value(
-            ui.show_warp_drive && !FeatureFlag::AnonymousOnlyMode.is_enabled(),
-            ctx
-        ));
+        report_if_error!(settings.enable_warp_drive.set_value(false, ctx));
     });
 
     CodeSettings::handle(app).update(app, |settings, ctx| {

@@ -24,7 +24,10 @@ pub(crate) const RUNTIME_DELTA_MESSAGE_PREFIX: &str = "runtime-delta:";
 #[cfg_attr(not(test), allow(unused_imports))]
 pub(crate) use bridge_process::BridgeLaunchConfig as AgentRuntimeLaunchConfig;
 #[cfg_attr(not(test), allow(unused_imports))]
-pub(crate) use service::{AgentRuntimeService, AgentRuntimeServiceEvent, RuntimeStartError};
+pub(crate) use service::{
+    validate_provider_configuration, validate_provider_inventory, AgentRuntimeService,
+    AgentRuntimeServiceEvent, MissingProviderField, RuntimeStartError,
+};
 #[cfg(test)]
 pub(crate) use supervisor::RuntimeSupervisorConfig;
 #[cfg(not(target_family = "wasm"))]

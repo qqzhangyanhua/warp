@@ -1,12 +1,7 @@
-use warp_errors::report_error;
 use warpui::{Entity, ModelContext, SingletonEntity};
 
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
-use crate::auth::AuthStateProvider;
-use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::server::server_api::ai::ConnectedSelfHostedWorker;
-use crate::server::server_api::ServerApiProvider;
-use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
+
 pub const WARP_WORKER_HOST: &str = "warp";
 
 pub enum ConnectedSelfHostedWorkersEvent {
@@ -18,44 +13,10 @@ pub struct ConnectedSelfHostedWorkersModel {
 }
 
 impl ConnectedSelfHostedWorkersModel {
-    pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        ctx.subscribe_to_model(&NetworkStatus::handle(ctx), |me, _, event, ctx| {
-            if let NetworkStatusEvent::NetworkStatusChanged {
-                new_status: NetworkStatusKind::Online,
-            } = event
-            {
-                me.refresh(ctx);
-            }
-        });
-
-        ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, _, event, ctx| match event {
-            AuthManagerEvent::AuthComplete => {
-                me.refresh(ctx);
-            }
-            AuthManagerEvent::AuthFailed(_)
-            | AuthManagerEvent::SkippedLogin
-            | AuthManagerEvent::NeedsReauth => {
-                me.clear_workers(ctx);
-            }
-            AuthManagerEvent::CreateAnonymousUserFailed
-            | AuthManagerEvent::AttemptedLoginGatedFeature { .. }
-            | AuthManagerEvent::LoginOverrideDetected(_)
-            | AuthManagerEvent::MintCustomTokenFailed(_)
-            | AuthManagerEvent::ReceivedDeviceAuthorizationCode { .. }
-            | AuthManagerEvent::AccountSignInUnavailable => {}
-        });
-
-        ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, _, event, ctx| {
-            if let UserWorkspacesEvent::TeamsChanged = event {
-                me.refresh(ctx);
-            }
-        });
-
-        let mut me = Self {
+    pub fn new(_ctx: &mut ModelContext<Self>) -> Self {
+        Self {
             workers: Vec::new(),
-        };
-        me.refresh(ctx);
-        me
+        }
     }
 
     pub fn worker_hosts_excluding(&self, excluded: Option<&str>) -> Vec<String> {
@@ -76,28 +37,7 @@ impl ConnectedSelfHostedWorkersModel {
     }
 
     pub fn refresh(&mut self, ctx: &mut ModelContext<Self>) {
-        if !AuthStateProvider::as_ref(ctx).get().is_logged_in() {
-            self.clear_workers(ctx);
-            return;
-        }
-
-        let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-        ctx.spawn(
-            async move { ai_client.list_connected_self_hosted_workers().await },
-            |me, result, ctx| match result {
-                Ok(response) => {
-                    let mut workers = response.workers;
-                    workers.sort_by(|left, right| left.worker_host.cmp(&right.worker_host));
-                    if workers != me.workers {
-                        me.workers = workers;
-                        ctx.emit(ConnectedSelfHostedWorkersEvent::Changed);
-                    }
-                }
-                Err(e) => {
-                    report_error!(e.context("Failed to fetch connected self-hosted workers"));
-                }
-            },
-        );
+        self.clear_workers(ctx);
     }
 
     fn clear_workers(&mut self, ctx: &mut ModelContext<Self>) {

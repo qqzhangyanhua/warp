@@ -40,9 +40,6 @@ use crate::ai::mcp::{
     TemplatableMCPServerInstallation,
 };
 use crate::appearance::Appearance;
-use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::cloud_object::{GenericStringObjectFormat, JsonObjectType};
-use crate::drive::CloudObjectTypeAndId;
 use crate::editor::{
     EditorView, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions, TextOptions,
 };
@@ -108,18 +105,10 @@ pub struct MCPServersListPageView {
 
 impl MCPServersListPageView {
     pub fn new(ctx: &mut ViewContext<Self>) -> Self {
-        Self::listen_to_cloud_model_events(ctx);
-
         // Subscribe to templatable MCP server manager state changes
         let templatable_manager = TemplatableMCPServerManager::handle(ctx);
         ctx.subscribe_to_model(&templatable_manager, |me, _, event, ctx| {
             me.handle_templatable_mcp_manager_event(event, ctx);
-        });
-
-        // Subscribe to MCP gallery server manager state changes
-        let gallery_manager = MCPGalleryManager::handle(ctx);
-        ctx.subscribe_to_model(&gallery_manager, |me, _, event, ctx| {
-            me.handle_mcp_gallery_manager_event(event, ctx);
         });
 
         cfg_if::cfg_if!(
@@ -174,13 +163,6 @@ impl MCPServersListPageView {
 
         let update_modal_state = ModalViewState::new(update_modal);
 
-        let gallery_server_cards = Self::create_gallery_server_cards(ctx);
-        for server_card in gallery_server_cards.values() {
-            ctx.subscribe_to_view(server_card, |me, _, event, ctx| {
-                me.handle_server_card_event(event, ctx);
-            });
-        }
-
         // Match the standard settings search fields (e.g. the API keys search): use the UI font
         // family at the UI font size. Without an explicit size override the editor falls back to the
         // (larger) monospace size, which made this field render bigger than the others.
@@ -213,7 +195,7 @@ impl MCPServersListPageView {
 
         let mut me = Self {
             server_cards: Default::default(),
-            gallery_server_cards,
+            gallery_server_cards: Default::default(),
             file_based_template_cards: Default::default(),
             update_modal_state,
             search_editor,
@@ -225,63 +207,6 @@ impl MCPServersListPageView {
         me.create_server_cards(ctx);
         me.create_file_based_server_cards(ctx);
         me
-    }
-
-    fn listen_to_cloud_model_events(ctx: &mut ViewContext<Self>) {
-        let cloud_model = CloudModel::handle(ctx);
-        ctx.subscribe_to_model(&cloud_model, |me, _, event, ctx| match event {
-            CloudModelEvent::ObjectUpdated {
-                type_and_id:
-                    CloudObjectTypeAndId::GenericStringObject {
-                        object_type: GenericStringObjectFormat::Json(JsonObjectType::MCPServer),
-                        id: _,
-                    },
-                source: _,
-            }
-            | CloudModelEvent::ObjectTrashed {
-                type_and_id:
-                    CloudObjectTypeAndId::GenericStringObject {
-                        object_type: GenericStringObjectFormat::Json(JsonObjectType::MCPServer),
-                        id: _,
-                    },
-                source: _,
-            }
-            | CloudModelEvent::ObjectUntrashed {
-                type_and_id:
-                    CloudObjectTypeAndId::GenericStringObject {
-                        object_type: GenericStringObjectFormat::Json(JsonObjectType::MCPServer),
-                        id: _,
-                    },
-                source: _,
-            }
-            | CloudModelEvent::ObjectCreated {
-                type_and_id:
-                    CloudObjectTypeAndId::GenericStringObject {
-                        object_type: GenericStringObjectFormat::Json(JsonObjectType::MCPServer),
-                        id: _,
-                    },
-            }
-            | CloudModelEvent::ObjectDeleted {
-                type_and_id:
-                    CloudObjectTypeAndId::GenericStringObject {
-                        object_type: GenericStringObjectFormat::Json(JsonObjectType::MCPServer),
-                        id: _,
-                    },
-                folder_id: _,
-            }
-            | CloudModelEvent::ObjectSynced {
-                type_and_id:
-                    CloudObjectTypeAndId::GenericStringObject {
-                        object_type: GenericStringObjectFormat::Json(JsonObjectType::MCPServer),
-                        id: _,
-                    },
-                client_id: _,
-                server_id: _,
-            } => {
-                me.refresh_server_cards(ctx);
-            }
-            _ => {}
-        });
     }
 
     fn is_shared(item_id: ServerCardItemId, app: &AppContext) -> bool {

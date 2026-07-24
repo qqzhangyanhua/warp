@@ -275,8 +275,6 @@ fn passive_suggestions_request_params_omit_ambient_agent_task_id() {
 #[serial_test::serial]
 fn passive_suggestion_conversation_stays_rust_bound_when_pi_rollout_is_enabled() {
     let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
-    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_app_for_terminal_view(&mut app);
         install_custom_runtime_provider(&mut app);
@@ -662,8 +660,6 @@ fn resuming_pi_bound_conversation_routes_to_runtime_supervisor() {
 #[test]
 #[serial_test::serial]
 fn pi_runtime_start_delta_commit_finish_and_retry_run_through_controller() {
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_app_for_terminal_view(&mut app);
         install_custom_runtime_provider(&mut app);
@@ -763,8 +759,6 @@ fn pi_runtime_start_delta_commit_finish_and_retry_run_through_controller() {
 #[test]
 #[serial_test::serial]
 fn cancelling_active_pi_runtime_run_reaches_the_bridge() {
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_app_for_terminal_view(&mut app);
         install_custom_runtime_provider(&mut app);
@@ -843,8 +837,6 @@ fn cancelling_active_pi_runtime_run_reaches_the_bridge() {
 #[test]
 #[serial_test::serial]
 fn cancelling_pi_run_during_bridge_startup_preserves_input_and_stops_start() {
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_app_for_terminal_view(&mut app);
         install_custom_runtime_provider(&mut app);
@@ -951,8 +943,6 @@ fn cancelling_pi_run_during_bridge_startup_preserves_input_and_stops_start() {
 #[test]
 #[serial_test::serial]
 fn missing_bridge_supervisor_persists_a_failed_pi_run_and_input() {
-    let _anonymous_only = FeatureFlag::AnonymousOnlyMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_app_for_terminal_view(&mut app);
         install_custom_runtime_provider(&mut app);

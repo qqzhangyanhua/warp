@@ -12,29 +12,13 @@ use anyhow::Context;
 pub(crate) use driver::harness::{task_env_vars, validate_cli_installed, ClaudeHarness};
 pub use driver::AgentDriver;
 use driver::AgentDriverError;
-use telemetry::CliTelemetryEvent;
 use tracing::Instrument as _;
-use warp_cli::agent::{
-    AgentCommand, AgentProfileCommand, Harness, OutputFormat, Prompt, RunAgentArgs,
-};
-use warp_cli::api_key::ApiKeyCommand;
-use warp_cli::artifact::ArtifactCommand;
-use warp_cli::environment::{EnvironmentCommand, ImageCommand};
-use warp_cli::federate::FederateCommand;
-use warp_cli::harness_support::{HarnessSupportCommand, ReportArtifactCommand, TaskStatus};
-use warp_cli::integration::IntegrationCommand;
-use warp_cli::mcp::MCPCommand;
-use warp_cli::memory_store::{MemoryCommand, MemoryStoreCommand};
-use warp_cli::model::ModelCommand;
-use warp_cli::provider::ProviderCommand;
-use warp_cli::schedule::ScheduleSubcommand;
-use warp_cli::secret::SecretCommand;
+use warp_cli::agent::{AgentCommand, Harness, OutputFormat, Prompt, RunAgentArgs};
 use warp_cli::share::ShareRequest;
-use warp_cli::task::{MessageCommand, TaskCommand};
-use warp_cli::{CliCommand, GlobalOptions, OZ_HARNESS_ENV};
+use warp_cli::task::TaskCommand;
+use warp_cli::{CliCommand, GlobalOptions};
 use warp_core::features::FeatureFlag;
 use warp_errors::report_error;
-use warp_graphql::object_permissions::OwnerType;
 use warp_isolation_platform::IsolationPlatformError;
 #[cfg(not(target_family = "wasm"))]
 use warp_logging::log_file_path;
@@ -63,18 +47,14 @@ use crate::ai::llms::LLMId;
 use crate::ai::skills::{
     clone_repo_for_skill, resolve_skill_spec, ResolveSkillError, ResolvedSkill,
 };
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
-use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::CloudObjectLookup as _;
-use crate::send_telemetry_sync_from_app_ctx;
 use crate::server::ids::{ServerId, SyncId};
 use crate::server::server_api::ai::{AIClient, AgentConfigSnapshot, GitCredential};
 use crate::server::server_api::ServerApiProvider;
 use crate::terminal::view::ConversationRestorationInNewPaneType;
 use crate::workflows::workflow::Workflow;
 
-mod admin;
 mod agent_config;
 mod agent_management;
 mod ambient;
@@ -103,24 +83,9 @@ pub(crate) mod retry;
 mod schedule;
 mod secret;
 pub(crate) mod setup_observability;
-mod telemetry;
 #[cfg(test)]
 mod test_support;
 mod text_layout;
-
-/// Prints a non-blocking warning to stderr when the CLI is invoked with a team-scoped API key.
-fn maybe_warn_team_api_key(ctx: &AppContext) {
-    let auth_state = AuthStateProvider::handle(ctx).as_ref(ctx).get();
-    let owner_type = auth_state.api_key_owner_type();
-    if !matches!(owner_type, Some(OwnerType::Team)) {
-        return;
-    }
-
-    eprintln!(
-        "\x1b[33mWarning: Free cloud credits apply to personal runs only but this run uses \
-         a team API key. If you want to use free cloud credits, consider using a personal API key instead.\x1b[0m"
-    );
-}
 
 /// Run a Warp CLI command.
 #[tracing::instrument(name = "agent_sdk::run", skip_all, err, fields(tags.cloud_agent = true))]
@@ -129,9 +94,6 @@ pub fn run(
     command: CliCommand,
     global_options: GlobalOptions,
 ) -> anyhow::Result<()> {
-    let event = command_to_telemetry_event(&command);
-    send_telemetry_sync_from_app_ctx!(event, ctx);
-
     launch_command(ctx, command, global_options)
 }
 
@@ -156,9 +118,6 @@ fn dispatch_command(
             memory_store::run(ctx, global_options, memory_store_cmd)
         }
         CliCommand::Memory(memory_cmd) => memory_store::run_memory(ctx, global_options, memory_cmd),
-        CliCommand::Login => admin::login(ctx),
-        CliCommand::Logout => admin::logout(ctx),
-        CliCommand::Whoami => admin::whoami(ctx, global_options.output_format),
         CliCommand::Provider(provider_cmd) => {
             if !FeatureFlag::ProviderCommand.is_enabled() {
                 return Err(anyhow::anyhow!("invalid value 'provider'"));
@@ -276,29 +235,7 @@ fn run_agent(
                 ));
             }
 
-            let server_api = ServerApiProvider::handle(ctx).as_ref(ctx).get_ai_client();
-
-            // Start the agent driver runner, which will handle the rest of the setup steps
-            // (managing both sync and async steps) as well as triggering the driver.
-            let runner = ctx.add_singleton_model(|_| AgentDriverRunner);
-            runner.update(ctx, move |_, ctx| {
-                let spawner = ctx.spawner();
-                ctx.spawn(
-                    AgentDriverRunner::setup_and_run_driver(
-                        spawner,
-                        args,
-                        server_api,
-                        global_options.output_format,
-                    ),
-                    |_, result, _ctx| {
-                        if let Err(e) = result {
-                            report_fatal_error(e.into(), _ctx);
-                        }
-                    },
-                );
-            });
-
-            Ok(())
+            validate_local_agent_run(ApiKeyManager::as_ref(ctx).keys())
         }
         AgentCommand::RunCloud(args) => {
             if args.environment.environment.is_some()
@@ -340,6 +277,19 @@ fn run_agent(
         }
         AgentCommand::Skills(args) => agent_config::list_skills(ctx, args),
     }
+}
+
+fn validate_local_agent_run(keys: &ai::api_keys::ApiKeys) -> anyhow::Result<()> {
+    if let Err(field) = crate::ai::agent::runtime::validate_provider_inventory(keys) {
+        return Err(anyhow::anyhow!(
+            "Configure the Provider {} in Settings > ZYH Agent.",
+            field.display_name()
+        ));
+    }
+
+    Err(anyhow::anyhow!(
+        "The Pi Agent Runtime for `zyh agent` is not available in this build."
+    ))
 }
 
 /// Build the merged agent configuration from all sources and the Task for the driver.
@@ -1471,8 +1421,6 @@ impl AgentDriverRunner {
         share_requests: Option<Vec<ShareRequest>>,
         task: driver::Task,
     ) {
-        maybe_warn_team_api_key(ctx);
-
         // Initializing the driver will fail if not logged in. Since we check that above, panic here - it's difficult to
         // fallibly instantiate a UI framework model.
         let driver = ctx.add_singleton_model(|ctx| {
@@ -1500,121 +1448,12 @@ impl AgentDriverRunner {
     }
 }
 
-/// Returns `true` if the given CLI command requires authentication.
-fn command_requires_auth(command: &CliCommand) -> bool {
-    match command {
-        CliCommand::Agent(agent_cmd) => match agent_cmd {
-            AgentCommand::Run { .. } => true,
-            AgentCommand::RunCloud { .. } => true,
-            AgentCommand::Profile(sub) => match sub {
-                AgentProfileCommand::List => true,
-            },
-            AgentCommand::List(_) => true,
-            AgentCommand::Get(_) => true,
-            AgentCommand::Create(_) => true,
-            AgentCommand::Update(_) => true,
-            AgentCommand::Delete(_) => true,
-            AgentCommand::Skills(_) => true,
-        },
-        CliCommand::Environment(environment_cmd) => match environment_cmd {
-            EnvironmentCommand::List => true,
-            EnvironmentCommand::Create { .. } => true,
-            EnvironmentCommand::Delete { .. } => true,
-            EnvironmentCommand::Update { .. } => true,
-            EnvironmentCommand::Get { .. } => true,
-            EnvironmentCommand::Image(ImageCommand::List) => true,
-        },
-        CliCommand::MCP(mcp_cmd) => match mcp_cmd {
-            MCPCommand::List => true,
-        },
-        CliCommand::Run(task_cmd) => match task_cmd {
-            TaskCommand::List { .. } => true,
-            TaskCommand::Get { .. } => true,
-            TaskCommand::Conversation { .. } => true,
-            TaskCommand::Message { .. } => true,
-        },
-        CliCommand::Model(model_cmd) => match model_cmd {
-            ModelCommand::List => true,
-        },
-        CliCommand::MemoryStore(_) => true,
-        CliCommand::Memory(_) => true,
-        CliCommand::Login => false,
-        CliCommand::Logout => false,
-        CliCommand::Whoami => true,
-        CliCommand::Provider(_) => true,
-        CliCommand::Integration(_) => true,
-        CliCommand::Schedule(_) => true,
-        CliCommand::Secret(_) => true,
-        CliCommand::Federate(_) => true,
-        CliCommand::HarnessSupport(_) => true,
-        CliCommand::Artifact(_) => true,
-        CliCommand::ApiKey(_) => true,
-    }
-}
-
-/// Launch a CLI command, checking authentication first if needed.
-///
-/// If auth is not required, dispatches the command immediately.
-/// If auth is required and the user is logged in, triggers a user refresh
-/// before launching the command.
 fn launch_command(
     ctx: &mut AppContext,
     command: CliCommand,
     global_options: GlobalOptions,
 ) -> anyhow::Result<()> {
-    let requires_auth = command_requires_auth(&command);
-
-    if !requires_auth {
-        return dispatch_command(ctx, command, global_options);
-    }
-
-    let cli_name = warp_cli::binary_name().unwrap_or_else(|| "warp".to_string());
-
-    let auth_state = AuthStateProvider::handle(ctx).as_ref(ctx).get();
-    if !auth_state.is_logged_in() {
-        return Err(anyhow::anyhow!(
-            "You are not logged in - please log in with `{cli_name} login` to continue."
-        ));
-    }
-
-    // User is logged in — subscribe to auth events, trigger a refresh, and wait
-    // for the result before running the command.
-    let mut dispatched = false;
-    ctx.subscribe_to_model(&AuthManager::handle(ctx), move |_, event, ctx| {
-        if dispatched {
-            return;
-        }
-        match event {
-            AuthManagerEvent::AuthComplete => {
-                dispatched = true;
-                if let Err(err) = dispatch_command(ctx, command.clone(), global_options.clone()) {
-                    report_fatal_error(err, ctx);
-                }
-            }
-            AuthManagerEvent::NeedsReauth => {
-                dispatched = true;
-                let auth_state = AuthStateProvider::handle(ctx).as_ref(ctx).get();
-                let message = if auth_state.is_api_key_authenticated() {
-                    "Your API key is invalid. Please provide a valid key via '--api-key' or the WARP_API_KEY environment variable.".to_string()
-                } else {
-                    format!("Your credentials are invalid. Please log in again with `{cli_name} login`.")
-                };
-                report_fatal_error(anyhow::anyhow!(message), ctx);
-            }
-            AuthManagerEvent::AuthFailed(err) => {
-                dispatched = true;
-                report_fatal_error(anyhow::anyhow!("Authentication failed: {err:#}"), ctx);
-            }
-            _ => {}
-        }
-    });
-
-    // Trigger the user refresh - the subscription above will handle the result.
-    AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-        auth_manager.refresh_user(ctx);
-    });
-
-    Ok(())
+    dispatch_command(ctx, command, global_options)
 }
 
 /// Check if we're running within Warp (for example, if this is an invocation of the Warp CLI
@@ -1647,158 +1486,6 @@ fn report_fatal_error(err: anyhow::Error, ctx: &mut AppContext) {
 
     let error = anyhow::anyhow!(message);
     ctx.terminate_app(TerminationMode::ForceTerminate, Some(Err(error)));
-}
-
-fn resolve_orchestration_harness_label() -> &'static str {
-    let Ok(raw) = std::env::var(OZ_HARNESS_ENV) else {
-        return "unknown";
-    };
-    match Harness::parse_orchestration_harness(&raw) {
-        Some(Harness::Oz) => "oz",
-        Some(Harness::Claude) => "claude",
-        Some(Harness::OpenCode) => "opencode",
-        Some(Harness::Gemini) => "gemini",
-        Some(Harness::Codex) => "codex",
-        Some(Harness::Unknown) | None => "unknown",
-    }
-}
-
-/// Map each CLI command into a telemetry event to emit when it's executed.
-fn command_to_telemetry_event(command: &CliCommand) -> CliTelemetryEvent {
-    match command {
-        CliCommand::Agent(AgentCommand::Run(args)) => CliTelemetryEvent::AgentRun {
-            gui: args.gui,
-            requested_mcp_servers: args.mcp_specs.len() + args.mcp_servers.len(),
-            has_environment: args.environment.is_some(),
-            task_id: args.task_id.clone(),
-            harness: args.harness.to_string(),
-        },
-        CliCommand::Agent(AgentCommand::RunCloud(_)) => CliTelemetryEvent::AgentRunAmbient,
-        CliCommand::Agent(AgentCommand::Profile(sub)) => match sub {
-            AgentProfileCommand::List => CliTelemetryEvent::AgentProfileList,
-        },
-        CliCommand::Agent(AgentCommand::List(_)) => CliTelemetryEvent::AgentList,
-        CliCommand::Agent(AgentCommand::Get(_)) => CliTelemetryEvent::AgentGet,
-        CliCommand::Agent(AgentCommand::Create(_)) => CliTelemetryEvent::AgentCreate,
-        CliCommand::Agent(AgentCommand::Update(_)) => CliTelemetryEvent::AgentUpdate,
-        CliCommand::Agent(AgentCommand::Delete(_)) => CliTelemetryEvent::AgentDelete,
-        CliCommand::Agent(AgentCommand::Skills(_)) => CliTelemetryEvent::AgentSkills,
-        CliCommand::Environment(EnvironmentCommand::List) => CliTelemetryEvent::EnvironmentList,
-        CliCommand::Environment(EnvironmentCommand::Create { .. }) => {
-            CliTelemetryEvent::EnvironmentCreate
-        }
-        CliCommand::Environment(EnvironmentCommand::Delete { .. }) => {
-            CliTelemetryEvent::EnvironmentDelete
-        }
-        CliCommand::Environment(EnvironmentCommand::Update { .. }) => {
-            CliTelemetryEvent::EnvironmentUpdate
-        }
-        CliCommand::Environment(EnvironmentCommand::Get { .. }) => {
-            CliTelemetryEvent::EnvironmentGet
-        }
-        CliCommand::Environment(EnvironmentCommand::Image(ImageCommand::List)) => {
-            CliTelemetryEvent::EnvironmentImageList
-        }
-        CliCommand::MCP(MCPCommand::List) => CliTelemetryEvent::MCPList,
-        CliCommand::Run(TaskCommand::List(_)) => CliTelemetryEvent::TaskList,
-        CliCommand::Run(TaskCommand::Get(args)) => {
-            if args.conversation {
-                CliTelemetryEvent::RunConversationGet
-            } else {
-                CliTelemetryEvent::TaskGet
-            }
-        }
-        CliCommand::Run(TaskCommand::Conversation(_)) => CliTelemetryEvent::ConversationGet,
-        CliCommand::Run(TaskCommand::Message(message_cmd)) => match message_cmd {
-            MessageCommand::Watch(_) => CliTelemetryEvent::RunMessageWatch {
-                harness: resolve_orchestration_harness_label(),
-            },
-            MessageCommand::Send(_) => CliTelemetryEvent::RunMessageSend {
-                harness: resolve_orchestration_harness_label(),
-            },
-            MessageCommand::List(_) => CliTelemetryEvent::RunMessageList {
-                harness: resolve_orchestration_harness_label(),
-            },
-            MessageCommand::Read(_) => CliTelemetryEvent::RunMessageRead {
-                harness: resolve_orchestration_harness_label(),
-            },
-            MessageCommand::MarkDelivered(_) => CliTelemetryEvent::RunMessageMarkDelivered {
-                harness: resolve_orchestration_harness_label(),
-            },
-        },
-        CliCommand::Model(ModelCommand::List) => CliTelemetryEvent::ModelList,
-        CliCommand::MemoryStore(memory_store_cmd) => match memory_store_cmd {
-            MemoryStoreCommand::List => CliTelemetryEvent::MemoryStoreList,
-            MemoryStoreCommand::Get(_) => CliTelemetryEvent::MemoryStoreGetStore,
-            MemoryStoreCommand::Update(_) => CliTelemetryEvent::MemoryStoreUpdateStore,
-            MemoryStoreCommand::ListStoreAgents(_) => CliTelemetryEvent::MemoryStoreListStoreAgents,
-        },
-        CliCommand::Memory(memory_cmd) => match memory_cmd {
-            MemoryCommand::List(_) => CliTelemetryEvent::MemoryStoreListMemories,
-            MemoryCommand::Create(_) => CliTelemetryEvent::MemoryStoreCreateMemory,
-            MemoryCommand::Update(_) => CliTelemetryEvent::MemoryStoreUpdateMemory,
-            MemoryCommand::Delete(_) => CliTelemetryEvent::MemoryStoreDeleteMemory,
-            MemoryCommand::Versions(_) => CliTelemetryEvent::MemoryStoreListVersions,
-        },
-        CliCommand::Login => CliTelemetryEvent::Login,
-        CliCommand::Logout => CliTelemetryEvent::Logout,
-        CliCommand::Whoami => CliTelemetryEvent::Whoami,
-        CliCommand::Provider(ProviderCommand::Setup(_)) => CliTelemetryEvent::ProviderSetup,
-        CliCommand::Provider(ProviderCommand::List) => CliTelemetryEvent::ProviderList,
-        CliCommand::Integration(integration_cmd) => match integration_cmd {
-            IntegrationCommand::Create(_) => CliTelemetryEvent::IntegrationCreate,
-            IntegrationCommand::Update(_) => CliTelemetryEvent::IntegrationUpdate,
-            IntegrationCommand::List => CliTelemetryEvent::IntegrationList,
-        },
-        CliCommand::Schedule(c) => match c.subcommand() {
-            None | Some(ScheduleSubcommand::Create(_)) => CliTelemetryEvent::ScheduleCreate,
-            Some(ScheduleSubcommand::List) => CliTelemetryEvent::ScheduleList,
-            Some(ScheduleSubcommand::Get(_)) => CliTelemetryEvent::ScheduleGet,
-            Some(ScheduleSubcommand::Pause(_)) => CliTelemetryEvent::SchedulePause,
-            Some(ScheduleSubcommand::Unpause(_)) => CliTelemetryEvent::ScheduleUnpause,
-            Some(ScheduleSubcommand::Update(_)) => CliTelemetryEvent::ScheduleUpdate,
-            Some(ScheduleSubcommand::Delete(_)) => CliTelemetryEvent::ScheduleDelete,
-        },
-        CliCommand::Secret(secret_cmd) => match secret_cmd {
-            SecretCommand::Create(_) => CliTelemetryEvent::SecretCreate,
-            SecretCommand::Delete(_) => CliTelemetryEvent::SecretDelete,
-            SecretCommand::Update(_) => CliTelemetryEvent::SecretUpdate,
-            SecretCommand::List(_) => CliTelemetryEvent::SecretList,
-        },
-        CliCommand::Federate(federate_cmd) => match federate_cmd {
-            FederateCommand::IssueToken(_) => CliTelemetryEvent::FederateIssueToken,
-            FederateCommand::IssueGcpToken(_) => CliTelemetryEvent::FederateIssueGcpToken,
-        },
-        CliCommand::HarnessSupport(args) => match &args.command {
-            HarnessSupportCommand::Ping => CliTelemetryEvent::HarnessSupportPing,
-            HarnessSupportCommand::ReportArtifact(report_args) => match &report_args.command {
-                ReportArtifactCommand::PullRequest(_) => {
-                    CliTelemetryEvent::HarnessSupportReportArtifact {
-                        artifact_type: "pull_request",
-                    }
-                }
-            },
-            HarnessSupportCommand::NotifyUser(_) => CliTelemetryEvent::HarnessSupportNotifyUser,
-            HarnessSupportCommand::FinishTask(finish_args) => {
-                CliTelemetryEvent::HarnessSupportFinishTask {
-                    success: finish_args.status == TaskStatus::Success,
-                }
-            }
-            HarnessSupportCommand::ReportShutdown(_) => {
-                CliTelemetryEvent::HarnessSupportReportShutdown
-            }
-        },
-        CliCommand::Artifact(artifact_cmd) => match artifact_cmd {
-            ArtifactCommand::Upload(_) => CliTelemetryEvent::ArtifactUpload,
-            ArtifactCommand::Get(_) => CliTelemetryEvent::ArtifactGet,
-            ArtifactCommand::Download(_) => CliTelemetryEvent::ArtifactDownload,
-        },
-        CliCommand::ApiKey(api_key_cmd) => match api_key_cmd {
-            ApiKeyCommand::List(_) => CliTelemetryEvent::ApiKeyList,
-            ApiKeyCommand::Create(_) => CliTelemetryEvent::ApiKeyCreate,
-            ApiKeyCommand::Expire(_) => CliTelemetryEvent::ApiKeyExpire,
-        },
-    }
 }
 
 #[cfg(test)]

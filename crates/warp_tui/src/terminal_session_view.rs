@@ -1,4 +1,4 @@
-//! Authenticated terminal-session TUI surface.
+//! Terminal-session TUI surface.
 use std::borrow::Cow;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -14,17 +14,16 @@ use warp::tui_export::{
     slash_command_is_submitted_as_prompt, slash_command_selection_behavior, slash_commands,
     throttle, AIAgentActionId, AIAgentPtyWriteMode, AcceptSlashCommandOrSavedPrompt, ActiveSession,
     ActiveSessionEvent, AgentInteractionMetadata, AgentViewEntryOrigin, BlocklistAIActionModel,
-    BlocklistAIContextModel, BlocklistAIController, BlocklistAIHistoryEvent,
-    BlocklistAIHistoryModel, BlocklistAIInputModel, CLISubagentController, CLISubagentEvent,
-    CancellationReason, ChangelogModel, ChangelogModelEvent, ChangelogRequestType,
-    CommandExecutionSource, ConversationSelection, ConversationSelectionHandle,
-    ConversationUsageTotals, ExecuteCommandEvent, GetRelevantFilesController, GitRepoModels,
-    GitRepoStatusModel, GitStatusMetadata, LLMPreferences, LLMPreferencesEvent, ModelEvent,
-    PtyIntent, PtyIntentEvent, RepoDetectionSessionType, RepoDetectionSource,
-    ShellCommandExecutorEvent, SlashCommandDataSource as _, SlashCommandSelectionBehavior,
-    StaticCommand, TerminalModel, TerminalSurface, TerminalSurfaceInit, TuiSlashCommandDataSource,
-    TuiSlashCommandDataSourceArgs, TuiZeroStateDataSource, COMMAND_REGISTRY,
-    WAKEUP_THROTTLE_PERIOD,
+    BlocklistAIContextModel, BlocklistAIController, BlocklistAIControllerEvent,
+    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, BlocklistAIInputModel, CLISubagentController,
+    CLISubagentEvent, CancellationReason, CommandExecutionSource, ConversationSelection,
+    ConversationSelectionHandle, ConversationUsageTotals, ExecuteCommandEvent,
+    GetRelevantFilesController, GitRepoModels, GitRepoStatusModel, GitStatusMetadata,
+    LLMPreferences, LLMPreferencesEvent, ModelEvent, PtyIntent, PtyIntentEvent,
+    RepoDetectionSessionType, RepoDetectionSource, ShellCommandExecutorEvent,
+    SlashCommandDataSource as _, SlashCommandSelectionBehavior, StaticCommand, TerminalModel,
+    TerminalSurface, TerminalSurfaceInit, TuiSlashCommandDataSource, TuiSlashCommandDataSourceArgs,
+    TuiZeroStateDataSource, COMMAND_REGISTRY, WAKEUP_THROTTLE_PERIOD,
 };
 use warp_core::settings::Setting;
 use warp_editor::model::CoreEditorModel;
@@ -42,7 +41,6 @@ use warpui_core::{
     AppContext, Entity, EntityId, ModelHandle, TuiView, TypedActionView, ViewContext, ViewHandle,
 };
 
-use crate::autoupdate::{TuiAutoupdater, TuiAutoupdaterEvent};
 use crate::clipboard::copy_to_clipboard;
 use crate::conversation_selection::TuiConversationSelection;
 use crate::exit_confirmation::{ExitConfirmation, CTRL_C_EXIT_WINDOW};
@@ -114,6 +112,17 @@ fn hide_agent_requested_command_from_top_level(
         .block_list_mut()
         .set_visibility_of_block_for_ai_action(action_id, false);
     true
+}
+
+fn controller_error_message(event: &BlocklistAIControllerEvent) -> Option<&str> {
+    match event {
+        BlocklistAIControllerEvent::ShowError(message) => Some(message),
+        BlocklistAIControllerEvent::SentRequest { .. }
+        | BlocklistAIControllerEvent::FinishedReceivingOutput { .. }
+        | BlocklistAIControllerEvent::ExportConversationToFile { .. }
+        | BlocklistAIControllerEvent::ExecuteLocalHarnessCommand { .. }
+        | BlocklistAIControllerEvent::OpenSettings(_) => None,
+    }
 }
 
 /// Typed actions handled by [`TuiTerminalSessionView`].
@@ -230,6 +239,11 @@ impl TuiTerminalSessionView {
                 terminal_surface_id,
                 ctx,
             )
+        });
+        ctx.subscribe_to_model(&ai_controller, |view, _, event, ctx| {
+            if let Some(message) = controller_error_message(event) {
+                view.show_transient_hint(message.to_owned(), ctx);
+            }
         });
         let cli_subagent_controller = ctx.add_model(|ctx| {
             CLISubagentController::new(
@@ -370,24 +384,6 @@ impl TuiTerminalSessionView {
         );
         ctx.subscribe_to_model(&conversation_selection, |_, _, _, ctx| ctx.notify());
 
-        // The zero state's "What's new" section: fetch the changelog once at
-        // startup and re-render when it arrives. The model no-ops when a
-        // changelog is already cached; the other changelog events (request
-        // failed, image fetched) don't change what the zero state renders.
-        ChangelogModel::handle(ctx).update(ctx, |changelog, ctx| {
-            changelog.check_for_changelog(ChangelogRequestType::WindowLaunch, ctx);
-        });
-        ctx.subscribe_to_model(&ChangelogModel::handle(ctx), |_, _, event, ctx| {
-            if let ChangelogModelEvent::ChangelogRequestComplete { .. } = event {
-                ctx.notify();
-            }
-        });
-        // The zero state's version line shows the background auto-update
-        // status: re-render as the updater progresses.
-        ctx.subscribe_to_model(&TuiAutoupdater::handle(ctx), |_, _, event, ctx| {
-            let TuiAutoupdaterEvent::StatusChanged = event;
-            ctx.notify();
-        });
         // The zero state's project section: rules/skills discovery is
         // asynchronous, so re-render as indexed results land. `PathIndexed`
         // accompanies every project-rules mutation (`KnownRulesChanged` is a
@@ -417,8 +413,7 @@ impl TuiTerminalSessionView {
             | ModelEvent::TerminalClear
             | ModelEvent::PromptUpdated
             | ModelEvent::Typeahead
-            | ModelEvent::Handler(_)
-            | ModelEvent::FinishUpdate(_) => ctx.notify(),
+            | ModelEvent::Handler(_) => ctx.notify(),
             _ => {}
         });
         // The footer shows the active model, working directory, and usage

@@ -214,8 +214,6 @@ fn add_valid_custom_endpoint(app: &mut App) {
 #[serial_test::serial]
 fn start_new_conversation_uses_rust_runtime_when_pi_flag_disabled() {
     let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(false);
-    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
         add_valid_custom_endpoint(&mut app);
@@ -243,8 +241,6 @@ fn start_new_conversation_uses_rust_runtime_when_pi_flag_disabled() {
 #[serial_test::serial]
 fn start_new_conversation_uses_pi_runtime_for_eligible_local_only_provider() {
     let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
-    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
         add_valid_custom_endpoint(&mut app);
@@ -270,8 +266,6 @@ fn start_new_conversation_uses_pi_runtime_for_eligible_local_only_provider() {
 #[serial_test::serial]
 fn start_new_conversation_requires_valid_provider_for_pi_runtime() {
     let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
-    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
 
@@ -298,8 +292,6 @@ fn start_new_conversation_requires_valid_provider_for_pi_runtime() {
 #[serial_test::serial]
 fn start_new_conversation_keeps_non_interactive_records_rust_bound() {
     let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
-    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
         add_valid_custom_endpoint(&mut app);
@@ -329,35 +321,6 @@ fn start_new_conversation_keeps_non_interactive_records_rust_bound() {
                     AgentRuntimeBinding::Rust
                 );
             }
-        });
-    });
-}
-
-#[test]
-#[serial_test::serial]
-fn start_new_conversation_requires_local_only_mode_for_pi_runtime() {
-    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
-    let _local_flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(false);
-
-    App::test((), |mut app| async move {
-        initialize_settings_for_tests(&mut app);
-        add_valid_custom_endpoint(&mut app);
-
-        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
-        let terminal_view_id = EntityId::new();
-
-        let conversation_id = history_model.update(&mut app, |history_model, ctx| {
-            history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
-        });
-
-        history_model.update(&mut app, |history_model, _| {
-            assert_eq!(
-                history_model
-                    .conversation(&conversation_id)
-                    .expect("conversation should exist")
-                    .runtime_binding(),
-                AgentRuntimeBinding::Rust
-            );
         });
     });
 }
@@ -3101,8 +3064,6 @@ fn test_initialize_output_for_response_stream_persists_updated_conversation_stat
 #[test]
 #[serial_test::serial]
 fn test_local_only_initialize_output_does_not_store_server_conversation_token() {
-    let _flag = FeatureFlag::LocalOnlyCustomProviderMode.override_enabled(true);
-
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
 

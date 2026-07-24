@@ -79,7 +79,6 @@ use crate::ai::blocklist::secret_redaction::{redact_secrets_in_element, SecretRe
 use crate::ai::blocklist::view_util::error_color;
 use crate::ai::blocklist::{BlocklistAIActionModel, ShellCommandExecutor, TextLocation};
 use crate::ai::loading::shimmering_warp_loading_text;
-use crate::ai::AIRequestUsageModel;
 use crate::code::editor::view::CodeEditorView;
 use crate::code::editor_management::CodeSource;
 use crate::i18n::{tr_cached, Message};
@@ -3125,17 +3124,7 @@ pub fn render_failed_output(props: FailedOutputProps, app: &AppContext) -> Box<d
                 }
                 format!("{apology}\n\n{message}")
             } else {
-                let ai_request_usage_model = AIRequestUsageModel::as_ref(app);
-                let formatted_next_refresh_time = ai_request_usage_model
-                    .next_refresh_time()
-                    .format("%B %d")
-                    .to_string();
-
-                format!(
-                    "{apology}\n\n{}",
-                    tr_cached(Message::CreditLimitResetsOn)
-                        .replace("{}", &formatted_next_refresh_time),
-                )
+                format!("{apology}\n\nThe configured Provider rejected the request limit.")
             }
         }
         RenderableAIError::ServerOverloaded => {

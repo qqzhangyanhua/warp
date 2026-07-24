@@ -2,7 +2,7 @@
 //!
 //! [`run`] boots the real headless Warp app via [`warp::run_tui`]. Once shared
 //! initialization is done, the mount built here starts the TUI driver and
-//! defers creating the transcript-capable terminal session until login.
+//! creates the transcript-capable local terminal session.
 
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -13,7 +13,6 @@ use warp::tui_export::{
     Appearance, BannerState, IsSharedSessionCreator, LocalTtyTerminalManager, TerminalManagerTrait,
     TerminalSurfaceResult,
 };
-use warp::{TuiLoginModel, TuiLoginPhase};
 use warp_errors::report_error;
 use warpui::SingletonEntity;
 use warpui_core::platform::{TerminationMode, WindowStyle};
@@ -55,11 +54,6 @@ fn init(ctx: &mut AppContext) {
     // cross-surface binding validators) before any input can be dispatched.
     crate::keybindings::init(ctx);
 
-    // Kick off the background auto-updater (its polling loop only runs for
-    // release builds installed via the managed versioned layout; see the
-    // `autoupdate` module docs).
-    crate::autoupdate::TuiAutoupdater::register(ctx);
-
     // Theme the transcript to match the host terminal. Keep this scoped to
     // the TUI process by overriding the already-initialized Appearance theme at
     // mount time, without changing normal GUI theme selection or font settings.
@@ -82,26 +76,7 @@ fn init(ctx: &mut AppContext) {
                 driver,
                 manager: None,
             });
-            if matches!(TuiLoginModel::as_ref(ctx).phase(), TuiLoginPhase::LoggedIn) {
-                // Already authenticated at mount: create the session now.
-                create_terminal_session_after_login(&session, &root, &banner, ctx);
-            } else {
-                // Otherwise wait for login to complete and create it then.
-                let session_for_login = session.clone();
-                let root_for_login = root.clone();
-                let banner_for_login = banner.clone();
-                let login_model = TuiLoginModel::handle(ctx);
-                ctx.subscribe_to_model(&login_model, move |_, _, ctx| {
-                    if matches!(TuiLoginModel::as_ref(ctx).phase(), TuiLoginPhase::LoggedIn) {
-                        create_terminal_session_after_login(
-                            &session_for_login,
-                            &root_for_login,
-                            &banner_for_login,
-                            ctx,
-                        );
-                    }
-                });
-            }
+            create_terminal_session(&session, &root, &banner, ctx);
         }
         Err(error) => {
             let error = anyhow::Error::new(error);
@@ -111,8 +86,8 @@ fn init(ctx: &mut AppContext) {
     }
 }
 
-/// Creates and retains the terminal manager after login.
-fn create_terminal_session_after_login(
+/// Creates and retains the local terminal manager.
+fn create_terminal_session(
     session: &ModelHandle<TuiSession>,
     root: &ViewHandle<RootTuiView>,
     banner: &ModelHandle<BannerState>,

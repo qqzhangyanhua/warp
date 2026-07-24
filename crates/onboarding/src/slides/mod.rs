@@ -16,12 +16,12 @@ mod toggle_card;
 mod two_line_button;
 
 pub use agent_slide::{AgentAutonomy, AgentDevelopmentSettings, AgentSlide, OnboardingModelInfo};
-pub use ai_access_slide::{AiAccessSlide, AiAccessSlideEvent};
+pub use ai_access_slide::AiAccessSlide;
 pub use ai_setup_slide::AiSetupSlide;
 pub use bottom_nav::onboarding_bottom_nav;
 pub use customize_slide::CustomizeUISlide;
 pub use intention_slide::IntentionSlide;
-pub use intro_slide::{IntroSlide, IntroSlideEvent};
+pub use intro_slide::IntroSlide;
 pub use onboarding_slide::OnboardingSlide;
 pub use project_slide::{ProjectOnboardingSettings, ProjectSlide};
 pub use theme_picker_slide::{ThemePickerSlide, ThemePickerSlideEvent};
