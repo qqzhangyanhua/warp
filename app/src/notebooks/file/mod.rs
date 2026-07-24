@@ -1,3 +1,6 @@
+#[cfg(feature = "local_fs")]
+mod local_session;
+
 use std::mem;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -34,15 +37,15 @@ use warpui::{
     ViewHandle,
 };
 #[cfg(feature = "local_fs")]
-use warpui_extras::owner_only_file::{content_hash, ContentHash, ExpectedContent};
+use warpui_extras::owner_only_file::content_hash;
 
 use super::context_menu::{show_rich_editor_context_menu, ContextMenuAction, ContextMenuState};
 use super::editor::view::{EditorViewEvent, RichTextEditorConfig, RichTextEditorView};
 use super::link::{NotebookLinks, SessionSource};
 #[cfg(feature = "local_fs")]
-use super::local_markdown::{
-    self, default_save_filename, LocalMarkdownError, UnsavedMarkdownNotebook,
-};
+use super::local_markdown::{self, default_save_filename, LocalMarkdownError};
+#[cfg(feature = "local_fs")]
+use local_session::{ExternalUpdateOutcome, LocalNotebookSession, SavePlan};
 use super::telemetry::NotebookTelemetryAction;
 use super::{styles, NotebookLocation};
 use crate::appearance::Appearance;
@@ -106,17 +109,9 @@ pub struct FileNotebookView {
     /// access.
     #[cfg(feature = "local_fs")]
     file_id: Option<FileId>,
-    /// Content hash of the last successfully loaded or saved disk content.
+    /// Local Markdown lifecycle (unsaved / bound / dirty / conflict). Absent for static or remote.
     #[cfg(feature = "local_fs")]
-    content_hash: Option<ContentHash>,
-    /// True when the editor differs from the last loaded/saved content.
-    is_dirty: bool,
-    /// True when an external edit conflicts with local unsaved changes, or a save failed for conflict.
-    has_conflict: bool,
-    /// True for a new Notebook that has not chosen a local path yet.
-    is_unsaved: bool,
-    /// Suggested title for first-save naming when the Notebook is unsaved.
-    unsaved_title: Option<String>,
+    local_session: Option<LocalNotebookSession>,
     pane_configuration: ModelHandle<PaneConfiguration>,
     focus_handle: Option<PaneFocusHandle>,
     links: ModelHandle<NotebookLinks>,
@@ -349,11 +344,7 @@ impl FileNotebookView {
             #[cfg(feature = "local_fs")]
             file_id: None,
             #[cfg(feature = "local_fs")]
-            content_hash: None,
-            is_dirty: false,
-            has_conflict: false,
-            is_unsaved: false,
-            unsaved_title: None,
+            local_session: None,
             pane_configuration,
             focus_handle: None,
             links,
@@ -382,17 +373,10 @@ impl FileNotebookView {
             });
         }
 
-        let title = title
-            .map(|t| t.trim().to_string())
-            .filter(|t| !t.is_empty())
-            .unwrap_or_else(|| "Untitled".to_string());
+        let session = LocalNotebookSession::new_unsaved(title.unwrap_or_default());
+        let title = session.title_hint().to_string();
         let body = content.unwrap_or_default();
-
-        self.is_unsaved = true;
-        self.unsaved_title = Some(title.clone());
-        self.content_hash = None;
-        self.is_dirty = !body.is_empty();
-        self.has_conflict = false;
+        self.local_session = Some(session);
         self.location = None;
 
         self.pane_configuration.update(ctx, |pane_config, ctx| {
@@ -423,47 +407,27 @@ impl FileNotebookView {
     /// Save the current Markdown content to the chosen path (first save or update).
     #[cfg(feature = "local_fs")]
     fn save(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.has_conflict {
-            self.display_error_toast(LOCAL_CONFLICT_MESSAGE.to_string(), ctx);
-            return;
-        }
-
-        if self.is_unsaved || self.local_path().is_none() {
-            self.save_as(ctx);
-            return;
-        }
-
-        let Some(path) = self.local_path() else {
+        let Some(session) = self.local_session.as_ref() else {
             return;
         };
-        let content = self.editor.as_ref(ctx).markdown(ctx);
-        let expected = match self.content_hash {
-            Some(hash) => ExpectedContent::Hash(hash),
-            None => ExpectedContent::Any,
-        };
-        match local_markdown::save_notebook(&path, &content, expected) {
-            Ok(new_hash) => {
-                self.content_hash = Some(new_hash);
-                self.is_dirty = false;
-                self.has_conflict = false;
-                self.is_unsaved = false;
-                self.refresh_title(ctx);
-                ctx.emit(FileNotebookEvent::FileLoaded);
-                ctx.notify();
+        match session.save_plan() {
+            SavePlan::NeedsPath => self.save_as(ctx),
+            SavePlan::BlockedByConflict { .. } => {
+                self.display_error_toast(LOCAL_CONFLICT_MESSAGE.to_string(), ctx);
             }
-            Err(LocalMarkdownError::Conflict { path }) => {
-                self.has_conflict = true;
-                self.display_error_toast(
-                    format!(
-                        "The notebook file changed on disk before it could be saved: {}",
-                        path.display()
-                    ),
-                    ctx,
-                );
-                ctx.notify();
-            }
-            Err(error) => {
-                self.display_error_toast(format!("Could not save notebook: {error}"), ctx);
+            SavePlan::Write { path, expected } => {
+                let content = self.editor.as_ref(ctx).markdown(ctx);
+                match local_markdown::save_notebook(&path, &content, expected) {
+                    Ok(new_hash) => {
+                        if let Some(session) = self.local_session.as_mut() {
+                            session.apply_save_ok(path, new_hash);
+                        }
+                        self.refresh_title(ctx);
+                        ctx.emit(FileNotebookEvent::FileLoaded);
+                        ctx.notify();
+                    }
+                    Err(error) => self.report_save_error(error, ctx),
+                }
             }
         }
     }
@@ -472,17 +436,13 @@ impl FileNotebookView {
     #[cfg(feature = "local_fs")]
     fn save_as(&mut self, ctx: &mut ViewContext<Self>) {
         let suggested = self
-            .unsaved_title
-            .clone()
-            .or_else(|| {
-                self.location
-                    .as_ref()
-                    .map(|location| location.name.clone())
-            })
+            .local_session
+            .as_ref()
+            .map(|s| s.title_hint().to_string())
+            .or_else(|| self.location.as_ref().map(|l| l.name.clone()))
             .unwrap_or_else(|| "Untitled".to_string());
-        let unsaved = UnsavedMarkdownNotebook::new("").with_suggested_title(suggested);
-        let mut config = SaveFilePickerConfiguration::new()
-            .with_default_filename(default_save_filename(&unsaved));
+        let mut config =
+            SaveFilePickerConfiguration::new().with_default_filename(default_save_filename(&suggested));
         if let Some(parent) = self
             .local_path()
             .and_then(|p| p.parent().map(Path::to_path_buf))
@@ -510,29 +470,41 @@ impl FileNotebookView {
     fn finish_save_as(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
         let content = self.editor.as_ref(ctx).markdown(ctx);
         let same_path = self.local_path().as_ref() == Some(&path);
-        // First save or save-as to a different path must not overwrite an existing file.
-        // Same-path save uses content-hash conflict detection.
         let result = if same_path {
-            local_markdown::save_or_create(&path, &content, self.content_hash)
+            match self.local_session.as_ref().and_then(|s| s.content_hash()) {
+                Some(hash) => local_markdown::save_or_create(&path, &content, Some(hash)),
+                // Fail-closed: bound path without a known hash cannot overwrite.
+                None => Err(LocalMarkdownError::InvalidPath),
+            }
         } else {
             local_markdown::first_save(&path, &content)
         };
 
         match result {
             Ok(notebook) => {
-                self.content_hash = Some(notebook.content_hash);
-                self.is_dirty = false;
-                self.has_conflict = false;
-                self.is_unsaved = false;
-                self.unsaved_title = None;
+                if let Some(session) = self.local_session.as_mut() {
+                    session.apply_save_ok(&notebook.path, notebook.content_hash);
+                } else {
+                    self.local_session = Some(LocalNotebookSession::bound(
+                        &notebook.path,
+                        notebook.content_hash,
+                    ));
+                }
                 // Re-open through FileModel so we watch for external edits.
-                let session = ActiveSession::as_ref(ctx)
+                let terminal_session = ActiveSession::as_ref(ctx)
                     .session(ctx.window_id())
                     .filter(|s| s.is_local());
-                self.open_local(notebook.path, session, ctx);
+                self.open_local(notebook.path, terminal_session, ctx);
                 ctx.emit(FileNotebookEvent::TitleUpdated);
             }
-            Err(LocalMarkdownError::PathCollision { path }) => {
+            Err(error) => self.report_save_error(error, ctx),
+        }
+    }
+
+    #[cfg(feature = "local_fs")]
+    fn report_save_error(&mut self, error: LocalMarkdownError, ctx: &mut ViewContext<Self>) {
+        match error {
+            LocalMarkdownError::PathCollision { path } => {
                 self.display_error_toast(
                     format!(
                         "A notebook file already exists at {}. Choose a different path.",
@@ -541,8 +513,10 @@ impl FileNotebookView {
                     ctx,
                 );
             }
-            Err(LocalMarkdownError::Conflict { path }) => {
-                self.has_conflict = true;
+            LocalMarkdownError::Conflict { path } => {
+                if let Some(session) = self.local_session.as_mut() {
+                    session.apply_save_conflict();
+                }
                 self.display_error_toast(
                     format!(
                         "The notebook file changed on disk before it could be saved: {}",
@@ -552,7 +526,7 @@ impl FileNotebookView {
                 );
                 ctx.notify();
             }
-            Err(LocalMarkdownError::InvalidExtension { path }) => {
+            LocalMarkdownError::InvalidExtension { path } => {
                 self.display_error_toast(
                     format!(
                         "Notebook path must use a Markdown extension (.md or .markdown): {}",
@@ -561,7 +535,7 @@ impl FileNotebookView {
                     ctx,
                 );
             }
-            Err(error) => {
+            error => {
                 self.display_error_toast(format!("Could not save notebook: {error}"), ctx);
             }
         }
@@ -569,8 +543,6 @@ impl FileNotebookView {
 
     #[cfg(feature = "local_fs")]
     fn resolve_conflict_refresh(&mut self, ctx: &mut ViewContext<Self>) {
-        self.has_conflict = false;
-        self.is_dirty = false;
         self.reload_file(ctx);
     }
 
@@ -606,9 +578,20 @@ impl FileNotebookView {
             .as_ref()
             .map(|location| location.name.clone())
             .or_else(|| self.file_state.display_name())
-            .or_else(|| self.unsaved_title.clone())
+            .or_else(|| {
+                #[cfg(feature = "local_fs")]
+                {
+                    self.local_session
+                        .as_ref()
+                        .map(|s| s.title_hint().to_string())
+                }
+                #[cfg(not(feature = "local_fs"))]
+                {
+                    None
+                }
+            })
             .unwrap_or_else(|| "Untitled".to_string());
-        if self.is_dirty {
+        if self.is_dirty() {
             format!("{base} •")
         } else {
             base
@@ -617,17 +600,44 @@ impl FileNotebookView {
 
     /// True when this Notebook has not yet been saved to a local path.
     pub fn is_unsaved(&self) -> bool {
-        self.is_unsaved
+        #[cfg(feature = "local_fs")]
+        {
+            self.local_session
+                .as_ref()
+                .is_some_and(LocalNotebookSession::is_unsaved)
+        }
+        #[cfg(not(feature = "local_fs"))]
+        {
+            false
+        }
     }
 
     /// True when the editor has unsaved local edits.
     pub fn is_dirty(&self) -> bool {
-        self.is_dirty
+        #[cfg(feature = "local_fs")]
+        {
+            self.local_session
+                .as_ref()
+                .is_some_and(LocalNotebookSession::is_dirty)
+        }
+        #[cfg(not(feature = "local_fs"))]
+        {
+            false
+        }
     }
 
     /// True when a disk conflict is blocking save.
     pub fn has_conflict(&self) -> bool {
-        self.has_conflict
+        #[cfg(feature = "local_fs")]
+        {
+            self.local_session
+                .as_ref()
+                .is_some_and(LocalNotebookSession::has_conflict)
+        }
+        #[cfg(not(feature = "local_fs"))]
+        {
+            false
+        }
     }
 
     pub fn focus(&self, ctx: &mut ViewContext<Self>) {
@@ -731,13 +741,20 @@ impl FileNotebookView {
     ) {
         let local_path = path.into();
 
-        self.is_unsaved = false;
-        self.unsaved_title = None;
-        self.is_dirty = false;
-        self.has_conflict = false;
+        // FileModel reload may clear edit state; open starts clean until FileLoaded sets hash.
         #[cfg(feature = "local_fs")]
         {
-            self.content_hash = None;
+            // Preserve bound path intent; hash is filled on FileLoaded.
+            // If we already have a Bound session for this path, keep it until load completes.
+            if self
+                .local_session
+                .as_ref()
+                .and_then(|s| s.path())
+                .is_none_or(|p| p != local_path.as_path())
+            {
+                // Placeholder: will become Bound on FileLoaded once hash is known.
+                self.local_session = None;
+            }
         }
 
         // If a session is available, initialize the location and link context now. Otherwise,
@@ -779,25 +796,27 @@ impl FileNotebookView {
                     match event {
                         FileModelEvent::FileLoaded { content, .. } => {
                             me.set_content(content, ctx);
-                            me.is_dirty = false;
-                            me.has_conflict = false;
-                            me.is_unsaved = false;
-                            if let Some(path) = me.file_state.local_path() {
-                                me.content_hash = content_hash(path).ok().flatten();
+
+                            // Record the canonical path instead of the input path when available.
+                            let bound_path = file_model
+                                .as_ref(ctx)
+                                .file_path(file_id)
+                                .or_else(|| me.file_state.local_path().map(Path::to_path_buf));
+                            if let Some(canonical_path) = bound_path.clone() {
+                                me.file_state = FileState::Loaded(SourceFile::FileBased {
+                                    path: LocalOrRemotePath::Local(canonical_path.clone()),
+                                    session: session.clone(),
+                                });
+                                if let Some(hash) = content_hash(&canonical_path).ok().flatten() {
+                                    me.local_session =
+                                        Some(LocalNotebookSession::bound(canonical_path, hash));
+                                }
                             }
+
                             send_telemetry_from_ctx!(
                                 TelemetryEvent::OpenNotebook(me.open_telemetry_metadata(ctx)),
                                 ctx
                             );
-
-                            // Record the canonical path instead of the input path when available.
-                            if let Some(canonical_path) = file_model.as_ref(ctx).file_path(file_id)
-                            {
-                                me.file_state = FileState::Loaded(SourceFile::FileBased {
-                                    path: LocalOrRemotePath::Local(canonical_path),
-                                    session: session.clone(),
-                                });
-                            }
 
                             // Local Markdown is editable; Jupyter/remote stay read-only.
                             let editable = me.is_markdown_file() && !me.is_jupyter_notebook_file();
@@ -829,17 +848,24 @@ impl FileNotebookView {
                             ctx.notify();
                         }
                         FileModelEvent::FileUpdated { content, .. } => {
-                            if me.is_dirty || me.has_conflict {
-                                // External edit while the user has local changes: surface conflict.
-                                me.has_conflict = true;
-                                ctx.notify();
-                            } else {
-                                me.set_content(content, ctx);
-                                me.is_dirty = false;
-                                if let Some(path) = me.file_state.local_path() {
-                                    me.content_hash = content_hash(path).ok().flatten();
+                            let disk_hash = me
+                                .file_state
+                                .local_path()
+                                .and_then(|path| content_hash(path).ok().flatten());
+                            let outcome = match (me.local_session.as_mut(), disk_hash) {
+                                (Some(session), Some(hash)) => session.apply_external_update(hash),
+                                _ => ExternalUpdateOutcome::AcceptReload,
+                            };
+                            match outcome {
+                                ExternalUpdateOutcome::Ignore => {}
+                                ExternalUpdateOutcome::AcceptReload => {
+                                    me.set_content(content, ctx);
+                                    ctx.notify();
                                 }
-                                ctx.notify();
+                                ExternalUpdateOutcome::Conflict => {
+                                    // Keep local buffer; surface conflict banner.
+                                    ctx.notify();
+                                }
                             }
                         }
                         FileModelEvent::FileSaved { .. } | FileModelEvent::FailedToSave { .. } => {}
@@ -876,12 +902,8 @@ impl FileNotebookView {
             if let Some(prev_id) = self.file_id.take() {
                 FileModel::handle(ctx).update(ctx, |m, ctx| m.unsubscribe(prev_id, ctx));
             }
-            self.content_hash = None;
+            self.local_session = None;
         }
-        self.is_unsaved = false;
-        self.unsaved_title = None;
-        self.is_dirty = false;
-        self.has_conflict = false;
         self.set_content(content, ctx);
         let title = title.into();
         self.pane_configuration.update(ctx, |pane_config, ctx| {
@@ -1060,7 +1082,7 @@ impl FileNotebookView {
     }
 
     fn is_markdown_file(&self) -> bool {
-        if self.is_unsaved {
+        if self.is_unsaved() {
             return true;
         }
         self.file_state
@@ -1148,10 +1170,16 @@ impl FileNotebookView {
                 ctx,
             ),
             EditorViewEvent::Edited => {
-                if !self.is_dirty {
-                    self.is_dirty = true;
-                    self.refresh_title(ctx);
-                    ctx.notify();
+                #[cfg(feature = "local_fs")]
+                {
+                    if let Some(session) = self.local_session.as_mut() {
+                        let was_dirty = session.is_dirty();
+                        session.mark_edited();
+                        if !was_dirty && session.is_dirty() {
+                            self.refresh_title(ctx);
+                            ctx.notify();
+                        }
+                    }
                 }
             }
             EditorViewEvent::Navigate(_)
@@ -1322,7 +1350,7 @@ impl FileNotebookView {
         let mut col = Flex::column();
         let mut has_banner = false;
 
-        if self.has_conflict {
+        if self.has_conflict() {
             col.add_child(self.render_conflict_banner(appearance));
             has_banner = true;
         }
@@ -1569,7 +1597,7 @@ impl BackingView for FileNotebookView {
 
         #[cfg(feature = "local_fs")]
         {
-            if self.is_unsaved
+            if self.is_unsaved()
                 || matches!(
                     self.file_state.source(),
                     Some(SourceFile::FileBased {

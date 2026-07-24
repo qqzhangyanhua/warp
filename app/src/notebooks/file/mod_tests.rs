@@ -130,9 +130,16 @@ fn test_new_unsaved_notebook_until_first_save() {
             let view = handle.as_ref(ctx);
             assert!(view.is_unsaved());
             assert!(view.local_path().is_none());
-            assert_eq!(view.title(), "My Notes •");
+            // Unsaved has no path; dirty marker only applies after mark_edited on Bound.
+            assert_eq!(view.title(), "My Notes");
             assert!(view.editor.as_ref(ctx).is_editable(ctx));
             assert!(view.editor.as_ref(ctx).markdown(ctx).contains("draft"));
+            // Relative content has no base until the Notebook is bound to a path.
+            assert!(view
+                .local_session
+                .as_ref()
+                .and_then(|s| s.document_path_for_relative_content())
+                .is_none());
             // No cloud ID, owner, or sharing surface on the local file view.
             view.render(ctx);
         });
@@ -164,6 +171,13 @@ fn test_new_unsaved_notebook_until_first_save() {
             assert_eq!(opened.file_name(), path.file_name());
             assert!(std::fs::read_to_string(&path).unwrap().contains("draft"));
             assert!(!view.has_conflict());
+            // After bind, session exposes the file path for relative content resolution.
+            let doc = view
+                .local_session
+                .as_ref()
+                .and_then(|s| s.document_path_for_relative_content())
+                .expect("bound notebook has document path");
+            assert_eq!(doc.file_name(), path.file_name());
         });
     });
 }
@@ -210,19 +224,22 @@ fn test_external_conflict_surfaces_visible_state() {
             .await;
 
         handle.update(&mut app, |file_notebook, ctx| {
-            // Simulate a local edit.
+            // Simulate a local edit then external conflict via the session seam.
             file_notebook.editor.update(ctx, |editor, ctx| {
                 editor.reset_with_markdown("local edit\n", ctx);
             });
-            file_notebook.is_dirty = true;
-            file_notebook.has_conflict = true;
+            if let Some(session) = file_notebook.local_session.as_mut() {
+                session.mark_edited();
+                session.apply_save_conflict();
+            }
             ctx.notify();
         });
 
         app.read(|ctx| {
             let view = handle.as_ref(ctx);
+            // Conflict supersedes Dirty in the session enum.
             assert!(view.has_conflict());
-            assert!(view.is_dirty());
+            assert!(!view.is_dirty());
             // Conflict banner must not panic.
             view.render(ctx);
         });

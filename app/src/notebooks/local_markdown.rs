@@ -1,9 +1,10 @@
-//! Local Markdown Notebook lifecycle.
+//! Local Markdown Notebook file IO.
 //!
-//! Notebooks are ordinary Markdown files on disk. A new Notebook stays unsaved
-//! until the user chooses a local path on first save. Subsequent saves use
-//! owner-only atomic replacement with content-hash conflict detection. There is
-//! no cloud Notebook ID, owner, sharing, revision, or cloud cache.
+//! Notebooks are ordinary Markdown files on disk. Create and replace use
+//! owner-only atomic writes with content-hash conflict detection. Session
+//! state (unsaved / dirty / conflict) lives in
+//! [`crate::notebooks::file::local_session`]. Relative links and images are
+//! resolved by the editor via `document_path`, not here.
 
 use std::fs;
 use std::io;
@@ -20,13 +21,6 @@ pub struct LocalMarkdownNotebook {
     pub path: PathBuf,
     pub content: String,
     pub content_hash: ContentHash,
-}
-
-/// Unsaved Notebook that has not yet chosen a path.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct UnsavedMarkdownNotebook {
-    pub content: String,
-    pub suggested_title: Option<String>,
 }
 
 /// Errors from loading or mutating local Markdown Notebook files.
@@ -56,39 +50,6 @@ impl From<OwnerOnlyFileError> for LocalMarkdownError {
     }
 }
 
-impl UnsavedMarkdownNotebook {
-    /// Create an unsaved Notebook with optional initial Markdown body.
-    pub fn new(content: impl Into<String>) -> Self {
-        Self {
-            content: content.into(),
-            suggested_title: None,
-        }
-    }
-
-    /// Create an unsaved Notebook with a suggested title for first-save naming.
-    pub fn with_suggested_title(mut self, title: impl Into<String>) -> Self {
-        let title = title.into();
-        if !title.trim().is_empty() {
-            self.suggested_title = Some(title);
-        }
-        self
-    }
-
-    /// Default filename stem for the save picker (no extension).
-    pub fn suggested_filename_stem(&self) -> &str {
-        self.suggested_title
-            .as_deref()
-            .map(str::trim)
-            .filter(|title| !title.is_empty())
-            .unwrap_or("Untitled")
-    }
-
-    /// Cancel first save: notebook remains unsaved with current content.
-    pub fn cancel_save(self) -> Self {
-        self
-    }
-}
-
 /// Validate that `path` is an acceptable local Markdown Notebook destination.
 pub fn validate_markdown_path(path: &Path) -> Result<(), LocalMarkdownError> {
     if path.as_os_str().is_empty() {
@@ -114,6 +75,13 @@ pub fn is_markdown_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
         .is_some_and(|ext| ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown"))
+}
+
+/// Suggested default filename for a save dialog from a display title.
+pub fn default_save_filename(title_hint: &str) -> String {
+    let stem = title_hint.trim();
+    let stem = if stem.is_empty() { "Untitled" } else { stem };
+    format!("{stem}.md")
 }
 
 /// Open an existing Markdown file from disk.
@@ -156,6 +124,10 @@ pub fn first_save(
 }
 
 /// Atomically replace an existing Notebook file when `expected` still matches.
+///
+/// Callers that already hold a content hash must pass
+/// [`ExpectedContent::Hash`]. Prefer that over [`ExpectedContent::Any`] so
+/// external edits are not silently overwritten.
 pub fn save_notebook(
     path: &Path,
     content: &str,
@@ -165,8 +137,17 @@ pub fn save_notebook(
     Ok(atomic_replace(path, content.as_bytes(), expected)?.content_hash)
 }
 
-/// Save either for the first time or as an update, depending on whether a path
-/// and expected hash are known.
+/// Bound save that always conflict-checks against a known hash (fail-closed).
+pub fn save_bound(
+    path: &Path,
+    content: &str,
+    expected_hash: ContentHash,
+) -> Result<ContentHash, LocalMarkdownError> {
+    save_notebook(path, content, ExpectedContent::Hash(expected_hash))
+}
+
+/// Save either for the first time (`expected_hash == None` → create) or as an
+/// update (`Some(hash)` → hash-checked replace). Never uses `ExpectedContent::Any`.
 pub fn save_or_create(
     path: &Path,
     content: &str,
@@ -175,7 +156,7 @@ pub fn save_or_create(
     match expected_hash {
         None => first_save(path, content),
         Some(hash) => {
-            let content_hash = save_notebook(path, content, ExpectedContent::Hash(hash))?;
+            let content_hash = save_bound(path, content, hash)?;
             Ok(LocalMarkdownNotebook {
                 path: path.to_path_buf(),
                 content: content.to_string(),
@@ -183,36 +164,6 @@ pub fn save_or_create(
             })
         }
     }
-}
-
-/// Resolve a relative link or image path against the Notebook file location.
-///
-/// Absolute paths, URLs, and data URIs are returned unchanged. Relative paths
-/// join the Notebook file's parent directory.
-pub fn resolve_relative_path(notebook_path: &Path, reference: &str) -> PathBuf {
-    if reference.is_empty() {
-        return PathBuf::new();
-    }
-    if reference.starts_with("http://")
-        || reference.starts_with("https://")
-        || reference.starts_with("data:")
-        || reference.starts_with('/')
-        || Path::new(reference).is_absolute()
-    {
-        return PathBuf::from(reference);
-    }
-    let base = notebook_path.parent().unwrap_or_else(|| Path::new("."));
-    base.join(reference)
-}
-
-/// Directory used as the base for relative content resolution.
-pub fn relative_base_directory(notebook_path: &Path) -> Option<&Path> {
-    notebook_path.parent()
-}
-
-/// Suggested default filename for a save dialog from an unsaved Notebook.
-pub fn default_save_filename(unsaved: &UnsavedMarkdownNotebook) -> String {
-    format!("{}.md", unsaved.suggested_filename_stem())
 }
 
 #[cfg(test)]
