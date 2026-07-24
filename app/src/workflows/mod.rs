@@ -14,6 +14,8 @@ pub mod aliases;
 pub mod command_parser;
 pub mod export_workflow;
 pub mod info_box;
+#[cfg(feature = "local_fs")]
+pub mod local_workflow_yaml;
 pub mod local_workflows;
 pub mod manager;
 pub mod workflow;

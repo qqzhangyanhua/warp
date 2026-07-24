@@ -1,15 +1,17 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use warpui::{Entity, EntityId, ModelContext, SingletonEntity};
 
 use super::workflow::Workflow;
-use super::CloudWorkflowModel;
+use super::WorkflowSource;
 use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::{GenericCloudObject, Owner};
+use crate::cloud_object::Owner;
 use crate::drive::OpenWarpDriveObjectSettings;
-use crate::pane_group::{PaneContent, WorkflowPane};
-use crate::server::ids::{ClientId, SyncId};
+use crate::pane_group::pane::PaneContent;
+use crate::pane_group::WorkflowPane;
+use crate::server::ids::SyncId;
 use crate::workflows::workflow_view::WorkflowView;
 use crate::workflows::WorkflowViewMode;
 use crate::{safe_warn, PaneViewLocator, WindowId};
@@ -21,6 +23,19 @@ pub struct WorkflowManager {
 #[derive(Debug, Clone)]
 pub enum WorkflowOpenSource {
     Existing(SyncId),
+    /// Open an existing local YAML Workflow file for view/edit.
+    LocalFile {
+        path: PathBuf,
+        source: WorkflowSource,
+    },
+    /// Create a new local YAML Workflow under the given directory.
+    NewLocal {
+        title: Option<String>,
+        content: Option<String>,
+        directory: PathBuf,
+        source: WorkflowSource,
+        is_for_agent_mode: bool,
+    },
     New {
         title: Option<String>,
 
@@ -53,7 +68,14 @@ impl WorkflowManager {
                 let pane_data = self.panes_by_hashed_id.get(&workflow_id.uid())?;
                 Some((pane_data.window_id, pane_data.locator))
             }
-            WorkflowOpenSource::New { .. } | WorkflowOpenSource::NewFromWorkflow { .. } => None,
+            WorkflowOpenSource::LocalFile { path, .. } => {
+                let key = local_file_pane_key(path);
+                let pane_data = self.panes_by_hashed_id.get(&key)?;
+                Some((pane_data.window_id, pane_data.locator))
+            }
+            WorkflowOpenSource::New { .. }
+            | WorkflowOpenSource::NewLocal { .. }
+            | WorkflowOpenSource::NewFromWorkflow { .. } => None,
         }
     }
 
@@ -85,6 +107,27 @@ impl WorkflowManager {
                     });
                 }
             }
+            WorkflowOpenSource::LocalFile { path, source } => {
+                view.update(ctx, |view, ctx| {
+                    view.open_local_workflow(path.clone(), *source, mode, ctx);
+                });
+            }
+            WorkflowOpenSource::NewLocal {
+                title,
+                content,
+                directory,
+                source,
+                is_for_agent_mode,
+            } => view.update(ctx, |view, ctx| {
+                view.open_new_local_workflow(
+                    title.clone(),
+                    content.clone(),
+                    directory.clone(),
+                    *source,
+                    *is_for_agent_mode,
+                    ctx,
+                )
+            }),
             WorkflowOpenSource::New {
                 title,
                 content,
@@ -92,33 +135,35 @@ impl WorkflowManager {
                 initial_folder_id,
                 is_for_agent_mode,
             } => view.update(ctx, |view, ctx| {
-                view.open_new_workflow(
+                // Retained product path: create as local user YAML instead of cloud ownership.
+                view.open_new_local_workflow(
                     title.clone(),
                     content.clone(),
-                    *owner,
-                    *initial_folder_id,
+                    crate::user_config::workflows_dir(),
+                    WorkflowSource::Local,
                     *is_for_agent_mode,
-                    SyncId::ClientId(ClientId::default()),
                     ctx,
-                )
+                );
+                let _ = owner;
+                let _ = initial_folder_id;
             }),
             WorkflowOpenSource::NewFromWorkflow {
                 workflow,
                 owner,
                 initial_folder_id,
             } => {
+                // Prefer local YAML creation from a template workflow.
                 view.update(ctx, |view, ctx| {
-                    view.load(
-                        GenericCloudObject::new_local(
-                            CloudWorkflowModel::new(*workflow.clone()),
-                            *owner,
-                            *initial_folder_id,
-                            ClientId::default(),
-                        ),
-                        &OpenWarpDriveObjectSettings::default(),
-                        mode,
+                    view.open_new_local_workflow(
+                        Some(workflow.name().to_string()),
+                        Some(workflow.content().to_string()),
+                        crate::user_config::workflows_dir(),
+                        WorkflowSource::Local,
+                        workflow.is_agent_mode_workflow(),
                         ctx,
                     );
+                    let _ = owner;
+                    let _ = initial_folder_id;
                 });
             }
         }
@@ -133,8 +178,14 @@ impl WorkflowManager {
         window_id: WindowId,
         ctx: &mut ModelContext<Self>,
     ) {
-        let workflow_id = pane.get_view(ctx).as_ref(ctx).workflow_id();
-        let entry = self.panes_by_hashed_id.entry(workflow_id.uid());
+        let view = pane.get_view(ctx);
+        let key = view
+            .as_ref(ctx)
+            .local_file_path()
+            .map(local_file_pane_key)
+            .unwrap_or_else(|| view.as_ref(ctx).workflow_id().uid());
+        let workflow_id = view.as_ref(ctx).workflow_id();
+        let entry = self.panes_by_hashed_id.entry(key);
         if let Entry::Vacant(entry) = entry {
             entry.insert(WorkflowPaneData {
                 workflow_id,
@@ -153,11 +204,17 @@ impl WorkflowManager {
     }
 
     pub fn deregister_pane(&mut self, pane: &WorkflowPane, ctx: &mut ModelContext<Self>) {
-        let workflow_id = pane.get_view(ctx).as_ref(ctx).workflow_id();
+        let view = pane.get_view(ctx);
+        let key = view
+            .as_ref(ctx)
+            .local_file_path()
+            .map(local_file_pane_key)
+            .unwrap_or_else(|| view.as_ref(ctx).workflow_id().uid());
+        let workflow_id = view.as_ref(ctx).workflow_id();
 
         // If a workflow pane is restored, the workflow may have been reopened in the meantime. In
         // that case, don't let closing the original pane clear out the new pane.
-        if let Entry::Occupied(entry) = self.panes_by_hashed_id.entry(workflow_id.uid()) {
+        if let Entry::Occupied(entry) = self.panes_by_hashed_id.entry(key) {
             if entry.get().locator.pane_id == pane.id() {
                 entry.remove();
             } else {
@@ -178,6 +235,10 @@ struct WorkflowPaneData {
     workflow_id: SyncId,
     window_id: WindowId,
     locator: PaneViewLocator,
+}
+
+fn local_file_pane_key(path: &std::path::Path) -> String {
+    format!("local-yaml:{}", path.display())
 }
 
 impl Entity for WorkflowManager {

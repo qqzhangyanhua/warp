@@ -11,8 +11,6 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 use super::workflow::Workflow;
 use super::WorkflowSource;
 use crate::terminal::model::session::Session;
-#[cfg(feature = "local_fs")]
-use crate::user_config::load_workflows;
 use crate::user_config::WarpConfig;
 
 pub fn workflows_dir(base_dir: impl AsRef<Path>) -> PathBuf {
@@ -176,15 +174,19 @@ fn app_workflows() -> Vec<Workflow> {
     }
 }
 
-/// Loads project-level workflows (if any) from the warp config directory in the current working
-/// directory.
+/// Loads project-level workflows (if any) from the ZYH project directory under the
+/// repository containing `path`.
 #[cfg(feature = "local_fs")]
 pub(super) fn load_project_workflows(path: &Path) -> Vec<Workflow> {
     match git2::Repository::discover(path) {
         Ok(repository) => repository.workdir().map_or(Vec::new(), |workdir| {
-            load_workflows(&workflows_dir(
+            crate::workflows::local_workflow_yaml::list_workflows(&workflows_dir(
                 workdir.join(warp_core::paths::ZYH_PROJECT_CONFIG_DIR),
             ))
+            .unwrap_or_default()
+            .into_iter()
+            .map(|entry| entry.workflow)
+            .collect()
         }),
         Err(_) => Vec::new(),
     }

@@ -29,7 +29,6 @@ use warpui::{
 use super::workflow::Workflow;
 use super::WorkflowSource;
 use crate::appearance::Appearance;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::editor::Event as EditorEvent;
 use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
@@ -493,22 +492,10 @@ impl CategoriesView {
     }
 
     pub fn load_cloud_workflows(&mut self, ctx: &mut ViewContext<Self>) {
-        let user_workspaces = UserWorkspaces::as_ref(ctx);
-        let cloud_model = CloudModel::as_ref(ctx);
-
-        for space in user_workspaces.all_user_spaces(ctx) {
-            let workflows_in_space = cloud_model.active_workflows_in_space(space, ctx);
-            let new_workflows_in_space = Self::categorize_workflows(
-                // Don't include AI workflows in Voltron.
-                workflows_in_space
-                    .into_iter()
-                    .filter(|workflow| !workflow.model().data.is_agent_mode_workflow())
-                    .map(|w| Arc::new(WorkflowType::Cloud(Box::new(w.clone())))),
-            );
-            self.workflows_by_source
-                .insert(space.into(), new_workflows_in_space);
-        }
-
+        // Retained product: Personal/Team cloud collections are not part of the
+        // local YAML Workflow lifecycle. Clear any previously cached cloud rows.
+        self.workflows_by_source
+            .retain(|source, _| !matches!(source, WorkflowSource::PersonalCloud | WorkflowSource::Team { .. }));
         self.selected_workflow_index = 0;
         self.compute_active_workflows(ctx);
         ctx.notify();
@@ -585,34 +572,16 @@ impl CategoriesView {
                     Default::default()
                 }
             }
-            WorkflowViewType::LocalPersonal => {
-                let local = self.workflows_by_source.get(&WorkflowSource::Local).map(
-                    |categorized_workflows| {
-                        Self::create_workflow_source_pair(
-                            categorized_workflows.values(),
-                            WorkflowSource::Local,
-                        )
-                    },
-                );
-                let personal_cloud = self
-                    .workflows_by_source
-                    .get(&WorkflowSource::PersonalCloud)
-                    .map(|categorized_workflows| {
-                        Self::create_workflow_source_pair(
-                            categorized_workflows.values(),
-                            WorkflowSource::PersonalCloud,
-                        )
-                    });
-                // Append the two options of vectors
-                let result = local.and_then(|v1| {
-                    personal_cloud.map(|v2| {
-                        let mut joined_vec = v1;
-                        joined_vec.extend(v2);
-                        joined_vec
-                    })
-                });
-                result.unwrap_or_default()
-            }
+            WorkflowViewType::LocalPersonal => self
+                .workflows_by_source
+                .get(&WorkflowSource::Local)
+                .map(|categorized_workflows| {
+                    Self::create_workflow_source_pair(
+                        categorized_workflows.values(),
+                        WorkflowSource::Local,
+                    )
+                })
+                .unwrap_or_default(),
             WorkflowViewType::Category { category_index } => self
                 .category_names
                 .get(*category_index)
@@ -914,10 +883,10 @@ impl CategoriesView {
         let workflows_type_sidebar_focused =
             matches!(self.focus_state, WorkflowsFocusState::WorkflowTypesSidebar);
 
+        // Retained local product: only file-backed user and project Workflows.
         let workflow_types = vec![
             WorkflowViewType::All,
             WorkflowViewType::LocalPersonal,
-            WorkflowViewType::Team,
             WorkflowViewType::Project,
         ];
 
@@ -1116,7 +1085,7 @@ impl CategoriesView {
     fn increment_focused_workflow_type(&mut self, ctx: &mut ViewContext<Self>) {
         let next = match &self.selected_workflow_type {
             WorkflowViewType::All => WorkflowViewType::LocalPersonal,
-            WorkflowViewType::LocalPersonal => WorkflowViewType::Team,
+            WorkflowViewType::LocalPersonal => WorkflowViewType::Project,
             WorkflowViewType::Team => WorkflowViewType::Project,
             WorkflowViewType::Project if self.category_names.is_empty() => {
                 WorkflowViewType::Project
@@ -1141,7 +1110,7 @@ impl CategoriesView {
                 WorkflowViewType::All => WorkflowViewType::All,
                 WorkflowViewType::LocalPersonal => WorkflowViewType::All,
                 WorkflowViewType::Team => WorkflowViewType::LocalPersonal,
-                WorkflowViewType::Project => WorkflowViewType::Team,
+                WorkflowViewType::Project => WorkflowViewType::LocalPersonal,
                 WorkflowViewType::Category { category_index, .. } if *category_index == 0 => {
                     WorkflowViewType::Project
                 }

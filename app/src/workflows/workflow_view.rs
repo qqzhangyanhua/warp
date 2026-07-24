@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use alias_bar::{AliasBar, AliasBarEvent};
@@ -35,7 +36,11 @@ use warpui::{
 
 use super::aliases::WorkflowAliases;
 use super::command_parser::WorkflowCommandDisplayData;
+#[cfg(feature = "local_fs")]
+use super::local_workflow_yaml::{self, LocalWorkflowYamlError};
 use super::{CloudWorkflowModel, WorkflowSource, WorkflowType, WorkflowViewMode};
+#[cfg(feature = "local_fs")]
+use warpui_extras::owner_only_file::{ContentHash, ExpectedContent};
 use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthState;
@@ -94,10 +99,25 @@ use crate::ui_components::icons::Icon;
 use crate::uri::web_intent_parser::open_url_on_desktop;
 use crate::util::bindings::CustomAction;
 use crate::view_components::{DismissibleToast, ToastLink, ToastType};
+use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::workflows::workflow::{Argument, Workflow};
 use crate::workflows::CloudWorkflow;
 use crate::workspace::{ToastStack, WorkspaceAction};
 use crate::{send_telemetry_from_ctx, FeatureFlag, UserWorkspaces};
+
+/// Editor state for a local YAML-backed Workflow.
+#[derive(Debug, Clone)]
+struct LocalYamlEditorState {
+    /// Absolute path of the YAML file. `None` while creating until first save.
+    path: Option<PathBuf>,
+    /// Directory that owns new files for this editor.
+    directory: PathBuf,
+    /// Content hash of the last loaded or successfully saved file.
+    #[cfg(feature = "local_fs")]
+    content_hash: Option<ContentHash>,
+    /// Local or Project source for run/search parity.
+    source: WorkflowSource,
+}
 
 mod alias_argument_selector;
 mod alias_bar;
@@ -344,6 +364,9 @@ pub struct WorkflowView {
     enum_creation_dialog: ViewHandle<EnumCreationDialog>,
     all_workflow_enums: HashMap<SyncId, WorkflowEnumData>,
 
+    /// Local YAML lifecycle state when this pane is file-backed.
+    local_yaml: Option<LocalYamlEditorState>,
+
     /// `true` if this workflow view is for viewing/editing an AI workflow.
     ///
     /// This is currently internal-only, gated with the `am_workflows` feature flag.
@@ -485,6 +508,7 @@ impl WorkflowView {
             show_enum_creation_dialog: false,
             enum_creation_dialog,
             all_workflow_enums: Default::default(),
+            local_yaml: None,
             is_for_agent_mode: false,
         };
 
@@ -492,22 +516,40 @@ impl WorkflowView {
         me
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn open_new_workflow(
+    /// Absolute path of the local YAML file open in this pane, if any.
+    pub fn local_file_path(&self) -> Option<&Path> {
+        self.local_yaml
+            .as_ref()
+            .and_then(|state| state.path.as_deref())
+    }
+
+    /// Open a new local YAML Workflow editor under `directory`.
+    pub fn open_new_local_workflow(
         &mut self,
         title: Option<String>,
         content: Option<String>,
-        owner: Owner,
-        initial_folder_id: Option<SyncId>,
+        directory: PathBuf,
+        source: WorkflowSource,
         is_for_agent_mode: bool,
-        sync_id: SyncId,
         ctx: &mut ViewContext<Self>,
     ) {
-        self.initial_folder_id = initial_folder_id;
-        self.set_workflow_id(sync_id, ctx);
+        self.local_yaml = Some(LocalYamlEditorState {
+            path: None,
+            directory,
+            #[cfg(feature = "local_fs")]
+            content_hash: None,
+            source,
+        });
+        self.owner = None;
+        self.initial_folder_id = None;
+        self.revision_ts = None;
+        self.breadcrumbs.clear();
+        self.set_workflow_id(SyncId::ClientId(ClientId::default()), ctx);
         self.workflow_view_mode = WorkflowViewMode::Create;
         self.command_display_data = WorkflowCommandDisplayData::new_empty();
         self.is_for_agent_mode = is_for_agent_mode;
+        self.all_workflow_enums = Default::default();
+
         if is_for_agent_mode {
             self.content_editor.update(ctx, |editor, ctx| {
                 editor.set_placeholder_text(AGENT_MODE_QUERY_PLACEHOLDER_TEXT, ctx);
@@ -527,17 +569,116 @@ impl WorkflowView {
             });
         }
 
-        self.owner = Some(owner);
-        self.all_workflow_enums =
-            workflow_arg_type_helpers::load_workflow_enums_with_owner(owner, ctx);
-
-        if is_for_agent_mode {
-            self.content_editor.update(ctx, |editor, ctx| {
-                editor.set_placeholder_text(AGENT_MODE_QUERY_PLACEHOLDER_TEXT, ctx);
-            });
-        }
-
         self.update_editors_interactivity(ctx);
+        ctx.notify();
+    }
+
+    /// Open an existing local YAML Workflow file.
+    pub fn open_local_workflow(
+        &mut self,
+        path: PathBuf,
+        source: WorkflowSource,
+        mode: WorkflowViewMode,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        #[cfg(feature = "local_fs")]
+        {
+            match local_workflow_yaml::load_workflow(&path) {
+                Ok(entry) => {
+                    let directory = path
+                        .parent()
+                        .map(Path::to_path_buf)
+                        .unwrap_or_else(|| path.clone());
+                    self.local_yaml = Some(LocalYamlEditorState {
+                        path: Some(entry.path.clone()),
+                        directory,
+                        content_hash: Some(entry.content_hash),
+                        source,
+                    });
+                    self.owner = None;
+                    self.initial_folder_id = None;
+                    self.revision_ts = None;
+                    self.breadcrumbs.clear();
+                    self.set_workflow_id(SyncId::ClientId(ClientId::default()), ctx);
+                    self.is_for_agent_mode = entry.workflow.is_agent_mode_workflow();
+                    self.all_workflow_enums = Default::default();
+                    self.apply_workflow_to_editors(&entry.workflow, ctx);
+                    self.workflow_view_mode = mode;
+                    if matches!(mode, WorkflowViewMode::View) {
+                        self.try_set_view_mode(ctx);
+                    }
+                    self.update_editors_interactivity(ctx);
+                    if let ContainerConfiguration::Pane(pane_config) =
+                        &mut self.container_configuration
+                    {
+                        pane_config.update(ctx, |pane_config, ctx| {
+                            pane_config.set_title(entry.workflow.name().to_owned(), ctx)
+                        });
+                    }
+                    ctx.notify();
+                }
+                Err(error) => {
+                    self.display_error_toast(format!("Could not open workflow: {error}"), ctx);
+                }
+            }
+        }
+        #[cfg(not(feature = "local_fs"))]
+        {
+            let _ = (path, source, mode);
+            self.display_error_toast(
+                "Local workflow files are not supported on this platform".to_string(),
+                ctx,
+            );
+        }
+    }
+
+    fn apply_workflow_to_editors(&mut self, workflow: &Workflow, ctx: &mut ViewContext<Self>) {
+        self.name_editor.update(ctx, |editor, ctx| {
+            editor.set_buffer_text_with_base_buffer(workflow.name(), ctx);
+        });
+        self.description_editor.update(ctx, |editor, ctx| {
+            editor.set_buffer_text_with_base_buffer(
+                workflow.description().map(String::as_str).unwrap_or(""),
+                ctx,
+            );
+        });
+        self.content_editor.update(ctx, |editor, ctx| {
+            editor.set_buffer_text_with_base_buffer(workflow.content(), ctx);
+        });
+        self.view_only_content_editor.update(ctx, |editor, ctx| {
+            editor.set_buffer_text_with_base_buffer(workflow.content(), ctx);
+        });
+        self.arguments_state = ArgumentsState::for_saved_prompt(
+            &ArgumentsState::default(),
+            workflow.content().to_string(),
+        );
+        // Argument rows are rebuilt when entering edit mode via existing paths.
+        self.command_display_data = WorkflowCommandDisplayData::new_from_workflow(workflow);
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_new_workflow(
+        &mut self,
+        title: Option<String>,
+        content: Option<String>,
+        owner: Owner,
+        initial_folder_id: Option<SyncId>,
+        is_for_agent_mode: bool,
+        sync_id: SyncId,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        // Retained product: all new Workflows are local YAML.
+        let _ = owner;
+        let _ = initial_folder_id;
+        let _ = sync_id;
+        self.open_new_local_workflow(
+            title,
+            content,
+            crate::user_config::workflows_dir(),
+            WorkflowSource::Local,
+            is_for_agent_mode,
+            ctx,
+        );
     }
 
     fn subscribe_to_model_updates(&self, ctx: &mut ViewContext<Self>) {
@@ -549,6 +690,51 @@ impl WorkflowView {
         ctx.subscribe_to_model(&update_manager, |me, _, event, ctx| {
             me.handle_update_manager_event(event, ctx);
         });
+
+        // External edits under ~/.zyh/workflows refresh a clean local editor.
+        #[cfg(feature = "local_fs")]
+        ctx.subscribe_to_model(&WarpConfig::handle(ctx), |me, _, event, ctx| {
+            if let WarpConfigUpdateEvent::LocalUserWorkflows = event {
+                me.reload_local_yaml_if_clean(ctx);
+            }
+        });
+    }
+
+    /// When the on-disk file changes and the editor has no unsaved edits, reload
+    /// content. Dirty editors keep their buffer; the next save will conflict-check.
+    #[cfg(feature = "local_fs")]
+    fn reload_local_yaml_if_clean(&mut self, ctx: &mut ViewContext<Self>) {
+        let Some(local) = self.local_yaml.clone() else {
+            return;
+        };
+        let Some(path) = local.path else {
+            return;
+        };
+        if self.is_dirty(ctx) {
+            return;
+        }
+        match local_workflow_yaml::load_workflow(&path) {
+            Ok(entry) => {
+                if local.content_hash == Some(entry.content_hash) {
+                    return;
+                }
+                if let Some(state) = self.local_yaml.as_mut() {
+                    state.content_hash = Some(entry.content_hash);
+                    state.path = Some(entry.path);
+                }
+                self.apply_workflow_to_editors(&entry.workflow, ctx);
+                if let ContainerConfiguration::Pane(pane_config) = &mut self.container_configuration
+                {
+                    pane_config.update(ctx, |pane_config, ctx| {
+                        pane_config.set_title(entry.workflow.name().to_owned(), ctx)
+                    });
+                }
+                ctx.notify();
+            }
+            Err(_) => {
+                // Leave the open editor alone if the file became unreadable.
+            }
+        }
     }
 
     fn handle_cloud_model_event(&mut self, event: &CloudModelEvent, ctx: &mut ViewContext<Self>) {
@@ -1495,11 +1681,33 @@ impl WorkflowView {
     }
 
     fn copy_to_command_line(&mut self, ctx: &mut ViewContext<Self>) {
-        // If we are in a context where we can run workflows AND the content is dirty (e.g. not
-        // saved). Copy the current workflow to the command line buffer.
-        // Otherwise use the workflow that exists in cloud model cache.
-        // This is because we want to use the version of the edited command that a user has in the
-        // buffer if they click to execute a command from the workflow in pane.
+        // Running from the editor must match search: emit Local/Project WorkflowType with the
+        // same source. Prefer buffer content when dirty so unsaved edits still execute.
+        if let Some(local) = self.local_yaml.clone() {
+            let workflow = if self.is_workflow_dirty(ctx) {
+                self.create_workflow_object_from_input(ctx)
+            } else if let Some(path) = &local.path {
+                match local_workflow_yaml::load_workflow(path) {
+                    Ok(entry) => entry.workflow,
+                    Err(_) => self.create_workflow_object_from_input(ctx),
+                }
+            } else {
+                self.create_workflow_object_from_input(ctx)
+            };
+            let argument_override = if self.is_workflow_dirty(ctx) {
+                None
+            } else {
+                Some(self.command_display_data.get_argument_values())
+            };
+            ctx.emit(WorkflowViewEvent::RunWorkflow {
+                workflow: Arc::new(WorkflowType::Local(workflow)),
+                source: local.source,
+                argument_override,
+            });
+            return;
+        }
+
+        // Legacy cloud path retained only for non-local panes still open mid-migration.
         if self.is_workflow_dirty(ctx) {
             let new_workflow = self.create_workflow_object_from_input(ctx);
             if let Some(cloud_workflow) = self.get_cloud_workflow(ctx) {
@@ -1600,7 +1808,7 @@ impl WorkflowView {
     }
 
     fn save_workflow(&mut self, ctx: &mut ViewContext<Self>) {
-        let workflow = &self.create_workflow_object_from_input(ctx);
+        let workflow = self.create_workflow_object_from_input(ctx);
 
         // Block saving if secrets are detected in the workflow when secret redaction is enabled.
         if self.workflow_contains_secrets(ctx) {
@@ -1608,6 +1816,12 @@ impl WorkflowView {
                 "This workflow cannot be saved because it contains secrets".to_string(),
                 ctx,
             );
+            return;
+        }
+
+        #[cfg(feature = "local_fs")]
+        if self.local_yaml.is_some() {
+            self.save_local_workflow(&workflow, ctx);
             return;
         }
 
@@ -1675,6 +1889,94 @@ impl WorkflowView {
                 }
             }
             _ => report_error!("Did not match conditions to either create or save the workflow"),
+        }
+    }
+
+    #[cfg(feature = "local_fs")]
+    fn save_local_workflow(&mut self, workflow: &Workflow, ctx: &mut ViewContext<Self>) {
+        let Some(local) = self.local_yaml.clone() else {
+            return;
+        };
+
+        let result = match &local.path {
+            None => local_workflow_yaml::create_workflow(&local.directory, workflow),
+            Some(path) => {
+                let expected = local
+                    .content_hash
+                    .map(ExpectedContent::Hash)
+                    .unwrap_or(ExpectedContent::Any);
+                // Rename when the sanitized filename stem changes.
+                let desired =
+                    local_workflow_yaml::path_for_workflow_name(&local.directory, workflow.name());
+                match desired {
+                    Ok(desired_path) if &desired_path != path => {
+                        local_workflow_yaml::rename_workflow(path, workflow.name(), expected)
+                            .and_then(|entry| {
+                                // After rename, write the full workflow body.
+                                local_workflow_yaml::save_workflow(
+                                    &entry.path,
+                                    workflow,
+                                    ExpectedContent::Hash(entry.content_hash),
+                                )
+                                .map(|content_hash| local_workflow_yaml::LocalWorkflowEntry {
+                                    path: entry.path,
+                                    workflow: workflow.clone(),
+                                    content_hash,
+                                })
+                            })
+                    }
+                    Ok(_) => local_workflow_yaml::save_workflow(path, workflow, expected).map(
+                        |content_hash| local_workflow_yaml::LocalWorkflowEntry {
+                            path: path.clone(),
+                            workflow: workflow.clone(),
+                            content_hash,
+                        },
+                    ),
+                    Err(error) => Err(error),
+                }
+            }
+        };
+
+        match result {
+            Ok(entry) => {
+                if let Some(local) = self.local_yaml.as_mut() {
+                    local.path = Some(entry.path.clone());
+                    local.content_hash = Some(entry.content_hash);
+                }
+                if let ContainerConfiguration::Pane(pane_config) = &mut self.container_configuration
+                {
+                    pane_config.update(ctx, |pane_config, ctx| {
+                        pane_config.set_title(workflow.name().to_owned(), ctx)
+                    });
+                }
+                WarpConfig::handle(ctx).update(ctx, |config, ctx| {
+                    config.reload_local_user_workflows(ctx);
+                });
+                self.try_set_view_mode(ctx);
+                ctx.emit(WorkflowViewEvent::CreatedWorkflow(self.workflow_id));
+                ctx.notify();
+            }
+            Err(LocalWorkflowYamlError::FilenameCollision { path }) => {
+                self.display_error_toast(
+                    format!(
+                        "A workflow file already exists at {}. Choose a different name.",
+                        path.display()
+                    ),
+                    ctx,
+                );
+            }
+            Err(LocalWorkflowYamlError::Conflict { path }) => {
+                self.display_error_toast(
+                    format!(
+                        "The workflow file changed on disk before it could be saved: {}",
+                        path.display()
+                    ),
+                    ctx,
+                );
+            }
+            Err(error) => {
+                self.display_error_toast(format!("Could not save workflow: {error}"), ctx);
+            }
         }
     }
 
@@ -2022,6 +2324,48 @@ impl WorkflowView {
 
     fn trash_object(&mut self, ctx: &mut ViewContext<Self>) {
         if self.show_enum_creation_dialog {
+            return;
+        }
+
+        #[cfg(feature = "local_fs")]
+        if let Some(local) = self.local_yaml.clone() {
+            if let Some(path) = local.path {
+                let expected = local
+                    .content_hash
+                    .map(ExpectedContent::Hash)
+                    .unwrap_or(ExpectedContent::Any);
+                match local_workflow_yaml::delete_workflow(&path, expected) {
+                    Ok(()) => {
+                        WarpConfig::handle(ctx).update(ctx, |config, ctx| {
+                            config.reload_local_user_workflows(ctx);
+                        });
+                        self.close(ctx);
+                    }
+                    Err(LocalWorkflowYamlError::Conflict { path }) => {
+                        self.display_error_toast(
+                            format!(
+                                "The workflow file changed on disk before it could be deleted: {}",
+                                path.display()
+                            ),
+                            ctx,
+                        );
+                    }
+                    Err(error) => {
+                        self.display_error_toast(
+                            format!("Could not delete workflow: {error}"),
+                            ctx,
+                        );
+                    }
+                }
+            } else {
+                // Unsaved create: discard the pane.
+                self.close(ctx);
+            }
+            return;
+        }
+        #[cfg(not(feature = "local_fs"))]
+        if self.local_yaml.is_some() {
+            self.close(ctx);
             return;
         }
 
@@ -3199,6 +3543,17 @@ impl BackingView for WorkflowView {
 
     fn pane_header_overflow_menu_items(&self, ctx: &AppContext) -> Vec<MenuItem<WorkflowAction>> {
         let mut menu_items = Vec::new();
+
+        // Local YAML workflows have no share links, folders, or cloud trash.
+        if self.local_yaml.is_some() {
+            menu_items.push(
+                MenuItemFields::new(tr(ctx, Message::EnvVarsTrash))
+                    .with_on_select_action(WorkflowAction::Trash)
+                    .with_icon(Icon::Trash)
+                    .into_item(),
+            );
+            return menu_items;
+        }
 
         // Add "Copy Link" to menu
         if let Some(link) = self.workflow_link(ctx) {

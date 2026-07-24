@@ -9,8 +9,7 @@ use warpui::{ModelContext, ModelHandle, SingletonEntity};
 
 use super::util::{
     for_each_dir_entry, has_name, is_config_file, parse_model_config_dir_entry,
-    parse_multi_launch_config_dir_entry, parse_multi_workflow_dir_entry,
-    parse_single_theme_dir_entry, parse_tab_config_dir_entry,
+    parse_multi_launch_config_dir_entry, parse_single_theme_dir_entry, parse_tab_config_dir_entry,
 };
 use super::{
     custom_model_routers_dir, launch_configs_dir, tab_configs_dir, themes_dir, workflows_dir,
@@ -252,11 +251,18 @@ pub fn load_theme_configs(theme_path: &Path) -> WarpThemeConfig {
 }
 
 /// Loads all workflows relative to the `workflow_path`.  A YAML file might
-/// contain multiple workflows.
+/// contain multiple workflows. Invalid YAML files are skipped (and logged).
 pub fn load_workflows(workflow_path: &Path) -> Vec<Workflow> {
-    for_each_dir_entry(workflow_path, parse_multi_workflow_dir_entry)
+    crate::workflows::local_workflow_yaml::list_workflows(workflow_path)
+        .unwrap_or_else(|error| {
+            log::warn!(
+                "Failed to list workflows under {}: {error}",
+                workflow_path.display()
+            );
+            Vec::new()
+        })
         .into_iter()
-        .flatten()
+        .map(|entry| entry.workflow)
         .collect_vec()
 }
 

@@ -131,6 +131,16 @@ impl WarpConfig {
         &self.local_user_workflows
     }
 
+    /// Reload user Workflow YAML from disk and notify listeners.
+    ///
+    /// Used after local create/save/delete so search and execution see the
+    /// change without waiting for the filesystem watcher.
+    #[cfg(feature = "local_fs")]
+    pub fn reload_local_user_workflows(&mut self, ctx: &mut ModelContext<Self>) {
+        self.local_user_workflows = load_workflows(&workflows_dir());
+        ctx.emit(WarpConfigUpdateEvent::LocalUserWorkflows);
+    }
+
     /// The local (YAML-sourced) custom model routers.
     #[cfg_attr(target_family = "wasm", allow(dead_code))]
     pub fn custom_model_routers(&self) -> &Vec<CustomModelRouter> {
