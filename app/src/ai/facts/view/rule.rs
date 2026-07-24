@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 use std::path::PathBuf;
 
 use ai::project_context::model::{ProjectContextModel, ProjectContextModelEvent};
@@ -20,28 +19,19 @@ use warpui::{
     ViewHandle,
 };
 
-use super::{is_edit_allowed, is_syncing, style, AIFact, CloudAIFact, CloudAIFactModel};
-use crate::ai::facts::AIMemory;
-use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
-use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::cloud_object::{
-    CloudObject, GenericStringObjectFormat, JsonObjectType, Owner, Revision,
-};
-use crate::drive::CloudObjectTypeAndId;
+use super::style;
+use crate::ai::facts::{GlobalAgentRulesDocument, GlobalAgentRulesState};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
-use crate::i18n::{tr, tr_cached, Message};
+use crate::i18n::{Message, tr, tr_cached};
 use crate::search_bar::SearchBar;
-use crate::server::cloud_objects::update_manager::{UpdateManager, UpdateManagerEvent};
-use crate::server::ids::{ClientId, SyncId};
-use crate::server::sync_queue::SyncQueue;
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::ui_components::icons::Icon;
 use crate::util::path::display_path_with_host;
-use crate::view_components::action_button::{ActionButton, NakedTheme};
 use crate::view_components::DismissibleToast;
+use crate::view_components::action_button::{ActionButton, NakedTheme};
 use crate::workspace::ToastStack;
 
 pub const HEADER_TEXT: &str = "Rules";
@@ -52,8 +42,8 @@ fn description_text() -> &'static str {
 fn search_placeholder_text() -> &'static str {
     tr_cached(Message::SearchRules)
 }
-const ZERO_STATE_TEXT: &str =
-    "Add a rule above, or drop one at ~/.agents/AGENTS.md to apply it across every project.";
+
+const ZERO_STATE_TEXT_GLOBAL: &str = "Create a Global Rule or drop a Markdown file at ~/.agents/AGENTS.md to apply it across every project.";
 fn zero_state_text_project() -> &'static str {
     tr_cached(Message::RulesEmptyGenerateWarpMd)
 }
@@ -74,8 +64,8 @@ pub enum RuleScope {
 
 #[derive(Debug, Clone)]
 pub enum RuleViewEvent {
-    AddRule,
-    Edit(SyncId),
+    /// Open the file-backed global rules editor (create or edit).
+    EditGlobalRule,
     OpenSettings,
     OpenFile(LocalOrRemotePath),
     InitializeProject(PathBuf),
@@ -83,84 +73,42 @@ pub enum RuleViewEvent {
 
 #[derive(Debug, Clone)]
 pub enum RuleViewAction {
-    AddRule,
+    EditGlobalRule,
     InitializeProject,
-    Edit(SyncId),
     OpenSettings,
     SelectScope(RuleScope),
     OpenFile(LocalOrRemotePath),
 }
 
-#[derive(Default, Debug, Clone)]
-pub struct MouseStateHandles {
-    pub hover: MouseStateHandle,
-    pub sync_status_hover: MouseStateHandle,
-    pub sync_status_icon: MouseStateHandle,
-}
-
-#[derive(Debug, Clone)]
-struct CloudRuleRow {
-    fact: CloudAIFact,
-    mouse_states: MouseStateHandles,
-}
-
-/// A rule row backed by a file on disk — used for both project-scoped rules
-/// (e.g. `<repo>/WARP.md`) and file-based global rules (e.g.
-/// `~/.agents/AGENTS.md`). The render path is identical for both: a path label
-/// plus an "Open file" button.
+/// A rule row backed by a file on disk — project-scoped rules (e.g.
+/// `<repo>/WARP.md`) and the single global `~/.agents/AGENTS.md`.
 #[derive(Debug, Clone)]
 struct FileBackedRow {
     file_path: LocalOrRemotePath,
+    /// Optional content preview (global document only).
+    preview: Option<String>,
     mouse_state: MouseStateHandle,
+    /// When true, clicking the row opens the in-app editor rather than an external file open.
+    opens_editor: bool,
 }
 
-#[derive(Debug, Clone)]
-enum RuleRow {
-    Global(Box<CloudRuleRow>),
-    FileBacked(FileBackedRow),
-}
-
-impl RuleRow {
+impl FileBackedRow {
     fn matches_search_term(&self, search_term: &str) -> bool {
         let search_term = search_term.to_lowercase();
-        let search_term = search_term.as_str();
-        match self {
-            RuleRow::Global(row) => {
-                let AIFact::Memory(AIMemory { name, content, .. }) =
-                    row.fact.model().string_model.clone();
-                name.unwrap_or_default()
-                    .to_lowercase()
-                    .contains(search_term)
-                    || content.to_lowercase().contains(search_term)
-            }
-            RuleRow::FileBacked(row) => row
-                .file_path
-                .display_path()
-                .to_lowercase()
-                .contains(search_term),
-        }
-    }
-
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self, other) {
-            (RuleRow::Global(a), RuleRow::Global(b)) => {
-                b.fact.metadata().revision.cmp(&a.fact.metadata().revision)
-            }
-            (RuleRow::FileBacked(a), RuleRow::FileBacked(b)) => {
-                a.file_path.display_path().cmp(&b.file_path.display_path())
-            }
-            _ => std::cmp::Ordering::Equal,
-        }
+        self.file_path
+            .display_path()
+            .to_lowercase()
+            .contains(&search_term)
+            || self
+                .preview
+                .as_ref()
+                .is_some_and(|preview| preview.to_lowercase().contains(&search_term))
     }
 }
 
 pub struct RuleView {
-    owner: Option<Owner>,
-    cloud_global_rules: Vec<CloudRuleRow>,
-    /// File-based global rules (e.g. `~/.agents/AGENTS.md`). Surfaced in the
-    /// Global tab alongside cloud rules. Sourced from
-    /// `ProjectContextModel::global_rule_paths()`.
-    file_backed_global_rules: Vec<FileBackedRow>,
+    /// Sole Global Rules source: the standard `~/.agents/AGENTS.md` document.
+    global_rule: Option<FileBackedRow>,
     project_rules: Vec<FileBackedRow>,
     search_editor: ViewHandle<EditorView>,
     search_bar: ViewHandle<SearchBar>,
@@ -190,47 +138,32 @@ impl RuleView {
             .indexed_rules()
             .map(|p| FileBackedRow {
                 file_path: p,
+                preview: None,
                 mouse_state: Default::default(),
-            })
-            .collect();
-        let file_backed_global_rules = project_context
-            .as_ref(ctx)
-            .global_rule_paths()
-            .map(|p| FileBackedRow {
-                file_path: p,
-                mouse_state: Default::default(),
+                opens_editor: false,
             })
             .collect();
 
         ctx.subscribe_to_model(
             &project_context,
             |me, context_model, event, ctx| match event {
-                // Upon indexing a new path, update project rules.
                 ProjectContextModelEvent::PathIndexed => {
                     me.project_rules = context_model
                         .as_ref(ctx)
                         .indexed_rules()
                         .map(|p| FileBackedRow {
                             file_path: p,
+                            preview: None,
                             mouse_state: Default::default(),
+                            opens_editor: false,
                         })
                         .collect();
                     ctx.notify();
                 }
-                // On detecting a change to global rule files, update file-backed global rules.
                 ProjectContextModelEvent::GlobalRulesChanged(_) => {
-                    me.file_backed_global_rules = context_model
-                        .as_ref(ctx)
-                        .global_rule_paths()
-                        .map(|p| FileBackedRow {
-                            file_path: p,
-                            mouse_state: Default::default(),
-                        })
-                        .collect();
+                    me.refresh_global_rule();
                     ctx.notify();
                 }
-                // No action needed for other ProjectContextModelEvent variants.
-                // PathIndexed is emitted last and indicates it's time to refresh the UI.
                 ProjectContextModelEvent::KnownRulesChanged(_) => {}
             },
         );
@@ -269,7 +202,7 @@ impl RuleView {
         let add_button = ctx.add_typed_action_view(|ctx| {
             ActionButton::new(tr(ctx, Message::McpAdd), NakedTheme)
                 .with_icon(Icon::Plus)
-                .on_click(|ctx| ctx.dispatch_typed_action(RuleViewAction::AddRule))
+                .on_click(|ctx| ctx.dispatch_typed_action(RuleViewAction::EditGlobalRule))
         });
 
         let initialize_button = ctx.add_typed_action_view(|ctx| {
@@ -278,10 +211,8 @@ impl RuleView {
                 .on_click(|ctx| ctx.dispatch_typed_action(RuleViewAction::InitializeProject))
         });
 
-        Self {
-            owner: None,
-            cloud_global_rules: Default::default(),
-            file_backed_global_rules,
+        let mut view = Self {
+            global_rule: None,
             project_rules,
             search_editor,
             search_bar,
@@ -291,29 +222,30 @@ impl RuleView {
             current_scope: RuleScope::Global,
             global_tab_mouse_state: Default::default(),
             project_tab_mouse_state: Default::default(),
-        }
+        };
+        view.refresh_global_rule();
+        view
     }
 
-    fn handle_update_manager_event(
-        &mut self,
-        event: &UpdateManagerEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let UpdateManagerEvent::ObjectOperationComplete { .. } = event {
-            self.fetch_ai_rules(ctx);
-        }
-    }
+    /// Refresh the Global tab from the on-disk document. Never reads cloud Rules.
+    pub fn refresh_global_rule(&mut self) {
+        let Ok(document) = GlobalAgentRulesDocument::standard() else {
+            self.global_rule = None;
+            return;
+        };
 
-    fn handle_cloud_model_event(&mut self, event: &CloudModelEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            CloudModelEvent::ObjectUpdated { .. }
-            | CloudModelEvent::ObjectTrashed { .. }
-            | CloudModelEvent::ObjectUntrashed { .. }
-            | CloudModelEvent::ObjectCreated { .. }
-            | CloudModelEvent::ObjectDeleted { .. } => {
-                self.fetch_ai_rules(ctx);
+        match document.load() {
+            Ok(GlobalAgentRulesState::Present { content, .. }) => {
+                self.global_rule = Some(FileBackedRow {
+                    file_path: LocalOrRemotePath::Local(document.path().to_path_buf()),
+                    preview: Some(truncate_preview(&content)),
+                    mouse_state: Default::default(),
+                    opens_editor: true,
+                });
             }
-            _ => {}
+            Ok(GlobalAgentRulesState::Missing) | Err(_) => {
+                self.global_rule = None;
+            }
         }
     }
 
@@ -321,115 +253,20 @@ impl RuleView {
         ctx.notify();
     }
 
-    fn fetch_ai_rules(&mut self, ctx: &mut ViewContext<Self>) {
-        let ai_rules: Vec<CloudAIFact> = {
-            let cloud_model = CloudModel::handle(ctx);
-            cloud_model
-                .as_ref(ctx)
-                .get_all_objects_of_type::<GenericStringObjectId, CloudAIFactModel>()
-                .cloned()
-                .collect()
-        };
-        self.cloud_global_rules = ai_rules
-            .into_iter()
-            .map(|ai_fact| CloudRuleRow {
-                fact: ai_fact,
-                mouse_states: Default::default(),
-            })
-            .collect();
-        ctx.notify();
-    }
-
     fn select_scope(&mut self, scope: RuleScope, ctx: &mut ViewContext<Self>) {
         self.current_scope = scope;
+        if scope == RuleScope::Global {
+            self.refresh_global_rule();
+        }
         ctx.notify();
     }
 
-    fn get_filtered_rules(&self) -> Vec<RuleRow> {
-        match self.current_scope {
-            RuleScope::Global => self
-                .cloud_global_rules
-                .iter()
-                .cloned()
-                .map(|rule| RuleRow::Global(Box::new(rule)))
-                .chain(
-                    self.file_backed_global_rules
-                        .iter()
-                        .cloned()
-                        .map(RuleRow::FileBacked),
-                )
-                .collect(),
-            RuleScope::ProjectBased => self
-                .project_rules
-                .iter()
-                .cloned()
-                .map(RuleRow::FileBacked)
-                .collect(),
-        }
+    fn filtered_global_rows(&self) -> Vec<FileBackedRow> {
+        self.global_rule.iter().cloned().collect()
     }
 
-    pub fn add_ai_rule(
-        &mut self,
-        name: Option<String>,
-        content: String,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let update_manager = UpdateManager::handle(ctx);
-        if let Some(owner) = self.owner {
-            let ai_fact = AIFact::Memory(AIMemory {
-                is_autogenerated: false,
-                name,
-                content,
-                suggested_logging_id: None,
-            });
-            update_manager.update(ctx, |update_manager, ctx| {
-                update_manager.create_ai_fact(ai_fact, ClientId::default(), owner, ctx);
-            });
-        }
-    }
-
-    pub fn edit_ai_rule(
-        &mut self,
-        name: Option<String>,
-        content: String,
-        sync_id: SyncId,
-        revision_ts: Option<Revision>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let update_manager = UpdateManager::handle(ctx);
-        let (is_autogenerated, suggested_logging_id) = CloudModel::as_ref(ctx)
-            .get_object_of_type::<GenericStringObjectId, CloudAIFactModel>(&sync_id)
-            .map(|ai_fact| {
-                let AIFact::Memory(AIMemory {
-                    is_autogenerated,
-                    suggested_logging_id,
-                    ..
-                }) = ai_fact.model().string_model.clone();
-                (is_autogenerated, suggested_logging_id)
-            })
-            .unwrap_or((false, None));
-        update_manager.update(ctx, |update_manager, ctx| {
-            let ai_fact = AIFact::Memory(AIMemory {
-                is_autogenerated,
-                name,
-                content,
-                suggested_logging_id,
-            });
-            update_manager.update_ai_fact(ai_fact, sync_id, revision_ts, ctx);
-        });
-    }
-
-    pub fn delete_ai_rule(&mut self, id: SyncId, ctx: &mut ViewContext<Self>) {
-        let update_manager = UpdateManager::handle(ctx);
-        update_manager.update(ctx, |update_manager, ctx| {
-            update_manager.delete_object_by_user(
-                CloudObjectTypeAndId::GenericStringObject {
-                    object_type: GenericStringObjectFormat::Json(JsonObjectType::AIFact),
-                    id,
-                },
-                ctx,
-            );
-        });
+    fn filtered_project_rows(&self) -> Vec<FileBackedRow> {
+        self.project_rules.clone()
     }
 
     fn render_header(&self, appearance: &Appearance) -> Box<dyn Element> {
@@ -561,8 +398,14 @@ impl RuleView {
         .finish()
     }
 
-    fn render_add_button(&self) -> Box<dyn Element> {
+    fn render_initialize_button(&self) -> Box<dyn Element> {
         Container::new(ChildView::new(&self.initialize_button).finish())
+            .with_margin_left(style::SECTION_MARGIN)
+            .finish()
+    }
+
+    fn render_add_global_button(&self) -> Box<dyn Element> {
+        Container::new(ChildView::new(&self.add_button).finish())
             .with_margin_left(style::SECTION_MARGIN)
             .finish()
     }
@@ -623,68 +466,30 @@ impl RuleView {
         .finish()
     }
 
-    fn render_search_bar_row(&self, filtered_rules: &[RuleRow]) -> Box<dyn Element> {
+    fn render_search_bar_row(&self, show_add: bool) -> Box<dyn Element> {
         let mut row = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_child(Expanded::new(1., ChildView::new(&self.search_bar).finish()).finish());
 
-        if !filtered_rules.is_empty() && self.current_scope == RuleScope::ProjectBased {
-            row.add_child(self.render_add_button());
+        if show_add {
+            match self.current_scope {
+                RuleScope::Global => row.add_child(self.render_add_global_button()),
+                RuleScope::ProjectBased => row.add_child(self.render_initialize_button()),
+            }
         }
         Container::new(row.finish())
             .with_margin_bottom(style::SECTION_MARGIN)
             .finish()
     }
 
-    fn render_sync_status_icon(
-        &self,
-        ai_row: CloudRuleRow,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Option<Box<dyn Element>> {
-        // Don't show icon if the syncing is in progress.
-        if is_syncing(ai_row.fact.clone(), app) {
-            return None;
-        }
-
-        let item = ai_row.fact.to_warp_drive_item(appearance)?;
-        let icon = item.sync_status_icon(
-            SyncQueue::as_ref(app).is_dequeueing(),
-            ai_row.mouse_states.sync_status_icon.clone(),
-            appearance,
-        )?;
-
-        Some(
-            Hoverable::new(ai_row.mouse_states.sync_status_hover.clone(), |state| {
-                let mut container = Container::new(icon)
-                    .with_border(Border::all(1.))
-                    .with_uniform_padding(4.);
-                if state.is_hovered() {
-                    container = container
-                        .with_background(appearance.theme().surface_2())
-                        .with_border(
-                            Border::all(1.).with_border_fill(appearance.theme().surface_3()),
-                        );
-                }
-                container.with_margin_right(style::ROW_ICON_MARGIN).finish()
-            })
-            .finish(),
-        )
-    }
-
     fn render_file_backed_row(
         &self,
-        project_row: FileBackedRow,
+        row: FileBackedRow,
         appearance: &Appearance,
         app: &AppContext,
-    ) -> Option<Box<dyn Element>> {
-        let row_name = display_path_with_host(&project_row.file_path, false, app);
-        let mut row = Flex::row()
-            .with_main_axis_size(MainAxisSize::Max)
-            .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
-            .with_cross_axis_alignment(CrossAxisAlignment::Center);
-
-        row.add_child(
+    ) -> Box<dyn Element> {
+        let row_name = display_path_with_host(&row.file_path, false, app);
+        let mut content = Flex::column().with_child(
             Shrinkable::new(
                 1.,
                 appearance
@@ -697,165 +502,85 @@ impl RuleView {
             .finish(),
         );
 
-        let file_path = project_row.file_path.clone();
-        row.add_child(
-            appearance
-                .ui_builder()
-                .button(ButtonVariant::Outlined, project_row.mouse_state.clone())
-                .with_text_label(tr_cached(Message::CodeOpenFile).to_string())
-                .build()
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(RuleViewAction::OpenFile(file_path.clone()));
-                })
-                .finish(),
-        );
-
-        Some(
-            Container::new(row.finish())
-                .with_background(internal_colors::neutral_1(appearance.theme()))
-                .with_corner_radius(CornerRadius::with_all(warpui::elements::Radius::Pixels(4.)))
-                .with_border(
-                    Border::all(1.)
-                        .with_border_color(internal_colors::neutral_2(appearance.theme())),
-                )
-                .with_horizontal_padding(style::ROW_HORIZONTAL_PADDING)
-                .with_vertical_padding(style::RULE_VERTICAL_PADDING)
-                .with_margin_bottom(style::ITEM_BOTTOM_MARGIN)
-                .finish(),
-        )
-    }
-
-    fn render_global_rule_row(
-        &self,
-        ai_row: CloudRuleRow,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let AIFact::Memory(AIMemory { name, content, .. }) =
-            ai_row.fact.model().string_model.clone();
-        let formatted_name = match name {
-            Some(name) => {
-                if name.is_empty() {
-                    "Untitled".to_string()
-                } else {
-                    name
-                }
-            }
-            None => "Untitled".to_string(),
-        };
-        // Truncate content to 3 lines
-        let formatted_content = if content.split("\n").count() > 3 {
-            content
-                .split("\n")
-                .take(3)
-                .collect::<Vec<&str>>()
-                .join("\n")
-                + "..."
-        } else {
-            content
-        };
-
-        let fact_text = Flex::column()
-            .with_child(
+        if let Some(preview) = &row.preview {
+            content.add_child(
                 appearance
                     .ui_builder()
-                    .wrappable_text(formatted_name, true)
-                    .with_style(style::fact_row_text(appearance))
-                    .build()
-                    .finish(),
-            )
-            .with_child(
-                appearance
-                    .ui_builder()
-                    .wrappable_text(formatted_content, true)
+                    .wrappable_text(preview.clone(), true)
                     .with_style(style::fact_row_subtext(appearance))
                     .build()
                     .finish(),
-            )
-            .finish();
+            );
+        }
 
-        let mut row = Flex::row()
+        let mut row_flex = Flex::row()
             .with_main_axis_size(MainAxisSize::Max)
-            .with_main_axis_alignment(MainAxisAlignment::SpaceBetween);
+            .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
+            .with_cross_axis_alignment(CrossAxisAlignment::Center)
+            .with_child(Expanded::new(1., content.finish()).finish());
 
-        if let Some(sync_status_icon) =
-            self.render_sync_status_icon(ai_row.clone(), appearance, app)
-        {
-            row.add_child(sync_status_icon);
+        if row.opens_editor {
+            row_flex.add_child(
+                appearance
+                    .ui_builder()
+                    .button(ButtonVariant::Outlined, row.mouse_state.clone())
+                    .with_text_label("Edit".to_string())
+                    .build()
+                    .on_click(move |ctx, _, _| {
+                        ctx.dispatch_typed_action(RuleViewAction::EditGlobalRule);
+                    })
+                    .finish(),
+            );
+        } else {
+            let file_path = row.file_path.clone();
+            row_flex.add_child(
+                appearance
+                    .ui_builder()
+                    .button(ButtonVariant::Outlined, row.mouse_state.clone())
+                    .with_text_label(tr_cached(Message::CodeOpenFile).to_string())
+                    .build()
+                    .on_click(move |ctx, _, _| {
+                        ctx.dispatch_typed_action(RuleViewAction::OpenFile(file_path.clone()));
+                    })
+                    .finish(),
+            );
         }
 
-        row.add_child(Expanded::new(1., fact_text).finish());
-
-        let mut hoverable = Hoverable::new(ai_row.mouse_states.hover.clone(), |state| {
-            let mut bg_color = internal_colors::neutral_1(appearance.theme());
-            if state.is_hovered() {
-                bg_color = internal_colors::neutral_4(appearance.theme());
-            }
-
-            Container::new(row.finish())
-                .with_background(bg_color)
-                .with_corner_radius(CornerRadius::with_all(warpui::elements::Radius::Pixels(4.)))
-                .with_border(
-                    Border::all(1.)
-                        .with_border_color(internal_colors::neutral_2(appearance.theme())),
-                )
-                .with_horizontal_padding(style::ROW_HORIZONTAL_PADDING)
-                .with_vertical_padding(style::RULE_VERTICAL_PADDING)
-                .with_margin_bottom(style::ITEM_BOTTOM_MARGIN)
-                .finish()
-        });
-
-        if is_edit_allowed(ai_row.fact.clone(), app) {
-            hoverable = hoverable
-                .with_cursor(Cursor::PointingHand)
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(RuleViewAction::Edit(ai_row.fact.sync_id()));
-                });
-        }
-
-        hoverable.finish()
+        Container::new(row_flex.finish())
+            .with_background(internal_colors::neutral_1(appearance.theme()))
+            .with_corner_radius(CornerRadius::with_all(warpui::elements::Radius::Pixels(4.)))
+            .with_border(
+                Border::all(1.).with_border_color(internal_colors::neutral_2(appearance.theme())),
+            )
+            .with_horizontal_padding(style::ROW_HORIZONTAL_PADDING)
+            .with_vertical_padding(style::RULE_VERTICAL_PADDING)
+            .with_margin_bottom(style::ITEM_BOTTOM_MARGIN)
+            .finish()
     }
 
     fn render_items(
         &self,
         appearance: &Appearance,
-        mut filtered_rules: Vec<RuleRow>,
+        mut rows: Vec<FileBackedRow>,
         app: &AppContext,
     ) -> Box<dyn Element> {
         let mut col = Flex::column();
 
-        // Filter the rows based on the search query
         let search_term = self.search_editor.as_ref(app).buffer_text(app);
         if !search_term.is_empty() {
-            filtered_rules = filtered_rules
-                .iter()
-                .filter(|row| row.matches_search_term(search_term.as_str()))
-                .cloned()
-                .collect();
+            rows.retain(|row| row.matches_search_term(search_term.as_str()));
         }
-        // Sort the rows by the last modified timestamp
-        filtered_rules.sort_by(|a, b| a.cmp(b));
+        rows.sort_by(|a, b| a.file_path.display_path().cmp(&b.file_path.display_path()));
 
-        for row in filtered_rules {
-            let row = match row {
-                RuleRow::Global(global_row) => {
-                    Some(self.render_global_rule_row(*global_row, appearance, app))
-                }
-                RuleRow::FileBacked(file_row) => {
-                    self.render_file_backed_row(file_row, appearance, app)
-                }
-            };
-
-            if let Some(row) = row {
-                col.add_child(row);
-            }
+        for row in rows {
+            col.add_child(self.render_file_backed_row(row, appearance, app));
         }
         col.finish()
     }
 
     fn render_zero_state(&self, appearance: &Appearance) -> Box<dyn Element> {
         let text = match self.current_scope {
-            RuleScope::Global => ZERO_STATE_TEXT,
+            RuleScope::Global => ZERO_STATE_TEXT_GLOBAL,
             RuleScope::ProjectBased => zero_state_text_project(),
         };
 
@@ -875,8 +600,9 @@ impl RuleView {
                     .with_horizontal_padding(style::ROW_HORIZONTAL_PADDING)
                     .finish(),
             );
-        if self.current_scope == RuleScope::ProjectBased {
-            zero_state.add_child(self.render_add_button());
+        match self.current_scope {
+            RuleScope::Global => zero_state.add_child(self.render_add_global_button()),
+            RuleScope::ProjectBased => zero_state.add_child(self.render_initialize_button()),
         }
 
         Container::new(
@@ -895,13 +621,24 @@ impl RuleView {
     fn render_body(
         &self,
         appearance: &Appearance,
-        filtered_rules: Vec<RuleRow>,
+        rows: Vec<FileBackedRow>,
         app: &AppContext,
     ) -> Box<dyn Element> {
+        // Global has at most one document — show Add only when missing (zero-state handles that).
+        // Project tab keeps the initialize control when rows exist.
+        let show_add = self.current_scope == RuleScope::ProjectBased && !rows.is_empty();
         Flex::column()
-            .with_child(self.render_search_bar_row(&filtered_rules))
-            .with_child(self.render_items(appearance, filtered_rules, app))
+            .with_child(self.render_search_bar_row(show_add))
+            .with_child(self.render_items(appearance, rows, app))
             .finish()
+    }
+}
+
+fn truncate_preview(content: &str) -> String {
+    if content.split('\n').count() > 3 {
+        content.split('\n').take(3).collect::<Vec<_>>().join("\n") + "..."
+    } else {
+        content.to_string()
     }
 }
 
@@ -933,11 +670,14 @@ impl View for RuleView {
             col.add_child(self.render_disabled_banner(appearance));
         }
 
-        let filtered_rules = self.get_filtered_rules();
-        if filtered_rules.is_empty() {
+        let rows = match self.current_scope {
+            RuleScope::Global => self.filtered_global_rows(),
+            RuleScope::ProjectBased => self.filtered_project_rows(),
+        };
+        if rows.is_empty() {
             col.add_child(self.render_zero_state(appearance));
         } else {
-            col.add_child(self.render_body(appearance, filtered_rules, app));
+            col.add_child(self.render_body(appearance, rows, app));
         };
         col.finish()
     }
@@ -948,11 +688,8 @@ impl TypedActionView for RuleView {
 
     fn handle_action(&mut self, action: &RuleViewAction, ctx: &mut ViewContext<Self>) {
         match action {
-            RuleViewAction::AddRule => {
-                ctx.emit(RuleViewEvent::AddRule);
-            }
-            RuleViewAction::Edit(sync_id) => {
-                ctx.emit(RuleViewEvent::Edit(*sync_id));
+            RuleViewAction::EditGlobalRule => {
+                ctx.emit(RuleViewEvent::EditGlobalRule);
             }
             RuleViewAction::OpenSettings => {
                 ctx.emit(RuleViewEvent::OpenSettings);

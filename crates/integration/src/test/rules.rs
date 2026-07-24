@@ -8,7 +8,7 @@ use warp::integration_testing::window::save_active_window_id;
 
 use super::{new_builder, Builder};
 
-/// Test creating a rule
+/// Test creating the global rules file.
 pub fn test_rule_creation() -> Builder {
     let key = "rule";
     let rule_content = "Never use unwrap in Rust.";
@@ -26,7 +26,7 @@ pub fn test_rule_creation() -> Builder {
         )
 }
 
-/// Test updating a rule's content
+/// Test updating the global rules file content.
 pub fn test_rule_update() -> Builder {
     let key = "rule";
     let rule_content = "Old rule content";
@@ -54,7 +54,7 @@ pub fn test_rule_update() -> Builder {
         )
 }
 
-// Test opening rule pane at the correct rule
+/// Test opening the global rule editor pane.
 pub fn test_rule_pane_opening() -> Builder {
     let key = "rule";
     let window_id = "main_window";
@@ -68,14 +68,6 @@ pub fn test_rule_pane_opening() -> Builder {
             )
             .add_assertion(assert_rule_count(1))
             .add_assertion(save_active_window_id(window_id)),
-        )
-        .with_step(
-            create_a_personal_rule(
-                "rule_2",
-                "Pane Test Rule #2",
-                "This rule is for testing pane opening #2",
-            )
-            .add_assertion(assert_rule_count(2)),
         )
         .with_step(
             open_rule_pane(window_id, key).add_named_assertion_with_data_from_prior_step(

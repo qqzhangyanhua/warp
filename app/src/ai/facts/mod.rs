@@ -12,8 +12,12 @@ use crate::drive::CloudObjectTypeAndId;
 use crate::server::ids::SyncId;
 use crate::server::sync_queue::QueueItem;
 
+pub mod global_agent_rules_document;
 pub mod manager;
 pub mod view;
+pub use global_agent_rules_document::{
+    GlobalAgentRulesDocument, GlobalAgentRulesError, GlobalAgentRulesState,
+};
 pub use manager::AIFactManager;
 pub use view::{AIFactView, AIFactViewEvent};
 

@@ -15164,14 +15164,10 @@ impl Workspace {
             pane_group::Event::OpenWorkflowModalWithTemporary(workflow) => {
                 self.open_workflow_with_temporary(*workflow.clone(), ctx)
             }
-            pane_group::Event::OpenAIFactCollection { sync_id } => {
-                // Entrypoint from AI blocklist
-                let page = if sync_id.is_some() {
-                    AIFactPage::RuleEditor { sync_id: *sync_id }
-                } else {
-                    AIFactPage::Rules
-                };
-                self.open_ai_fact_collection_pane(None, Some(page), ctx);
+            pane_group::Event::OpenAIFactCollection { sync_id: _ } => {
+                // Entrypoint from AI blocklist / menus. Global Rules are a single
+                // file-backed document; cloud Rule IDs are ignored.
+                self.open_ai_fact_collection_pane(None, Some(AIFactPage::Rules), ctx);
                 send_telemetry_from_ctx!(
                     TelemetryEvent::KnowledgePaneOpened {
                         entrypoint: KnowledgePaneEntrypoint::AIBlocklist,
@@ -15193,12 +15189,8 @@ impl Workspace {
                 self.open_mcp_servers_page(page.unwrap_or_default(), None, ctx);
             }
             pane_group::Event::OpenAddRulePane => {
-                // Open the AI Fact Collection pane directly with the Rule Editor page for adding a new rule
-                self.open_ai_fact_collection_pane(
-                    None,
-                    Some(AIFactPage::RuleEditor { sync_id: None }),
-                    ctx,
-                );
+                // Open the Global Rule editor for ~/.agents/AGENTS.md.
+                self.open_ai_fact_collection_pane(None, Some(AIFactPage::GlobalRuleEditor), ctx);
                 send_telemetry_from_ctx!(
                     TelemetryEvent::KnowledgePaneOpened {
                         entrypoint: KnowledgePaneEntrypoint::SlashCommand,
