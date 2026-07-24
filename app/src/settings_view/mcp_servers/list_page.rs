@@ -885,50 +885,15 @@ impl MCPServersListPageView {
         ctx.notify();
     }
 
-    fn install_from_gallery(&mut self, gallery_uuid: Uuid, ctx: &mut ViewContext<Self>) {
+    fn install_from_gallery(&mut self, gallery_uuid: Uuid, _ctx: &mut ViewContext<Self>) {
+        // Gallery install is not part of the retained local MCP path (issue #29).
+        let _ = gallery_uuid;
         #[cfg(feature = "local_fs")]
         {
             use crate::ai::mcp::local_mcp_surface::{local_mcp_surface, McpSettingsCardKind};
-            if !local_mcp_surface().allows_settings_card(McpSettingsCardKind::Gallery) {
-                log::warn!(
-                    "Gallery MCP install rejected for {gallery_uuid}: not part of the local MCP path"
-                );
-                return;
-            }
+            debug_assert!(!local_mcp_surface().allows_settings_card(McpSettingsCardKind::Gallery));
         }
-        let gallery_server = MCPGalleryManager::as_ref(ctx).get_gallery_item(gallery_uuid);
-        let Some(gallery_server) = gallery_server else {
-            log::warn!(
-                "Could not install gallery item {gallery_uuid}: Unable to find gallery item with matching id."
-            );
-            return;
-        };
-
-        let instructions = gallery_server.instructions_in_markdown().cloned();
-        log::info!(
-            "[ListPage] Installing from gallery with instructions: {:?}",
-            instructions.as_ref().map(|s| truncate_from_end(s, 53))
-        );
-        let templatable_server: Result<TemplatableMCPServer, String> =
-            gallery_server.clone().try_into();
-        match templatable_server {
-            Ok(templatable_server) => {
-                ctx.emit(MCPServersListPageViewEvent::StartInstallation {
-                    templatable_mcp_server: templatable_server,
-                    instructions_in_markdown: instructions,
-                    origin: InstallOrigin::InApp,
-                });
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::MCPTemplateInstalled {
-                        source: MCPTemplateInstallationSource::Gallery
-                    },
-                    ctx
-                );
-            }
-            Err(e) => {
-                log::warn!("Could not install gallery item {gallery_uuid}: {e}");
-            }
-        };
+        log::warn!("Gallery MCP install rejected: not part of the local MCP path");
     }
 
     fn handle_update_modal_body_event(

@@ -1023,6 +1023,48 @@ fn test_can_use_mcp_server_always_allow_no_denylist() {
             ));
             // None UUID should also be allowed (no denylist match possible).
             assert!(model.can_use_mcp_server(&convo_id, None, Some(terminal_view_id), ctx));
+            // Tool-call path shares the same policy: approved when AlwaysAllow.
+            assert!(model.can_call_mcp_tool(
+                Some(&server_uuid),
+                "list_resources",
+                &convo_id,
+                Some(terminal_view_id),
+                ctx
+            ));
+        });
+    })
+}
+
+#[test]
+fn test_can_call_mcp_tool_denied_when_policy_requires_allowlist() {
+    App::test((), |mut app| async move {
+        let PermissionsTestState {
+            convo_id,
+            permissions,
+            profile_model,
+            terminal_view_id,
+            ..
+        } = initialize_permissions_test(&mut app);
+
+        let server_uuid = Uuid::new_v4();
+
+        profile_model.update(&mut app, |model, ctx| {
+            model.set_mcp_permissions(
+                *model.active_profile(Some(terminal_view_id), ctx).id(),
+                &ActionPermission::AlwaysAsk,
+                ctx,
+            );
+        });
+
+        permissions.read(&app, |model, ctx| {
+            // AlwaysAsk without allowlist: tool call must not auto-execute.
+            assert!(!model.can_call_mcp_tool(
+                Some(&server_uuid),
+                "list_resources",
+                &convo_id,
+                Some(terminal_view_id),
+                ctx
+            ));
         });
     })
 }

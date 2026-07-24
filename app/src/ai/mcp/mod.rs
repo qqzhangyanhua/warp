@@ -50,7 +50,10 @@ cfg_if::cfg_if! {
         pub use local_mcp_config::{
             LocalMcpConfigDocument, LocalMcpConfigScope, LocalMcpConfigState,
         };
-        pub use local_mcp_surface::{local_mcp_surface, LocalMcpSurfacePolicy, McpSettingsCardKind};
+        pub use local_mcp_surface::{
+            local_mcp_surface, materialize_local_mcp_servers, LocalMcpSurfacePolicy,
+            LocalMcpTransportKind, MaterializedLocalMcpServer, McpSettingsCardKind,
+        };
     }
 }
 

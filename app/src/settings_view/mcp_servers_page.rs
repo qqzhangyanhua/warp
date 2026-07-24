@@ -324,6 +324,22 @@ impl MCPServersSettingsPageView {
             return;
         }
 
+        // Gallery autoinstall is not part of the retained local MCP path (issue #29).
+        #[cfg(feature = "local_fs")]
+        {
+            use crate::ai::mcp::local_mcp_surface::{local_mcp_surface, McpSettingsCardKind};
+            if !local_mcp_surface().allows_settings_card(McpSettingsCardKind::Gallery) {
+                log::warn!(
+                    "Ignoring MCP deeplink autoinstall for '{autoinstall_param}': gallery is not part of the local MCP path"
+                );
+                self.add_error_toast(
+                    "Gallery MCP install is not available in the local product.".to_string(),
+                    ctx,
+                );
+                return;
+            }
+        }
+
         let autoinstall_lower = autoinstall_param.to_lowercase();
         let gallery_server = MCPGalleryManager::as_ref(ctx)
             .get_gallery()

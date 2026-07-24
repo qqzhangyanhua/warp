@@ -58,6 +58,55 @@ pub fn local_mcp_surface() -> LocalMcpSurfacePolicy {
     LocalMcpSurfacePolicy
 }
 
+/// Transport kind exposed to the Agent after local config materialization.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LocalMcpTransportKind {
+    /// stdio / command MCP server.
+    Command { command: String },
+    /// Remote MCP over HTTP/SSE; credentials may only target this origin.
+    Remote { mcp_origin: String },
+}
+
+/// One server ready for the retained local MCP path (config → typed install).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MaterializedLocalMcpServer {
+    pub name: String,
+    pub transport: LocalMcpTransportKind,
+}
+
+/// Materialize local `.mcp.json` text into typed servers for the Agent surface.
+///
+/// Resolves `${…}` placeholders via environment and the provided secrets map,
+/// then parses through the same config-file JSON path used at spawn time.
+pub fn materialize_local_mcp_servers(
+    json: &str,
+    secrets: &std::collections::HashMap<String, String>,
+) -> Result<Vec<MaterializedLocalMcpServer>, super::local_mcp_config::LocalMcpConfigError> {
+    use super::local_mcp_config::{
+        parse_servers_from_user_json, remote_mcp_credential_target, resolve_placeholders,
+    };
+
+    let resolved = resolve_placeholders(json, secrets)?;
+    let servers = parse_servers_from_user_json(&resolved)?;
+    let mut out = Vec::with_capacity(servers.len());
+    for (name, server) in servers {
+        let transport = if let Some(target) = remote_mcp_credential_target(&server)? {
+            LocalMcpTransportKind::Remote {
+                mcp_origin: target.mcp_origin,
+            }
+        } else if let Some(command) = server.get("command").and_then(|v| v.as_str()) {
+            LocalMcpTransportKind::Command {
+                command: command.to_owned(),
+            }
+        } else {
+            continue;
+        };
+        out.push(MaterializedLocalMcpServer { name, transport });
+    }
+    out.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(out)
+}
+
 #[cfg(test)]
 #[path = "local_mcp_surface_tests.rs"]
 mod tests;
