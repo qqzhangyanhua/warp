@@ -3487,6 +3487,11 @@ impl DriveIndex {
                 }
             }
             DriveObjectType::EnvVarCollection => {
+                // Environment Variable Collections are removed from the product.
+                if !crate::env_vars::may_open_or_create_evc() {
+                    report_error!("Environment Variable Collections are no longer available");
+                    return;
+                }
                 if has_feature_gated_anonymous_user_reached_env_var_limit() {
                     return;
                 }
@@ -3795,16 +3800,18 @@ impl DriveIndex {
                     .into_item(),
             );
 
-            menu_items.push(
-                MenuItemFields::new(env_var_collection_label())
-                    .with_on_select_action(DriveIndexAction::create_object(
-                        DriveObjectType::EnvVarCollection,
-                        *space,
-                        None,
-                    ))
-                    .with_icon(Icon::EnvVarCollection)
-                    .into_item(),
-            );
+            if crate::env_vars::may_expose_evc_in_ui() {
+                menu_items.push(
+                    MenuItemFields::new(env_var_collection_label())
+                        .with_on_select_action(DriveIndexAction::create_object(
+                            DriveObjectType::EnvVarCollection,
+                            *space,
+                            None,
+                        ))
+                        .with_icon(Icon::EnvVarCollection)
+                        .into_item(),
+                );
+            }
 
             menu_items.push(
                 MenuItemFields::new(import_label())
@@ -4463,16 +4470,18 @@ impl DriveIndex {
                                 .into_item(),
                         );
 
-                        menu_items.push(
-                            MenuItemFields::new(index_env_var_collection_label())
-                                .with_on_select_action(DriveIndexAction::create_object(
-                                    DriveObjectType::EnvVarCollection,
-                                    *space,
-                                    Some(*folder_id),
-                                ))
-                                .with_icon(Icon::EnvVarCollection)
-                                .into_item(),
-                        );
+                        if crate::env_vars::may_expose_evc_in_ui() {
+                            menu_items.push(
+                                MenuItemFields::new(index_env_var_collection_label())
+                                    .with_on_select_action(DriveIndexAction::create_object(
+                                        DriveObjectType::EnvVarCollection,
+                                        *space,
+                                        Some(*folder_id),
+                                    ))
+                                    .with_icon(Icon::EnvVarCollection)
+                                    .into_item(),
+                            );
+                        }
 
                         menu_items.push(MenuItem::Separator);
                     }

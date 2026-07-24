@@ -7,7 +7,13 @@ use warp_util::path::ShellFamily;
 pub mod active_env_var_collection_data;
 pub mod env_var_collection_block;
 pub mod manager;
+pub mod product_removal;
 pub mod view;
+
+pub use product_removal::{
+    evaluate_stale_evc_restore, may_expose_evc_in_ui, may_open_or_create_evc,
+    unsupported_evc_error_message, EVC_REMOVED_GUIDANCE, StaleEvcRestoreOutcome,
+};
 
 use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::cloud_object::model::json_model::JsonModel;

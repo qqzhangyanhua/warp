@@ -211,8 +211,9 @@ impl crate::search::mixer::SyncDataSource for DataSource {
             );
         }
 
-        if query.filters.contains(&QueryFilter::EnvironmentVariables)
-            || should_include_all_drive_objects
+        if crate::env_vars::may_expose_evc_in_ui()
+            && (query.filters.contains(&QueryFilter::EnvironmentVariables)
+                || should_include_all_drive_objects)
         {
             filtered_cloud_objects.extend(
                 self.searcher
@@ -260,12 +261,14 @@ impl DataSource {
             }));
         }
 
-        let env_var_collection: Option<&CloudEnvVarCollection> = object.into();
-        if let Some(env_var_collection) = env_var_collection {
-            return Some(QueryResult::from(EnvVarCollectionSearchItem {
-                match_result: FuzzyMatchEnvVarCollectionResult::no_match(),
-                cloud_env_var_collection: env_var_collection.clone(),
-            }));
+        if crate::env_vars::may_expose_evc_in_ui() {
+            let env_var_collection: Option<&CloudEnvVarCollection> = object.into();
+            if let Some(env_var_collection) = env_var_collection {
+                return Some(QueryResult::from(EnvVarCollectionSearchItem {
+                    match_result: FuzzyMatchEnvVarCollectionResult::no_match(),
+                    cloud_env_var_collection: env_var_collection.clone(),
+                }));
+            }
         }
 
         None

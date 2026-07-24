@@ -7828,54 +7828,17 @@ impl Workspace {
         reload: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        let env_var_collection_manager = EnvVarCollectionManager::handle(ctx);
+        // Product removal: never open EVC panes or touch CloudModel.
+        let _ = (source, reload);
+        self.show_evc_removed_guidance(ctx);
+    }
 
-        if let Some((window_id, locator)) = env_var_collection_manager.as_ref(ctx).find_pane(source)
-        {
-            if reload {
-                env_var_collection_manager
-                    .update(ctx, |manager, ctx| manager.reload_collection(source, ctx));
-            }
-            if window_id == ctx.window_id() {
-                self.focus_pane(locator, ctx);
-            } else if let Some(root_view) = ctx.root_view_id(window_id) {
-                ctx.dispatch_action_for_view(
-                    window_id,
-                    root_view,
-                    "root_view:handle_pane_navigation_event",
-                    &locator,
-                );
-            }
-        } else {
-            let window_id = ctx.window_id();
-            let pane = env_var_collection_manager.update(ctx, |manager, ctx| {
-                manager.create_pane(source, window_id, ctx)
-            });
-            self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                let smart_split_direction =
-                    pane_group.smart_split_direction(ctx, WORKFLOW_AND_ENV_VAR_SPLIT_RATIO);
-                pane_group.add_pane_with_direction(
-                    smart_split_direction,
-                    pane,
-                    true, /* focus_new_pane */
-                    ctx,
-                );
-            });
-        }
-
-        if let EnvVarCollectionSource::Existing(env_var_collection_id) = source {
-            self.set_selected_object(
-                Some(WarpDriveItemId::Object(
-                    CloudObjectTypeAndId::from_generic_string_object(
-                        GenericStringObjectFormat::Json(
-                            crate::cloud_object::JsonObjectType::EnvVarCollection,
-                        ),
-                        *env_var_collection_id,
-                    ),
-                )),
-                ctx,
-            );
-        }
+    fn show_evc_removed_guidance(&self, ctx: &mut ViewContext<Self>) {
+        let window_id = ctx.window_id();
+        let toast = DismissibleToast::error(crate::env_vars::EVC_REMOVED_GUIDANCE.to_string());
+        WorkspaceToastStack::handle(ctx).update(ctx, |stack, ctx| {
+            stack.add_ephemeral_toast(toast, window_id, ctx);
+        });
     }
 
     /// Create a pane from a cloud object. Returns `None` if the object cannot be opened in a
@@ -7913,13 +7876,11 @@ impl Workspace {
             CloudObjectTypeAndId::Folder(_) => None,
             CloudObjectTypeAndId::GenericStringObject {
                 object_type: GenericStringObjectFormat::Json(JsonObjectType::EnvVarCollection),
-                id,
-            } => Some(Box::new(EnvVarCollectionManager::handle(ctx).update(
-                ctx,
-                |evc_manager, ctx| {
-                    evc_manager.create_pane(&EnvVarCollectionSource::Existing(id), window_id, ctx)
-                },
-            ))),
+                id: _,
+            } => {
+                // EVC removed: do not construct a cloud-backed pane.
+                None
+            }
             CloudObjectTypeAndId::GenericStringObject { .. } => None,
         }
     }
@@ -13915,13 +13876,9 @@ impl Workspace {
                 );
             }
             CommandPaletteEvent::InvokeEnvironmentVariables { id } => {
-                let Some(env_var_collection) = CloudModel::as_ref(ctx).get_env_var_collection(id)
-                else {
-                    log::warn!("Tried to execute EVC for id {id:?} but it does not exist");
-                    return;
-                };
-
-                self.invoke_environment_variables(env_var_collection.clone(), false, ctx);
+                // EVC removed: do not look up CloudModel or invoke into the terminal.
+                let _ = id;
+                self.show_evc_removed_guidance(ctx);
             }
             CommandPaletteEvent::OpenNotebook { id } => self.open_notebook(
                 &NotebookSource::Existing(*id),
@@ -16968,28 +16925,9 @@ impl Workspace {
         in_subshell: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        if self.is_readonly_shared_session_active(ctx) {
-            return;
-        }
-
-        if let Some(terminal_view_handle) = self.focus_terminal_input(
-            Some(env_var_collection.cloud_object_type_and_id()),
-            TerminalSessionFallbackBehavior::default(),
-            ctx,
-        ) {
-            send_telemetry_from_ctx!(
-                TelemetryEvent::EnvVarCollectionInvoked(EnvVarTelemetryMetadata {
-                    object_id: env_var_collection.id.into_server().map(Into::into),
-                    team_uid: env_var_collection.permissions.owner.into(),
-                    space: env_var_collection.space(ctx).into(),
-                }),
-                ctx
-            );
-            terminal_view_handle.update(ctx, |view, ctx| {
-                view.invoke_environment_variables(env_var_collection, in_subshell, ctx);
-                ctx.notify();
-            });
-        }
+        // EVC product removal: never inject collection-backed env into the terminal.
+        let _ = (env_var_collection, in_subshell);
+        self.show_evc_removed_guidance(ctx);
     }
 
     fn handle_command_search_event(
@@ -22989,33 +22927,8 @@ impl TypedActionView for Workspace {
                     ctx.notify();
                 }
             }
-            CreatePersonalEnvVarCollection => {
-                if let Some(personal_drive) = UserWorkspaces::as_ref(ctx).personal_drive(ctx) {
-                    self.open_env_var_collection(
-                        &EnvVarCollectionSource::New {
-                            title: None,
-                            owner: personal_drive,
-                            initial_folder_id: None,
-                        },
-                        false,
-                        ctx,
-                    );
-                }
-            }
-            CreateTeamEnvVarCollection => {
-                let team_uid = self.team_uid(ctx);
-                if let Some(team_uid) = team_uid {
-                    self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-                        drive_panel.open_cloud_object_dialog(
-                            DriveObjectType::EnvVarCollection,
-                            Space::Team { team_uid },
-                            None,
-                            ctx,
-                        );
-                    });
-                    self.current_workspace_state.is_warp_drive_open = true;
-                    ctx.notify();
-                }
+            CreatePersonalEnvVarCollection | CreateTeamEnvVarCollection => {
+                self.show_evc_removed_guidance(ctx);
             }
             CreatePersonalWorkflow => {
                 if let Some(personal_drive) = UserWorkspaces::as_ref(ctx).personal_drive(ctx) {

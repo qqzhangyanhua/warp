@@ -1,4 +1,3 @@
-use anyhow::Context;
 use warpui::{AppContext, ModelHandle, SingletonEntity, ViewContext, ViewHandle};
 
 use super::view::PaneView;
@@ -8,12 +7,11 @@ use super::{
 };
 use crate::app_state::{EnvVarCollectionPaneSnapshot, LeafContents};
 use crate::drive::items::WarpDriveItemId;
-use crate::env_vars::manager::{EnvVarCollectionManager, EnvVarCollectionSource};
+use crate::env_vars::manager::EnvVarCollectionManager;
 use crate::env_vars::view::env_var_collection::{EnvVarCollectionEvent, EnvVarCollectionView};
 use crate::env_vars::EnvVarCollectionType;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::server::ids::SyncId;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 pub struct EnvVarCollectionPane {
     view: ViewHandle<PaneView<EnvVarCollectionView>>,
@@ -48,25 +46,17 @@ impl EnvVarCollectionPane {
 
     pub fn restore(
         env_var_collection_id: Option<SyncId>,
-        ctx: &mut ViewContext<PaneGroup>,
+        _ctx: &mut ViewContext<PaneGroup>,
     ) -> anyhow::Result<Self> {
-        let window_id = ctx.window_id();
-        let source = match env_var_collection_id {
-            Some(id) => EnvVarCollectionSource::Existing(id),
-            None => EnvVarCollectionSource::New {
-                title: None,
-                owner: UserWorkspaces::as_ref(ctx)
-                    .personal_drive(ctx)
-                    .context("personal drive unavailable")?,
-                initial_folder_id: None,
-            },
-        };
-
-        Ok(
-            EnvVarCollectionManager::handle(ctx).update(ctx, |manager, ctx| {
-                manager.create_pane(&source, window_id, ctx)
-            }),
-        )
+        // EVC is removed from the ZYH local product. Fail closed without
+        // constructing CloudModel, UpdateManager, or personal-drive ownership.
+        let _ = env_var_collection_id;
+        let outcome = crate::env_vars::evaluate_stale_evc_restore(env_var_collection_id.is_some());
+        match outcome {
+            crate::env_vars::StaleEvcRestoreOutcome::Unsupported { message } => {
+                anyhow::bail!("{message}")
+            }
+        }
     }
 
     pub fn env_var_collection_view(&self, ctx: &AppContext) -> ViewHandle<EnvVarCollectionView> {

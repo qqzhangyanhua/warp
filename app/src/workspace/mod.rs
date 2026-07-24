@@ -57,6 +57,10 @@ pub fn panel_header_corner_radius() -> warpui::elements::CornerRadius {
     warpui::elements::CornerRadius::with_top(warpui::elements::Radius::Pixels(8.))
 }
 
+fn evc_actions_available() -> bool {
+    crate::env_vars::may_open_or_create_evc()
+}
+
 fn account_and_cloud_actions_available() -> bool {
     false
 }
@@ -1277,6 +1281,8 @@ pub fn init(app: &mut AppContext) {
     ]);
 
     app.register_editable_bindings([
+        // Environment Variable Collections are removed; bindings stay registered
+        // for keymap compatibility but stay disabled via product flag.
         EditableBinding::new(
             "workspace:create_team_env_vars",
             BindingDescription::new("Create new team environment variables")
@@ -1287,13 +1293,8 @@ pub fn init(app: &mut AppContext) {
             WorkspaceAction::CreateTeamEnvVarCollection,
         )
         .with_custom_action(CustomAction::NewTeamEnvVars)
-        .with_context_predicate(
-            id!("Workspace")
-                & id!(flags::ENABLE_WARP_DRIVE)
-                & id!("WarpDrive_BelongsToTeam")
-                & id!("IsOnline"),
-        )
-        .with_enabled(account_and_cloud_actions_available)
+        .with_context_predicate(id!("Workspace"))
+        .with_enabled(evc_actions_available)
         .with_group(bindings::BindingGroup::EnvVarCollection.as_str()),
         EditableBinding::new(
             "workspace:create_personal_env_vars",
@@ -1306,8 +1307,8 @@ pub fn init(app: &mut AppContext) {
         )
         .with_group(bindings::BindingGroup::EnvVarCollection.as_str())
         .with_custom_action(CustomAction::NewPersonalEnvVars)
-        .with_context_predicate(id!("Workspace") & id!(flags::ENABLE_WARP_DRIVE))
-        .with_enabled(account_and_cloud_actions_available),
+        .with_context_predicate(id!("Workspace"))
+        .with_enabled(evc_actions_available),
         EditableBinding::new(
             "workspace:create_personal_ai_prompt",
             BindingDescription::new("Create a new personal prompt")

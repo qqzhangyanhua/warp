@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 use warpui::{Entity, EntityId, ModelContext, SingletonEntity, WeakViewHandle};
 
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::Owner;
 use crate::env_vars::view::env_var_collection::EnvVarCollectionView;
 use crate::pane_group::{EnvVarCollectionPane, PaneContent};
@@ -46,41 +45,31 @@ impl EnvVarCollectionManager {
         }
     }
 
+    /// Create an EVC pane.
+    ///
+    /// Environment Variable Collections are removed from the product. This no
+    /// longer loads CloudModel or opens an editable collection. Callers should
+    /// check [`crate::env_vars::may_open_or_create_evc`] and show
+    /// [`crate::env_vars::EVC_REMOVED_GUIDANCE`] instead of creating panes.
     pub fn create_pane(
         &mut self,
         source: &EnvVarCollectionSource,
         window_id: WindowId,
         ctx: &mut ModelContext<Self>,
     ) -> EnvVarCollectionPane {
+        let _ = source;
+        // Fail closed: empty view, no CloudModel / UpdateManager access.
         let view = ctx.add_typed_action_view(window_id, EnvVarCollectionView::new);
-
-        match source {
-            EnvVarCollectionSource::Existing(env_var_collection_id) => {
-                let env_var_collection = CloudModel::as_ref(ctx)
-                    .get_env_var_collection(env_var_collection_id)
-                    .cloned();
-                if let Some(env_var_collection) = env_var_collection {
-                    view.update(ctx, |view, ctx| view.load(env_var_collection, ctx));
-                } else {
-                    view.update(ctx, |view, ctx| {
-                        view.wait_for_initial_load_then_load(
-                            *env_var_collection_id,
-                            window_id,
-                            ctx,
-                        );
-                    });
-                }
-            }
-            EnvVarCollectionSource::New {
-                title: _,
-                owner,
-                initial_folder_id,
-            } => view.update(ctx, |view, ctx| {
-                view.open_new_env_var_collection(*owner, *initial_folder_id, ctx)
-            }),
-        }
-
+        safe_warn!(
+            safe: ("Refusing to open Environment Variable Collection pane"),
+            full: ("{}", crate::env_vars::EVC_REMOVED_GUIDANCE)
+        );
         EnvVarCollectionPane::new(view, ctx)
+    }
+
+    /// Whether create/open is allowed for the product.
+    pub fn is_supported() -> bool {
+        crate::env_vars::may_open_or_create_evc()
     }
 
     pub fn register_pane(
@@ -145,23 +134,14 @@ impl EnvVarCollectionManager {
     pub fn reload_collection(
         &mut self,
         source: &EnvVarCollectionSource,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
-        match source {
-            EnvVarCollectionSource::Existing(env_var_collection_id) => {
-                if let Some(pane_data) = self.panes_by_hashed_id.get(&env_var_collection_id.uid()) {
-                    let env_var_collection = CloudModel::as_ref(ctx)
-                        .get_env_var_collection(env_var_collection_id)
-                        .cloned();
-                    if let Some(env_var_collection) = env_var_collection {
-                        if let Some(data) = pane_data.handle.upgrade(ctx) {
-                            data.update(ctx, |view, ctx| view.load(env_var_collection, ctx));
-                        }
-                    }
-                }
-            }
-            _ => log::warn!("Can only reload existing environment variable collection"),
-        }
+        let _ = source;
+        // EVC product removal: do not touch CloudModel for reloads.
+        safe_warn!(
+            safe: ("Ignoring Environment Variable Collection reload"),
+            full: ("{}", crate::env_vars::EVC_REMOVED_GUIDANCE)
+        );
     }
 
     pub fn reset(&mut self) {

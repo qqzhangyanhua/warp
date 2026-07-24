@@ -1789,20 +1789,19 @@ impl PaneGroup {
                 "Code pane restoration not supported on this platform"
             )),
             LeafContents::EnvVarCollection(snapshot) => {
-                let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
+                // Environment Variable Collections are removed. Fail closed
+                // without CloudModel / UpdateManager; parent tree skips this leaf.
+                let id_present = match snapshot {
                     EnvVarCollectionPaneSnapshot::CloudEnvVarCollection {
                         env_var_collection_id,
-                    } => Box::new(EnvVarCollectionPane::restore(env_var_collection_id, ctx)?),
+                    } => env_var_collection_id.is_some(),
                 };
-
-                let pane_id = pane.as_pane().id();
-                pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-
-                Ok((PaneData::new(pane_id), focus))
+                let outcome = crate::env_vars::evaluate_stale_evc_restore(id_present);
+                match outcome {
+                    crate::env_vars::StaleEvcRestoreOutcome::Unsupported { message } => {
+                        Err(anyhow::anyhow!("{message}"))
+                    }
+                }
             }
             LeafContents::Workflow(snapshot) => {
                 let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
