@@ -212,7 +212,8 @@ fn add_valid_custom_endpoint(app: &mut App) {
 
 #[test]
 #[serial_test::serial]
-fn start_new_conversation_uses_rust_runtime_when_pi_flag_disabled() {
+fn start_new_conversation_always_uses_pi_even_when_flag_disabled() {
+    // Rollout flag no longer controls Runtime Selection for new conversations.
     let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(false);
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
@@ -231,7 +232,7 @@ fn start_new_conversation_uses_rust_runtime_when_pi_flag_disabled() {
                     .conversation(&conversation_id)
                     .expect("conversation should exist")
                     .runtime_binding(),
-                AgentRuntimeBinding::Rust
+                AgentRuntimeBinding::Pi
             );
         });
     });
@@ -239,8 +240,7 @@ fn start_new_conversation_uses_rust_runtime_when_pi_flag_disabled() {
 
 #[test]
 #[serial_test::serial]
-fn start_new_conversation_uses_pi_runtime_for_eligible_local_only_provider() {
-    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
+fn start_new_conversation_uses_pi_runtime_for_interactive_conversations() {
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
         add_valid_custom_endpoint(&mut app);
@@ -264,8 +264,8 @@ fn start_new_conversation_uses_pi_runtime_for_eligible_local_only_provider() {
 
 #[test]
 #[serial_test::serial]
-fn start_new_conversation_requires_valid_provider_for_pi_runtime() {
-    let _pi_flag = FeatureFlag::PiAgentRuntime.override_enabled(true);
+fn start_new_conversation_binds_pi_even_without_configured_provider() {
+    // Missing Provider must not silently fall back to Rust; run start fails later.
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
 
@@ -282,10 +282,20 @@ fn start_new_conversation_requires_valid_provider_for_pi_runtime() {
                     .conversation(&conversation_id)
                     .expect("conversation should exist")
                     .runtime_binding(),
-                AgentRuntimeBinding::Rust
+                AgentRuntimeBinding::Pi
             );
         });
     });
+}
+
+#[test]
+fn may_start_interactive_agent_run_blocks_legacy_rust() {
+    assert!(!super::may_start_interactive_agent_run(
+        AgentRuntimeBinding::Rust
+    ));
+    assert!(super::may_start_interactive_agent_run(
+        AgentRuntimeBinding::Pi
+    ));
 }
 
 #[test]
@@ -5842,7 +5852,7 @@ fn pi_fork_snapshot_excludes_uncommitted_runtime_delta() {
 }
 
 #[test]
-fn explicit_runtime_recovery_fork_uses_rust_binding() {
+fn explicit_fork_of_legacy_rust_conversation_binds_pi_without_rewriting_source() {
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
         let receiver = install_mock_model_event_sender(&mut app);
@@ -5867,8 +5877,9 @@ fn explicit_runtime_recovery_fork_uses_rust_binding() {
                 },
             ],
         );
+        let source_id = AIConversationId::new();
         let source = AIConversation::new_restored(
-            AIConversationId::new(),
+            source_id,
             vec![root_task],
             Some(AgentConversationData {
                 server_conversation_token: None,
@@ -5885,12 +5896,13 @@ fn explicit_runtime_recovery_fork_uses_rust_binding() {
                 run_id: None,
                 autoexecute_override: None,
                 last_event_sequence: None,
-                runtime_binding: Some(AgentRuntimeBinding::Pi),
+                runtime_binding: Some(AgentRuntimeBinding::Rust),
                 runtime_transcript_revision: Some(7),
                 pinned: false,
             }),
         )
         .expect("source conversation should build");
+        assert_eq!(source.runtime_binding(), AgentRuntimeBinding::Rust);
 
         let forked = history_model.update(&mut app, |model, ctx| {
             model
@@ -5899,14 +5911,18 @@ fn explicit_runtime_recovery_fork_uses_rust_binding() {
                     "[Fork] ",
                     false,
                     None,
-                    AgentRuntimeBinding::Rust,
+                    AgentRuntimeBinding::Pi,
                     ctx,
                 )
-                .expect("explicit runtime recovery fork should succeed")
+                .expect("explicit Pi fork of legacy Rust conversation should succeed")
         });
 
-        assert_eq!(forked.runtime_binding(), AgentRuntimeBinding::Rust);
+        assert_eq!(forked.runtime_binding(), AgentRuntimeBinding::Pi);
         assert_eq!(forked.runtime_transcript_revision(), 0);
+        assert_ne!(forked.id(), source.id());
+        // Source record is not rewritten: still Rust-bound at original revision.
+        assert_eq!(source.runtime_binding(), AgentRuntimeBinding::Rust);
+        assert_eq!(source.runtime_transcript_revision(), 7);
         assert!(forked
             .all_tasks()
             .flat_map(|task| task.messages())
@@ -5918,13 +5934,13 @@ fn explicit_runtime_recovery_fork_uses_rust_binding() {
             ..
         } = receiver
             .recv_timeout(Duration::from_secs(1))
-            .expect("runtime recovery fork should persist conversation data")
+            .expect("runtime conversion fork should persist conversation data")
         else {
             panic!("expected fork persistence event");
         };
         assert_eq!(
             conversation_data.runtime_binding,
-            Some(AgentRuntimeBinding::Rust)
+            Some(AgentRuntimeBinding::Pi)
         );
         assert_eq!(conversation_data.runtime_transcript_revision, Some(0));
         assert!(updated_tasks

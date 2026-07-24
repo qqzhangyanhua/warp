@@ -4,7 +4,7 @@ use std::sync::Arc;
 #[cfg(feature = "local_fs")]
 use std::sync::Mutex;
 
-use ai::api_keys::ApiKeyManager;
+
 use ai::skills::SkillPathOrigin;
 use anyhow::anyhow;
 use chrono::{DateTime, Local, NaiveDateTime};
@@ -314,27 +314,39 @@ pub struct BlocklistAIHistoryModel {
     db_connection: Option<Arc<Mutex<SqliteConnection>>>,
 }
 
+/// Runtime Selection Policy for newly created Conversation Records.
+///
+/// Interactive Agent Conversations (GUI, TUI, and `zyh agent`) always receive an
+/// immutable Pi Runtime Binding. There is no rollout flag, runtime selector, or
+/// silent fallback to the legacy Rust direct-provider runtime.
+///
+/// Non-interactive records that only display external history (shared-session
+/// viewers and CLI agent transcripts) remain Rust-bound because they are not
+/// Interactive Agent Conversations driven by the Pi Runtime Supervisor.
+///
+/// Missing Provider configuration does not change the binding: new interactive
+/// conversations stay Pi-bound and fail at Agent Run start with local setup
+/// guidance instead of falling back to Rust.
 fn runtime_binding_for_new_conversation(
     is_viewing_shared_session: bool,
     is_cli_agent_transcript: bool,
-    ctx: &AppContext,
+    _ctx: &AppContext,
 ) -> AgentRuntimeBinding {
     if is_viewing_shared_session || is_cli_agent_transcript {
         return AgentRuntimeBinding::Rust;
     }
 
-    if !FeatureFlag::PiAgentRuntime.is_enabled() {
-        return AgentRuntimeBinding::Rust;
-    }
+    AgentRuntimeBinding::Pi
+}
 
-    if ApiKeyManager::as_ref(ctx)
-        .keys()
-        .has_valid_custom_endpoint()
-    {
-        AgentRuntimeBinding::Pi
-    } else {
-        AgentRuntimeBinding::Rust
-    }
+/// Whether a Conversation Record may start a new Interactive Agent Run.
+///
+/// Legacy Rust-bound Conversations are view-only. Continuing them requires an
+/// explicit fork into a new Pi-bound Conversation.
+pub(crate) fn may_start_interactive_agent_run(
+    runtime_binding: AgentRuntimeBinding,
+) -> bool {
+    !matches!(runtime_binding, AgentRuntimeBinding::Rust)
 }
 
 impl BlocklistAIHistoryModel {

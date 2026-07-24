@@ -2526,6 +2526,16 @@ impl BlocklistAIController {
             &conversation_data.server_conversation_token,
         );
 
+        // Legacy Rust-bound Conversations are view-only for interactive runs.
+        // Passive/autodetected paths may still create Rust-bound records until removed.
+        if runtime_binding == AgentRuntimeBinding::Rust && !is_passive_request {
+            let message = "This conversation uses the legacy runtime and is view-only. \
+Fork it into a new conversation to continue with the Pi Agent Runtime."
+                .to_string();
+            ctx.emit(BlocklistAIControllerEvent::ShowError(message.clone()));
+            return Err(anyhow::anyhow!(message));
+        }
+
         let provider_keys = ApiKeyManager::as_ref(ctx).keys();
         let provider_validation = validate_provider_inventory(provider_keys).and_then(|_| {
             validate_provider_configuration(provider_keys, request_input.model_id.as_str())

@@ -24001,6 +24001,7 @@ impl TypedActionView for Workspace {
             }
             #[cfg(not(target_family = "wasm"))]
             ContinueConversationLocally { conversation_id } => {
+                // Explicit continue/fork of a legacy or external conversation binds to Pi.
                 self.fork_ai_conversation(
                     *conversation_id,
                     None,
@@ -24009,7 +24010,7 @@ impl TypedActionView for Workspace {
                     None,
                     vec![],
                     ForkedConversationDestination::SplitPane,
-                    Some(AgentRuntimeBinding::Rust),
+                    Some(AgentRuntimeBinding::Pi),
                     ctx,
                 );
             }
