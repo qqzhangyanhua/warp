@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the Warp remote server binary on a remote host, plus the
+# Installs the ZYH remote server binary on a remote host, plus the
 # artifact's `resources/` tree (bundled skills, settings schema) at a
 # global, version-independent location:
 #
@@ -11,16 +11,15 @@
 # install wins. An older daemon that is still running parsed its skills at
 # startup, so a slightly newer resources tree underneath it is accepted.
 #
+# The client always uploads a verified local tarball over SSH/SCP before
+# this script runs. There is no HTTP/CDN download path.
+#
 # Placeholders (substituted at runtime by setup.rs):
-#   {download_base_url}         — e.g. https://app.warp.dev/download/cli
-#   {channel}                   — stable | preview | dev
-#   {install_dir}               — e.g. ~/.warp/remote-server
-#   {binary_name}               — e.g. oz | oz-dev | oz-preview
-#   {version_query}             — e.g. &version=v0.2026... (empty when no release tag)
-#   {version_suffix}            — e.g. -v0.2026...        (empty when no release tag)
-#   {bundled_resources_dir_name} — global resources directory name (e.g. bundled_resources)
-#   {no_http_client_exit_code}  — exit code when neither curl nor wget is available
-#   {staging_tarball_path}      — path to a pre-uploaded tarball (SCP fallback; empty normally)
+#   {install_dir}               — e.g. ~/.zyh/remote-server
+#   {binary_name}               — channel binary name
+#   {version_suffix}            — e.g. -v0.2026... (empty when unversioned)
+#   {bundled_resources_dir_name} — global resources directory name
+#   {staging_tarball_path}      — path to the pre-uploaded tarball (required)
 set -e
 
 arch=$(uname -m)
@@ -36,6 +35,9 @@ case "$os_kernel" in
   Linux)  os_name=linux ;;
   *) echo "unsupported OS: $os_kernel" >&2; exit 2 ;;
 esac
+
+# Record platform for diagnostics; install selection happens on the client.
+echo "zyh-remote-daemon platform=${os_name}-${arch_name}" >&2
 
 install_dir="{install_dir}"
 # Avoid `${var/pattern/replacement}` for tilde expansion. Two
@@ -67,33 +69,27 @@ cleanup() {
 trap cleanup EXIT
 
 staging_tarball_path="{staging_tarball_path}"
-if [ -n "$staging_tarball_path" ]; then
-  # SCP fallback: tarball already uploaded by the client.
-  # Same tilde-expansion caveat as install_dir above.
-  case "$staging_tarball_path" in
-    "~"|"~/"*) staging_tarball_path="${HOME}${staging_tarball_path#\~}" ;;
-  esac
-  mv "$staging_tarball_path" "$tmpdir/oz.tar.gz"
-else
-  # Normal path: download via curl or wget.
-  url="{download_base_url}?package=tar&os=$os_name&arch=$arch_name&channel={channel}{version_query}"
-
-  if command -v curl >/dev/null 2>&1; then
-    curl -fSL --connect-timeout 15 "$url" -o "$tmpdir/oz.tar.gz"
-  elif command -v wget >/dev/null 2>&1; then
-    wget -q -O "$tmpdir/oz.tar.gz" "$url"
-  else
-    echo "error: neither curl nor wget is available" >&2
-    exit {no_http_client_exit_code}
-  fi
+if [ -z "$staging_tarball_path" ]; then
+  echo "error: staging tarball path is required; HTTP download is not supported" >&2
+  exit 1
 fi
 
-tar -xzf "$tmpdir/oz.tar.gz" -C "$tmpdir"
+# Same tilde-expansion caveat as install_dir above.
+case "$staging_tarball_path" in
+  "~"|"~/"*) staging_tarball_path="${HOME}${staging_tarball_path#\~}" ;;
+esac
+if [ ! -f "$staging_tarball_path" ]; then
+  echo "error: staging tarball not found: $staging_tarball_path" >&2
+  exit 1
+fi
+mv "$staging_tarball_path" "$tmpdir/zyh-remote-daemon.tar.gz"
+
+tar -xzf "$tmpdir/zyh-remote-daemon.tar.gz" -C "$tmpdir"
 
 # The executable and its resources are siblings in the artifact. Exclude the
 # resources tree from the search: bundled skills may ship companion files
-# whose names also start with `oz`.
-bin=$(find "$tmpdir" -type f -name 'oz*' ! -name '*.tar.gz' ! -path '*/resources/*' | head -n1)
+# whose names also start with the product prefix.
+bin=$(find "$tmpdir" -type f \( -name 'oz*' -o -name 'zyh*' \) ! -name '*.tar.gz' ! -path '*/resources/*' | head -n1)
 if [ -z "$bin" ]; then echo "no binary found in tarball" >&2; exit 1; fi
 chmod +x "$bin"
 

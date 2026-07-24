@@ -1,43 +1,31 @@
-#[path = "installation/scp_fallback.rs"]
-mod scp_fallback;
+#[path = "installation/bundled_upload.rs"]
+mod bundled_upload;
 
 use std::path::Path;
 
-use anyhow::Result;
-use remote_server::ssh::SshCommandError;
+use remote_server::bundled_artifact::runtime_http_download_allowed;
 use remote_server::transport::{Error, InstallOutcome, InstallSource};
 
-/// Runs the binary install sequence for the SSH transport. It first asks the
-/// remote host to download directly, then falls back to uploading a cached
-/// client-side tarball over SCP when the remote download path fails.
+/// Runs the binary install sequence for the SSH transport.
+///
+/// Selects the matching verified bundled remote-daemon artifact on the
+/// client, uploads it over SCP, and extracts it on the remote host. Never
+/// calls a CDN, download endpoint, or other HTTP fallback.
 pub(super) async fn install_binary(socket_path: &Path) -> InstallOutcome {
+    debug_assert!(!runtime_http_download_allowed());
+
     let binary_path = remote_server::setup::remote_server_binary();
-    log::info!("Installing remote server binary to {binary_path}");
-    let mut outcome = match install_on_server(socket_path).await {
+    log::info!("Installing remote server binary to {binary_path} from bundled artifact via SCP");
+
+    let mut outcome = match bundled_upload::install(socket_path).await {
         Ok(()) => InstallOutcome {
-            source: Some(InstallSource::Server),
+            source: Some(InstallSource::Bundled),
             result: Ok(()),
         },
-        Err(server_err) => {
-            if scp_fallback::should_try_install(&server_err) {
-                log::info!("Remote server install failed; falling back to SCP upload");
-                match scp_fallback::install(socket_path).await {
-                    Ok(()) => InstallOutcome {
-                        source: Some(InstallSource::Client),
-                        result: Ok(()),
-                    },
-                    Err(e) => InstallOutcome {
-                        source: Some(InstallSource::Client),
-                        result: Err(e),
-                    },
-                }
-            } else {
-                InstallOutcome {
-                    source: Some(InstallSource::Server),
-                    result: Err(server_err),
-                }
-            }
-        }
+        Err(e) => InstallOutcome {
+            source: Some(InstallSource::Bundled),
+            result: Err(e),
+        },
     };
 
     // Post-install verification: confirm the binary actually landed at the
@@ -71,26 +59,4 @@ pub(super) async fn install_binary(socket_path: &Path) -> InstallOutcome {
     }
 
     outcome
-}
-
-/// Runs the install script on the remote host to download and install the
-/// binary directly from the CDN.
-async fn install_on_server(socket_path: &Path) -> Result<(), Error> {
-    let script = remote_server::setup::install_script(None);
-    match remote_server::ssh::run_ssh_script(
-        socket_path,
-        &script,
-        remote_server::setup::INSTALL_TIMEOUT,
-    )
-    .await
-    {
-        Ok(output) if output.status.success() => Ok(()),
-        Ok(output) => {
-            let exit_code = output.status.code().unwrap_or(-1);
-            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-            Err(Error::ScriptFailed { exit_code, stderr })
-        }
-        Err(SshCommandError::TimedOut { .. }) => Err(Error::TimedOut),
-        Err(e) => Err(Error::Other(e.into())),
-    }
 }

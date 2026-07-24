@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod bundled_artifact;
 pub mod client;
 pub mod codebase_index_proto;
 pub mod host_id;

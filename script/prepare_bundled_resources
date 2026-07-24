@@ -77,6 +77,17 @@ if [ -n "${WARP_AGENT_RUNTIME_BRIDGE_TARGET:-}" ]; then
     "${BRIDGE_MODE[@]}"
 fi
 
+# Bundle verified remote-daemon artifacts (four Linux/macOS targets). Release
+# packaging fails when the matrix is incomplete or digests mismatch. Dev builds
+# skip quietly when dist/remote-daemon is absent.
+REMOTE_DAEMON_MODE=()
+if [ "${WARP_AGENT_RUNTIME_RELEASE_MODE:-}" = "release" ] || [ "${ZYH_REMOTE_DAEMON_RELEASE_MODE:-}" = "release" ]; then
+  REMOTE_DAEMON_MODE+=(release)
+fi
+"$SCRIPT_DIR/prepare_remote_daemon_artifacts" \
+  "$DEST_DIR" \
+  "${REMOTE_DAEMON_MODE[@]}"
+
 if [ -n "$GIT_RELEASE_TAG" ]; then
   VERSION_METADATA_DIR="$DEST_DIR/bundled/metadata"
   VERSION_METADATA_PATH="$VERSION_METADATA_DIR/version.json"

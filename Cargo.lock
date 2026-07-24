@@ -11315,6 +11315,8 @@ dependencies = [
  "prost-build",
  "repo_metadata",
  "serde",
+ "serde_json",
+ "sha2 0.10.9",
  "thiserror 2.0.17",
  "tokio",
  "tokio-util",

@@ -25,15 +25,14 @@ use crate::client::{ClientEvent, RemoteServerClient};
 use crate::manager::RemoteServerExitStatus;
 use crate::setup::{PreinstallCheckResult, RemotePlatform};
 
-/// How the remote server binary was installed. Used for telemetry to
-/// distinguish direct remote downloads from client-side SCP uploads.
+/// How the remote server binary was installed. Used for telemetry.
+///
+/// ZYH only installs from verified desktop-package artifacts over SSH/SCP.
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum InstallSource {
-    /// The remote host downloaded the binary directly from the CDN.
-    Server,
-    /// The client downloaded the binary locally and uploaded it via SCP.
-    Client,
+    /// The client uploaded a verified bundled artifact via SCP.
+    Bundled,
 }
 
 /// Result of [`RemoteTransport::install_binary`], bundling the install

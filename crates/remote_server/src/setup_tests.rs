@@ -276,9 +276,36 @@ fn removal_command_removes_binary_but_leaves_global_resources() {
 
 #[test]
 fn install_script_substitutes_bundled_resources_dir_name() {
-    let script = install_script(None);
+    let script = install_script(Some("/tmp/staging.tar.gz"));
     assert!(!script.contains("{bundled_resources_dir_name}"));
     assert!(script.contains(&format!("$install_dir/{BUNDLED_RESOURCES_DIR_NAME}")));
+}
+
+#[test]
+fn install_script_never_contains_http_or_cdn_download() {
+    let script = install_script(Some("/tmp/staging.tar.gz"));
+    assert!(!script.contains("download/cli"));
+    assert!(!script.contains("curl"));
+    assert!(!script.contains("wget"));
+    assert!(!script.contains("http://"));
+    assert!(!script.contains("https://"));
+    assert!(!script.contains("{download_base_url}"));
+    assert!(script.contains("HTTP download is not supported"));
+    assert!(script.contains("zyh-remote-daemon"));
+}
+
+#[test]
+fn remote_server_dir_uses_zyh_external_naming() {
+    let dir = remote_server_dir();
+    assert!(
+        dir.contains("/.zyh"),
+        "remote install path must use ZYH naming, got {dir}"
+    );
+    assert!(
+        !dir.contains(".warp"),
+        "remote install path must not use legacy Warp naming, got {dir}"
+    );
+    assert!(dir.ends_with("/remote-server"));
 }
 
 #[cfg(unix)]
@@ -623,8 +650,8 @@ fn socket_path_fits_within_sun_path_worst_case() {
     // Worst case: preview channel (longest base dir) + 32-char username
     // (Linux max) + hashed identity (8 chars) + hashed socket (20 chars).
     //
-    // Path: /home/{user}/.warp-preview/remote-server/{hash8}/server-{hash8}.sock
-    //       6 + 32 + 1 + 29 + 8 + 1 + 20 = 97 bytes → well under 103 (macOS)
+    // Path: /home/{user}/.zyh-preview/remote-server/{hash8}/server-{hash8}.sock
+    //       6 + 32 + 1 + 28 + 8 + 1 + 20 = 96 bytes → well under 103 (macOS)
     let long_home = "/home/a]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
     let identity_dir = remote_server_identity_dir_name("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
     assert_eq!(identity_dir.len(), 8);
@@ -632,8 +659,8 @@ fn socket_path_fits_within_sun_path_worst_case() {
     let hashed_socket = "server-a1b2c3d4.sock";
     let old_socket = "server-v0.2026.05.13.09.15.stable_01.sock";
 
-    // Use .warp-preview (longest channel base dir) for worst case.
-    let daemon_dir = format!("{long_home}/.warp-preview/remote-server/{identity_dir}");
+    // Use .zyh-preview (longest channel base dir) for worst case.
+    let daemon_dir = format!("{long_home}/.zyh-preview/remote-server/{identity_dir}");
 
     let hashed_path = format!("{daemon_dir}/{hashed_socket}");
 
@@ -649,7 +676,7 @@ fn socket_path_fits_within_sun_path_worst_case() {
     // The OLD naming scheme (full version + unhashed identity) should
     // exceed the limit, confirming the regression.
     let old_identity = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"; // 36 chars unhashed
-    let old_daemon_dir = format!("{long_home}/.warp-preview/remote-server/{old_identity}");
+    let old_daemon_dir = format!("{long_home}/.zyh-preview/remote-server/{old_identity}");
     let old_full_path = format!("{old_daemon_dir}/{old_socket}");
     assert!(
         old_full_path.len() > 107,

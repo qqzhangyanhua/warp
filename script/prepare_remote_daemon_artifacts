@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+#
+# Verify and copy the four required remote-daemon artifacts into a bundled
+# resources tree. Release packaging fails closed when any target is missing,
+# mismatched, or when a local artifact-root override is set.
+#
+# Usage:
+#   prepare_remote_daemon_artifacts <destination_resources_dir> [release]
+#
+# Layout written:
+#   $DEST/bundled/remote-daemon/remote-daemon-manifest.json
+#   $DEST/bundled/remote-daemon/{linux,macos}-{x86_64,aarch64}/zyh-remote-daemon.tar.gz
+#
+# Environment:
+#   ZYH_REMOTE_DAEMON_ARTIFACT_ROOT  Development-only source root containing
+#                                    the manifest and tarballs. Forbidden when
+#                                    the second argument is "release".
+
+set -euo pipefail
+
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  echo "Usage: $0 <destination_resources_dir> [release]" >&2
+  exit 1
+fi
+
+DESTINATION_RESOURCES_DIR="$1"
+RELEASE_MODE="${2:-}"
+if [[ -n "$RELEASE_MODE" && "$RELEASE_MODE" != "release" ]]; then
+  echo "Packaging mode must be 'release' when provided" >&2
+  exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+REQUIRED_TARGETS=(
+  linux-x86_64
+  linux-aarch64
+  macos-x86_64
+  macos-aarch64
+)
+
+PROTOCOL_IDENTITY="zyh-remote-daemon/1"
+MANIFEST_VERSION=1
+
+if [[ "$RELEASE_MODE" == "release" && -n "${ZYH_REMOTE_DAEMON_ARTIFACT_ROOT:-}" ]]; then
+  echo "A local remote-daemon artifact root override is forbidden for release packaging" >&2
+  exit 1
+fi
+
+ARTIFACT_ROOT="${ZYH_REMOTE_DAEMON_ARTIFACT_ROOT:-$REPO_ROOT/dist/remote-daemon}"
+MANIFEST_PATH="$ARTIFACT_ROOT/remote-daemon-manifest.json"
+DEST_ROOT="$DESTINATION_RESOURCES_DIR/bundled/remote-daemon"
+
+if [[ ! -f "$MANIFEST_PATH" ]]; then
+  if [[ "$RELEASE_MODE" == "release" ]]; then
+    echo "Remote-daemon manifest missing at $MANIFEST_PATH (required for release)" >&2
+    exit 1
+  fi
+  echo "Warning: remote-daemon manifest not found at $MANIFEST_PATH; skipping non-release packaging" >&2
+  exit 0
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required to verify remote-daemon artifacts" >&2
+  exit 1
+fi
+
+python3 - "$MANIFEST_PATH" "$ARTIFACT_ROOT" "$DEST_ROOT" "$RELEASE_MODE" <<'PY'
+import hashlib
+import json
+import os
+import shutil
+import sys
+
+manifest_path, artifact_root, dest_root, release_mode = sys.argv[1:5]
+required = ["linux-x86_64", "linux-aarch64", "macos-x86_64", "macos-aarch64"]
+protocol_identity = "zyh-remote-daemon/1"
+
+with open(manifest_path, "r", encoding="utf-8") as handle:
+    manifest = json.load(handle)
+
+if manifest.get("manifest_version") != 1:
+    raise SystemExit(
+        f"Manifest version mismatch: expected 1, found {manifest.get('manifest_version')!r}"
+    )
+if manifest.get("protocol_identity") != protocol_identity:
+    raise SystemExit(
+        f"Protocol identity mismatch: expected {protocol_identity}, "
+        f"found {manifest.get('protocol_identity')!r}"
+    )
+if not str(manifest.get("daemon_version", "")).strip():
+    raise SystemExit("daemon_version must be non-empty")
+
+artifacts = manifest.get("artifacts")
+if not isinstance(artifacts, dict):
+    raise SystemExit("Manifest artifacts must be an object")
+
+missing = [target for target in required if target not in artifacts]
+if missing:
+    raise SystemExit(f"Manifest missing required targets: {', '.join(missing)}")
+unexpected = [target for target in artifacts if target not in required]
+if unexpected:
+    raise SystemExit(f"Manifest has unexpected targets: {', '.join(unexpected)}")
+
+os.makedirs(dest_root, exist_ok=True)
+
+for target in required:
+    entry = artifacts[target]
+    relative = entry.get("relative_path")
+    size = entry.get("size")
+    digest = entry.get("sha256")
+    if not isinstance(relative, str) or not relative or relative.startswith(("/", "\\")):
+        raise SystemExit(f"Invalid relative_path for {target}: {relative!r}")
+    depth = 0
+    for component in relative.replace("\\", "/").split("/"):
+        if component in ("", "."):
+            continue
+        if component == "..":
+            depth -= 1
+            if depth < 0:
+                raise SystemExit(f"Invalid relative_path for {target}: {relative!r}")
+        else:
+            depth += 1
+    if not isinstance(size, int) or size <= 0:
+        raise SystemExit(f"Invalid size for {target}: {size!r}")
+    if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+        raise SystemExit(f"Invalid sha256 for {target}: {digest!r}")
+
+    source = os.path.join(artifact_root, relative)
+    if not os.path.isfile(source):
+        raise SystemExit(f"Missing artifact for {target}: {source}")
+
+    hasher = hashlib.sha256()
+    found_size = 0
+    with open(source, "rb") as handle:
+        while True:
+            chunk = handle.read(64 * 1024)
+            if not chunk:
+                break
+            hasher.update(chunk)
+            found_size += len(chunk)
+    if found_size != size:
+        raise SystemExit(
+            f"Size mismatch for {target}: expected {size}, found {found_size}"
+        )
+    actual = hasher.hexdigest()
+    if actual != digest:
+        raise SystemExit(
+            f"SHA-256 mismatch for {target}: expected {digest}, found {actual}"
+        )
+
+    dest_path = os.path.join(dest_root, relative)
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    shutil.copy2(source, dest_path)
+    os.chmod(dest_path, 0o644)
+
+shutil.copy2(manifest_path, os.path.join(dest_root, "remote-daemon-manifest.json"))
+print(f"Verified and copied four remote-daemon artifacts into {dest_root}")
+PY

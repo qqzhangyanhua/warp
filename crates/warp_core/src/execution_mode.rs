@@ -23,7 +23,7 @@ impl ExecutionMode {
         match self {
             ExecutionMode::App => "warp-app",
             ExecutionMode::Sdk => "warp-cli",
-            ExecutionMode::RemoteServerDaemon => "warp-remote-server-daemon",
+            ExecutionMode::RemoteServerDaemon => "zyh-remote-server-daemon",
         }
     }
 }
@@ -129,7 +129,7 @@ impl Entity for AppExecutionMode {
 
 impl SingletonEntity for AppExecutionMode {}
 
-/// Returns the current global client ID string ("warp-app", "warp-cli", or "warp-remote-server-daemon").
+/// Returns the current global client ID string ("warp-app", "warp-cli", or "zyh-remote-server-daemon").
 /// This is set when AppExecutionMode is constructed during application start.
 /// Returns None if the execution mode has not been set yet.
 pub fn current_client_id() -> Option<&'static str> {
