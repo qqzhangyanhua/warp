@@ -43,10 +43,15 @@ pub(crate) fn should_auto_index_codebase(
     )
 }
 
-fn codebase_indexing_enabled(
+/// Pure gate used by tests and by [`should_use_codebase_indexing`].
+pub(crate) fn codebase_indexing_enabled(
     surface: CodebaseAutoIndexingSurface,
     codebase_context_enabled: bool,
 ) -> bool {
+    // Hosted full-source embeddings are removed from the ZYH local product.
+    if !crate::ai::semantic_indexing_removal::may_use_hosted_semantic_indexing() {
+        return false;
+    }
     FeatureFlag::FullSourceCodeEmbedding.is_enabled()
         && surface.required_feature_enabled()
         && codebase_context_enabled

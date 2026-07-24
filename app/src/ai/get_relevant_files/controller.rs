@@ -69,6 +69,9 @@ pub enum GetRelevantFilesError {
     CreateFailed,
     #[error("Failed to create outline.")]
     Missing,
+    /// Hosted semantic search is not available in the ZYH local product.
+    #[error("{0}")]
+    HostedSearchUnavailable(String),
 }
 
 /// This enum allows us to use both the existing structure for outline-based indexing
@@ -240,6 +243,14 @@ impl GetRelevantFilesController {
         ctx: &mut ModelContext<Self>,
     ) -> Result<(), GetRelevantFilesError> {
         const MINIMUM_FILE_COUNT_FOR_API_CALL: usize = 2;
+
+        // Hosted semantic search (embeddings and server outline retrieval) is removed.
+        // Callers should use local grep/rg/outline or an MCP search tool.
+        if !crate::ai::semantic_indexing_removal::may_use_hosted_semantic_search() {
+            return Err(GetRelevantFilesError::HostedSearchUnavailable(
+                crate::ai::semantic_indexing_removal::semantic_search_unavailable_message(),
+            ));
+        }
 
         if FeatureFlag::FullSourceCodeEmbedding.is_enabled() {
             let codebase_mgr = CodebaseIndexManager::handle(ctx);
@@ -424,10 +435,13 @@ impl GetRelevantFilesController {
     /// Returns the path to the root directory for a codebase search where pwd is `directory`.
     pub fn root_directory_for_search(&self, directory: &Path, app: &AppContext) -> Option<PathBuf> {
         let mut start = None;
-        if FeatureFlag::FullSourceCodeEmbedding.is_enabled() {
+        if crate::ai::semantic_indexing_removal::may_use_hosted_semantic_indexing()
+            && FeatureFlag::FullSourceCodeEmbedding.is_enabled()
+        {
             start = CodebaseIndexManager::as_ref(app).root_path_for_codebase(directory);
         }
         start.or_else(|| {
+            // Local repo outline roots remain available for non-hosted search paths.
             RepoOutlines::as_ref(app)
                 .get_outline(directory)
                 .map(|(_, root)| root)

@@ -181,6 +181,18 @@ impl SearchCodebaseExecutor {
         input: ExecuteActionInput,
         ctx: &mut ModelContext<Self>,
     ) -> impl Into<AnyActionExecution> {
+        // Built-in hosted semantic search is removed; MCP search tools remain possible.
+        if !crate::ai::semantic_indexing_removal::may_use_hosted_semantic_search() {
+            let message =
+                crate::ai::semantic_indexing_removal::semantic_search_unavailable_message();
+            return ActionExecution::Sync(AIAgentActionResultType::SearchCodebase(
+                SearchCodebaseResult::Failed {
+                    reason: SearchCodebaseFailureReason::CodebaseNotIndexed,
+                    message,
+                },
+            ));
+        }
+
         let ExecuteActionInput {
             action,
             conversation_id,
@@ -398,6 +410,7 @@ impl SearchCodebaseExecutor {
                             GetRelevantFilesError::Missing => {
                                 "The current directory isn't within a git repository, which is necessary to search for relevant files.".to_owned()
                             }
+                            GetRelevantFilesError::HostedSearchUnavailable(message) => message,
                         };
                     ActionExecution::Sync(AIAgentActionResultType::SearchCodebase(
                         SearchCodebaseResult::Failed {
