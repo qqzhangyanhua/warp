@@ -344,10 +344,17 @@ impl MCPServersListPageView {
     }
 
     fn create_server_cards(&mut self, ctx: &mut ViewContext<Self>) {
-        // Cloud templates, cloud installations, and gallery items are not part of the
-        // local MCP path. Running file-based servers are registered by
-        // `create_file_based_server_cards` instead.
+        // Cloud templates / installations are excluded by LocalMcpSurfacePolicy.
+        // Running file-based servers are registered by `create_file_based_server_cards`.
         let _ = ctx;
+        #[cfg(feature = "local_fs")]
+        {
+            use crate::ai::mcp::local_mcp_surface::{local_mcp_surface, McpSettingsCardKind};
+            debug_assert!(!local_mcp_surface()
+                .allows_settings_card(McpSettingsCardKind::CloudTemplate));
+            debug_assert!(!local_mcp_surface()
+                .allows_settings_card(McpSettingsCardKind::CloudInstallation));
+        }
         self.server_cards
             .retain(|id, _| matches!(id, ServerCardItemId::FileBasedMCP(_)));
     }
@@ -359,7 +366,13 @@ impl MCPServersListPageView {
     fn create_gallery_server_cards(
         _ctx: &mut ViewContext<Self>,
     ) -> HashMap<ServerCardItemId, ViewHandle<ServerCardView>> {
-        // Gallery MCP is removed from the retained local product path (issue #29).
+        #[cfg(feature = "local_fs")]
+        {
+            use crate::ai::mcp::local_mcp_surface::{local_mcp_surface, McpSettingsCardKind};
+            if !local_mcp_surface().allows_settings_card(McpSettingsCardKind::Gallery) {
+                return HashMap::new();
+            }
+        }
         HashMap::new()
     }
 
@@ -873,6 +886,16 @@ impl MCPServersListPageView {
     }
 
     fn install_from_gallery(&mut self, gallery_uuid: Uuid, ctx: &mut ViewContext<Self>) {
+        #[cfg(feature = "local_fs")]
+        {
+            use crate::ai::mcp::local_mcp_surface::{local_mcp_surface, McpSettingsCardKind};
+            if !local_mcp_surface().allows_settings_card(McpSettingsCardKind::Gallery) {
+                log::warn!(
+                    "Gallery MCP install rejected for {gallery_uuid}: not part of the local MCP path"
+                );
+                return;
+            }
+        }
         let gallery_server = MCPGalleryManager::as_ref(ctx).get_gallery_item(gallery_uuid);
         let Some(gallery_server) = gallery_server else {
             log::warn!(

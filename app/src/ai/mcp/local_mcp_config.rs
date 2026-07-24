@@ -584,8 +584,74 @@ pub fn is_pure_placeholder(value: &str) -> bool {
         && placeholder_regex().is_match(trimmed)
 }
 
+/// Remote MCP credentials extracted from a single server JSON object.
+///
+/// Values are never attached to a Provider Origin; callers may only send
+/// `headers` to [`Self::mcp_origin`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemoteMcpCredentialTarget {
+    /// Scheme + host + port of the configured MCP server URL.
+    pub mcp_origin: String,
+    /// Header names present on the remote MCP config (values stay local).
+    pub header_names: Vec<String>,
+}
+
+/// Build the credential target for a remote MCP server entry (`url` / `serverUrl`).
+///
+/// Returns `None` for command/stdio servers. Does not include Provider origins.
+pub fn remote_mcp_credential_target(
+    server: &Value,
+) -> Result<Option<RemoteMcpCredentialTarget>, LocalMcpConfigError> {
+    let Some(object) = server.as_object() else {
+        return Err(LocalMcpConfigError::Io(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "MCP server entry must be a JSON object",
+        )));
+    };
+    let url = object
+        .get("url")
+        .or_else(|| object.get("serverUrl"))
+        .and_then(Value::as_str);
+    let Some(url) = url else {
+        return Ok(None);
+    };
+    let parsed = url::Url::parse(url).map_err(|err| {
+        LocalMcpConfigError::Io(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("invalid MCP server URL: {err}"),
+        ))
+    })?;
+    let mut header_names = Vec::new();
+    if let Some(headers) = object.get("headers").and_then(Value::as_object) {
+        header_names.extend(headers.keys().cloned());
+        header_names.sort();
+    }
+    Ok(Some(RemoteMcpCredentialTarget {
+        mcp_origin: origin_key(&parsed),
+        header_names,
+    }))
+}
+
+/// True when a remote MCP credential target must not share origin with the Provider.
+pub fn remote_credentials_exclude_provider_origin(
+    target: &RemoteMcpCredentialTarget,
+    provider_base_url: &str,
+) -> bool {
+    if target.header_names.is_empty() {
+        return true;
+    }
+    let Ok(provider_url) = url::Url::parse(provider_base_url) else {
+        return false;
+    };
+    target.mcp_origin != origin_key(&provider_url)
+}
+
+fn origin_key(url: &url::Url) -> String {
+    url.origin().ascii_serialization()
+}
+
 /// True when remote MCP headers are bound to `server_url`, not `provider_origin`.
-#[allow(dead_code)] // Asserted in unit tests; documents the MCP-vs-Provider origin contract.
+#[allow(dead_code)]
 pub fn remote_credentials_bound_to_origin(
     server_url: &str,
     headers: &HashMap<String, String>,
@@ -600,7 +666,7 @@ pub fn remote_credentials_bound_to_origin(
     let Ok(provider_url) = url::Url::parse(provider_origin) else {
         return false;
     };
-    mcp_url.origin() != provider_url.origin()
+    origin_key(&mcp_url) != origin_key(&provider_url)
 }
 
 fn parse_server_map(json: &str) -> Result<(String, Map<String, Value>), LocalMcpConfigError> {

@@ -46,9 +46,11 @@ cfg_if::cfg_if! {
         pub use file_mcp_watcher::{FileMCPWatcher, FileMCPWatcherEvent};
         pub mod local_mcp_config;
         pub mod local_mcp_secrets;
+        pub mod local_mcp_surface;
         pub use local_mcp_config::{
             LocalMcpConfigDocument, LocalMcpConfigScope, LocalMcpConfigState,
         };
+        pub use local_mcp_surface::{local_mcp_surface, LocalMcpSurfacePolicy, McpSettingsCardKind};
     }
 }
 

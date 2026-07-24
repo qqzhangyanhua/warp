@@ -469,6 +469,84 @@ fn remote_credentials_are_not_bound_to_provider_origin() {
 }
 
 #[test]
+fn remote_mcp_credential_target_is_mcp_origin_only() {
+    let servers = parse_servers_from_user_json(
+        r#"{
+          "mcpServers": {
+            "remote": {
+              "url": "https://mcp.example.com/sse",
+              "headers": {
+                "Authorization": "${Authorization}",
+                "X-Client": "zyh"
+              }
+            },
+            "cli": {
+              "command": "npx",
+              "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+            }
+          }
+        }"#,
+    )
+    .unwrap();
+
+    let remote = super::remote_mcp_credential_target(&servers["remote"])
+        .unwrap()
+        .expect("remote server");
+    assert_eq!(remote.mcp_origin, "https://mcp.example.com");
+    assert_eq!(
+        remote.header_names,
+        vec!["Authorization".to_owned(), "X-Client".to_owned()]
+    );
+    assert!(super::remote_credentials_exclude_provider_origin(
+        &remote,
+        "https://api.openai.com/v1/chat/completions",
+    ));
+    assert!(!super::remote_credentials_exclude_provider_origin(
+        &remote,
+        "https://mcp.example.com/v1",
+    ));
+
+    assert!(super::remote_mcp_credential_target(&servers["cli"])
+        .unwrap()
+        .is_none());
+}
+
+#[test]
+fn local_command_server_parses_from_mcp_json() {
+    let json = r#"{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "env": { "TOKEN": "${TOKEN}" }
+    }
+  }
+}
+"#;
+    let servers = parse_servers_from_user_json(json).unwrap();
+    assert_eq!(servers.len(), 1);
+    let server = &servers["filesystem"];
+    assert_eq!(server["command"], "npx");
+    assert_eq!(
+        server["args"],
+        serde_json::json!(["-y", "@modelcontextprotocol/server-filesystem", "/tmp"])
+    );
+    assert!(super::remote_mcp_credential_target(server)
+        .unwrap()
+        .is_none());
+
+    // After placeholder resolve with secrets, still a command server (stdio path).
+    let secrets = HashMap::from([(
+        secret_storage_key("filesystem", SecretKind::Env, "TOKEN"),
+        "secret".to_owned(),
+    )]);
+    let resolved = resolve_placeholders(json, &secrets).unwrap();
+    let resolved_servers = parse_servers_from_user_json(&resolved).unwrap();
+    assert_eq!(resolved_servers["filesystem"]["env"]["TOKEN"], "secret");
+    assert_eq!(resolved_servers["filesystem"]["command"], "npx");
+}
+
+#[test]
 fn restart_survives_via_disk_content_hash() {
     let temp = tempfile::tempdir().unwrap();
     let document = document_in(&temp);
