@@ -3,6 +3,7 @@ mod context_menu;
 pub mod editor;
 pub mod file;
 pub mod link;
+pub mod local_markdown;
 pub mod manager;
 pub mod notebook;
 mod styles;

@@ -59,6 +59,21 @@ impl FilePane {
         });
         Self::from_view(view, ctx)
     }
+
+    /// Create a new unsaved local Markdown Notebook pane. The user chooses a path on first save.
+    #[cfg(feature = "local_fs")]
+    pub fn new_unsaved<V: View>(
+        title: Option<String>,
+        content: Option<String>,
+        ctx: &mut ViewContext<V>,
+    ) -> Self {
+        let view = ctx.add_typed_action_view(move |ctx| {
+            let mut view = FileNotebookView::new(ctx);
+            view.open_unsaved(title, content, ctx);
+            view
+        });
+        Self::from_view(view, ctx)
+    }
     pub fn file_view(&self, ctx: &AppContext) -> ViewHandle<FileNotebookView> {
         self.view.as_ref(ctx).child(ctx)
     }

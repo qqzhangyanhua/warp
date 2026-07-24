@@ -7687,20 +7687,28 @@ impl Workspace {
                 }
             }
         } else if default_to_new_pane {
-            let window_id = ctx.window_id();
-            let pane = notebook_manager.update(ctx, |manager, ctx| {
-                manager.create_pane(source, settings, window_id, ctx)
-            });
-            self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                let smart_split_direction =
-                    pane_group.smart_split_direction(ctx, NOTEBOOK_SMART_SPLIT_RATIO);
-                pane_group.add_pane_with_direction(
-                    smart_split_direction,
-                    pane,
-                    true, /* focus_new_pane */
-                    ctx,
-                );
-            });
+            match source {
+                NotebookSource::New { title, .. } => {
+                    // Retained product path: local Markdown, no cloud Notebook ID.
+                    self.open_new_local_notebook(title.clone(), None, ctx);
+                }
+                NotebookSource::Existing(_) => {
+                    let window_id = ctx.window_id();
+                    let pane = notebook_manager.update(ctx, |manager, ctx| {
+                        manager.create_pane(source, settings, window_id, ctx)
+                    });
+                    self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
+                        let smart_split_direction =
+                            pane_group.smart_split_direction(ctx, NOTEBOOK_SMART_SPLIT_RATIO);
+                        pane_group.add_pane_with_direction(
+                            smart_split_direction,
+                            pane,
+                            true, /* focus_new_pane */
+                            ctx,
+                        );
+                    });
+                }
+            }
         }
 
         // Get notebook ID to set Warp drive index selected state
@@ -12097,6 +12105,40 @@ impl Workspace {
             }),
         })));
         self.add_tab_with_pane_layout(panes_layout, Arc::new(HashMap::new()), None, ctx);
+    }
+
+    /// Open a new unsaved local Markdown Notebook in the active tab.
+    ///
+    /// The Notebook remains unsaved until the user chooses a path. There is no
+    /// cloud Notebook ID, owner, or sharing state.
+    #[cfg(feature = "local_fs")]
+    pub fn open_new_local_notebook(
+        &mut self,
+        title: Option<String>,
+        content: Option<String>,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        let pane = FilePane::new_unsaved(title, content, ctx);
+        self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
+            let smart_split_direction =
+                pane_group.smart_split_direction(ctx, NOTEBOOK_SMART_SPLIT_RATIO);
+            pane_group.add_pane_with_direction(
+                smart_split_direction,
+                pane,
+                true, /* focus_new_pane */
+                ctx,
+            );
+        });
+    }
+
+    #[cfg(not(feature = "local_fs"))]
+    pub fn open_new_local_notebook(
+        &mut self,
+        _title: Option<String>,
+        _content: Option<String>,
+        _ctx: &mut ViewContext<Self>,
+    ) {
+        // Local Markdown lifecycle requires local_fs.
     }
 
     /// Add a tab with a code pane open for the specified file.
@@ -22927,18 +22969,8 @@ impl TypedActionView for Workspace {
                 }
             }
             CreatePersonalNotebook => {
-                if let Some(personal_drive) = UserWorkspaces::as_ref(ctx).personal_drive(ctx) {
-                    self.open_notebook(
-                        &NotebookSource::New {
-                            title: None,
-                            owner: personal_drive,
-                            initial_folder_id: None,
-                        },
-                        &OpenWarpDriveObjectSettings::default(),
-                        ctx,
-                        true,
-                    );
-                }
+                // ZYH: new Notebooks are local Markdown files (no cloud ID / owner).
+                self.open_new_local_notebook(None, None, ctx);
             }
             CreateTeamNotebook => {
                 let team_uid = self.team_uid(ctx);

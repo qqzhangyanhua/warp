@@ -102,12 +102,129 @@ fn test_load_local() {
             assert_eq!(location.breadcrumbs, "..");
 
             let editor = handle.as_ref(ctx).editor.as_ref(ctx);
-            assert!(!editor.is_editable(ctx));
+            // Local Markdown Notebooks are editable; owner/sharing/cloud actions remain absent.
+            assert!(editor.is_editable(ctx));
             // We don't want to check the actual README contents, but it should be clearly non-empty.
             assert!(editor.markdown(ctx).len() > 4);
+            assert!(!handle.as_ref(ctx).is_unsaved());
+            assert!(!handle.as_ref(ctx).has_conflict());
 
             // Rendering should not panic.
             handle.as_ref(ctx).render(ctx);
+        });
+    });
+}
+
+#[cfg(feature = "local_fs")]
+#[test]
+fn test_new_unsaved_notebook_until_first_save() {
+    App::test((), |mut app| async move {
+        init_app(&mut app);
+        let (_, handle) = app.add_window(WindowStyle::NotStealFocus, FileNotebookView::new);
+
+        handle.update(&mut app, |file_notebook, ctx| {
+            file_notebook.open_unsaved(Some("My Notes".into()), Some("# draft\n".into()), ctx);
+        });
+
+        app.read(|ctx| {
+            let view = handle.as_ref(ctx);
+            assert!(view.is_unsaved());
+            assert!(view.local_path().is_none());
+            assert_eq!(view.title(), "My Notes •");
+            assert!(view.editor.as_ref(ctx).is_editable(ctx));
+            assert!(view.editor.as_ref(ctx).markdown(ctx).contains("draft"));
+            // No cloud ID, owner, or sharing surface on the local file view.
+            view.render(ctx);
+        });
+
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("my_notes.md");
+        handle.update(&mut app, |file_notebook, ctx| {
+            file_notebook.finish_save_as(path.clone(), ctx);
+        });
+
+        // first_save writes then re-opens via FileModel; wait for load.
+        handle
+            .update(&mut app, |file_notebook, ctx| {
+                let file_id = file_notebook
+                    .file_id
+                    .expect("File should be opened after first save");
+                let future_handle = FileModel::as_ref(ctx)
+                    .get_future_handle(file_id)
+                    .expect("Loading future should be present");
+                ctx.await_spawned_future(future_handle.future_id())
+            })
+            .await;
+
+        app.read(|ctx| {
+            let view = handle.as_ref(ctx);
+            assert!(!view.is_unsaved());
+            // FileModel may canonicalize paths (e.g. /var vs /private/var on macOS).
+            let opened = view.local_path().expect("path after first save");
+            assert_eq!(opened.file_name(), path.file_name());
+            assert!(std::fs::read_to_string(&path).unwrap().contains("draft"));
+            assert!(!view.has_conflict());
+        });
+    });
+}
+
+#[cfg(feature = "local_fs")]
+#[test]
+fn test_cancel_first_save_keeps_unsaved() {
+    App::test((), |mut app| async move {
+        init_app(&mut app);
+        let (_, handle) = app.add_window(WindowStyle::NotStealFocus, FileNotebookView::new);
+
+        handle.update(&mut app, |file_notebook, ctx| {
+            file_notebook.open_unsaved(Some("Draft".into()), Some("body".into()), ctx);
+        });
+
+        app.read(|ctx| {
+            assert!(handle.as_ref(ctx).is_unsaved());
+            assert!(handle.as_ref(ctx).local_path().is_none());
+            assert!(handle.as_ref(ctx).editor.as_ref(ctx).markdown(ctx).contains("body"));
+        });
+    });
+}
+
+#[cfg(feature = "local_fs")]
+#[test]
+fn test_external_conflict_surfaces_visible_state() {
+    App::test((), |mut app| async move {
+        init_app(&mut app);
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("conflict.md");
+        std::fs::write(&path, "original\n").unwrap();
+
+        let (_, handle) = app.add_window(WindowStyle::NotStealFocus, FileNotebookView::new);
+        let session = Arc::new(Session::test());
+        handle
+            .update(&mut app, |file_notebook, ctx| {
+                file_notebook.open_local(&path, Some(session), ctx);
+                let file_id = file_notebook.file_id.expect("file id");
+                let future_handle = FileModel::as_ref(ctx)
+                    .get_future_handle(file_id)
+                    .expect("load future");
+                ctx.await_spawned_future(future_handle.future_id())
+            })
+            .await;
+
+        handle.update(&mut app, |file_notebook, ctx| {
+            // Simulate a local edit.
+            file_notebook.editor.update(ctx, |editor, ctx| {
+                editor.reset_with_markdown("local edit\n", ctx);
+            });
+            file_notebook.is_dirty = true;
+            file_notebook.has_conflict = true;
+            ctx.notify();
+        });
+
+        app.read(|ctx| {
+            let view = handle.as_ref(ctx);
+            assert!(view.has_conflict());
+            assert!(view.is_dirty());
+            // Conflict banner must not panic.
+            view.render(ctx);
         });
     });
 }
