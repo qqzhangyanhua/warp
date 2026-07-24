@@ -9,7 +9,7 @@ use warp_core::features::FeatureFlag;
 use warp_util::local_or_remote_path::LocalOrRemotePath;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-use super::{home_config_file_path, FileMCPWatcher, FileMCPWatcherEvent, MCPProvider};
+use super::{FileMCPWatcher, FileMCPWatcherEvent, MCPProvider};
 use crate::ai::mcp::templatable_installation::TemplatableMCPServerInstallation;
 use crate::ai::mcp::ParsedTemplatableMCPServerResult;
 use crate::settings::ai::AISettings;
@@ -491,25 +491,19 @@ impl FileBasedMCPManager {
                 if !hashes.contains(&hash) {
                     continue;
                 }
-                let config_path =
-                    if *provider == MCPProvider::Warp && Self::is_global_warp_root(root) {
-                        home_config_file_path(*provider)
-                            .unwrap_or_else(|| root.join(provider.home_config_path()))
-                    } else if *provider == MCPProvider::Warp {
-                        root.join(provider.project_config_path())
-                    } else if dirs::home_dir().as_ref().is_some_and(|home| root == home) {
-                        home_config_file_path(*provider)
-                            .unwrap_or_else(|| root.join(provider.home_config_path()))
-                    } else {
-                        root.join(provider.project_config_path())
-                    };
-                sources.push((*provider, config_path));
+                let is_global = match provider {
+                    MCPProvider::Warp => Self::is_global_warp_root(root),
+                    MCPProvider::Claude | MCPProvider::Codex | MCPProvider::Agents => {
+                        dirs::home_dir().as_ref().is_some_and(|home| root == home)
+                    }
+                };
+                sources.push((
+                    *provider,
+                    super::config_file_path_for_root(*provider, root, is_global),
+                ));
             }
         }
-        sources.sort_by(|a, b| {
-            a.1.cmp(&b.1)
-                .then(format!("{:?}", a.0).cmp(&format!("{:?}", b.0)))
-        });
+        sources.sort_by(|a, b| a.1.cmp(&b.1).then(a.0.sort_key().cmp(&b.0.sort_key())));
         sources
     }
 

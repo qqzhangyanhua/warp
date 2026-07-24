@@ -36,6 +36,26 @@ fn warp_project_mcp_path_uses_zyh_directory() {
     );
 }
 
+#[test]
+fn config_file_path_for_root_uses_project_or_home_layout() {
+    use std::path::Path;
+
+    let project = Path::new("/repos/app");
+    assert_eq!(
+        super::config_file_path_for_root(MCPProvider::Warp, project, false),
+        project.join(".zyh/.mcp.json")
+    );
+    assert_eq!(
+        super::config_file_path_for_root(MCPProvider::Claude, project, false),
+        project.join(".mcp.json")
+    );
+    let home = Path::new("/Users/me");
+    assert_eq!(
+        super::config_file_path_for_root(MCPProvider::Claude, home, true),
+        home.join(".claude.json")
+    );
+}
+
 /// Helper function to create a test TemplatableMCPServerInstallation with custom values
 fn create_test_installation(
     name: &str,

@@ -549,6 +549,37 @@ impl MCPProvider {
             MCPProvider::Agents => Path::new(".agents/.mcp.json"),
         }
     }
+
+    fn sort_key(self) -> u8 {
+        match self {
+            MCPProvider::Warp => 0,
+            MCPProvider::Claude => 1,
+            MCPProvider::Codex => 2,
+            MCPProvider::Agents => 3,
+        }
+    }
+}
+
+/// Resolve the absolute config file path for a provider under a discovery root.
+///
+/// When `is_global` is true, uses the provider's home-relative config path under
+/// `root`. ZYH additionally prefers `home_config_file_path` so application-home
+/// overrides still apply when `root` is the managed global root.
+pub fn config_file_path_for_root(
+    provider: MCPProvider,
+    root: &Path,
+    is_global: bool,
+) -> PathBuf {
+    if !is_global {
+        return root.join(provider.project_config_path());
+    }
+    match provider {
+        MCPProvider::Warp => home_config_file_path(provider)
+            .unwrap_or_else(|| root.join(provider.home_config_path())),
+        MCPProvider::Claude | MCPProvider::Codex | MCPProvider::Agents => {
+            root.join(provider.home_config_path())
+        }
+    }
 }
 
 /// Returns the [`MCPProvider`] that owns `file_path` as a config file, if any.

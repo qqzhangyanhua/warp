@@ -4,9 +4,10 @@ use std::fs;
 use warpui_extras::owner_only_file::{content_hash, ExpectedContent};
 
 use super::{
-    is_pure_placeholder, merge_secrets, parse_servers_from_user_json, redact_server_map,
-    remote_credentials_bound_to_origin, resolve_placeholders, LocalMcpConfigDocument,
-    LocalMcpConfigError, LocalMcpConfigScope, LocalMcpConfigState,
+    commit_local_mcp_config, is_pure_placeholder, merge_secrets, parse_servers_from_user_json,
+    redact_server_map, remote_credentials_bound_to_origin, resolve_placeholders,
+    secret_storage_key, ExtractedSecret, LocalMcpConfigDocument, LocalMcpConfigError,
+    LocalMcpConfigScope, LocalMcpConfigState, SecretKind,
 };
 
 fn document_in(temp: &tempfile::TempDir) -> LocalMcpConfigDocument {
@@ -101,12 +102,19 @@ fn upsert_redacts_literal_env_and_headers_to_placeholders() {
         .unwrap();
 
     assert_eq!(secrets.len(), 2);
-    assert!(secrets
-        .iter()
-        .any(|s| s.name == "API_KEY" && s.value == "sk-live-plaintext"));
-    assert!(secrets
-        .iter()
-        .any(|s| s.name == "Authorization" && s.value == "Bearer super-secret-token"));
+    assert!(secrets.iter().any(|s| {
+        s.server == "remote"
+            && s.kind == SecretKind::Env
+            && s.name == "API_KEY"
+            && s.value == "sk-live-plaintext"
+            && s.storage_key() == "remote/env/API_KEY"
+    }));
+    assert!(secrets.iter().any(|s| {
+        s.server == "remote"
+            && s.kind == SecretKind::Header
+            && s.name == "Authorization"
+            && s.value == "Bearer super-secret-token"
+    }));
 
     let on_disk = fs::read_to_string(document.path()).unwrap();
     assert!(!on_disk.contains("sk-live-plaintext"));
@@ -203,6 +211,82 @@ fn external_edit_conflicts_on_stale_save() {
 }
 
 #[test]
+fn upsert_with_stale_expected_after_external_edit_fails_and_preserves_disk() {
+    let temp = tempfile::tempdir().unwrap();
+    let document = document_in(&temp);
+    document
+        .create(
+            r#"{
+  "mcpServers": {
+    "a": { "command": "echo" }
+  }
+}
+"#,
+        )
+        .unwrap();
+    let expected = LocalMcpConfigDocument::expected_content(&document.load().unwrap());
+
+    // External edit replaces the file with a different server set.
+    fs::write(
+        document.path(),
+        r#"{
+  "mcpServers": {
+    "external": { "command": "cat" }
+  }
+}
+"#,
+    )
+    .unwrap();
+
+    let incoming = parse_servers_from_user_json(
+        r#"{ "mcpServers": { "b": { "command": "ls" } } }"#,
+    )
+    .unwrap();
+    let err = document.upsert_servers(incoming, expected).unwrap_err();
+    assert!(matches!(err, LocalMcpConfigError::Conflict { .. }));
+
+    let on_disk = fs::read_to_string(document.path()).unwrap();
+    assert!(
+        on_disk.contains("external") && on_disk.contains("cat"),
+        "stale upsert must not clobber external content: {on_disk}"
+    );
+    assert!(!on_disk.contains("\"b\""), "stale upsert must not write: {on_disk}");
+}
+
+#[test]
+fn delete_with_stale_expected_after_external_edit_preserves_disk() {
+    let temp = tempfile::tempdir().unwrap();
+    let document = document_in(&temp);
+    document
+        .create(
+            r#"{
+  "mcpServers": {
+    "a": { "command": "echo" }
+  }
+}
+"#,
+        )
+        .unwrap();
+    let expected = LocalMcpConfigDocument::expected_content(&document.load().unwrap());
+
+    fs::write(
+        document.path(),
+        r#"{
+  "mcpServers": {
+    "kept": { "command": "true" }
+  }
+}
+"#,
+    )
+    .unwrap();
+
+    let err = document.delete_server("a", expected).unwrap_err();
+    assert!(matches!(err, LocalMcpConfigError::Conflict { .. }));
+    let on_disk = fs::read_to_string(document.path()).unwrap();
+    assert!(on_disk.contains("kept") && on_disk.contains("true"));
+}
+
+#[test]
 fn delete_server_and_remove_empty_file() {
     let temp = tempfile::tempdir().unwrap();
     let document = document_in(&temp);
@@ -224,14 +308,145 @@ fn delete_server_and_remove_empty_file() {
 }
 
 #[test]
-fn merge_secrets_overwrites_same_name() {
-    let existing = HashMap::from([("API_KEY".to_owned(), "old".to_owned())]);
-    let extracted = vec![super::ExtractedSecret {
+fn merge_secrets_overwrites_same_namespaced_key() {
+    let existing = HashMap::from([("svc/env/API_KEY".to_owned(), "old".to_owned())]);
+    let extracted = vec![ExtractedSecret {
+        server: "svc".to_owned(),
+        kind: SecretKind::Env,
         name: "API_KEY".to_owned(),
         value: "new".to_owned(),
     }];
     let merged = merge_secrets(&existing, &extracted);
-    assert_eq!(merged.get("API_KEY").map(String::as_str), Some("new"));
+    assert_eq!(merged.get("svc/env/API_KEY").map(String::as_str), Some("new"));
+}
+
+#[test]
+fn secrets_from_different_servers_do_not_collide() {
+    let servers = parse_servers_from_user_json(
+        r#"{
+          "mcpServers": {
+            "alpha": { "command": "a", "env": { "API_KEY": "secret-a" } },
+            "beta": { "command": "b", "env": { "API_KEY": "secret-b" } }
+          }
+        }"#,
+    )
+    .unwrap();
+    let redacted = redact_server_map(servers).unwrap();
+    let merged = merge_secrets(&HashMap::new(), &redacted.secrets);
+    assert_eq!(merged.get("alpha/env/API_KEY").map(String::as_str), Some("secret-a"));
+    assert_eq!(merged.get("beta/env/API_KEY").map(String::as_str), Some("secret-b"));
+
+    let on_disk = serde_json::to_string_pretty(&serde_json::json!({
+        "mcpServers": redacted.servers
+    }))
+    .unwrap();
+    let resolved = resolve_placeholders(&on_disk, &merged).unwrap();
+    assert!(resolved.contains("secret-a") && resolved.contains("secret-b"));
+    assert!(!resolved.contains("${API_KEY}"));
+}
+
+#[test]
+fn commit_does_not_write_file_when_secret_persist_fails() {
+    let temp = tempfile::tempdir().unwrap();
+    let document = document_in(&temp);
+    let incoming = parse_servers_from_user_json(
+        r#"{
+          "mcpServers": {
+            "cli": {
+              "command": "tool",
+              "env": { "TOKEN": "plaintext-token" }
+            }
+          }
+        }"#,
+    )
+    .unwrap();
+
+    let err = commit_local_mcp_config(
+        &document,
+        incoming,
+        ExpectedContent::Missing,
+        &HashMap::new(),
+        |_| {
+            Err(LocalMcpConfigError::Io(std::io::Error::other(
+                "secure storage unavailable",
+            )))
+        },
+    )
+    .unwrap_err();
+    assert!(matches!(err, LocalMcpConfigError::Io(_)));
+    assert!(
+        !document.path().exists(),
+        "file must remain absent when secret persist fails"
+    );
+}
+
+#[test]
+fn editor_json_for_server_returns_placeholders_only() {
+    let temp = tempfile::tempdir().unwrap();
+    let document = document_in(&temp);
+    document
+        .create(
+            r#"{
+  "mcpServers": {
+    "cli": {
+      "command": "tool",
+      "env": { "TOKEN": "${TOKEN}" }
+    }
+  }
+}
+"#,
+        )
+        .unwrap();
+    let json = super::editor_json_for_server(document.path(), "cli").unwrap();
+    assert!(json.contains("${TOKEN}"));
+    assert!(!json.contains("plaintext"));
+}
+
+#[test]
+fn editor_json_for_server_errors_when_missing() {
+    let temp = tempfile::tempdir().unwrap();
+    let document = document_in(&temp);
+    let err = super::editor_json_for_server(document.path(), "missing").unwrap_err();
+    assert!(matches!(err, LocalMcpConfigError::ServerNotFound(_)));
+}
+
+#[test]
+fn commit_writes_placeholders_after_secrets_succeed() {
+    let temp = tempfile::tempdir().unwrap();
+    let document = document_in(&temp);
+    let incoming = parse_servers_from_user_json(
+        r#"{
+          "mcpServers": {
+            "cli": {
+              "command": "tool",
+              "env": { "TOKEN": "plaintext-token" }
+            }
+          }
+        }"#,
+    )
+    .unwrap();
+
+    let mut stored = HashMap::new();
+    let (_hash, merged) = commit_local_mcp_config(
+        &document,
+        incoming,
+        ExpectedContent::Missing,
+        &HashMap::new(),
+        |secrets| {
+            stored = secrets.clone();
+            Ok(())
+        },
+    )
+    .unwrap();
+
+    assert_eq!(
+        stored.get(&secret_storage_key("cli", SecretKind::Env, "TOKEN")),
+        Some(&"plaintext-token".to_owned())
+    );
+    assert_eq!(merged, stored);
+    let on_disk = fs::read_to_string(document.path()).unwrap();
+    assert!(on_disk.contains("${TOKEN}"));
+    assert!(!on_disk.contains("plaintext-token"));
 }
 
 #[test]

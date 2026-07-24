@@ -33,7 +33,7 @@ use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
 #[cfg(feature = "local_fs")]
 use crate::ai::mcp::{
     local_mcp_config, local_mcp_secrets, FileBasedMCPManager, LocalMcpConfigDocument,
-    LocalMcpConfigScope, LocalMcpConfigState, MCPProvider,
+    LocalMcpConfigScope, MCPProvider,
 };
 use crate::ai::mcp::{
     MCPServer, TemplatableMCPServer, TemplatableMCPServerInstallation, TemplatableMCPServerManager,
@@ -273,11 +273,21 @@ impl MCPServersEditPageView {
                     {
                         self.server_model =
                             ServerModel::LocalTemplatableMCPInstallation(installation.clone());
-                        let json = Self::load_file_based_editor_json(uuid, installation, ctx);
-                        self.json_editor.update(ctx, |view, ctx| {
-                            let state = InitialBufferState::plain_text(&json);
-                            view.reset(state, ctx);
-                        });
+                        match Self::load_file_based_editor_json(uuid, installation, ctx) {
+                            Ok(json) => {
+                                self.json_editor.update(ctx, |view, ctx| {
+                                    let state = InitialBufferState::plain_text(&json);
+                                    view.reset(state, ctx);
+                                });
+                            }
+                            Err(message) => {
+                                Self::toast_error(ctx, message);
+                                self.json_editor.update(ctx, |view, ctx| {
+                                    let state = InitialBufferState::plain_text("");
+                                    view.reset(state, ctx);
+                                });
+                            }
+                        }
                     }
                 }
                 #[cfg(not(feature = "local_fs"))]
@@ -758,28 +768,20 @@ impl MCPServersEditPageView {
         uuid: Uuid,
         installation: &TemplatableMCPServerInstallation,
         ctx: &AppContext,
-    ) -> String {
+    ) -> Result<String, String> {
         let name = installation.templatable_mcp_server().name.as_str();
-        if let Some((_, path)) = FileBasedMCPManager::as_ref(ctx)
+        let path = FileBasedMCPManager::as_ref(ctx)
             .config_sources_for_installation(uuid)
             .into_iter()
             .find(|(provider, _)| *provider == MCPProvider::Warp)
-        {
-            let document = LocalMcpConfigDocument::with_path(path);
-            if let Ok(LocalMcpConfigState::Present { servers, .. }) = document.load() {
-                if let Some(server) = servers.get(name) {
-                    if let Ok(json) = LocalMcpConfigDocument::server_document(name, server) {
-                        return json;
-                    }
-                }
-            }
-        }
-        prettify_json(&resolve_json(installation))
+            .map(|(_, path)| path)
+            .ok_or_else(|| "Only ZYH-managed MCP configs can be edited here.".to_string())?;
+        local_mcp_config::editor_json_for_server(&path, name).map_err(|e| e.to_string())
     }
 
     /// Write editor JSON to the ZYH global or existing ZYH file-based config path.
     ///
-    /// Literal secrets are stored in secure storage; only placeholders hit disk.
+    /// Secrets are persisted first; the file is written only after that succeeds.
     #[cfg(feature = "local_fs")]
     fn handle_save_local_mcp_config(
         &mut self,
@@ -825,20 +827,16 @@ impl MCPServersEditPageView {
             }
         };
 
-        let (_hash, extracted) = document.upsert_servers(servers, expected).map_err(|e| {
+        let existing_secrets = local_mcp_secrets::zyh_mcp_secrets_cache();
+        if let Err(e) = local_mcp_config::commit_local_mcp_config(
+            &document,
+            servers,
+            expected,
+            &existing_secrets,
+            |merged| local_mcp_secrets::persist_zyh_mcp_secrets(ctx, merged),
+        ) {
             Self::toast_error(ctx, e.to_string());
-            e.to_string()
-        })?;
-
-        if !extracted.is_empty() {
-            let merged = local_mcp_config::merge_secrets(
-                &local_mcp_secrets::zyh_mcp_secrets_cache(),
-                &extracted,
-            );
-            if let Err(e) = local_mcp_secrets::persist_zyh_mcp_secrets(ctx, &merged) {
-                Self::toast_error(ctx, e.to_string());
-                return Err(e.to_string());
-            }
+            return Err(e.to_string());
         }
 
         Ok(())

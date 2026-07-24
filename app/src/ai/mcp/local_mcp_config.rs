@@ -41,11 +41,43 @@ pub enum LocalMcpConfigState {
     },
 }
 
+/// Kind of sensitive field extracted from a server definition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SecretKind {
+    Env,
+    Header,
+}
+
+impl SecretKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Env => "env",
+            Self::Header => "header",
+        }
+    }
+}
+
 /// Secret extracted while redacting a config write (`${name}` on disk).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExtractedSecret {
+    /// Server name that owned this env/header entry.
+    pub server: String,
+    pub kind: SecretKind,
+    /// Env or header field name (also used as `${name}` placeholder).
     pub name: String,
     pub value: String,
+}
+
+impl ExtractedSecret {
+    /// Secure-storage key: `{server}/{kind}/{name}` so servers do not collide.
+    pub fn storage_key(&self) -> String {
+        secret_storage_key(&self.server, self.kind, &self.name)
+    }
+}
+
+/// Build the durable secret map key for a ZYH-managed MCP secret.
+pub fn secret_storage_key(server: &str, kind: SecretKind, name: &str) -> String {
+    format!("{server}/{}/{name}", kind.as_str())
 }
 
 /// Server map prepared for disk with secrets stripped to placeholders.
@@ -172,23 +204,28 @@ impl LocalMcpConfigDocument {
 
     /// Upsert servers; literal env/header values become placeholders and are
     /// returned for secure-storage writes (never written to the file).
+    ///
+    /// The same `expected` token is enforced at write time via
+    /// [`atomic_create`] / [`atomic_replace`] so concurrent external edits
+    /// cannot be clobbered after a stale in-memory merge.
     pub fn upsert_servers(
         &self,
         incoming: Map<String, Value>,
         expected: ExpectedContent,
     ) -> Result<(ContentHash, Vec<ExtractedSecret>), LocalMcpConfigError> {
-        let state = self.load()?;
-        if !expected_matches(expected, content_hash(&self.path)?) {
+        let disk_hash = content_hash(&self.path)?;
+        if !expected_matches(expected, disk_hash) {
             return Err(LocalMcpConfigError::Conflict {
                 path: self.path.clone(),
             });
         }
 
-        let (wrapper, mut servers) = match state {
-            LocalMcpConfigState::Missing => (MCP_SERVERS_WRAPPER.to_owned(), Map::new()),
-            LocalMcpConfigState::Present {
-                servers, wrapper, ..
-            } => (wrapper, servers),
+        let (wrapper, mut servers) = match disk_hash {
+            None => (MCP_SERVERS_WRAPPER.to_owned(), Map::new()),
+            Some(_) => {
+                let content = fs::read_to_string(&self.path)?;
+                parse_server_map(&content)?
+            }
         };
 
         let redacted = redact_server_map(incoming)?;
@@ -197,10 +234,20 @@ impl LocalMcpConfigDocument {
         }
 
         let content = serialize_config(&wrapper, &servers)?;
-        let hash = match content_hash(&self.path)? {
-            None => atomic_create(&self.path, content.as_bytes())?,
-            Some(_) => {
-                atomic_replace(&self.path, content.as_bytes(), ExpectedContent::Any)?.content_hash
+        let write_expected = match disk_hash {
+            None => ExpectedContent::Missing,
+            Some(hash) => ExpectedContent::Hash(hash),
+        };
+        // Prefer the caller's expected when it is more specific than Missing/Hash
+        // derived from disk; both must already match (checked above).
+        let write_expected = match expected {
+            ExpectedContent::Any => write_expected,
+            other => other,
+        };
+        let hash = match write_expected {
+            ExpectedContent::Missing => atomic_create(&self.path, content.as_bytes())?,
+            ExpectedContent::Hash(_) | ExpectedContent::Any => {
+                atomic_replace(&self.path, content.as_bytes(), write_expected)?.content_hash
             }
         };
         Ok((hash, redacted.secrets))
@@ -211,24 +258,28 @@ impl LocalMcpConfigDocument {
         server_name: &str,
         expected: ExpectedContent,
     ) -> Result<Option<ContentHash>, LocalMcpConfigError> {
-        let state = self.load()?;
-        if !expected_matches(expected, content_hash(&self.path)?) {
+        let disk_hash = content_hash(&self.path)?;
+        if !expected_matches(expected, disk_hash) {
             return Err(LocalMcpConfigError::Conflict {
                 path: self.path.clone(),
             });
         }
 
-        match state {
-            LocalMcpConfigState::Missing => Ok(None),
-            LocalMcpConfigState::Present {
-                mut servers,
-                wrapper,
-                ..
-            } => {
+        match disk_hash {
+            None => Ok(None),
+            Some(hash) => {
+                let content = fs::read_to_string(&self.path)?;
+                let (wrapper, mut servers) = parse_server_map(&content)?;
                 if servers.remove(server_name).is_none() {
                     return Err(LocalMcpConfigError::ServerNotFound(server_name.to_owned()));
                 }
                 if servers.is_empty() {
+                    // Re-check the same expected hash immediately before unlink.
+                    if !expected_matches(ExpectedContent::Hash(hash), content_hash(&self.path)?) {
+                        return Err(LocalMcpConfigError::Conflict {
+                            path: self.path.clone(),
+                        });
+                    }
                     match fs::remove_file(&self.path) {
                         Ok(()) => Ok(None),
                         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
@@ -236,10 +287,13 @@ impl LocalMcpConfigDocument {
                     }
                 } else {
                     let content = serialize_config(&wrapper, &servers)?;
-                    let hash =
-                        atomic_replace(&self.path, content.as_bytes(), ExpectedContent::Any)?
-                            .content_hash;
-                    Ok(Some(hash))
+                    let write_expected = match expected {
+                        ExpectedContent::Any => ExpectedContent::Hash(hash),
+                        other => other,
+                    };
+                    let new_hash =
+                        atomic_replace(&self.path, content.as_bytes(), write_expected)?.content_hash;
+                    Ok(Some(new_hash))
                 }
             }
         }
@@ -249,6 +303,28 @@ impl LocalMcpConfigDocument {
         let mut servers = Map::new();
         servers.insert(name.to_owned(), server.clone());
         serialize_config(MCP_SERVERS_WRAPPER, &servers)
+    }
+}
+
+/// Load editor JSON for one ZYH-managed server from disk placeholders only.
+///
+/// Never falls back to in-memory resolved installation values (which may hold
+/// plaintext secrets after spawn-time substitution).
+pub fn editor_json_for_server(
+    path: &Path,
+    server_name: &str,
+) -> Result<String, LocalMcpConfigError> {
+    let document = LocalMcpConfigDocument::with_path(path);
+    match document.load()? {
+        LocalMcpConfigState::Missing => Err(LocalMcpConfigError::ServerNotFound(
+            server_name.to_owned(),
+        )),
+        LocalMcpConfigState::Present { servers, .. } => {
+            let server = servers
+                .get(server_name)
+                .ok_or_else(|| LocalMcpConfigError::ServerNotFound(server_name.to_owned()))?;
+            LocalMcpConfigDocument::server_document(server_name, server)
+        }
     }
 }
 
@@ -272,7 +348,7 @@ pub fn redact_server_map(
                 format!("server '{name}' must be a JSON object"),
             )));
         };
-        let redacted = redact_server(server_obj, &mut secrets);
+        let redacted = redact_server(&name, server_obj, &mut secrets);
         output.insert(name, Value::Object(redacted));
     }
 
@@ -289,13 +365,70 @@ pub fn merge_secrets(
 ) -> HashMap<String, String> {
     let mut merged = existing.clone();
     for secret in extracted {
-        merged.insert(secret.name.clone(), secret.value.clone());
+        merged.insert(secret.storage_key(), secret.value.clone());
     }
     merged
 }
 
-/// Resolve `${NAME}` via process environment, then `secrets`.
+/// Commit redacted servers to disk only after `persist_secrets` succeeds.
+///
+/// Order:
+/// 1. Validate expected content matches disk.
+/// 2. Redact and merge secrets.
+/// 3. Call `persist_secrets` with the full secret map (must succeed).
+/// 4. Atomically write the redacted file with the same expected token.
+///
+/// If step 3 fails, the file is left unchanged. If step 4 fails after step 3,
+/// secrets may be ahead of the file; callers should surface that error (secrets
+/// without matching placeholders is safer than placeholders without secrets).
+pub fn commit_local_mcp_config(
+    document: &LocalMcpConfigDocument,
+    incoming: Map<String, Value>,
+    expected: ExpectedContent,
+    existing_secrets: &HashMap<String, String>,
+    persist_secrets: impl FnOnce(&HashMap<String, String>) -> Result<(), LocalMcpConfigError>,
+) -> Result<(ContentHash, HashMap<String, String>), LocalMcpConfigError> {
+    let disk_hash = content_hash(document.path())?;
+    if !expected_matches(expected, disk_hash) {
+        return Err(LocalMcpConfigError::Conflict {
+            path: document.path().to_path_buf(),
+        });
+    }
+
+    let redacted = redact_server_map(incoming)?;
+    let merged = merge_secrets(existing_secrets, &redacted.secrets);
+    persist_secrets(&merged)?;
+
+    let (hash, _) = document.upsert_servers(redacted.servers, expected)?;
+    Ok((hash, merged))
+}
+
+/// Resolve `${NAME}` placeholders in MCP config JSON.
+///
+/// When `json` is a server map document, each server resolves env/headers from
+/// (1) process environment, (2) namespaced keys `{server}/env|header/{name}`,
+/// (3) legacy bare `{name}` keys. Otherwise falls back to flat string
+/// substitution (environment, then bare secret keys) for non-document inputs.
 pub fn resolve_placeholders(
+    json: &str,
+    secrets: &HashMap<String, String>,
+) -> Result<String, LocalMcpConfigError> {
+    match parse_server_map(json) {
+        Ok((wrapper, servers)) => {
+            let mut resolved_servers = Map::new();
+            for (server_name, server) in servers {
+                resolved_servers.insert(
+                    server_name.clone(),
+                    resolve_server_value(&server_name, server, secrets)?,
+                );
+            }
+            serialize_config(&wrapper, &resolved_servers)
+        }
+        Err(_) => resolve_flat_placeholders(json, secrets),
+    }
+}
+
+fn resolve_flat_placeholders(
     json: &str,
     secrets: &HashMap<String, String>,
 ) -> Result<String, LocalMcpConfigError> {
@@ -309,6 +442,122 @@ pub fn resolve_placeholders(
         let value = std::env::var(var_name)
             .ok()
             .filter(|v| !v.is_empty())
+            .or_else(|| secrets.get(var_name).filter(|v| !v.is_empty()).cloned());
+        match value {
+            Some(value) => {
+                let placeholder = format!("${{{var_name}}}");
+                result = result.replace(&placeholder, &value);
+            }
+            None => {
+                return Err(LocalMcpConfigError::Io(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("Missing or empty secret or environment variable: {var_name}"),
+                )));
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn resolve_server_value(
+    server_name: &str,
+    server: Value,
+    secrets: &HashMap<String, String>,
+) -> Result<Value, LocalMcpConfigError> {
+    let Some(object) = server.as_object() else {
+        return Ok(server);
+    };
+    let mut output = Map::new();
+    for (key, value) in object {
+        match key.as_str() {
+            "env" => {
+                output.insert(
+                    key.clone(),
+                    Value::Object(resolve_string_map(
+                        server_name,
+                        SecretKind::Env,
+                        value,
+                        secrets,
+                    )?),
+                );
+            }
+            "headers" => {
+                output.insert(
+                    key.clone(),
+                    Value::Object(resolve_string_map(
+                        server_name,
+                        SecretKind::Header,
+                        value,
+                        secrets,
+                    )?),
+                );
+            }
+            _ => {
+                output.insert(key.clone(), value.clone());
+            }
+        }
+    }
+    Ok(Value::Object(output))
+}
+
+fn resolve_string_map(
+    server_name: &str,
+    kind: SecretKind,
+    value: &Value,
+    secrets: &HashMap<String, String>,
+) -> Result<Map<String, Value>, LocalMcpConfigError> {
+    let Some(map) = value.as_object() else {
+        return Err(LocalMcpConfigError::Io(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("{server_name}.{} must be an object", kind.as_str()),
+        )));
+    };
+    let mut output = Map::new();
+    for (field, field_value) in map {
+        match field_value.as_str() {
+            Some(text) => {
+                let resolved = resolve_value_placeholders(server_name, kind, field, text, secrets)?;
+                output.insert(field.clone(), Value::String(resolved));
+            }
+            None => {
+                output.insert(field.clone(), field_value.clone());
+            }
+        }
+    }
+    Ok(output)
+}
+
+fn resolve_value_placeholders(
+    server_name: &str,
+    kind: SecretKind,
+    field: &str,
+    text: &str,
+    secrets: &HashMap<String, String>,
+) -> Result<String, LocalMcpConfigError> {
+    let re = placeholder_regex();
+    let mut result = text.to_owned();
+    for capture in re.captures_iter(text) {
+        let Some(var_match) = capture.get(1) else {
+            continue;
+        };
+        let var_name = var_match.as_str();
+        let namespaced = secret_storage_key(server_name, kind, var_name);
+        // Prefer field-name match for pure `${FIELD}` placeholders written by redact.
+        let field_namespaced = secret_storage_key(server_name, kind, field);
+        let value = std::env::var(var_name)
+            .ok()
+            .filter(|v| !v.is_empty())
+            .or_else(|| secrets.get(&namespaced).filter(|v| !v.is_empty()).cloned())
+            .or_else(|| {
+                if var_name == field {
+                    secrets
+                        .get(&field_namespaced)
+                        .filter(|v| !v.is_empty())
+                        .cloned()
+                } else {
+                    None
+                }
+            })
             .or_else(|| secrets.get(var_name).filter(|v| !v.is_empty()).cloned());
         match value {
             Some(value) => {
@@ -409,15 +658,39 @@ fn serialize_config(
 }
 
 fn redact_server(
+    server_name: &str,
     server: &Map<String, Value>,
     secrets: &mut Vec<ExtractedSecret>,
 ) -> Map<String, Value> {
     let mut output = Map::new();
     for (key, value) in server {
         match key.as_str() {
-            "env" | "headers" => {
+            "env" => {
                 if let Some(map) = value.as_object() {
-                    output.insert(key.clone(), Value::Object(redact_string_map(map, secrets)));
+                    output.insert(
+                        key.clone(),
+                        Value::Object(redact_string_map(
+                            server_name,
+                            SecretKind::Env,
+                            map,
+                            secrets,
+                        )),
+                    );
+                } else {
+                    output.insert(key.clone(), value.clone());
+                }
+            }
+            "headers" => {
+                if let Some(map) = value.as_object() {
+                    output.insert(
+                        key.clone(),
+                        Value::Object(redact_string_map(
+                            server_name,
+                            SecretKind::Header,
+                            map,
+                            secrets,
+                        )),
+                    );
                 } else {
                     output.insert(key.clone(), value.clone());
                 }
@@ -431,6 +704,8 @@ fn redact_server(
 }
 
 fn redact_string_map(
+    server_name: &str,
+    kind: SecretKind,
     map: &Map<String, Value>,
     secrets: &mut Vec<ExtractedSecret>,
 ) -> Map<String, Value> {
@@ -439,6 +714,8 @@ fn redact_string_map(
         match value.as_str() {
             Some(literal) if !literal.is_empty() && !is_pure_placeholder(literal) => {
                 secrets.push(ExtractedSecret {
+                    server: server_name.to_owned(),
+                    kind,
                     name: key.clone(),
                     value: literal.to_owned(),
                 });
