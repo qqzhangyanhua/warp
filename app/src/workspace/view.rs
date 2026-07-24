@@ -7693,6 +7693,10 @@ impl Workspace {
                     self.open_new_local_notebook(title.clone(), None, ctx);
                 }
                 NotebookSource::Existing(_) => {
+                    if !crate::cloud_product_removal::may_expose_warp_drive() {
+                        self.show_drive_removed_guidance(ctx);
+                        return;
+                    }
                     let window_id = ctx.window_id();
                     let pane = notebook_manager.update(ctx, |manager, ctx| {
                         manager.create_pane(source, settings, window_id, ctx)
@@ -7711,32 +7715,37 @@ impl Workspace {
             }
         }
 
-        // Get notebook ID to set Warp drive index selected state
-        if let NotebookSource::Existing(notebook_id) = source {
-            let focused_folder_id = settings.focused_folder_id.map(SyncId::ServerId);
-            if !notebook_already_open && !default_to_new_pane {
-                self.add_tab_for_cloud_notebook(*notebook_id, settings, ctx);
-            }
+        // Get notebook ID to set Warp drive index selected state. Skipped when Drive is removed.
+        if crate::cloud_product_removal::may_expose_warp_drive() {
+            if let NotebookSource::Existing(notebook_id) = source {
+                let focused_folder_id = settings.focused_folder_id.map(SyncId::ServerId);
+                if !notebook_already_open && !default_to_new_pane {
+                    self.add_tab_for_cloud_notebook(*notebook_id, settings, ctx);
+                }
 
-            if let Some(focused_folder_id) = focused_folder_id {
-                // Only focus the notebook if we don't want to focus a parent folder instead
-                self.open_or_toggle_warp_drive(false, false, ctx);
-                self.set_selected_object(
-                    Some(WarpDriveItemId::Object(
-                        CloudObjectTypeAndId::from_id_and_type(
-                            focused_folder_id,
-                            ObjectType::Folder,
-                        ),
-                    )),
-                    ctx,
-                );
-            } else {
-                self.set_selected_object(
-                    Some(WarpDriveItemId::Object(
-                        CloudObjectTypeAndId::from_id_and_type(*notebook_id, ObjectType::Notebook),
-                    )),
-                    ctx,
-                );
+                if let Some(focused_folder_id) = focused_folder_id {
+                    // Only focus the notebook if we don't want to focus a parent folder instead
+                    self.open_or_toggle_warp_drive(false, false, ctx);
+                    self.set_selected_object(
+                        Some(WarpDriveItemId::Object(
+                            CloudObjectTypeAndId::from_id_and_type(
+                                focused_folder_id,
+                                ObjectType::Folder,
+                            ),
+                        )),
+                        ctx,
+                    );
+                } else {
+                    self.set_selected_object(
+                        Some(WarpDriveItemId::Object(
+                            CloudObjectTypeAndId::from_id_and_type(
+                                *notebook_id,
+                                ObjectType::Notebook,
+                            ),
+                        )),
+                        ctx,
+                    );
+                }
             }
         }
     }
@@ -7748,6 +7757,11 @@ impl Workspace {
         settings: &OpenWarpDriveObjectSettings,
         ctx: &mut ViewContext<Self>,
     ) {
+        if !crate::cloud_product_removal::may_expose_warp_drive() {
+            self.show_drive_removed_guidance(ctx);
+            return;
+        }
+
         // If running workflows is supported, do so. Otherwise, or if the workflow isn't in memory,
         // fall back to the workflow pane.
         // We don't want to run the workflow if the invitee email is set, as we want to open the share dialog instead with the
@@ -7791,6 +7805,15 @@ impl Workspace {
         mode: WorkflowViewMode,
         ctx: &mut ViewContext<Self>,
     ) {
+        let is_cloud_source = matches!(
+            source,
+            WorkflowOpenSource::Existing(_) | WorkflowOpenSource::New { .. }
+        );
+        if is_cloud_source && !crate::cloud_product_removal::may_expose_warp_drive() {
+            self.show_drive_removed_guidance(ctx);
+            return;
+        }
+
         let workflow_manager = WorkflowManager::handle(ctx);
 
         if let Some((window_id, locator)) = workflow_manager.as_ref(ctx).find_pane(source) {
@@ -7841,6 +7864,16 @@ impl Workspace {
         });
     }
 
+    fn show_drive_removed_guidance(&self, ctx: &mut ViewContext<Self>) {
+        let window_id = ctx.window_id();
+        let toast = DismissibleToast::error(
+            crate::cloud_product_removal::unsupported_drive_error_message(),
+        );
+        WorkspaceToastStack::handle(ctx).update(ctx, |stack, ctx| {
+            stack.add_ephemeral_toast(toast, window_id, ctx);
+        });
+    }
+
     /// Create a pane from a cloud object. Returns `None` if the object cannot be opened in a
     /// pane. The pane will not be associated with any tab - the caller is responsible for
     /// inserting it.
@@ -7849,6 +7882,12 @@ impl Workspace {
         cloud_object: CloudObjectTypeAndId,
         ctx: &mut ViewContext<Self>,
     ) -> Option<Box<dyn AnyPaneContent>> {
+        if !crate::cloud_product_removal::may_expose_warp_drive() {
+            // Cloud Drive objects never construct panes in ZYH.
+            let _ = (cloud_object, ctx);
+            return None;
+        }
+
         let window_id = ctx.window_id();
         let object_settings = Default::default();
         match cloud_object {
@@ -8568,6 +8607,14 @@ impl Workspace {
         explicit_user_action: bool,
         ctx: &mut ViewContext<Self>,
     ) {
+        if !crate::cloud_product_removal::may_expose_warp_drive() {
+            // ZYH Drive is removed: never open the panel or construct Drive UI.
+            self.current_workspace_state.is_warp_drive_open = false;
+            self.set_selected_object(None, ctx);
+            ctx.notify();
+            return;
+        }
+
         // Closing all left panels will also close warp drive so we need to retrieve
         // whether warp drive was open first, and toggle based on the initial value.
         let was_warp_drive_open = self.current_workspace_state.is_warp_drive_open;
@@ -14005,6 +14052,14 @@ impl Workspace {
         source: SharingDialogSource,
         ctx: &mut ViewContext<Self>,
     ) {
+        if !crate::cloud_product_removal::may_expose_sharing_or_handoff() {
+            log::info!(
+                "{}",
+                crate::cloud_product_removal::unsupported_cloud_surface_error_message()
+            );
+            return;
+        }
+
         self.view_in_warp_drive(WarpDriveItemId::Object(object_id), ctx);
         self.update_warp_drive_view(ctx, |warp_drive, ctx| {
             warp_drive.reset_and_open_to_main_index(ctx);

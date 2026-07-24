@@ -12,6 +12,7 @@ mod banner;
 mod billing;
 mod chip_configurator;
 mod cloud_object;
+mod cloud_product_removal;
 mod code;
 mod code_review;
 mod coding_entrypoints;

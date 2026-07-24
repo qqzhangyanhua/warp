@@ -1734,29 +1734,32 @@ impl PaneGroup {
 
                 Ok((PaneData::new(pane_id), focus))
             }
-            LeafContents::Notebook(snapshot) => {
-                let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
-                    NotebookPaneSnapshot::CloudNotebook {
-                        notebook_id,
-                        settings,
-                    } => Box::new(NotebookPane::restore(notebook_id, &settings, ctx)?),
-                    NotebookPaneSnapshot::LocalFileNotebook { path } => Box::new(FilePane::new(
+            LeafContents::Notebook(snapshot) => match snapshot {
+                NotebookPaneSnapshot::CloudNotebook { .. } => {
+                    // Cloud Drive notebooks are removed. Fail closed without
+                    // CloudModel / personal drive; parent tree skips this leaf.
+                    match crate::cloud_product_removal::evaluate_stale_cloud_notebook_restore() {
+                        crate::cloud_product_removal::StaleCloudSurfaceRestoreOutcome::Unsupported {
+                            message,
+                        } => Err(anyhow::anyhow!("{message}")),
+                    }
+                }
+                NotebookPaneSnapshot::LocalFileNotebook { path } => {
+                    let pane: Box<dyn AnyPaneContent + 'static> = Box::new(FilePane::new(
                         path.map(LocalOrRemotePath::Local),
                         None,
                         #[cfg(feature = "local_fs")]
                         None,
                         ctx,
-                    )),
-                };
-
-                let pane_id = pane.as_pane().id();
-                pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-
-                Ok((PaneData::new(pane_id), focus))
+                    ));
+                    let pane_id = pane.as_pane().id();
+                    pane_contents.insert(pane_id, pane);
+                    let focus = InitialFocus {
+                        focused_pane: leaf.is_focused.then_some(pane_id),
+                        active_session: None,
+                    };
+                    Ok((PaneData::new(pane_id), focus))
+                }
             }
             #[cfg(feature = "local_fs")]
             LeafContents::Code(snapshot) => {
@@ -1803,23 +1806,17 @@ impl PaneGroup {
                     }
                 }
             }
-            LeafContents::Workflow(snapshot) => {
-                let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
-                    WorkflowPaneSnapshot::CloudWorkflow {
-                        workflow_id,
-                        settings,
-                    } => Box::new(WorkflowPane::restore(workflow_id, settings, ctx)?),
-                };
-
-                let pane_id = pane.as_pane().id();
-                pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-
-                Ok((PaneData::new(pane_id), focus))
-            }
+            LeafContents::Workflow(snapshot) => match snapshot {
+                WorkflowPaneSnapshot::CloudWorkflow { .. } => {
+                    // Cloud Drive workflows are removed. Fail closed; local
+                    // YAML workflows open through a separate local path.
+                    match crate::cloud_product_removal::evaluate_stale_cloud_workflow_restore() {
+                        crate::cloud_product_removal::StaleCloudSurfaceRestoreOutcome::Unsupported {
+                            message,
+                        } => Err(anyhow::anyhow!("{message}")),
+                    }
+                }
+            },
             LeafContents::Settings(snapshot) => {
                 let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
                     SettingsPaneSnapshot::Local {

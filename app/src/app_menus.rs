@@ -687,11 +687,11 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
 }
 
 fn account_and_cloud_actions_available() -> bool {
-    false
+    crate::cloud_product_removal::may_expose_account_and_cloud_actions()
 }
 
 fn drive_menu_available() -> bool {
-    false
+    crate::cloud_product_removal::may_expose_warp_drive()
 }
 
 /// Returns [`MenuItem`]s that aid debugging to be included in the Block menu.

@@ -97,7 +97,10 @@ fn zyh_workspace_settings_actions_redirect_forbidden_sections_to_warp_agent() {
     for section in [
         SettingsSection::Account,
         SettingsSection::BillingAndUsage,
+        SettingsSection::Teams,
         SettingsSection::Referrals,
+        SettingsSection::SharedBlocks,
+        SettingsSection::WarpDrive,
         SettingsSection::CloudEnvironments,
         SettingsSection::OzCloudAPIKeys,
     ] {
@@ -4330,91 +4333,44 @@ fn test_pin_tab_on_grouped_tab_extracts_then_pins() {
     });
 }
 
-/// Regression for the tools-panel tab visibility toggles surfaced in the
-/// Appearance settings page: toggling a tab's backing setting must add/remove
-/// that tab from the tools panel live, and re-enabling Warp Drive must make it
-/// selectable again (the original report was that Warp Drive could vanish from
-/// the tools panel with no way back).
+/// ZYH product policy: Warp Drive cannot reappear by toggling Appearance
+/// settings. The tools panel only lists retained local surfaces.
 #[test]
-fn test_tools_panel_warp_drive_toggle_updates_available_views() {
-    // Force the non-anonymous path so `is_warp_drive_enabled` follows the
-    // `enable_warp_drive` setting rather than the auth state.
-    let _skip_anon_guard = FeatureFlag::SkipFirebaseAnonymousUser.override_enabled(false);
-
+fn test_tools_panel_never_exposes_removed_warp_drive() {
     App::test((), |mut app| async move {
         initialize_app(&mut app);
         let workspace = mock_workspace(&mut app);
 
-        // Warp Drive is enabled by default, so it is an available tools-panel
-        // tab and can be made the active view.
-        workspace.update(&mut app, |workspace, ctx| {
-            assert!(
-                workspace
-                    .left_panel_views
-                    .contains(&ToolPanelView::WarpDrive),
-                "Warp Drive should be an available tools-panel tab by default"
-            );
-            workspace.left_panel_view.update(ctx, |lp, ctx| {
-                lp.handle_action_with_force_open(&LeftPanelAction::WarpDrive, false, ctx);
-            });
-            assert_eq!(
-                workspace.left_panel_view.as_ref(ctx).active_view(),
-                ToolPanelView::WarpDrive,
-                "Warp Drive should be selectable as the active view"
-            );
-        });
-
-        // Turning the toggle off (via its backing setting) removes Warp Drive
-        // from the tools panel; if other tabs remain the active view falls back
-        // to one of them.
-        app.update(|ctx| {
-            WarpDriveSettings::handle(ctx).update(ctx, |settings, ctx| {
-                settings
-                    .enable_warp_drive
-                    .set_value(false, ctx)
-                    .expect("disable warp drive");
-            });
-        });
-        workspace.update(&mut app, |workspace, ctx| {
-            assert!(
-                !workspace
-                    .left_panel_views
-                    .contains(&ToolPanelView::WarpDrive),
-                "Disabling the setting should remove Warp Drive from the tools panel"
-            );
-            if !workspace.left_panel_views.is_empty() {
-                assert_ne!(
-                    workspace.left_panel_view.as_ref(ctx).active_view(),
-                    ToolPanelView::WarpDrive,
-                    "Active view should fall back to a remaining tab when Warp Drive is removed"
-                );
-            }
-        });
-
-        // Re-enabling restores Warp Drive as a selectable tab.
+        // Even if a legacy preference tries to enable Drive, the product gate wins.
         app.update(|ctx| {
             WarpDriveSettings::handle(ctx).update(ctx, |settings, ctx| {
                 settings
                     .enable_warp_drive
                     .set_value(true, ctx)
-                    .expect("re-enable warp drive");
+                    .expect("write enable_warp_drive preference");
             });
         });
+
         workspace.update(&mut app, |workspace, ctx| {
             assert!(
-                workspace
+                !crate::cloud_product_removal::may_expose_warp_drive(),
+                "product policy removes Drive"
+            );
+            assert!(
+                !WarpDriveSettings::is_warp_drive_enabled(ctx),
+                "is_warp_drive_enabled must ignore legacy preference"
+            );
+            assert!(
+                !workspace
                     .left_panel_views
                     .contains(&ToolPanelView::WarpDrive),
-                "Re-enabling the setting should restore Warp Drive to the tools panel"
+                "Warp Drive must not appear in the tools panel"
             );
-            workspace.left_panel_view.update(ctx, |lp, ctx| {
-                lp.handle_action_with_force_open(&LeftPanelAction::WarpDrive, false, ctx);
-            });
-            assert_eq!(
-                workspace.left_panel_view.as_ref(ctx).active_view(),
-                ToolPanelView::WarpDrive,
-                "Warp Drive should be selectable again after re-enabling"
-            );
+            assert!(workspace
+                .left_panel_view
+                .as_ref(ctx)
+                .warp_drive_view()
+                .is_none());
         });
     });
 }
@@ -4438,4 +4394,29 @@ fn local_only_tools_panel_does_not_initialize_warp_drive() {
                 .is_none());
         });
     });
+}
+
+/// Retained local product entry points must still be constructible without
+/// cloud Drive/Account surfaces.
+#[test]
+#[serial_test::serial]
+fn retained_local_settings_sections_remain_openable() {
+    for section in [
+        SettingsSection::WarpAgent,
+        SettingsSection::AgentMCPServers,
+        SettingsSection::Appearance,
+        SettingsSection::Keybindings,
+        SettingsSection::Privacy,
+        SettingsSection::CodeIndexing,
+    ] {
+        assert_eq!(
+            settings_section_for_workspace_action(section),
+            section,
+            "{section:?} is a retained local settings surface"
+        );
+        assert!(
+            section.command_entrypoint_enabled(),
+            "{section:?} must keep a command entrypoint"
+        );
+    }
 }

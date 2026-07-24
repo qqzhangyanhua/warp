@@ -39,7 +39,7 @@ pub const TOGGLE_BLOCK_FILTER_KEYBINDING: &str =
 pub const CANCEL_COMMAND_KEYBINDING: &str = "terminal:cancel_command";
 
 fn cloud_sharing_actions_available() -> bool {
-    false
+    crate::cloud_product_removal::may_expose_sharing_or_handoff()
 }
 
 fn share_current_session_action_available() -> bool {

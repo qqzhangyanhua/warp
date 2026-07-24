@@ -695,7 +695,7 @@ fn settings_section(page: String) -> Result<SettingsSection, ControlError> {
     if section == SettingsSection::WarpDrive {
         return Err(ControlError::new(
             ErrorCode::UnsupportedAction,
-            "surface.settings.open does not open Warp Drive settings",
+            crate::cloud_product_removal::unsupported_drive_error_message(),
         ));
     }
     Ok(section.redirect_unavailable_section())

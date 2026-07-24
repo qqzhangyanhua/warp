@@ -669,6 +669,10 @@ impl TypedActionView for AppearanceSettingsPageView {
                 ctx.notify();
             }
             ToggleToolsPanelWarpDrive => {
+                // ZYH Drive is permanently removed; do not re-enable via Appearance.
+                if !crate::cloud_product_removal::may_expose_warp_drive() {
+                    return;
+                }
                 WarpDriveSettings::handle(ctx).update(ctx, |settings, ctx| {
                     report_if_error!(settings.enable_warp_drive.toggle_and_save_value(ctx));
                 });
@@ -1472,7 +1476,9 @@ impl AppearanceSettingsPageView {
         if cfg!(feature = "local_fs") && FeatureFlag::GlobalSearch.is_enabled() {
             tools_panel_widgets.push(Box::new(ToolsPanelGlobalSearchWidget::default()));
         }
-        tools_panel_widgets.push(Box::new(ToolsPanelWarpDriveWidget::default()));
+        if crate::cloud_product_removal::may_expose_warp_drive() {
+            tools_panel_widgets.push(Box::new(ToolsPanelWarpDriveWidget::default()));
+        }
         if !tools_panel_widgets.is_empty() {
             categories.push(Category::localized(
                 Message::SettingsToolsPanelCategory,

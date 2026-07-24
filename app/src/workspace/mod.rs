@@ -62,7 +62,7 @@ fn evc_actions_available() -> bool {
 }
 
 fn account_and_cloud_actions_available() -> bool {
-    false
+    crate::cloud_product_removal::may_expose_account_and_cloud_actions()
 }
 
 pub use one_time_modal_model::OneTimeModalModel;
