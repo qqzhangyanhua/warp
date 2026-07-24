@@ -93,6 +93,8 @@ pub enum MCPServersListPageViewAction {
 
 pub struct MCPServersListPageView {
     server_cards: HashMap<ServerCardItemId, ViewHandle<ServerCardView>>,
+    /// Retained empty: gallery MCP is not part of the local product path.
+    #[allow(dead_code)]
     gallery_server_cards: HashMap<ServerCardItemId, ViewHandle<ServerCardView>>,
     // MCP server cards for uninstalled file-based servers, grouped by provider.
     file_based_template_cards: HashMap<MCPProvider, Vec<ViewHandle<ServerCardView>>>,
@@ -342,30 +344,12 @@ impl MCPServersListPageView {
     }
 
     fn create_server_cards(&mut self, ctx: &mut ViewContext<Self>) {
-        let template_servers: HashMap<Uuid, TemplatableMCPServer> =
-            TemplatableMCPServerManager::as_ref(ctx)
-                .get_all_templatable_mcp_servers()
-                .iter()
-                .map(|&template| (template.uuid, template.clone()))
-                .collect();
-        let installed_servers: HashMap<Uuid, TemplatableMCPServerInstallation> =
-            TemplatableMCPServerManager::as_ref(ctx)
-                .get_installed_templatable_servers()
-                .clone();
-
-        let mut uninstalled_templates = template_servers;
-        for installed_server in installed_servers.values() {
-            uninstalled_templates.remove(&installed_server.template_uuid());
-        }
-
-        // Create all the server cards
-        self.server_cards = Default::default();
-        for (_, installation) in installed_servers {
-            self.create_installation_server_card(&installation, ctx);
-        }
-        for (_, template) in uninstalled_templates {
-            self.create_template_server_card(&template, ctx);
-        }
+        // Cloud templates, cloud installations, and gallery items are not part of the
+        // local MCP path. Running file-based servers are registered by
+        // `create_file_based_server_cards` instead.
+        let _ = ctx;
+        self.server_cards
+            .retain(|id, _| matches!(id, ServerCardItemId::FileBasedMCP(_)));
     }
 
     fn refresh_server_cards(&mut self, ctx: &mut ViewContext<Self>) {
@@ -373,31 +357,10 @@ impl MCPServersListPageView {
     }
 
     fn create_gallery_server_cards(
-        ctx: &mut ViewContext<Self>,
+        _ctx: &mut ViewContext<Self>,
     ) -> HashMap<ServerCardItemId, ViewHandle<ServerCardView>> {
-        let gallery_manager = MCPGalleryManager::handle(ctx);
-        let gallery_items = gallery_manager.as_ref(ctx).get_gallery();
-
-        gallery_items
-            .into_iter()
-            .map(|gallery_item| {
-                let item_id = ServerCardItemId::GalleryMCP(gallery_item.uuid());
-                (
-                    item_id,
-                    ctx.add_typed_action_view(move |_ctx| {
-                        ServerCardView::new(
-                            item_id,
-                            gallery_item.title(),
-                            Some(gallery_item.description()),
-                            None,
-                            None,
-                            vec![],
-                            ServerCardStatus::AvailableToSave.into(),
-                        )
-                    }),
-                )
-            })
-            .collect()
+        // Gallery MCP is removed from the retained local product path (issue #29).
+        HashMap::new()
     }
 
     fn share_templatable_mcp_server(&mut self, template_uuid: Uuid, ctx: &mut ViewContext<Self>) {
@@ -446,14 +409,63 @@ impl MCPServersListPageView {
                 }
             }
             ServerCardItemId::GalleryMCP(_) => {
-                log::warn!("Delete is not implemented for gallery MCP items.")
+                log::warn!("Gallery MCP is not part of the local MCP path")
             }
-            ServerCardItemId::FileBasedMCP(_) => {
-                log::warn!("Delete is not implemented for file-based MCP servers.")
+            ServerCardItemId::FileBasedMCP(uuid) => {
+                #[cfg(feature = "local_fs")]
+                {
+                    self.delete_zyh_file_based_server(uuid, ctx);
+                }
+                #[cfg(not(feature = "local_fs"))]
+                {
+                    let _ = uuid;
+                    log::warn!("Delete for file-based MCP requires local_fs");
+                }
             }
         }
 
         ctx.notify();
+    }
+
+    #[cfg(feature = "local_fs")]
+    fn delete_zyh_file_based_server(&mut self, uuid: Uuid, ctx: &mut ViewContext<Self>) {
+        use crate::ai::mcp::local_mcp_config::LocalMcpConfigDocument;
+        use crate::ai::mcp::{FileBasedMCPManager, MCPProvider, TemplatableMCPServerManager};
+
+        let manager = FileBasedMCPManager::as_ref(ctx);
+        let Some(installation) = manager.get_installation_by_uuid(uuid).cloned() else {
+            return;
+        };
+        let Some((_, path)) = manager
+            .config_sources_for_installation(uuid)
+            .into_iter()
+            .find(|(provider, _)| *provider == MCPProvider::Warp)
+        else {
+            log::warn!("Only ZYH-managed MCP configs can be deleted from settings");
+            return;
+        };
+
+        let document = LocalMcpConfigDocument::with_path(path);
+        let expected = match document.load() {
+            Ok(state) => LocalMcpConfigDocument::expected_content(&state),
+            Err(err) => {
+                log::warn!("Failed to load MCP config for delete: {err}");
+                return;
+            }
+        };
+        if let Err(err) = document.delete_server(
+            installation.templatable_mcp_server().name.as_str(),
+            expected,
+        ) {
+            log::warn!("Failed to delete MCP server from config: {err}");
+            return;
+        }
+
+        TemplatableMCPServerManager::handle(ctx).update(ctx, |mcp, ctx| {
+            mcp.shutdown_server(uuid, ctx);
+        });
+        self.server_cards
+            .remove(&ServerCardItemId::FileBasedMCP(uuid));
     }
 
     fn toggle_server_running_templatable(
@@ -976,11 +988,6 @@ impl MCPServersListPageView {
 
     fn refresh_gallery_cards(&mut self, ctx: &mut ViewContext<Self>) {
         self.gallery_server_cards = Self::create_gallery_server_cards(ctx);
-        for server_card_handle in self.gallery_server_cards.values() {
-            ctx.subscribe_to_view(server_card_handle, |me, _, event, ctx| {
-                me.handle_server_card_event(event, ctx);
-            });
-        }
         ctx.notify();
     }
 
@@ -1119,13 +1126,8 @@ impl MCPServersListPageView {
             .map(|(k, v)| (*k, v.clone()))
             .collect();
 
-        // Collect filtered gallery cards.
-        let deduplicated_gallery_cards = self.deduplicate_gallery_cards(app);
-        let filtered_gallery_cards: Vec<ViewHandle<ServerCardView>> = deduplicated_gallery_cards
-            .values()
-            .filter(|v| Self::server_card_handle_matches_search(v, &search_term, app))
-            .cloned()
-            .collect();
+        // Gallery MCP is not part of the local MCP path (ADR-0009 / issue #29).
+        let filtered_gallery_cards: Vec<ViewHandle<ServerCardView>> = Vec::new();
 
         // Collect filtered file-based server cards by provider.
         let mut filtered_file_based_cards: HashMap<MCPProvider, Vec<ViewHandle<ServerCardView>>> =
@@ -1582,6 +1584,7 @@ impl MCPServersListPageView {
             None
         };
 
+        let zyh_managed = FileBasedMCPManager::as_ref(ctx).is_zyh_managed_installation(uuid);
         let server_card = ServerCardView::new(
             item_id,
             installation.templatable_mcp_server().name.clone(),
@@ -1590,9 +1593,9 @@ impl MCPServersListPageView {
             error_text,
             title_chips,
             ServerCardOptions {
-                // File-based servers cannot be edited or shared from settings.
+                // ZYH-managed file configs are editable; third-party detections are view-only.
                 show_log_out_icon_button: uses_oauth,
-                show_edit_config_icon_button: false,
+                show_edit_config_icon_button: zyh_managed,
                 show_share_icon_button: false,
                 ..server_card_status.into()
             },

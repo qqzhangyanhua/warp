@@ -11,7 +11,6 @@ use parking_lot::Mutex;
 use pathfinder_geometry::vector::vec2f;
 use settings::Setting as _;
 use uuid::Uuid;
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::color::internal_colors;
 use warp_editor::content::buffer::InitialBufferState;
@@ -31,19 +30,22 @@ use warpui::{
 use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
 use crate::ai::mcp::parsing::{prettify_json, resolve_json, ParsedTemplatableMCPServerResult};
 use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
+#[cfg(feature = "local_fs")]
+use crate::ai::mcp::{
+    local_mcp_config, local_mcp_secrets, FileBasedMCPManager, LocalMcpConfigDocument,
+    LocalMcpConfigScope, LocalMcpConfigState, MCPProvider,
+};
 use crate::ai::mcp::{
     MCPServer, TemplatableMCPServer, TemplatableMCPServerInstallation, TemplatableMCPServerManager,
     TransportType,
 };
 use crate::banner::{Banner, BannerTextContent};
-use crate::cloud_object::{CloudObject, Space};
+use crate::cloud_object::CloudObject;
 use crate::code::editor::view::{CodeEditorRenderOptions, CodeEditorView};
 use crate::i18n::{tr, tr_cached, Message};
 use crate::persistence::ModelEvent;
 #[cfg(feature = "local_fs")]
 use crate::persistence::{database_file_path_for_current_scope, establish_ro_connection};
-use crate::server::cloud_objects::update_manager::InitiatedBy;
-use crate::server::telemetry::{MCPTemplateCreationSource, TelemetryEvent};
 use crate::settings_view::mcp_servers::destructive_mcp_confirmation_dialog::{
     DestructiveMCPConfirmationDialog, DestructiveMCPConfirmationDialogEvent,
     DestructiveMCPConfirmationDialogVariant,
@@ -261,10 +263,28 @@ impl MCPServersEditPageView {
                 }
             }
             Some(ServerCardItemId::GalleryMCP(_uuid)) => {
-                log::warn!("Editing of gallery MCP unimplemented");
+                log::warn!("Gallery MCP is not part of the local MCP path");
             }
-            Some(ServerCardItemId::FileBasedMCP(_)) => {
-                log::warn!("Editing of file-based MCP unimplemented");
+            Some(ServerCardItemId::FileBasedMCP(uuid)) => {
+                #[cfg(feature = "local_fs")]
+                {
+                    if let Some(installation) =
+                        FileBasedMCPManager::as_ref(ctx).get_installation_by_uuid(uuid)
+                    {
+                        self.server_model =
+                            ServerModel::LocalTemplatableMCPInstallation(installation.clone());
+                        let json = Self::load_file_based_editor_json(uuid, installation, ctx);
+                        self.json_editor.update(ctx, |view, ctx| {
+                            let state = InitialBufferState::plain_text(&json);
+                            view.reset(state, ctx);
+                        });
+                    }
+                }
+                #[cfg(not(feature = "local_fs"))]
+                {
+                    let _ = uuid;
+                    log::warn!("Editing of file-based MCP requires local_fs");
+                }
             }
             None => {
                 self.server_model = ServerModel::None;
@@ -427,8 +447,17 @@ impl MCPServersEditPageView {
 
                 is_authorized_editor || !is_shared
             }
-            Some(ServerCardItemId::GalleryMCP(_)) | Some(ServerCardItemId::FileBasedMCP(_)) => {
-                false
+            Some(ServerCardItemId::GalleryMCP(_)) => false,
+            Some(ServerCardItemId::FileBasedMCP(uuid)) => {
+                #[cfg(feature = "local_fs")]
+                {
+                    FileBasedMCPManager::as_ref(app).is_zyh_managed_installation(uuid)
+                }
+                #[cfg(not(feature = "local_fs"))]
+                {
+                    let _ = uuid;
+                    false
+                }
             }
             None => true,
         }
@@ -724,6 +753,104 @@ impl MCPServersEditPageView {
         }
     }
 
+    #[cfg(feature = "local_fs")]
+    fn load_file_based_editor_json(
+        uuid: Uuid,
+        installation: &TemplatableMCPServerInstallation,
+        ctx: &AppContext,
+    ) -> String {
+        let name = installation.templatable_mcp_server().name.as_str();
+        if let Some((_, path)) = FileBasedMCPManager::as_ref(ctx)
+            .config_sources_for_installation(uuid)
+            .into_iter()
+            .find(|(provider, _)| *provider == MCPProvider::Warp)
+        {
+            let document = LocalMcpConfigDocument::with_path(path);
+            if let Ok(LocalMcpConfigState::Present { servers, .. }) = document.load() {
+                if let Some(server) = servers.get(name) {
+                    if let Ok(json) = LocalMcpConfigDocument::server_document(name, server) {
+                        return json;
+                    }
+                }
+            }
+        }
+        prettify_json(&resolve_json(installation))
+    }
+
+    /// Write editor JSON to the ZYH global or existing ZYH file-based config path.
+    ///
+    /// Literal secrets are stored in secure storage; only placeholders hit disk.
+    #[cfg(feature = "local_fs")]
+    fn handle_save_local_mcp_config(
+        &mut self,
+        ctx: &mut ViewContext<Self>,
+        existing_uuid: Option<Uuid>,
+    ) -> Result<(), String> {
+        let json = self.json_editor.as_ref(ctx).text(ctx).into_string();
+        let servers = local_mcp_config::parse_servers_from_user_json(&json).map_err(|e| {
+            Self::toast_error(ctx, e.to_string());
+            e.to_string()
+        })?;
+        if servers.is_empty() {
+            let message = tr_cached(Message::ToastNoMcpServerSpecified).to_string();
+            Self::toast_error(ctx, message.clone());
+            return Err(message);
+        }
+
+        let document = if let Some(uuid) = existing_uuid {
+            let path = FileBasedMCPManager::as_ref(ctx)
+                .config_sources_for_installation(uuid)
+                .into_iter()
+                .find(|(provider, _)| *provider == MCPProvider::Warp)
+                .map(|(_, path)| path)
+                .ok_or_else(|| {
+                    let message = "Only ZYH-managed MCP configs can be edited here.".to_string();
+                    Self::toast_error(ctx, message.clone());
+                    message
+                })?;
+            LocalMcpConfigDocument::with_path(path)
+        } else {
+            let scope = LocalMcpConfigScope::global().map_err(|e| {
+                Self::toast_error(ctx, e.to_string());
+                e.to_string()
+            })?;
+            LocalMcpConfigDocument::for_scope(&scope)
+        };
+
+        let expected = match document.load() {
+            Ok(state) => LocalMcpConfigDocument::expected_content(&state),
+            Err(e) => {
+                Self::toast_error(ctx, e.to_string());
+                return Err(e.to_string());
+            }
+        };
+
+        let (_hash, extracted) = document.upsert_servers(servers, expected).map_err(|e| {
+            Self::toast_error(ctx, e.to_string());
+            e.to_string()
+        })?;
+
+        if !extracted.is_empty() {
+            let merged = local_mcp_config::merge_secrets(
+                &local_mcp_secrets::zyh_mcp_secrets_cache(),
+                &extracted,
+            );
+            if let Err(e) = local_mcp_secrets::persist_zyh_mcp_secrets(ctx, &merged) {
+                Self::toast_error(ctx, e.to_string());
+                return Err(e.to_string());
+            }
+        }
+
+        Ok(())
+    }
+
+    fn toast_error(ctx: &mut ViewContext<Self>, message: String) {
+        let window_id = ctx.window_id();
+        ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
+            toast_stack.add_ephemeral_toast(DismissibleToast::error(message), window_id, ctx);
+        });
+    }
+
     fn handle_save_templatable_mcp_server(
         &mut self,
         ctx: &mut ViewContext<Self>,
@@ -873,91 +1000,33 @@ impl TypedActionView for MCPServersEditPageView {
                     }
                 }
                 Some(ServerCardItemId::GalleryMCP(_uuid)) => {
-                    log::warn!("Editing of gallery MCP unimplemented");
+                    log::warn!("Gallery MCP is not part of the local MCP path");
                 }
-                Some(ServerCardItemId::FileBasedMCP(_)) => {
-                    log::warn!("Editing of file-based MCP unimplemented");
+                Some(ServerCardItemId::FileBasedMCP(uuid)) => {
+                    #[cfg(feature = "local_fs")]
+                    {
+                        if self.handle_save_local_mcp_config(ctx, Some(uuid)).is_ok() {
+                            ctx.emit(MCPServersEditPageViewEvent::Back);
+                        }
+                    }
+                    #[cfg(not(feature = "local_fs"))]
+                    {
+                        let _ = uuid;
+                        log::warn!("Saving file-based MCP requires local_fs");
+                    }
                 }
                 None => {
-                    // This is a new MCP server, we should treat it like a legacy MCP server
-                    let json = self.json_editor.as_ref(ctx).text(ctx).into_string();
-
-                    let parsed_servers =
-                        match ParsedTemplatableMCPServerResult::from_user_json(&json) {
-                            Ok(parsed_templatable_mcp_servers) => parsed_templatable_mcp_servers,
-                            Err(error) => {
-                                let window_id = ctx.window_id();
-                                ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                                    toast_stack.add_ephemeral_toast(
-                                        DismissibleToast::error(error.to_string()),
-                                        window_id,
-                                        ctx,
-                                    );
-                                });
-                                return;
-                            }
-                        };
-
-                    if parsed_servers.is_empty() {
-                        let window_id = ctx.window_id();
-                        ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                            toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error(
-                                    tr_cached(Message::ToastNoMcpServerSpecified).to_string(),
-                                ),
-                                window_id,
-                                ctx,
-                            );
-                        });
-                        return;
-                    }
-
-                    if parsed_servers
-                        .iter()
-                        .try_for_each(|parsed_server| {
-                            self.detect_secrets_in_templatable_mcp_server(
-                                ctx,
-                                &parsed_server.templatable_mcp_server,
-                            )
-                        })
-                        .is_err()
+                    // New MCP servers are written to the ZYH global `.mcp.json`.
+                    #[cfg(feature = "local_fs")]
                     {
-                        return;
+                        if self.handle_save_local_mcp_config(ctx, None).is_ok() {
+                            ctx.emit(MCPServersEditPageViewEvent::Back);
+                        }
                     }
-
-                    for parsed_server in parsed_servers {
-                        TemplatableMCPServerManager::handle(ctx).update(
-                            ctx,
-                            |templatable_manager, ctx| {
-                                templatable_manager.create_templatable_mcp_server(
-                                    parsed_server.templatable_mcp_server.clone(),
-                                    Space::Personal,
-                                    InitiatedBy::User,
-                                    ctx,
-                                );
-                                if let Some(installation) =
-                                    parsed_server.templatable_mcp_server_installation
-                                {
-                                    templatable_manager.install_from_template(
-                                        installation.templatable_mcp_server().clone(),
-                                        installation.variable_values().clone(),
-                                        true,
-                                        ctx,
-                                    );
-                                }
-                            },
-                        );
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::MCPTemplateCreated {
-                                source: MCPTemplateCreationSource::Json,
-                                variables: parsed_server.templatable_mcp_server.template.variables,
-                                name: parsed_server.templatable_mcp_server.name,
-                            },
-                            ctx
-                        );
+                    #[cfg(not(feature = "local_fs"))]
+                    {
+                        log::warn!("Creating local MCP requires local_fs");
                     }
-
-                    ctx.emit(MCPServersEditPageViewEvent::Back);
                 }
             },
             MCPServersEditPageViewAction::LogOut => {

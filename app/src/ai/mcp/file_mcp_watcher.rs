@@ -24,9 +24,6 @@ use crate::warp_managed_paths_watcher::{
 };
 use crate::HomeDirectoryWatcher;
 
-static ENV_VAR_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\$\{([^}]+)\}").expect("Regex is valid"));
-
 /// Matches home config paths that are exactly one directory deep (e.g. `.codex/config.toml`,
 /// `.zyh/.mcp.json`), capturing the parent directory component.
 static HOME_SUBDIR_REGEX: LazyLock<Regex> =
@@ -134,6 +131,9 @@ pub struct FileMCPWatcher {
 
 impl FileMCPWatcher {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
+        // Secure-storage secrets for ZYH-managed MCP configs; refreshed again when settings save.
+        crate::ai::mcp::local_mcp_secrets::load_zyh_mcp_secrets_into_cache(ctx);
+
         let (file_mcp_tx, file_mcp_rx) = async_channel::unbounded::<FileMCPDetectionMessage>();
 
         ctx.spawn_stream_local(
@@ -612,29 +612,17 @@ fn providers_in_scope(
     })
 }
 
-/// Substitutes environment variables in the format ${VAR_NAME} in the given JSON string.
-/// Returns an error if any environment variable is not found, as the server cannot be started.
-fn substitute_env_vars(json_content: &str) -> Result<String, anyhow::Error> {
-    let mut result = json_content.to_string();
-
-    for capture in ENV_VAR_REGEX.captures_iter(json_content) {
-        if let Some(var_match) = capture.get(1) {
-            let var_name = var_match.as_str();
-            match std::env::var(var_name) {
-                Ok(value) if !value.is_empty() => {
-                    let placeholder = format!("${{{}}}", var_name);
-                    result = result.replace(&placeholder, &value);
-                }
-                _ => {
-                    return Err(anyhow::anyhow!(
-                        "Missing or empty environment variable: {var_name}"
-                    ));
-                }
-            }
-        }
+/// Substitutes `${VAR_NAME}` placeholders from the process environment, then
+/// from the optional ZYH secure-storage secrets map (for ZYH-managed configs).
+/// Returns an error if any required value is missing or empty.
+fn substitute_env_vars(
+    json_content: &str,
+    secrets: &std::collections::HashMap<String, String>,
+) -> Result<String, anyhow::Error> {
+    match crate::ai::mcp::local_mcp_config::resolve_placeholders(json_content, secrets) {
+        Ok(resolved) => Ok(resolved),
+        Err(err) => Err(anyhow::anyhow!("{err}")),
     }
-
-    Ok(result)
 }
 
 /// Asynchronously reads and parses an MCP config file and returns parsed MCP servers.
@@ -684,7 +672,13 @@ async fn parse_mcp_config_file(
         MCPProvider::Claude | MCPProvider::Warp | MCPProvider::Agents => file_contents,
     };
 
-    let resolved_contents = match substitute_env_vars(&json) {
+    // ZYH-managed configs may resolve placeholders from secure storage; third-party
+    // configs only use the inherited environment (empty secrets map).
+    let secrets = match provider {
+        MCPProvider::Warp => crate::ai::mcp::local_mcp_secrets::zyh_mcp_secrets_cache(),
+        MCPProvider::Claude | MCPProvider::Codex | MCPProvider::Agents => Default::default(),
+    };
+    let resolved_contents = match substitute_env_vars(&json, &secrets) {
         Ok(resolved) => resolved,
         Err(err) => {
             safe_warn!(

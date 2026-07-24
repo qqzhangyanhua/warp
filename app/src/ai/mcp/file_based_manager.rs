@@ -9,7 +9,7 @@ use warp_core::features::FeatureFlag;
 use warp_util::local_or_remote_path::LocalOrRemotePath;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-use super::{FileMCPWatcher, FileMCPWatcherEvent, MCPProvider};
+use super::{home_config_file_path, FileMCPWatcher, FileMCPWatcherEvent, MCPProvider};
 use crate::ai::mcp::templatable_installation::TemplatableMCPServerInstallation;
 use crate::ai::mcp::ParsedTemplatableMCPServerResult;
 use crate::settings::ai::AISettings;
@@ -478,6 +478,46 @@ impl FileBasedMCPManager {
             .map(|(root, _)| root.clone())
             .sorted()
             .collect()
+    }
+
+    /// Returns `(provider, config_file_path)` pairs where this installation was discovered.
+    pub fn config_sources_for_installation(&self, uuid: Uuid) -> Vec<(MCPProvider, PathBuf)> {
+        let Some(hash) = self.get_hash_by_uuid(uuid) else {
+            return vec![];
+        };
+        let mut sources = Vec::new();
+        for (root, provider_map) in &self.file_based_servers_by_root {
+            for (provider, hashes) in provider_map {
+                if !hashes.contains(&hash) {
+                    continue;
+                }
+                let config_path =
+                    if *provider == MCPProvider::Warp && Self::is_global_warp_root(root) {
+                        home_config_file_path(*provider)
+                            .unwrap_or_else(|| root.join(provider.home_config_path()))
+                    } else if *provider == MCPProvider::Warp {
+                        root.join(provider.project_config_path())
+                    } else if dirs::home_dir().as_ref().is_some_and(|home| root == home) {
+                        home_config_file_path(*provider)
+                            .unwrap_or_else(|| root.join(provider.home_config_path()))
+                    } else {
+                        root.join(provider.project_config_path())
+                    };
+                sources.push((*provider, config_path));
+            }
+        }
+        sources.sort_by(|a, b| {
+            a.1.cmp(&b.1)
+                .then(format!("{:?}", a.0).cmp(&format!("{:?}", b.0)))
+        });
+        sources
+    }
+
+    /// True when the installation is owned by a ZYH-managed `.mcp.json` (editable by settings).
+    pub fn is_zyh_managed_installation(&self, uuid: Uuid) -> bool {
+        self.config_sources_for_installation(uuid)
+            .iter()
+            .any(|(provider, _)| *provider == MCPProvider::Warp)
     }
 
     /// Returns the directory a file-based MCP installation should be spawned from
