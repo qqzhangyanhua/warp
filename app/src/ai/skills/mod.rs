@@ -55,6 +55,15 @@ mod global_skills;
 #[cfg(not(target_family = "wasm"))]
 pub use global_skills::{filter_skills_by_spec, resolve_skill_repos};
 
+pub mod local_source_policy;
+pub use local_source_policy::{
+    local_plugins_dir, local_resource_unavailable_message, marketplace_unavailable_message,
+    may_background_install_or_update_plugins, may_network_fetch_skills,
+    may_restore_remote_skill_catalog, may_use_marketplace_or_remote_catalog,
+    requires_local_resource_snapshots_only, LOCAL_SKILLS_AND_PLUGINS_ONLY,
+    SKILL_PROVIDER_PRECEDENCE, ZYH_PLUGINS_DIR_NAME,
+};
+
 mod listed_skill;
 pub use listed_skill::SkillDescriptor;
 

@@ -69,6 +69,11 @@ pub fn warp_home_skills_dir() -> Option<PathBuf> {
     warp_home_config_dir().map(|warp_config_dir| warp_config_dir.join("skills"))
 }
 
+/// Directory under the ZYH application home where locally installed Plugins load.
+pub fn warp_home_plugins_dir() -> Option<PathBuf> {
+    warp_home_config_dir().map(|warp_config_dir| warp_config_dir.join("plugins"))
+}
+
 pub fn warp_home_mcp_config_file_path() -> Option<PathBuf> {
     warp_home_config_dir().map(|warp_config_dir| warp_config_dir.join(".mcp.json"))
 }

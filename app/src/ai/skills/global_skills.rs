@@ -14,6 +14,10 @@ use crate::ai::cloud_environments::GithubRepo;
 ///
 /// Specs without an org/repo qualifier are not cloneable, so they are skipped
 /// for repo resolution and left to normal on-disk skill discovery.
+///
+/// When local-only Skills policy is active, repository lists are always empty:
+/// the app never clones skill catalogs over the network. Callers still receive
+/// parsed specs for matching against already-present local directories.
 pub fn resolve_skill_repos(raw_specs: &[String]) -> (Vec<SkillSpec>, Vec<GithubRepo>) {
     let specs: Vec<SkillSpec> = raw_specs
         .iter()
@@ -25,6 +29,11 @@ pub fn resolve_skill_repos(raw_specs: &[String]) -> (Vec<SkillSpec>, Vec<GithubR
             }
         })
         .collect();
+
+    if !super::local_source_policy::may_network_fetch_skills() {
+        return (specs, Vec::new());
+    }
+
     let mut seen = BTreeSet::new();
     let mut repos = Vec::new();
     for spec in &specs {

@@ -28,13 +28,8 @@ fn resolve_skill_repos_skips_parse_failures() {
 
     assert_eq!(specs.len(), 1);
     assert_eq!(specs[0].skill_identifier, "read-google-doc");
-    assert_eq!(
-        repos,
-        vec![GithubRepo::new(
-            "warpdotdev".to_string(),
-            "warp-internal".to_string(),
-        )]
-    );
+    // Network catalog clone is denied under local-only Skills policy.
+    assert!(repos.is_empty());
 }
 
 #[test]
@@ -49,19 +44,17 @@ fn resolve_skill_repos_skips_unqualified_and_repo_only_specs() {
 }
 
 #[test]
-fn resolve_skill_repos_collects_org_qualified_repos() {
-    let (_specs, repos) = resolve_skill_repos(&[
+fn resolve_skill_repos_never_returns_network_repos_under_local_only_policy() {
+    let (specs, repos) = resolve_skill_repos(&[
         "warpdotdev/warp-internal:read-google-doc".to_string(),
         "warpdotdev/warp-server:deploy".to_string(),
     ]);
 
-    assert_eq!(
-        repos,
-        vec![
-            GithubRepo::new("warpdotdev".to_string(), "warp-internal".to_string()),
-            GithubRepo::new("warpdotdev".to_string(), "warp-server".to_string()),
-        ]
-    );
+    // Specs still parse so local on-disk matching can proceed.
+    assert_eq!(specs.len(), 2);
+    // No GitHub catalog clone list when marketplace/network skill fetch is denied.
+    assert!(repos.is_empty());
+    assert!(!crate::ai::skills::may_network_fetch_skills());
 }
 
 #[test]
@@ -231,18 +224,13 @@ fn remote_path(host_id: &str, path: &str) -> LocalOrRemotePath {
 }
 
 #[test]
-fn resolve_skill_repos_collapses_duplicates_preserving_first_seen_order() {
-    let (_specs, repos) = resolve_skill_repos(&[
+fn resolve_skill_repos_parses_duplicate_specs_without_network_catalog() {
+    let (specs, repos) = resolve_skill_repos(&[
         "org-b/foo:first".to_string(),
         "org-a/foo:second".to_string(),
         "org-b/foo:third".to_string(),
     ]);
 
-    assert_eq!(
-        repos,
-        vec![
-            GithubRepo::new("org-b".to_string(), "foo".to_string()),
-            GithubRepo::new("org-a".to_string(), "foo".to_string()),
-        ]
-    );
+    assert_eq!(specs.len(), 3);
+    assert!(repos.is_empty());
 }

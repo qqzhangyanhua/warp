@@ -6,8 +6,9 @@ use super::{
 };
 
 #[test]
-fn can_auto_install_is_true() {
-    assert!(GeminiPluginManager::new(None, None, None).can_auto_install());
+fn can_auto_install_is_false_when_marketplace_background_denied() {
+    assert!(!GeminiPluginManager::new(None, None, None).can_auto_install());
+    assert!(!crate::ai::skills::may_background_install_or_update_plugins());
 }
 
 #[test]

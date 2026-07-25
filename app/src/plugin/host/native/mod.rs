@@ -86,15 +86,18 @@ pub fn run() -> Result<()> {
     })
 }
 
-/// Returns a vector of validated plugin directory paths in the plugins directory.
+/// Returns a vector of validated plugin directory paths in the ZYH plugins directory.
 ///
-/// This assumes that all plugins are located in ~/.warp/plugins.
+/// Plugins load from the application home (for example `~/.zyh/plugins`) without
+/// Account or cloud state. Marketplace and background download are not used.
 fn plugin_paths() -> Vec<PathBuf> {
-    const PLUGIN_PATH_SUFFIX: &str = ".warp/plugins";
+    let Some(plugins_dir) = crate::ai::skills::local_plugins_dir()
+        .or_else(warp_core::paths::warp_home_plugins_dir)
+    else {
+        return Vec::new();
+    };
 
-    dirs::home_dir()
-        .map(|home_dir| home_dir.join(PLUGIN_PATH_SUFFIX))
-        .and_then(|plugins_dir| fs::read_dir(plugins_dir).ok())
+    fs::read_dir(plugins_dir)
         .into_iter()
         .flatten()
         .filter_map(Result::ok)

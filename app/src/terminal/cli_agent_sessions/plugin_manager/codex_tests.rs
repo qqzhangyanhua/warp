@@ -6,9 +6,11 @@ use crate::features::FeatureFlag;
 use crate::terminal::cli_agent_sessions::plugin_manager::CliAgentPluginManager;
 
 #[test]
-fn can_auto_install_is_true() {
+fn can_auto_install_is_false_when_marketplace_background_denied() {
     let _guard = FeatureFlag::CodexPlugin.override_enabled(true);
-    assert!(CodexPluginManager::new(None, None, None).can_auto_install());
+    // ZYH local product: no marketplace background install even if the flag is on.
+    assert!(!CodexPluginManager::new(None, None, None).can_auto_install());
+    assert!(!crate::ai::skills::may_background_install_or_update_plugins());
 }
 
 #[test]

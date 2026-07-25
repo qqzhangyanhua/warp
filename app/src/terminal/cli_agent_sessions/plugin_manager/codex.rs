@@ -91,6 +91,7 @@ impl CliAgentPluginManager for CodexPluginManager {
 
     fn can_auto_install(&self) -> bool {
         FeatureFlag::CodexPlugin.is_enabled()
+            && crate::ai::skills::may_background_install_or_update_plugins()
     }
 
     fn is_installed(&self) -> bool {
@@ -152,6 +153,7 @@ impl CliAgentPluginManager for CodexPluginManager {
     }
 
     async fn install(&self) -> Result<(), PluginInstallError> {
+        self.deny_background_plugin_network()?;
         if !FeatureFlag::CodexPlugin.is_enabled() {
             return Ok(());
         }
@@ -165,6 +167,7 @@ impl CliAgentPluginManager for CodexPluginManager {
     }
 
     async fn update(&self) -> Result<(), PluginInstallError> {
+        self.deny_background_plugin_network()?;
         if !FeatureFlag::CodexPlugin.is_enabled() {
             return Ok(());
         }

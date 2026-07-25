@@ -1741,10 +1741,22 @@ impl AgentDriver {
     /// model, so that we don't automatically detect *all* skills they contain.
     /// This is important when using registry-like skill repos where loading all
     /// skills would bloat the context window.
+    ///
+    /// Under the local-only Skills policy this is a no-op: missing local Skills
+    /// fail closed without a network fallback.
     async fn clone_global_skill_repos(
         foreground: &ModelSpawner<Self>,
         global_skill_repos: &[GithubRepo],
     ) -> Result<(), AgentDriverError> {
+        if !crate::ai::skills::may_network_fetch_skills() {
+            if !global_skill_repos.is_empty() {
+                log::info!(
+                    "{}",
+                    crate::ai::skills::local_resource_unavailable_message()
+                );
+            }
+            return Ok(());
+        }
         if global_skill_repos.is_empty() {
             return Ok(());
         }

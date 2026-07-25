@@ -148,7 +148,21 @@ pub(crate) trait CliAgentPluginManager: Send + Sync {
 
     /// Whether this agent supports one-click auto-install/update.
     /// When `false`, the footer always opens the manual instructions modal.
+    /// Background marketplace install is permanently disabled for ZYH local product.
     fn can_auto_install(&self) -> bool;
+
+    /// Fail closed when marketplace / background plugin install is denied.
+    fn deny_background_plugin_network(&self) -> Result<(), PluginInstallError> {
+        if crate::ai::skills::may_background_install_or_update_plugins() {
+            Ok(())
+        } else {
+            let message = crate::ai::skills::marketplace_unavailable_message();
+            Err(PluginInstallError {
+                message: message.clone(),
+                log: message,
+            })
+        }
+    }
 
     /// Whether the ZYH notification plugin is installed.
     /// Default returns `false` (no filesystem check).

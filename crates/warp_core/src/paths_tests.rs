@@ -151,6 +151,7 @@ fn test_warp_home_skills_and_mcp_paths() {
     };
 
     assert_eq!(warp_home_skills_dir(), Some(config_dir.join("skills")));
+    assert_eq!(warp_home_plugins_dir(), Some(config_dir.join("plugins")));
     assert_eq!(
         warp_home_mcp_config_file_path(),
         Some(config_dir.join(".mcp.json"))

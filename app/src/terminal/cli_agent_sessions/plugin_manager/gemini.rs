@@ -54,7 +54,7 @@ impl CliAgentPluginManager for GeminiPluginManager {
     }
 
     fn can_auto_install(&self) -> bool {
-        true
+        crate::ai::skills::may_background_install_or_update_plugins()
     }
 
     fn is_installed(&self) -> bool {
@@ -76,6 +76,7 @@ impl CliAgentPluginManager for GeminiPluginManager {
     }
 
     async fn install(&self) -> Result<(), PluginInstallError> {
+        self.deny_background_plugin_network()?;
         let mut log = String::new();
         self.run_logged(
             &["extensions", "install", EXTENSION_REPO, "--consent"],
@@ -86,6 +87,7 @@ impl CliAgentPluginManager for GeminiPluginManager {
     }
 
     async fn update(&self) -> Result<(), PluginInstallError> {
+        self.deny_background_plugin_network()?;
         let mut log = String::new();
         self.run_logged(&["extensions", "update", EXTENSION_NAME], &mut log)
             .await?;
