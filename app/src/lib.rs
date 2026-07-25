@@ -9,7 +9,6 @@ mod app_services;
 mod app_state;
 mod auth;
 mod banner;
-mod billing;
 mod chip_configurator;
 mod cloud_object;
 mod cloud_product_removal;

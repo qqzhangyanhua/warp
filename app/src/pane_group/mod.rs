@@ -753,7 +753,7 @@ pub enum Event {
         log_path: PathBuf,
     },
     ShowCloudAgentCapacityModal {
-        variant: crate::workspace::view::cloud_agent_capacity_modal::CloudAgentCapacityModalVariant,
+        variant: crate::workspace::cloud_agent_capacity::CloudAgentCapacityModalVariant,
     },
     #[cfg(not(target_family = "wasm"))]
     OpenPluginInstructionsPane(crate::terminal::CLIAgent, PluginModalKind),

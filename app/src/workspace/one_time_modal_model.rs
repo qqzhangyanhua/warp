@@ -4,7 +4,6 @@ use super::view::feature_intro_modal::FeatureIntroId;
 
 /// Holds one-time modal state without registering account, cloud, or quota listeners.
 pub struct OneTimeModalModel {
-    is_build_plan_migration_modal_open: bool,
     is_oz_launch_modal_open: bool,
     is_openwarp_launch_modal_open: bool,
     is_orchestration_launch_modal_open: bool,
@@ -26,7 +25,6 @@ impl OneTimeModalModel {
 
     fn closed() -> Self {
         Self {
-            is_build_plan_migration_modal_open: false,
             is_oz_launch_modal_open: false,
             is_openwarp_launch_modal_open: false,
             is_orchestration_launch_modal_open: false,
@@ -89,13 +87,7 @@ impl OneTimeModalModel {
         Self::set_open(&mut self.is_hoa_onboarding_open, false, ctx);
     }
 
-    pub fn is_build_plan_migration_modal_open(&self) -> bool {
-        self.is_visible(self.is_build_plan_migration_modal_open)
-    }
 
-    pub fn mark_build_plan_migration_modal_dismissed(&mut self, ctx: &mut ModelContext<Self>) {
-        Self::set_open(&mut self.is_build_plan_migration_modal_open, false, ctx);
-    }
 
     pub fn active_feature_intro(&self) -> Option<FeatureIntroId> {
         self.target_window_id.and(self.active_feature_intro)
@@ -112,7 +104,6 @@ impl OneTimeModalModel {
             && (self.is_oz_launch_modal_open
                 || self.is_openwarp_launch_modal_open
                 || self.is_orchestration_launch_modal_open
-                || self.is_build_plan_migration_modal_open
                 || self.is_free_ai_removal_modal_open
                 || self.is_hoa_onboarding_open)
     }
@@ -138,9 +129,6 @@ impl OneTimeModalModel {
     }
 
     #[cfg(debug_assertions)]
-    pub fn force_open_build_plan_migration_modal(&mut self, ctx: &mut ModelContext<Self>) {
-        Self::set_open(&mut self.is_build_plan_migration_modal_open, true, ctx);
-    }
 
     #[cfg(debug_assertions)]
     pub fn force_open_feature_intro(&mut self, id: FeatureIntroId, ctx: &mut ModelContext<Self>) {
