@@ -179,7 +179,13 @@ pub(crate) fn migrate_legacy_home(
     };
 
     for entry in MIGRATION_MANIFEST {
-        migrate_entry(entry, &request.legacy, staging.path(), &mut report)?;
+        migrate_entry(
+            entry,
+            &request.legacy,
+            staging.path(),
+            request.secrets,
+            &mut report,
+        )?;
         #[cfg(test)]
         if request.failure_after == Some(entry.id) {
             return Err(MigrationError::InjectedFailure { after: entry.id });
@@ -225,6 +231,7 @@ fn migrate_entry(
     entry: &ManifestEntry,
     legacy: &LegacyRoots,
     staging: &Path,
+    secrets: &dyn MigrationSecretStore,
     report: &mut MigrationReport,
 ) -> Result<(), MigrationError> {
     let source = legacy_root(legacy, entry.root).join(entry.source);
@@ -263,12 +270,12 @@ fn migrate_entry(
             migrate_settings(&source, &destination, staging, backup_name, report)?
         }
         EntryKind::Sqlite if metadata.is_file() => {
-            migrate_sqlite(&source, &destination).map_err(|source_error| {
-                MigrationError::Sqlite {
+            migrate_sqlite(&source, &destination, Some((secrets, staging))).map_err(
+                |source_error| MigrationError::Sqlite {
                     path: source,
                     source: source_error,
-                }
-            })?;
+                },
+            )?;
             EntryStatus::CopiedAndCleaned
         }
         EntryKind::LogFiles if metadata.is_dir() => {
