@@ -91,7 +91,7 @@ use crate::settings::{
     NaturalLanguageAutosuggestionsEnabled, OrchestrationMessageDisplayMode, PromptSubmissionMode,
     RuleSuggestionsEnabled, SharedBlockTitleGenerationEnabled, ShouldRenderCLIAgentToolbar,
     ShouldRenderUseAgentToolbarForUserCommands, ShowAgentTips, ShowConversationHistory,
-    ShowHintText, ThinkingDisplayMode, VoiceInputEnabled, WarpDriveContextEnabled,
+    ShowHintText, ThinkingDisplayMode, VoiceInputEnabled,
 };
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
 use crate::terminal::CLIAgent;
@@ -523,16 +523,6 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
             .with_enabled(|| {
                 FeatureFlag::AIRules.is_enabled() && FeatureFlag::SuggestedRules.is_enabled()
             }),
-            ToggleSettingActionPair::new(
-                tr(app, Message::AiWarpDriveAsAgentContext),
-                builder(SettingsAction::AI(
-                    AISettingsPageAction::ToggleWarpDriveContext,
-                )),
-                &(context.clone() & id!(flags::IS_ANY_AI_ENABLED)),
-                flags::WARP_DRIVE_CONTEXT_FLAG,
-            )
-            .with_group(bindings::BindingGroup::WarpAi)
-            .with_enabled(|| FeatureFlag::AIRules.is_enabled()),
             ToggleSettingActionPair::new(
                 tr(app, Message::AiAutoSpawnThirdPartyMcp),
                 builder(SettingsAction::AI(AISettingsPageAction::ToggleFileBasedMcp)),
@@ -3698,7 +3688,6 @@ pub enum AISettingsPageAction {
     RemoveDirectoryFromCodeReadAllowlist(PathBuf),
     ToggleRules,
     ToggleRuleSuggestions,
-    ToggleWarpDriveContext,
     SetApplyCodeDiffs(ActionPermission),
     SetReadFiles(ActionPermission),
     SetExecuteCommands(ActionPermission),
@@ -4376,14 +4365,6 @@ impl TypedActionView for AISettingsPageView {
                 AISettings::handle(ctx).update(ctx, |settings, ctx| {
                     let _ = settings
                         .rule_suggestions_enabled_internal
-                        .toggle_and_save_value(ctx);
-                });
-                ctx.notify();
-            }
-            AISettingsPageAction::ToggleWarpDriveContext => {
-                AISettings::handle(ctx).update(ctx, |settings, ctx| {
-                    let _ = settings
-                        .warp_drive_context_enabled
                         .toggle_and_save_value(ctx);
                 });
                 ctx.notify();
@@ -6620,7 +6601,6 @@ struct AIFactWidget {
     rules_link_index: HighlightedHyperlink,
     manage_rules_button: MouseStateHandle,
     rule_suggestions_toggle: SwitchStateHandle,
-    warp_drive_context_toggle: SwitchStateHandle,
 }
 
 impl AIFactWidget {
@@ -6698,40 +6678,13 @@ impl AIFactWidget {
             .finish()
     }
 
-    fn render_warp_drive_context_toggle(
-        &self,
-        view: &AISettingsPageView,
-        ai_settings: &AISettings,
-        app: &warpui::AppContext,
-    ) -> Box<dyn Element> {
-        let toggle = render_ai_setting_toggle::<WarpDriveContextEnabled>(
-            tr(app, Message::AiWarpDriveAsAgentContext),
-            AISettingsPageAction::ToggleWarpDriveContext,
-            *ai_settings.warp_drive_context_enabled,
-            ai_settings.is_any_ai_enabled(app),
-            self.warp_drive_context_toggle.clone(),
-            &view.local_only_icon_tooltip_states,
-            app,
-        );
-
-        let description = render_ai_setting_description(
-            "The ZYH Agent can leverage your ZYH Drive Contents to tailor responses to your personal and team developer workflows and environments. This includes any Workflows, Notebooks, and Environment Variables.",
-            ai_settings.is_any_ai_enabled(app),
-            app,
-        );
-
-        Flex::column()
-            .with_child(toggle)
-            .with_child(description)
-            .finish()
-    }
 }
 
 impl SettingsWidget for AIFactWidget {
     type View = AISettingsPageView;
 
     fn search_terms(&self) -> &str {
-        "agent oz ai a.i. knowledge fact memory memories rules warp drive context workflows notebooks environment variables"
+        "agent oz ai a.i. knowledge fact memory memories rules workflows notebooks environment variables"
     }
 
     fn should_render(&self, _app: &AppContext) -> bool {
@@ -6771,10 +6724,7 @@ impl SettingsWidget for AIFactWidget {
             column.add_child(self.render_rule_suggestions_toggle(view, ai_settings, app));
         }
 
-        column
-            .with_child(button)
-            .with_child(self.render_warp_drive_context_toggle(view, ai_settings, app))
-            .finish()
+        column.with_child(button).finish()
     }
 }
 

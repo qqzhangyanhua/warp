@@ -1262,16 +1262,17 @@ define_settings_group!(AISettings, settings: [
         toml_path: "agents.knowledge.rules_enabled",
         description: "Whether the agent uses your saved rules during requests.",
     }
-    // Whether warp drive context should be included in AI requests
+    // Legacy cloud Drive context flag. ZYH Drive is removed (#41 PR16); the
+    // setting is retained only so old toml keys are recognized and ignored.
     warp_drive_context_enabled: WarpDriveContextEnabled {
         type: bool,
-        default: true,
+        default: false,
         supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
+        sync_to_cloud: SyncToCloud::Never,
         surface: settings::SettingSurfaces::GUI,
-        private: false,
+        private: true,
         toml_path: "agents.knowledge.warp_drive_context_enabled",
-        description: "Whether Warp Drive context is included in AI requests.",
+        description: "Legacy: Warp Drive context is no longer used in ZYH.",
     }
 
     // Whether the codebase speedbump banner has been permanently dismissed for a given repo path.
@@ -1861,8 +1862,9 @@ impl AISettings {
         self.is_any_ai_enabled(app) && *self.memory_enabled
     }
 
-    pub fn is_warp_drive_context_enabled(&self, app: &warpui::AppContext) -> bool {
-        self.is_any_ai_enabled(app) && *self.warp_drive_context_enabled
+    pub fn is_warp_drive_context_enabled(&self, _app: &warpui::AppContext) -> bool {
+        // ZYH Drive is permanently removed; never inject Drive context into Agent runs.
+        false
     }
 
     pub fn is_file_based_mcp_enabled(&self, app: &warpui::AppContext) -> bool {

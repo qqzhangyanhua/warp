@@ -73,7 +73,6 @@ mod about_page;
 mod agent_assisted_environment_modal;
 mod ai_page;
 mod appearance_page;
-mod billing_and_usage_page;
 mod code_page;
 mod custom_inference_connection_test;
 pub(crate) mod custom_inference_modal;
@@ -104,7 +103,6 @@ mod warpify_page;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) use ai_page::cli_agent_settings_widget_id;
 pub(crate) use ai_page::custom_model_routers_widget_id;
-pub use billing_and_usage_page::create_discount_badge;
 pub use code_page::CodeSettingsPageView;
 pub use features_page::FeaturesPageAction;
 pub use privacy_page::PrivacyPageAction;
@@ -638,7 +636,6 @@ pub mod flags {
     pub const INCLUDE_AGENT_COMMANDS_IN_HISTORY_FLAG: &str = "Include_Agent_Commands_In_History";
     pub const AI_RULES_FLAG: &str = "AI_Rules";
     pub const SUGGESTED_RULES_FLAG: &str = "Suggested_Rules";
-    pub const WARP_DRIVE_CONTEXT_FLAG: &str = "Warp_Drive_Context";
     pub const FILE_BASED_MCP_FLAG: &str = "File_Based_MCP";
     pub const WARP_CREDIT_FALLBACK_FLAG: &str = "Warp_Credit_Fallback";
     pub const SHOW_BASE_MODEL_PICKER_IN_PROMPT_FLAG: &str = "Show_Base_Model_Picker_In_Prompt";

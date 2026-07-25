@@ -21897,9 +21897,6 @@ impl Workspace {
         if *ai_settings.rule_suggestions_enabled_internal.value() {
             context.set.insert(flags::SUGGESTED_RULES_FLAG);
         }
-        if *ai_settings.warp_drive_context_enabled.value() {
-            context.set.insert(flags::WARP_DRIVE_CONTEXT_FLAG);
-        }
         if *ai_settings.file_based_mcp_enabled.value() {
             context.set.insert(flags::FILE_BASED_MCP_FLAG);
         }
