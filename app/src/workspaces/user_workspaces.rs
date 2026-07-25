@@ -502,7 +502,8 @@ impl UserWorkspaces {
     /// Note that the value may be incorrect if called before the team's billing metadata has been fetched.
     /// If voice input support is not compiled into this build, always returns `false`.
     pub fn is_voice_enabled(&self) -> bool {
-        cfg!(feature = "voice_input")
+        crate::desktop_only_product_removal::may_use_voice_or_transcription()
+            && cfg!(feature = "voice_input")
             && self
                 .current_team()
                 // If the user has no team, they can toggle Voice (no restrictions).

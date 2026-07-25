@@ -71,6 +71,13 @@ impl ReferralThemeStatus {
         referrals_client: Arc<dyn ReferralsClient>,
         ctx: &mut ModelContext<Self>,
     ) {
+        if !crate::desktop_only_product_removal::may_fetch_remote_changelog_survey_or_referral() {
+            log::info!(
+                "{}",
+                crate::desktop_only_product_removal::remote_content_unavailable_message()
+            );
+            return;
+        }
         if !AuthStateProvider::as_ref(ctx).get().is_logged_in() {
             return;
         }

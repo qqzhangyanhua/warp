@@ -991,13 +991,17 @@ fn feedback_menu_item() -> MenuItem {
 }
 
 fn make_new_help_menu(ctx: &AppContext) -> Menu {
-    Menu::new(
-        app_menu_text(ctx, "Help").into_owned(),
-        vec![
-            feedback_menu_item(),
-            link_menu_item(ctx, "GitHub Issues...", links::GITHUB_ISSUES_URL.into()),
-        ],
-    )
+    let mut items = Vec::new();
+    // Feedback upload is not part of the desktop-only product; omit the menu entry.
+    if crate::desktop_only_product_removal::may_upload_feedback_crash_or_diagnostics() {
+        items.push(feedback_menu_item());
+    }
+    items.push(link_menu_item(
+        ctx,
+        "GitHub Issues...",
+        links::GITHUB_ISSUES_URL.into(),
+    ));
+    Menu::new(app_menu_text(ctx, "Help").into_owned(), items)
 }
 
 fn make_launch_config_menu_items(ctx: &mut AppContext) -> Vec<MenuItem> {

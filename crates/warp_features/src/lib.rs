@@ -1003,10 +1003,10 @@ pub const PREVIEW_FLAGS: &[FeatureFlag] = &[FeatureFlag::AsyncFind, FeatureFlag:
 /// Features enabled for all release builds (i.e.: everything but WarpLocal).
 /// NOTE: if you are promoting a feature from Preview to launch, you'll likely
 /// want to enable the feature by default in app/Cargo.toml, rather than add it to RELEASE_FLAGS.
+///
+/// ZYH desktop-only product: Autoupdate, Changelog, and CrashReporting are not
+/// release features. Updates are manual; diagnostics stay local; no Sentry upload.
 pub const RELEASE_FLAGS: &[FeatureFlag] = &[
-    FeatureFlag::Autoupdate,
-    FeatureFlag::Changelog,
-    FeatureFlag::CrashReporting,
     // Marked text is currently only supported on MacOS.
     #[cfg(target_os = "macos")]
     FeatureFlag::ImeMarkedText,

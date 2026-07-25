@@ -8,14 +8,15 @@ define_settings_group!(TuiAutoupdateSettings, settings: [
     // preferences, so this key only appears in (and is read from) the TUI's
     // settings file. Read once at TUI startup; the `WARP_TUI_DISABLE_AUTOUPDATE`
     // environment variable also disables updates for a single launch.
+    // Default false: ZYH desktop-only product does not run background updaters.
     autoupdate_enabled: TuiAutoupdateEnabled {
         type: bool,
-        default: true,
+        default: false,
         supported_platforms: SupportedPlatforms::DESKTOP,
         sync_to_cloud: SyncToCloud::Never,
         surface: settings::SettingSurfaces::TUI,
         private: false,
         toml_path: "general.autoupdate_enabled",
-        description: "Whether warp-tui automatically installs updates in the background.",
+        description: "Whether warp-tui automatically installs updates in the background. ZYH keeps this off; install desktop builds manually.",
     },
 ]);

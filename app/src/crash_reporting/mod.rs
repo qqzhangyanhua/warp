@@ -181,6 +181,12 @@ impl ToSentryTags for CrashRecoveryMetadata {
 /// Initializes the crash reporting subsystem.  Returns whether or not crash
 /// reporting is active.
 pub(crate) fn init(ctx: &mut AppContext) -> bool {
+    if !crate::desktop_only_product_removal::may_initialize_crash_reporting() {
+        log::info!(
+            "Crash reporting is disabled for the desktop-only product; not initializing sentry."
+        );
+        return false;
+    }
     if !FeatureFlag::CrashReporting.is_enabled() {
         log::info!("Crash reporting FeatureFlag is disabled; not initializing sentry.");
         return false;
@@ -441,6 +447,9 @@ pub fn uninit_sentry() {
 /// Initializes sentry hooking into the uncaught exception handler of the mac runtime
 /// which allows us to catch errors within obj-c.
 pub fn init_cocoa_sentry() {
+    if !crate::desktop_only_product_removal::may_initialize_crash_reporting() {
+        return;
+    }
     #[cfg(all(target_os = "macos", feature = "cocoa_sentry"))]
     {
         mac::init_cocoa_sentry();

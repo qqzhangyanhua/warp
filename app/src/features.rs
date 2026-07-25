@@ -23,16 +23,8 @@ fn enabled_features() -> HashSet<FeatureFlag> {
     }
 
     flags.extend([
-        #[cfg(feature = "autoupdate")]
-        FeatureFlag::Autoupdate,
-        #[cfg(feature = "changelog")]
-        FeatureFlag::Changelog,
-        #[cfg(feature = "cocoa_sentry")]
-        FeatureFlag::CocoaSentry,
-        #[cfg(feature = "crash_reporting")]
-        FeatureFlag::CrashReporting,
-        #[cfg(feature = "log_expensive_frames_in_sentry")]
-        FeatureFlag::LogExpensiveFramesInSentry,
+        // ZYH desktop-only: never enable Autoupdate, Changelog, CrashReporting,
+        // CocoaSentry, or LogExpensiveFramesInSentry from Cargo features here.
         #[cfg(feature = "record_app_active_events")]
         FeatureFlag::RecordAppActiveEvents,
         #[cfg(feature = "runtime_feature_flags")]
@@ -117,8 +109,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::PromptSuggestionsViaMAA,
         #[cfg(feature = "clear_autosuggestion_on_escape")]
         FeatureFlag::ClearAutosuggestionOnEscape,
-        #[cfg(feature = "autoupdate_ui_revamp")]
-        FeatureFlag::AutoupdateUIRevamp,
+        // AutoupdateUIRevamp intentionally omitted (desktop-only product).
         #[cfg(all(not(windows), feature = "kitty_images"))]
         FeatureFlag::KittyImages,
         #[cfg(feature = "warp_packs")]

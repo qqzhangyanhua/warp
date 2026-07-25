@@ -530,6 +530,14 @@ fn open_launch_config(arg: &OpenLaunchConfigArg, ctx: &mut AppContext) {
 }
 
 fn send_feedback(_: &(), ctx: &mut AppContext) {
+    if !crate::desktop_only_product_removal::may_upload_feedback_crash_or_diagnostics() {
+        // Feedback is never uploaded. Local diagnostics remain available via DumpDebugInfo.
+        log::info!(
+            "{}",
+            crate::desktop_only_product_removal::upload_unavailable_message()
+        );
+        return;
+    }
     if let Some(workspace) = active_workspace(ctx) {
         workspace.update(ctx, |workspace, ctx| {
             workspace.handle_action(&WorkspaceAction::SendFeedback, ctx);

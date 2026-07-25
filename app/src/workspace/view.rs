@@ -6267,6 +6267,20 @@ impl Workspace {
     }
 
     fn send_feedback(&mut self, ctx: &mut ViewContext<Self>) {
+        if !crate::desktop_only_product_removal::may_upload_feedback_crash_or_diagnostics() {
+            log::info!(
+                "{}",
+                crate::desktop_only_product_removal::upload_unavailable_message()
+            );
+            let toast = DismissibleToast::error(
+                crate::desktop_only_product_removal::upload_unavailable_message(),
+            );
+            let window_id = ctx.window_id();
+            WorkspaceToastStack::handle(ctx).update(ctx, |stack, ctx| {
+                stack.add_ephemeral_toast(toast, window_id, ctx);
+            });
+            return;
+        }
         ctx.open_url(&links::feedback_form_url());
     }
 

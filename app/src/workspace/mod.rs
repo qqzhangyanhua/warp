@@ -1654,7 +1654,10 @@ fn add_overflow_menu_items_as_editable_binding(app: &mut AppContext) {
             BindingDescription::new("Send feedback (opens external link)"),
             WorkspaceAction::SendFeedback,
         )
-        .with_context_predicate(id!("Workspace")),
+        .with_context_predicate(id!("Workspace"))
+        .with_enabled(|| {
+            crate::desktop_only_product_removal::may_upload_feedback_crash_or_diagnostics()
+        }),
         #[cfg(not(target_family = "wasm"))]
         EditableBinding::new(
             "workspace:view_logs",

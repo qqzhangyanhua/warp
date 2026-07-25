@@ -27,6 +27,7 @@ mod crash_recovery;
 mod crash_reporting;
 mod debug_dump;
 mod default_terminal;
+mod desktop_only_product_removal;
 mod drive;
 #[cfg(windows)]
 mod dynamic_libraries;

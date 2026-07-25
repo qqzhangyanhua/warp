@@ -25,3 +25,12 @@ fn terminal_lifecycle_recovery_is_dogfood_only_by_default() {
     assert!(!PREVIEW_FLAGS.contains(&FeatureFlag::TerminalLifecycleRecovery));
     assert!(!RELEASE_FLAGS.contains(&FeatureFlag::TerminalLifecycleRecovery));
 }
+
+#[test]
+fn release_flags_exclude_autoupdate_changelog_and_crash_upload() {
+    // ZYH desktop-only product: no automatic updater, remote changelog, or crash upload.
+    assert!(!RELEASE_FLAGS.contains(&FeatureFlag::Autoupdate));
+    assert!(!RELEASE_FLAGS.contains(&FeatureFlag::Changelog));
+    assert!(!RELEASE_FLAGS.contains(&FeatureFlag::CrashReporting));
+    assert!(!RELEASE_FLAGS.contains(&FeatureFlag::AutoupdateUIRevamp));
+}

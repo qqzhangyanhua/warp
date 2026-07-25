@@ -200,18 +200,24 @@ impl ChannelState {
     /// ship crash reports. Builds like OpenWarp intentionally ship with
     /// `crash_reporting_config: None`, in which case UI that controls crash
     /// reporting should be hidden since the toggle has no effect.
+    /// Whether crash reporting UI/config is available. Always false for ZYH:
+    /// crash and diagnostics data are never uploaded.
     pub fn is_crash_reporting_available() -> bool {
-        CHANNEL_STATE.lock().config.crash_reporting_config.is_some()
+        false
     }
 
+    /// Base URL for release package discovery. Always empty for ZYH: automatic
+    /// update download is not part of the desktop-only product contract.
     pub fn releases_base_url() -> Cow<'static, str> {
-        CHANNEL_STATE
+        // Do not return a hosted releases URL. Callers that still consult this
+        // API get an empty string and must not start background downloads.
+        let _ = CHANNEL_STATE
             .lock()
             .config
             .autoupdate_config
             .as_ref()
-            .map(|ac| ac.releases_base_url.clone())
-            .unwrap_or_default()
+            .map(|ac| ac.releases_base_url.clone());
+        Cow::Borrowed("")
     }
 
     pub fn firebase_api_key() -> Cow<'static, str> {
@@ -346,24 +352,20 @@ impl ChannelState {
         option_env!("GIT_RELEASE_TAG")
     }
 
+    /// Sentry DSN for crash upload. Always empty for ZYH: crash data is not uploaded.
     pub fn sentry_url() -> Cow<'static, str> {
-        CHANNEL_STATE
+        let _ = CHANNEL_STATE
             .lock()
             .config
             .crash_reporting_config
             .as_ref()
-            .map(|crc| crc.sentry_url.clone())
-            .unwrap_or_default()
+            .map(|crc| crc.sentry_url.clone());
+        Cow::Borrowed("")
     }
 
+    /// Whether autoupdate menu items should appear. Always false for ZYH.
     pub fn show_autoupdate_menu_items() -> bool {
-        CHANNEL_STATE
-            .lock()
-            .config
-            .autoupdate_config
-            .as_ref()
-            .map(|ac| ac.show_autoupdate_menu_items)
-            .unwrap_or_default()
+        false
     }
 
     /// Returns the MCP OAuth provider config matching the given client ID, if any.
