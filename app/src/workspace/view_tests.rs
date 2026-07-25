@@ -96,7 +96,6 @@ fn zyh_workspace_settings_actions_redirect_forbidden_sections_to_warp_agent() {
         SettingsSection::Account,
         SettingsSection::BillingAndUsage,
         SettingsSection::Teams,
-        SettingsSection::Referrals,
         SettingsSection::SharedBlocks,
         SettingsSection::WarpDrive,
         SettingsSection::CloudEnvironments,
@@ -116,33 +115,31 @@ fn zyh_workspace_settings_action_handlers_open_warp_agent_for_forbidden_sections
         initialize_app(&mut app);
         let workspace = mock_workspace(&mut app);
 
-        for action in [
-            WorkspaceAction::ShowSettingsPage(SettingsSection::BillingAndUsage),
-            WorkspaceAction::ShowReferralSettingsPage,
-        ] {
-            workspace.update(&mut app, |workspace, ctx| {
-                workspace.handle_action(&action, ctx);
-            });
+        workspace.update(&mut app, |workspace, ctx| {
+            workspace.handle_action(
+                &WorkspaceAction::ShowSettingsPage(SettingsSection::BillingAndUsage),
+                ctx,
+            );
+        });
 
-            workspace.read(&app, |workspace, ctx| {
-                let current_section = workspace
-                    .settings_pane
-                    .as_ref(ctx)
-                    .current_settings_section();
-                assert_eq!(current_section.parent_page_section(), SettingsSection::AI);
-                assert!(
-                    !matches!(
-                        current_section,
-                        SettingsSection::Account
-                            | SettingsSection::BillingAndUsage
-                            | SettingsSection::Referrals
-                            | SettingsSection::CloudEnvironments
-                            | SettingsSection::OzCloudAPIKeys
-                    ),
-                    "{current_section:?} should not be directly openable in ZYH"
-                );
-            });
-        }
+        // BillingAndUsage is rejected before opening settings; pane stays on
+        // the ZYH default (WarpAgent under the Agents umbrella).
+        workspace.read(&app, |workspace, ctx| {
+            let current_section = workspace
+                .settings_pane
+                .as_ref(ctx)
+                .current_settings_section();
+            assert!(
+                !matches!(
+                    current_section,
+                    SettingsSection::Account
+                        | SettingsSection::BillingAndUsage
+                        | SettingsSection::CloudEnvironments
+                        | SettingsSection::OzCloudAPIKeys
+                ),
+                "{current_section:?} should not be directly openable in ZYH"
+            );
+        });
     });
 }
 

@@ -224,13 +224,6 @@ fn make_new_app_menu(ctx: &AppContext) -> Menu {
     }
 
     menu_items.push(MenuItem::Separator);
-    if account_and_cloud_actions_available() {
-        menu_items.push(updateable_custom_item_without_checkmark(
-            CustomAction::ReferAFriend,
-            ctx,
-        ));
-        menu_items.push(MenuItem::Separator);
-    }
 
     let preferences_menu_items = vec![
         updateable_custom_item_without_checkmark(CustomAction::ShowSettings, ctx),

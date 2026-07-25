@@ -3,11 +3,10 @@ use settings_page::MatchData;
 use super::*;
 use crate::workspace::view::tests::initialize_app_without_cloud_update_managers;
 
-const UNAVAILABLE_ZYH_SETTINGS_SECTIONS: [SettingsSection; 8] = [
+const UNAVAILABLE_ZYH_SETTINGS_SECTIONS: [SettingsSection; 7] = [
     SettingsSection::Account,
     SettingsSection::BillingAndUsage,
     SettingsSection::Teams,
-    SettingsSection::Referrals,
     SettingsSection::SharedBlocks,
     SettingsSection::WarpDrive,
     SettingsSection::CloudEnvironments,

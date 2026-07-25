@@ -22748,10 +22748,7 @@ impl TypedActionView for Workspace {
             }
             ShowSettings => self.show_settings(ctx),
             ShowSettingsPage(section) => {
-                if matches!(
-                    section,
-                    SettingsSection::BillingAndUsage | SettingsSection::Referrals
-                ) {
+                if matches!(section, SettingsSection::BillingAndUsage) {
                     return;
                 }
                 self.show_settings_with_section(Some(*section), ctx)
@@ -22760,10 +22757,7 @@ impl TypedActionView for Workspace {
                 search_query,
                 section,
             } => {
-                if matches!(
-                    section,
-                    Some(SettingsSection::BillingAndUsage | SettingsSection::Referrals)
-                ) {
+                if matches!(section, Some(SettingsSection::BillingAndUsage)) {
                     return;
                 }
                 self.show_settings_with_search(search_query, *section, ctx)
@@ -22789,7 +22783,6 @@ impl TypedActionView for Workspace {
                 source,
             } => self.toggle_palette(*palette_mode, *source, ctx),
             ShowUpgrade => {}
-            ShowReferralSettingsPage => {}
             JoinSlack => self.join_slack(ctx),
             ViewUserDocs => self.view_user_docs(ctx),
             ViewPrivacyPolicy => self.view_privacy_policy(ctx),

@@ -235,7 +235,6 @@ pub enum SettingsSection {
     Features,
     Keybindings,
     Privacy,
-    Referrals,
     Scripting,
     SharedBlocks,
     Teams,
@@ -298,7 +297,6 @@ impl SettingsSection {
             self,
             Self::Account
                 | Self::BillingAndUsage
-                | Self::Referrals
                 | Self::SharedBlocks
                 | Self::Teams
                 | Self::WarpDrive
@@ -414,7 +412,6 @@ impl SettingsSection {
             Self::Features => Message::SettingsSectionFeatures,
             Self::Keybindings => Message::SettingsSectionKeybindings,
             Self::Privacy => Message::SettingsSectionPrivacy,
-            Self::Referrals => Message::SettingsSectionReferrals,
             Self::Scripting => Message::SettingsSectionScripting,
             Self::SharedBlocks => Message::SettingsSectionSharedBlocks,
             Self::Teams => Message::SettingsSectionTeams,
@@ -454,7 +451,6 @@ impl FromStr for SettingsSection {
             "Features" => Ok(Self::Features),
             "Keyboard shortcuts" => Ok(Self::Keybindings),
             "Privacy" => Ok(Self::Privacy),
-            "Referrals" => Ok(Self::Referrals),
             "Scripting" => Ok(Self::Scripting),
             "Shared blocks" => Ok(Self::SharedBlocks),
             "Teams" => Ok(Self::Teams),

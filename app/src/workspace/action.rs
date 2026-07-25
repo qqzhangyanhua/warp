@@ -303,7 +303,6 @@ pub enum WorkspaceAction {
         source: PaletteSource,
     },
     ShowUpgrade,
-    ShowReferralSettingsPage,
     JoinSlack,
     ViewUserDocs,
     ViewPrivacyPolicy,
@@ -985,7 +984,6 @@ impl WorkspaceAction {
             | OpenPalette { .. }
             | TogglePalette { mode: _, source: _ }
             | ShowUpgrade
-            | ShowReferralSettingsPage
             | JoinSlack
             | ViewUserDocs
             | ViewPrivacyPolicy
