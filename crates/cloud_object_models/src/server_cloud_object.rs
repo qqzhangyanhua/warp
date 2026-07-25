@@ -9,10 +9,10 @@ use warp_graphql::object::CloudObjectWithDescendants;
 
 use crate::{
     AIExecutionProfile, AIFact, AmbientAgentEnvironment, CloudFolderModel, CloudNotebookModel,
-    CloudWorkflowModel, EnvVarCollection, JsonSerializer, MCPServer, Preference,
+    CloudWorkflowModel, EnvVarCollection, JsonSerializer, MCPServer,
     ScheduledAmbientAgent, ServerAIExecutionProfile, ServerAIFact, ServerAmbientAgentEnvironment,
     ServerCloudAgentConfig, ServerEnvVarCollection, ServerFolder, ServerMCPServer, ServerNotebook,
-    ServerPreference, ServerScheduledAmbientAgent, ServerTemplatableMCPServer, ServerWorkflow,
+    ServerScheduledAmbientAgent, ServerTemplatableMCPServer, ServerWorkflow,
     ServerWorkflowEnum, TemplatableMCPServer, WorkflowEnum,
 };
 
@@ -22,7 +22,6 @@ pub enum ServerCloudObject {
     Notebook(ServerNotebook),
     Workflow(Box<ServerWorkflow>),
     Folder(ServerFolder),
-    Preference(ServerPreference),
     EnvVarCollection(ServerEnvVarCollection),
     WorkflowEnum(ServerWorkflowEnum),
     AIFact(ServerAIFact),
@@ -40,7 +39,6 @@ impl ServerCloudObject {
             ServerCloudObject::Notebook(notebook) => &notebook.metadata,
             ServerCloudObject::Workflow(workflow) => &workflow.metadata,
             ServerCloudObject::Folder(folder) => &folder.metadata,
-            ServerCloudObject::Preference(preferences) => &preferences.metadata,
             ServerCloudObject::EnvVarCollection(env_var_collection) => &env_var_collection.metadata,
             ServerCloudObject::WorkflowEnum(workflow_enum) => &workflow_enum.metadata,
             ServerCloudObject::AIFact(aifact) => &aifact.metadata,
@@ -66,7 +64,6 @@ impl ServerCloudObject {
             ServerCloudObject::Notebook(notebook) => notebook.id.uid(),
             ServerCloudObject::Workflow(workflow) => workflow.id.uid(),
             ServerCloudObject::Folder(folder) => folder.id.uid(),
-            ServerCloudObject::Preference(preferences) => preferences.id.uid(),
             ServerCloudObject::EnvVarCollection(env_var_collection) => env_var_collection.id.uid(),
             ServerCloudObject::WorkflowEnum(workflow_enum) => workflow_enum.id.uid(),
             ServerCloudObject::AIFact(aifact) => aifact.id.uid(),
@@ -101,8 +98,6 @@ where
             ServerCloudObject::Workflow(Box::new(server_workflow.clone()))
         } else if let Some(server_folder) = value.downcast_ref::<ServerFolder>() {
             ServerCloudObject::Folder(server_folder.clone())
-        } else if let Some(server_preferences) = value.downcast_ref::<ServerPreference>() {
-            ServerCloudObject::Preference(server_preferences.clone())
         } else if let Some(server_env_var_collection) =
             value.downcast_ref::<ServerEnvVarCollection>()
         {
@@ -278,10 +273,9 @@ fn server_gso_to_cloud_object(
                 GenericServerObject::<GenericStringObjectId, GenericStringModel<EnvVarCollection, JsonSerializer>>::try_from_gql(gso)?,
             ))
         }
-        warp_graphql::generic_string_object::GenericStringObjectFormat::JsonPreference => Ok(
-            ServerCloudObject::Preference(
-                GenericServerObject::<GenericStringObjectId, GenericStringModel<Preference, JsonSerializer>>::try_from_gql(gso)?,
-            ),
+        // Preference cloud objects are removed (#41 PR15); skip residual wire payloads.
+        warp_graphql::generic_string_object::GenericStringObjectFormat::JsonPreference => Err(
+            anyhow::anyhow!("Preference generic string objects are no longer supported"),
         ),
         warp_graphql::generic_string_object::GenericStringObjectFormat::JsonWorkflowEnum => Ok(
             ServerCloudObject::WorkflowEnum(

@@ -6,7 +6,6 @@ use cloud_object_client::MockObjectClient;
 use lazy_static::lazy_static;
 use mockall::Sequence;
 use rand::Rng;
-use settings::{RespectUserSyncSetting, SyncToCloud};
 use warpui::{App, ModelHandle};
 
 use super::*;
@@ -35,7 +34,8 @@ use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::server::sync_queue::SyncQueue;
 use crate::server::telemetry::context_provider::AppTelemetryContextProvider;
-use crate::settings::{init_and_register_user_preferences, CloudPreference, Preference};
+use crate::settings::init_and_register_user_preferences;
+use crate::workflows::workflow_enum::{CloudWorkflowEnum, EnumVariants, WorkflowEnum};
 use crate::system::SystemStats;
 use crate::workflows::CloudWorkflowModel;
 use crate::workspaces::team::Team;
@@ -487,16 +487,13 @@ fn test_update_object_server_id_for_notebook() {
 fn test_create_json_object() {
     let client_id = ClientId::default();
     let id = SyncId::ClientId(client_id);
-    let json_object: Box<dyn CloudObject> = Box::new(CloudPreference::new(
+    let json_object: Box<dyn CloudObject> = Box::new(CloudWorkflowEnum::new(
         id,
-        GenericStringModel::new(
-            Preference::new(
-                "test_storage_key".to_owned(),
-                "{\"test_key\": \"test_value\"}",
-                SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-            )
-            .expect("error creating preference"),
-        ),
+        GenericStringModel::new(WorkflowEnum {
+            name: "test_enum".to_owned(),
+            is_shared: false,
+            variants: EnumVariants::Static(vec!["v1".to_string()]),
+        }),
         CloudObjectMetadata {
             pending_changes_statuses: CloudObjectStatuses {
                 content_sync_status: CloudObjectSyncStatus::NoLocalChanges,
@@ -521,12 +518,9 @@ fn test_create_json_object() {
     App::test((), |mut app| async move {
         let cloud_model = create_cloud_model(&mut app, vec![json_object]);
         cloud_model.read(&app, |model, _| {
-            let json_object: &CloudPreference =
+            let json_object: &CloudWorkflowEnum =
                 model.get_object_of_type(&id).expect("model should exist");
-            assert_eq!(
-                json_object.model().string_model.storage_key,
-                "test_storage_key".to_owned()
-            );
+            assert_eq!(json_object.model().string_model.name, "test_enum".to_owned());
         });
     })
 }

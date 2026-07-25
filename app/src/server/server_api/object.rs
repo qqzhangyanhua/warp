@@ -152,7 +152,6 @@ use crate::server::graphql::{get_request_context, get_user_facing_error_message}
 use crate::server::ids::{ClientId, HashableId, ServerId, ServerIdAndType, SyncId, ToServerId};
 use crate::server::server_api::ServerApi;
 use crate::server::sync_queue::SerializedModel;
-use crate::settings::Preference;
 use crate::workflows::workflow_enum::WorkflowEnum;
 use crate::workflows::WorkflowId;
 use crate::workspaces::gql_convert::object_update_message_from_gql;
@@ -776,13 +775,8 @@ impl ObjectClient for ServerApi {
                                     gso,
                                 );
                             }
-                            warp_graphql::generic_string_object::GenericStringObjectFormat::JsonPreference => {
-                                parse_server_gso::<Preference, JsonSerializer>(
-                                    &mut updated_generic_string_objects,
-                                    GenericStringObjectFormat::Json(JsonObjectType::Preference),
-                                    gso,
-                                );
-                            }
+                            // Preference cloud objects removed (#41 PR15).
+                            warp_graphql::generic_string_object::GenericStringObjectFormat::JsonPreference => {}
                             warp_graphql::generic_string_object::GenericStringObjectFormat::JsonWorkflowEnum => {
                                 parse_server_gso::<WorkflowEnum, JsonSerializer>(
                                     &mut updated_generic_string_objects,

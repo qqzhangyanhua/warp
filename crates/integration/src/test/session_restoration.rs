@@ -1,7 +1,6 @@
-use settings::{RespectUserSyncSetting, SyncToCloud};
 use warp::features::FeatureFlag;
 use warp::integration_testing::notebook::{
-    assert_cloud_preference_exists, assert_notebook_contents, assert_notebook_metadata_revision,
+    assert_notebook_contents, assert_notebook_metadata_revision,
 };
 use warp::integration_testing::step::{
     new_step_with_default_assertions, new_step_with_default_assertions_for_pane,
@@ -11,7 +10,6 @@ use warp::integration_testing::terminal::wait_until_bootstrapped_single_pane_for
 use warp::integration_testing::view_getters::single_terminal_view_for_tab;
 use warp::integration_testing::workflow::assert_workflow_metadata_revision;
 use warp::integration_testing::{self};
-use warp::settings::Preference;
 use warp::settings_view::{SettingsSection, SettingsView};
 use warp::sqlite_testing::set_user_and_hostname_for_blocks;
 use warp::terminal::model::session::get_local_hostname;
@@ -387,9 +385,10 @@ pub fn test_restore_snapshot_with_workflows() -> Builder {
         )
 }
 
-/// Tests restoring a snapshot that includes a test json object.
+/// Tests restoring a snapshot that includes a legacy Preference GSO row.
 ///
-/// The test json object has as its contents the string "egpmggresq"
+/// Preference cloud objects are dropped on load (#41 PR15); the fixture must
+/// still open without failing session restoration.
 pub fn test_restore_snapshot_with_test_json_object() -> Builder {
     new_builder()
         .with_setup(|_utils| {
@@ -401,18 +400,9 @@ pub fn test_restore_snapshot_with_test_json_object() -> Builder {
                 ),
             );
         })
-        .with_step(
-            TestStep::new("Verify json object contents").add_assertion(
-                assert_cloud_preference_exists(
-                    Preference::new(
-                        "HonorPS1".to_string(),
-                        "false",
-                        SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-                    )
-                    .expect("error creating preference"),
-                ),
-            ),
-        )
+        .with_step(TestStep::new(
+            "Legacy Preference GSO rows are dropped; app still restores",
+        ))
 }
 
 /// Tests restoring a snapshot that has multiple objects with the same shareable_object_id

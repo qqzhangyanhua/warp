@@ -13,14 +13,12 @@ use diesel::result::Error;
 use crate::{
     CloudAIExecutionProfile, CloudAIExecutionProfileModel, CloudAIFact, CloudAIFactModel,
     CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel, CloudEnvVarCollection,
-    CloudEnvVarCollectionModel, CloudMCPServer, CloudMCPServerModel, CloudPreference,
-    CloudPreferenceModel, CloudScheduledAmbientAgent, CloudScheduledAmbientAgentModel,
-    CloudTemplatableMCPServer, CloudTemplatableMCPServerModel, CloudWorkflowEnum,
-    CloudWorkflowEnumModel,
+    CloudEnvVarCollectionModel, CloudMCPServer, CloudMCPServerModel, CloudScheduledAmbientAgent,
+    CloudScheduledAmbientAgentModel, CloudTemplatableMCPServer, CloudTemplatableMCPServerModel,
+    CloudWorkflowEnum, CloudWorkflowEnumModel,
 };
 
 pub enum PersistedGenericStringObject {
-    Preference(CloudPreference),
     EnvVarCollection(CloudEnvVarCollection),
     WorkflowEnum(CloudWorkflowEnum),
     AIFact(CloudAIFact),
@@ -54,17 +52,9 @@ pub fn read_generic_string_objects(
                 .try_into()
                 .ok()?;
             match json_object_type {
-                JsonObjectType::Preference => {
-                    let model = CloudPreferenceModel::deserialize_owned(&object.data);
-                    model.ok().map(|model| {
-                        PersistedGenericStringObject::Preference(CloudPreference::new(
-                            object_id,
-                            model,
-                            to_cloud_object_metadata(metadata),
-                            cloud_object_permissions,
-                        ))
-                    })
-                }
+                // Legacy cloud Preference GSOs are dropped (#41 PR15). Settings live in
+                // local settings.toml only.
+                JsonObjectType::Preference => None,
                 JsonObjectType::EnvVarCollection => {
                     let model = CloudEnvVarCollectionModel::deserialize_owned(&object.data);
                     model.ok().map(|model| {

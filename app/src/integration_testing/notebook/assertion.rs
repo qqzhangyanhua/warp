@@ -4,8 +4,6 @@ use warp_editor::render::model::BlockItem;
 use warpui::integration::{AssertionCallback, AssertionOutcome, AssertionWithDataCallback};
 use warpui::{async_assert, async_assert_eq, App, ViewHandle};
 
-use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::integration_testing::cloud_object::assert_metadata_revision;
 use crate::integration_testing::terminal::util::ExpectedOutput;
 use crate::integration_testing::view_getters::{notebook_view, terminal_view};
@@ -13,7 +11,6 @@ use crate::notebooks::notebook::NotebookView;
 use crate::notebooks::{CloudNotebookModel, NotebookId};
 use crate::pane_group::PaneGroup;
 use crate::server::ids::SyncId;
-use crate::settings::{CloudPreferenceModel, Preference};
 
 /// Asserts that the notebook in the given pane has the expected Markdown content.
 pub fn assert_notebook_contents(
@@ -29,25 +26,6 @@ pub fn assert_notebook_contents(
                 expected_contents.matches(&contents),
                 "Expected notebook contents for window_id={window_id}, tab_index={tab_index}, pane_index={pane_index} to match:\n{expected_contents:?}\nBut got:\n{contents}")
         })
-    })
-}
-
-/// Asserts that there is a json preference object in the SQLite db with the given contents.
-pub fn assert_cloud_preference_exists(expected_preference: Preference) -> AssertionCallback {
-    Box::new(move |app, _window_id| {
-        let stored_preference =
-            app.get_singleton_model_handle::<CloudModel>()
-                .read(app, |cloud_model, _| {
-                    let object = cloud_model
-                        .get_all_objects_of_type::<GenericStringObjectId, CloudPreferenceModel>()
-                        .find(|p| p.model().string_model == expected_preference)
-                        .expect("Expected to find a matching preference object");
-                    object.model().string_model.clone()
-                });
-        async_assert!(
-            expected_preference == stored_preference,
-            "Expected json object contents to match:\n{expected_preference:?}\nBut got:\n{stored_preference:?}"
-        )
     })
 }
 

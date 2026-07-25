@@ -503,9 +503,6 @@ impl CloudModel {
             ServerCloudObject::Folder(folder) => {
                 self.upsert_from_server_folder(folder, ctx);
             }
-            ServerCloudObject::Preference(preferences) => {
-                self.upsert_from_server_object(preferences, ctx);
-            }
             ServerCloudObject::EnvVarCollection(env_var_collection) => {
                 self.upsert_from_server_object(env_var_collection, ctx);
             }

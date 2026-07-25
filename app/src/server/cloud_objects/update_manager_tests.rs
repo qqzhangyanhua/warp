@@ -7,7 +7,6 @@ use chrono::{DateTime, Utc};
 use cloud_object_client::MockObjectClient;
 use cloud_object_models::JsonSerializer;
 use futures_lite::future;
-use settings::{RespectUserSyncSetting, SyncToCloud};
 use warp_core::features::FeatureFlag;
 use warp_graphql::object_permissions::AccessLevel;
 use warp_graphql::scalars::time::ServerTimestamp;
@@ -30,8 +29,8 @@ use crate::cloud_object::{
     GenericCloudObject, GenericStringObjectFormat, JsonObjectType, ObjectDeleteResult,
     ObjectIdType, ObjectMetadataUpdateResult, ObjectPermissionsUpdateData, ObjectType, Owner,
     Revision, RevisionAndLastEditor, ServerCloudObject, ServerFolder, ServerGuestSubject,
-    ServerNotebook, ServerObject, ServerObjectGuest, ServerPreference, ServerWorkflow,
-    ServerWorkflowEnum, Space, UpdateCloudObjectResult,
+    ServerNotebook, ServerObject, ServerObjectGuest, ServerWorkflow, ServerWorkflowEnum, Space,
+    UpdateCloudObjectResult,
 };
 use crate::drive::folders::{CloudFolder, CloudFolderModel, FolderId};
 use crate::drive::sharing::{SharingAccessLevel, Subject, UserKind};
@@ -50,7 +49,6 @@ use crate::server::ids::{
     ClientId, HashableId, ObjectUid, ServerId, ServerIdAndType, SyncId, ToServerId,
 };
 use crate::server::sync_queue::SyncQueue;
-use crate::settings::{CloudPreferenceModel, Preference};
 use crate::workflows::workflow::{Argument, ArgumentType, Workflow};
 use crate::workflows::workflow_enum::{
     CloudWorkflowEnum, CloudWorkflowEnumModel, EnumVariants, WorkflowEnum,
@@ -2646,28 +2644,11 @@ fn test_pending_metadata_update_with_polling() {
             current_editor_uid: Some("ian@warp.dev".to_string()),
         };
 
-        // Add a generic object just for kicks and make sure it gets upserted
-        let generic_object_server_id = 456.into();
-        let mut updated_generic_string_objects: HashMap<
+        // Preference GSOs are dropped (#41 PR15); residual poll map may be empty.
+        let updated_generic_string_objects: HashMap<
             GenericStringObjectFormat,
             Vec<Box<dyn ServerObject>>,
         > = HashMap::new();
-        updated_generic_string_objects.insert(
-            GenericStringObjectFormat::Json(JsonObjectType::Preference),
-            vec![Box::new(ServerPreference::new(
-                SyncId::ServerId(generic_object_server_id),
-                CloudPreferenceModel::new(
-                    Preference::new(
-                        "test_storage_key".to_string(),
-                        "{\"test_key\": \"test_value\"}",
-                        SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-                    )
-                    .expect("error creating preference"),
-                ),
-                mocked_metadata.clone(),
-                mock_server_permissions(Owner::mock_current_user()),
-            ))],
-        );
 
         let mocked_response = InitialLoadResponse {
             updated_notebooks: vec![ServerNotebook::new(

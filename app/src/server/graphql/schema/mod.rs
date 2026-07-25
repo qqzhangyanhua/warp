@@ -9,7 +9,7 @@ use warp_graphql::object::ObjectUpdateSuccess;
 
 use crate::cloud_object::{
     RevisionAndLastEditor, ServerAIExecutionProfile, ServerAIFact, ServerAmbientAgentEnvironment,
-    ServerEnvVarCollection, ServerFolder, ServerMCPServer, ServerObject, ServerPreference,
+    ServerEnvVarCollection, ServerFolder, ServerMCPServer, ServerObject,
     ServerScheduledAmbientAgent, ServerTemplatableMCPServer, ServerWorkflowEnum, TryFromGql,
     UpdateCloudObjectResult,
 };
@@ -49,9 +49,9 @@ pub fn update_generic_string_object_result_to_update_result(
                             )?
                         }
                         GenericStringObjectFormat::JsonPreference => {
-                            boxed_rejected_generic_string_object::<ServerPreference>(
-                                rejected.conflicting_generic_string_object,
-                            )?
+                            bail!(
+                                "Preference generic string objects are no longer supported (#41 PR15)"
+                            )
                         }
                         GenericStringObjectFormat::JsonWorkflowEnum => {
                             boxed_rejected_generic_string_object::<ServerWorkflowEnum>(

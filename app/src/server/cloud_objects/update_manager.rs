@@ -55,7 +55,7 @@ use crate::cloud_object::{
     ObjectDeleteResult, ObjectIdType, ObjectMetadataUpdateResult, ObjectPermissionsUpdateData,
     ObjectType, Owner, Revision, RevisionAndLastEditor, ServerAIExecutionProfile, ServerAIFact,
     ServerAmbientAgentEnvironment, ServerCloudAgentConfig, ServerCloudObject,
-    ServerEnvVarCollection, ServerMCPServer, ServerMetadata, ServerPermissions, ServerPreference,
+    ServerEnvVarCollection, ServerMCPServer, ServerMetadata, ServerPermissions,
     ServerScheduledAmbientAgent, ServerTemplatableMCPServer, ServerWorkflowEnum, Space,
     UpdateCloudObjectResult,
 };
@@ -851,26 +851,9 @@ impl UpdateManager {
         // Handle generic string object updates.
         for (format, objects) in response.updated_generic_string_objects {
             match format {
-                GenericStringObjectFormat::Json(JsonObjectType::Preference) => {
-                    // Legacy Preference GSOs may still arrive from residual cloud
-                    // object polls; apply in-memory/sqlite updates only. There is
-                    // no CloudPreferencesSyncer subscriber (#41 PR9–PR10).
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerPreference> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-
-                    let event = Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    );
-                    sqlite_events.push(event);
-                }
+                // Preference cloud objects are fully removed (#41 PR15). Drop any
+                // residual poll payloads; settings live only in local settings.toml.
+                GenericStringObjectFormat::Json(JsonObjectType::Preference) => {}
                 GenericStringObjectFormat::Json(JsonObjectType::EnvVarCollection) => {
                     let typed_objects = objects
                         .iter()
@@ -1840,10 +1823,9 @@ impl UpdateManager {
                     }
                 });
             }
-            // folders and preferences are last-write-wins, no need to do anything here
+            // folders are last-write-wins, no need to do anything here
             // TODO: Figure out how to deal with conflicts for AI rules INT-759
             ServerCloudObject::Folder(_)
-            | ServerCloudObject::Preference(_)
             | ServerCloudObject::AIFact(_)
             | ServerCloudObject::MCPServer(_)
             | ServerCloudObject::TemplatableMCPServer(_)

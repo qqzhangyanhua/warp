@@ -105,8 +105,7 @@ pub trait StringModel: Clone + Debug + PartialEq + Send + Sync + 'static {
     /// in the sync queue item.
     ///
     /// Returns `None` when this model type is local-only and must not enqueue
-    /// server mutations (e.g. residual Preference objects after settings sync
-    /// was removed).
+    /// server mutations.
     fn update_object_queue_item(
         &self,
         revision_ts: Option<Revision>,
@@ -114,7 +113,6 @@ pub trait StringModel: Clone + Debug + PartialEq + Send + Sync + 'static {
     ) -> Option<QueueItem>;
 
     /// Whether create/update of this model may be enqueued for server sync.
-    /// Local-only residual types (Preference) return false.
     fn enqueues_server_mutations() -> bool {
         true
     }
