@@ -6,6 +6,7 @@
 
 pub mod ai_fact;
 pub mod mcp;
+pub mod notebook;
 pub mod workflow;
 
 pub use ai_fact::{AIFact, AIMemory, SuggestedLoggingId};
@@ -14,4 +15,5 @@ pub use mcp::{
     MCPServer, MCPServerState, ServerSentEvents, StaticEnvVar, StaticHeader, TemplatableMCPServer,
     TemplateVariable, TransportType,
 };
+pub use notebook::{Notebook, SerializedNotebook};
 pub use workflow::{Argument, ArgumentType, ObjectRef, Workflow};
