@@ -154,3 +154,13 @@ fn test_save_on_close() {
         }
     });
 }
+
+#[test]
+#[serial_test::serial]
+fn notebook_manager_initializes_without_cloud_singletons() {
+    // ZYH production does not register UpdateManager/CloudModel. NotebookManager
+    // construction must not require those singletons.
+    App::test((), |app| async move {
+        app.add_singleton_model(NotebookManager::mock);
+    });
+}

@@ -675,49 +675,13 @@ impl WorkflowsMoreInfoView {
         let mut row_content = Flex::row();
 
         match &self.workflow {
-            WorkflowType::Cloud(cloud_workflow) => {
-                let editing_history = cloud_workflow.metadata.semantic_editing_history(app);
-
-                let action_history = ObjectActions::as_ref(app)
-                    .get_action_history_summary_for_action_type(
-                        &cloud_workflow.id.uid(),
-                        ObjectActionType::Execute,
-                    );
-
-                let full_object_history_text = match (editing_history, action_history) {
-                    (Some(edits), Some(actions)) => Some(format!("{edits}  |  {actions}")),
-                    (Some(edits), None) => Some(edits),
-                    _ => None,
-                };
-
-                let metadata_history = full_object_history_text.map(|str| {
-                    Container::new(
-                        Text::new_inline(str, appearance.ui_font_family(), 12.)
-                            .with_color(
-                                appearance
-                                    .theme()
-                                    .sub_text_color(appearance.theme().surface_2())
-                                    .into(),
-                            )
-                            .with_clip(ClipConfig::end())
-                            .finish(),
-                    )
-                    .with_uniform_padding(5.)
-                    .finish()
-                });
-
-                if let Some(metadata_history_element) = metadata_history {
-                    row_content.add_child(Shrinkable::new(1., metadata_history_element).finish());
-                }
-
-                let edit_button = self.render_edit_button(cloud_workflow, appearance);
-                row_content.add_children([edit_button, collapse_button, close_button]);
-            }
             WorkflowType::AIGenerated { .. } => {
                 let save_as_workflow_button = self.render_save_workflow_button(appearance);
                 row_content.add_children([save_as_workflow_button, collapse_button, close_button]);
             }
-            _ => row_content.add_children([collapse_button, close_button]),
+            WorkflowType::Local(_) | WorkflowType::Notebook(_) => {
+                row_content.add_children([collapse_button, close_button]);
+            }
         };
 
         let workflow_info = Flex::column()

@@ -357,27 +357,11 @@ impl Input {
                 ctx.notify();
             }
             SlashCommandsEvent::SelectedSavedPrompt { id } => {
-                let Some(workflow) = CloudModel::as_ref(ctx).get_workflow(id).cloned() else {
-                    log::warn!("Tried to execute workflow for id {id:?} but it does not exist");
-                    return;
-                };
-                let is_in_agent_view = FeatureFlag::AgentView.is_enabled()
-                    && self.agent_view_controller.as_ref(ctx).is_fullscreen();
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::SlashCommandAccepted {
-                        command_details: SlashCommandAcceptedDetails::SavedPrompt,
-                        is_in_agent_view,
-                    },
-                    ctx
+                // Cloud Drive saved prompts are removed from slash command execution.
+                log::warn!(
+                    "Ignoring cloud workflow slash command for id {id:?}; use local YAML workflows"
                 );
-
-                self.show_workflows_info_box_on_workflow_selection(
-                    WorkflowType::Cloud(Box::new(workflow)),
-                    WorkflowSource::WarpAI,
-                    WorkflowSelectionSource::SlashMenu,
-                    None,
-                    ctx,
-                );
+                let _ = id;
             }
             SlashCommandsEvent::SelectedStaticCommand {
                 id,

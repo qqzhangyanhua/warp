@@ -75,29 +75,18 @@ pub enum NotebookSource {
 
 impl NotebookManager {
     /// Create a new [`NotebookManager`] singleton.
+    ///
+    /// Cloud notebooks and UpdateManager/CloudModel subscriptions are not used
+    /// in ZYH. Local Markdown notebooks are opened through `FileNotebookView`
+    /// and do not require this manager's cloud cache.
     pub fn new(cached_notebooks: Vec<CloudNotebook>, ctx: &mut ModelContext<Self>) -> Self {
-        ctx.subscribe_to_model(
-            &UpdateManager::handle(ctx),
-            Self::handle_update_manager_event,
-        );
-
-        ctx.subscribe_to_model(&CloudModel::handle(ctx), Self::handle_cloud_model_event);
-
-        let mut raw_text_by_hashed_id: HashMap<String, NotebookRawTextStatus> = HashMap::new();
-        // Parse all the cached notebook raw text
-
-        cached_notebooks.into_iter().for_each(|notebook| {
-            let hashed_id = notebook.id.uid();
-            let handle = Self::spawn_raw_text_parse_for_notebook(notebook, ctx);
-            raw_text_by_hashed_id.insert(
-                hashed_id,
-                NotebookRawTextStatus::ParseInFlight(handle.abort_handle()),
-            );
-        });
+        let _ = ctx;
+        // Ignore any residual cloud cache; cloud notebooks are removed.
+        let _ = cached_notebooks;
 
         Self {
             panes_by_hashed_id: HashMap::new(),
-            raw_text_by_hashed_id,
+            raw_text_by_hashed_id: HashMap::new(),
         }
     }
 

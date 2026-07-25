@@ -7824,14 +7824,8 @@ impl Input {
     }
 
     pub fn workflows_info_box_open_workflow_cloud_id(&self) -> Option<SyncId> {
-        if let Some(state) = &self.workflows_state.selected_workflow_state {
-            match &state.workflow_type {
-                WorkflowType::Cloud(workflow) => Some(workflow.id),
-                _ => None,
-            }
-        } else {
-            None
-        }
+        // Cloud workflow identity is not available in ZYH.
+        None
     }
 
     pub fn show_workflows_info_box_on_workflow_selection(
@@ -14197,26 +14191,8 @@ impl Input {
 
         ctx.emit(Event::ExecuteAIQuery);
 
-        if let Some(workflow_state) = self.workflows_state.selected_workflow_state.as_ref() {
-            if let WorkflowType::Cloud(workflow) = &workflow_state.workflow_type {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::ExecutedWarpDrivePrompt {
-                        id: workflow.id.into_server().map(Into::into),
-                        selection_source: workflow_state.workflow_selection_source,
-                    },
-                    ctx
-                );
-
-                UpdateManager::handle(ctx).update(ctx, move |update_manager, ctx| {
-                    update_manager.record_object_action(
-                        workflow.cloud_object_type_and_id(),
-                        ObjectActionType::Execute,
-                        None,
-                        ctx,
-                    )
-                });
-            }
-        }
+        // Cloud Drive execute telemetry / object actions are removed in ZYH.
+        let _ = self.workflows_state.selected_workflow_state.as_ref();
     }
 
     /// Send the given query to the session sharer for them to execute on their machine.
@@ -15080,10 +15056,7 @@ impl Input {
                             // ID for execution of local workflows because they have no such
                             // unique ID.
                             workflow_id: selected_workflow_state.workflow_type.server_id(),
-                            workflow_space: match &selected_workflow_state.workflow_type {
-                                WorkflowType::Cloud(workflow) => Some(workflow.space(ctx).into()),
-                                _ => None,
-                            },
+                            workflow_space: None,
                             enum_ids: selected_workflow_state
                                 .workflow_type
                                 .as_workflow()
@@ -15093,10 +15066,7 @@ impl Input {
                     );
 
                     let workflow_type = &selected_workflow_state.workflow_type;
-                    let workflow_id = match workflow_type {
-                        WorkflowType::Cloud(workflow) => Some(workflow.id),
-                        _ => None,
-                    };
+                    let workflow_id = workflow_type.sync_id();
 
                     // If the SelectedWorkflowState is populated, then we're always able to return the workflow command.
                     // The case where workflow_id = None but workflow_command = Some() is when it's a local workflow, which

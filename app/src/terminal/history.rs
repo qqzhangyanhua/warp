@@ -230,12 +230,9 @@ impl LinkedWorkflowData {
                     Some(Space::Team { team_uid }) => WorkflowSource::Team { team_uid },
                     _ => WorkflowSource::PersonalCloud,
                 };
-                workflow.map(|workflow| {
-                    (
-                        WorkflowType::Cloud(Box::new(workflow.clone())),
-                        workflow_source,
-                    )
-                })
+                // Cloud Drive workflows no longer participate; do not surface them.
+                let _ = (workflow, workflow_source);
+                None
             }
             LinkedWorkflowData::Command(workflow_command) => {
                 if let Some((workflow_source, workflow)) = LocalWorkflows::as_ref(ctx)

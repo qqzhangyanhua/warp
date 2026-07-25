@@ -6,7 +6,6 @@ use warpui::{Entity, EntityId, ModelContext, SingletonEntity};
 
 use super::workflow::Workflow;
 use super::WorkflowSource;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::Owner;
 use crate::drive::OpenWarpDriveObjectSettings;
 use crate::pane_group::pane::PaneContent;
@@ -90,22 +89,14 @@ impl WorkflowManager {
         let view = ctx.add_typed_action_view(window_id, WorkflowView::new_in_pane);
 
         match source {
-            WorkflowOpenSource::Existing(workflow_id) => {
-                let workflow = CloudModel::as_ref(ctx).get_workflow(workflow_id).cloned();
-                if let Some(workflow) = workflow {
-                    view.update(ctx, |view, ctx| view.load(workflow, settings, mode, ctx));
-                } else {
-                    // If the workflow doesn't exist, try waiting for initial load and trying again
-                    view.update(ctx, |view, ctx| {
-                        view.wait_for_initial_load_then_load(
-                            *workflow_id,
-                            settings,
-                            mode,
-                            window_id,
-                            ctx,
-                        )
-                    });
-                }
+            WorkflowOpenSource::Existing(_workflow_id) => {
+                // Cloud Drive workflows are removed; never construct CloudModel.
+                safe_warn!(
+                    safe: ("Refusing to open cloud Drive workflow"),
+                    full: ("WorkflowOpenSource::Existing is unsupported in ZYH; use local YAML")
+                );
+                let _ = settings;
+                let _ = mode;
             }
             WorkflowOpenSource::LocalFile { path, source } => {
                 view.update(ctx, |view, ctx| {

@@ -16747,7 +16747,7 @@ impl Workspace {
         });
     }
 
-    /// Runs a cloud workflow in whichever input is currently active.
+    /// Runs a workflow payload from a former cloud object as a local workflow type.
     fn run_cloud_workflow_in_active_input(
         &mut self,
         workflow: CloudWorkflow,
@@ -16755,9 +16755,9 @@ impl Workspace {
         fallback_behavior: TerminalSessionFallbackBehavior,
         ctx: &mut ViewContext<Self>,
     ) {
-        let owner = workflow.clone().permissions.owner.into();
+        let owner = WorkflowSource::Local;
         self.run_workflow_in_active_input(
-            &WorkflowType::Cloud(Box::new(workflow.clone())),
+            &WorkflowType::Local(workflow.model().data.clone()),
             owner,
             workflow_selection_source,
             None,
@@ -16766,10 +16766,6 @@ impl Workspace {
         );
         ctx.focus_self();
         ctx.notify();
-        self.set_selected_object(
-            Some(WarpDriveItemId::Object(workflow.cloud_object_type_and_id())),
-            ctx,
-        );
     }
 
     /// Focus and return the active terminal input. If there is no active terminal input (either
@@ -17067,21 +17063,18 @@ impl Workspace {
                     AcceptWorkflow(accepted) => {
                         let (workflow, workflow_source) = match accepted {
                             AcceptedWorkflow::Cloud { id, source } => {
-                                let Some(cloud_workflow) =
-                                    CloudModel::as_ref(ctx).get_workflow(id).cloned()
-                                else {
-                                    self.toast_stack.update(ctx, |view, ctx| {
-                                        view.add_ephemeral_toast(
-                                            DismissibleToast::error(
-                                                tr(ctx, Message::ToastWorkflowNoLongerAvailable)
-                                                    .to_string(),
-                                            ),
-                                            ctx,
-                                        );
-                                    });
-                                    return;
-                                };
-                                (WorkflowType::Cloud(Box::new(cloud_workflow)), *source)
+                                // Cloud Drive workflows are not available.
+                                let _ = id;
+                                self.toast_stack.update(ctx, |view, ctx| {
+                                    view.add_ephemeral_toast(
+                                        DismissibleToast::error(
+                                            crate::cloud_product_removal::DRIVE_REMOVED_GUIDANCE
+                                                .to_string(),
+                                        ),
+                                        ctx,
+                                    );
+                                });
+                                return;
                             }
                             AcceptedWorkflow::Local {
                                 workflow, source, ..

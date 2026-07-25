@@ -1711,38 +1711,28 @@ impl WorkflowView {
             return;
         }
 
-        // Legacy cloud path retained only for non-local panes still open mid-migration.
+        // Cloud Drive workflows are removed. Non-local panes only run bare payload as Local.
         if self.is_workflow_dirty(ctx) {
             let new_workflow = self.create_workflow_object_from_input(ctx);
-            if let Some(cloud_workflow) = self.get_cloud_workflow(ctx) {
-                let mut cloned_cloud_workflow = cloud_workflow.clone();
-                cloned_cloud_workflow.set_model(CloudWorkflowModel::new(new_workflow));
-                if let Some(owner) = self.owner {
-                    ctx.emit(WorkflowViewEvent::RunWorkflow {
-                        workflow: Arc::new(WorkflowType::Cloud(Box::new(cloned_cloud_workflow))),
-                        source: owner.into(),
-                        argument_override: None,
-                    });
-                };
-            } else if let Some(owner) = self.owner {
-                ctx.emit(WorkflowViewEvent::RunWorkflow {
-                    workflow: Arc::new(WorkflowType::Local(new_workflow)),
-                    source: owner.into(),
-                    argument_override: None,
-                })
-            }
-        } else if let Some(workflow) = self.get_cloud_workflow(ctx) {
-            if let Some(owner) = self.owner {
-                ctx.emit(WorkflowViewEvent::RunWorkflow {
-                    workflow: Arc::new(WorkflowType::Cloud(Box::new(workflow))),
-                    source: owner.into(),
-                    argument_override: Some(self.command_display_data.get_argument_values()),
-                });
-            } else {
-                log::warn!("Invalid space for workflow");
-            }
+            ctx.emit(WorkflowViewEvent::RunWorkflow {
+                workflow: Arc::new(WorkflowType::Local(new_workflow)),
+                source: self
+                    .owner
+                    .map(Into::into)
+                    .unwrap_or(WorkflowSource::Local),
+                argument_override: None,
+            });
+        } else if let Some(cloud_workflow) = self.get_cloud_workflow(ctx) {
+            ctx.emit(WorkflowViewEvent::RunWorkflow {
+                workflow: Arc::new(WorkflowType::Local(cloud_workflow.model().data.clone())),
+                source: self
+                    .owner
+                    .map(Into::into)
+                    .unwrap_or(WorkflowSource::Local),
+                argument_override: Some(self.command_display_data.get_argument_values()),
+            });
         } else {
-            log::warn!("No valid workflow id. Can't run workflow");
+            log::warn!("No valid local workflow. Can't run workflow");
         }
     }
 

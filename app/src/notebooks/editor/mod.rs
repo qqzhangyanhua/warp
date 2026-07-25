@@ -344,9 +344,12 @@ pub struct NotebookWorkflow {
 
 impl NotebookWorkflow {
     pub fn from_cloud_workflow(cloud_workflow: Box<CloudWorkflow>) -> Self {
+        // Cloud ownership is dropped; keep the bare payload as a local workflow type.
         Self {
             source: Some(cloud_workflow.permissions.owner.into()),
-            workflow: UserInput::new(Arc::new(WorkflowType::Cloud(cloud_workflow))),
+            workflow: UserInput::new(Arc::new(WorkflowType::Local(
+                cloud_workflow.model().data.clone(),
+            ))),
         }
     }
 

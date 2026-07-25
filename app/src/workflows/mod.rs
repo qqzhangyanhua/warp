@@ -151,19 +151,20 @@ pub enum AIWorkflowOrigin {
     LegacyWarpAI,
 }
 
-/// Wrapper type for a workflow that may be saved locally or using cloud sync.
+/// Wrapper type for a workflow used by terminal/input and local UI.
+///
+/// Cloud-synced workflows are removed from the permanent ZYH product. Only local
+/// YAML, AI-generated ephemeral, and notebook-embedded bare payloads remain.
 #[derive(Clone, Debug, PartialEq)]
 pub enum WorkflowType {
-    /// Saved workflows sourced from local, global, project, app collections, saved locally.
+    /// Saved workflows from local YAML (user/project) or bundled collections.
     Local(Workflow),
-    /// Saved workflows from personal or team collections, saved using cloud-sync.
-    Cloud(Box<CloudWorkflow>),
-    /// Ephemeral/transient workflows created from Warp AI output
+    /// Ephemeral/transient workflows created from AI output.
     AIGenerated {
         workflow: Workflow,
         origin: AIWorkflowOrigin,
     },
-    /// A workflow that's part of a cloud notebook.
+    /// A workflow embedded in a notebook (payload only; no cloud ownership).
     Notebook(Workflow),
 }
 
@@ -172,7 +173,6 @@ impl WorkflowType {
         match self {
             WorkflowType::Local(workflow) => workflow,
             WorkflowType::AIGenerated { workflow, .. } => workflow,
-            WorkflowType::Cloud(workflow) => &workflow.model().data,
             WorkflowType::Notebook(workflow) => workflow,
         }
     }
@@ -182,32 +182,23 @@ impl WorkflowType {
         match self {
             WorkflowType::Local(workflow) => workflow,
             WorkflowType::AIGenerated { workflow, .. } => workflow,
-            WorkflowType::Cloud(workflow) => workflow.model().data.clone(),
             WorkflowType::Notebook(workflow) => workflow,
         }
     }
 
-    /// The object type and ID for the cloud object containing this workflow, if there is
-    /// one. This is currently only supported for cloud workflows, not workflows within notebooks.
+    /// Cloud object identity is not available in ZYH; always `None`.
     pub fn object_id(&self) -> Option<CloudObjectTypeAndId> {
-        match self {
-            WorkflowType::Cloud(workflow) => Some(CloudObjectTypeAndId::Workflow(workflow.id)),
-            _ => None,
-        }
+        None
     }
 
+    /// Cloud sync id is not available in ZYH; always `None`.
     pub fn sync_id(&self) -> Option<SyncId> {
-        match self {
-            WorkflowType::Cloud(workflow) => Some(workflow.id),
-            _ => None,
-        }
+        None
     }
 
+    /// Cloud server id is not available in ZYH; always `None`.
     pub fn server_id(&self) -> Option<WorkflowId> {
-        match self.object_id() {
-            Some(CloudObjectTypeAndId::Workflow(id)) => id.into_server().map(Into::into),
-            _ => None,
-        }
+        None
     }
 
     /// We don't show env var selection for Agent Mode suggested commands.
