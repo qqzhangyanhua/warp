@@ -33,6 +33,7 @@ mod drive;
 mod dynamic_libraries;
 mod env_vars;
 mod experiments;
+mod external_contracts;
 mod external_secrets;
 #[cfg(target_family = "wasm")]
 mod font_fallback;
@@ -606,8 +607,8 @@ fn apply_scroll_multiplier(event: &mut Event, app: &AppContext) {
 
 /// Runs the shared Warp executable as the app or as one of its command-line modes.
 ///
-/// The bundled Warp Control wrapper injects `--warpctrl`, which is dispatched
-/// before the normal Warp/Oz parser. Oz subcommands are part of that normal
+/// The bundled ZYH Control wrapper injects `--zyhctrl`, which is dispatched
+/// before the normal agent/CLI parser. `zyh` subcommands are part of that normal
 /// parser and therefore do not require a separate mode flag.
 #[::tracing::instrument(skip_all, fields(tags.cloud_agent = true))]
 pub fn run() -> Result<()> {
@@ -689,10 +690,16 @@ pub fn run() -> Result<()> {
         }
     }
 
-    // If running as a standalone CLI binary or invoked as "oz", print help
+    // If running as a standalone CLI binary or invoked as "zyh*", print help
     // instead of launching the GUI app.
     let is_cli_binary = cfg!(feature = "standalone")
-        || warp_cli::binary_name().is_some_and(|name| name.starts_with("oz"))
+        || warp_cli::binary_name().is_some_and(|name| {
+            name == "zyh"
+                || name.starts_with("zyh-")
+                || name == "zyhctrl"
+                || name.starts_with("zyhctrl-")
+        })
+        || std::env::var_os("ZYH_CLI_MODE").is_some()
         || std::env::var_os("WARP_CLI_MODE").is_some();
     if is_cli_binary {
         warp_cli::Args::clap_command().print_help()?;

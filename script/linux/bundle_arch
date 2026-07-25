@@ -17,9 +17,9 @@ set -e
 
 # Extract channel suffix from BINARY_NAME
 if [ "$ARTIFACT" = "cli" ]; then
-  CHANNEL_SUFFIX="${BINARY_NAME#oz}"
+  CHANNEL_SUFFIX="${BINARY_NAME#zyh}"
 else
-  CHANNEL_SUFFIX="${BINARY_NAME#warp}"
+  CHANNEL_SUFFIX="${BINARY_NAME#zyh}"
 fi
 
 # On Linux, we keep the `-stable` suffix for stable to avoid package conflicts.

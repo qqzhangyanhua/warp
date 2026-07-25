@@ -43,7 +43,7 @@ PATH="$temp_dir/bin:$PATH" \
   CARGO_TARGET_DIR="$temp_dir/target" \
   "$workspace_root/script/linux/bundle" \
   --check-only \
-  --artifact warpctrl \
+  --artifact zyhctrl \
   --arch "$arch" \
   --features smoke_feature
 
@@ -64,14 +64,14 @@ PATH="$temp_dir/bin:$PATH" \
   SKIP_SETTINGS_SCHEMA=1 \
   "$workspace_root/script/linux/bundle" \
   --skip-build \
-  --artifact warpctrl \
+  --artifact zyhctrl \
   --arch "$arch"
 
 FORWARDED_ARGS_FILE="$temp_dir/forwarded-args" \
-  "$profile_dir/bundle/linux/warpctrl" tab create --instance "inst 123"
+  "$profile_dir/bundle/linux/zyhctrl" tab create --instance "inst 123"
 
 cat > "$temp_dir/expected-forwarded-args" <<'EOF'
---warpctrl
+--zyhctrl
 tab
 create
 --instance

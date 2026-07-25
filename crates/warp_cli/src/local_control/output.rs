@@ -1,4 +1,4 @@
-//! Output rendering helpers for `warpctrl`.
+//! Output rendering helpers for `zyhctrl`.
 use std::io::Write as _;
 
 use local_control::protocol::{ControlError, ErrorCode};
@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::agent::OutputFormat;
 
-/// JSON/NDJSON error payload emitted by `warpctrl`.
+/// JSON/NDJSON error payload emitted by `zyhctrl`.
 #[derive(Serialize)]
 pub(crate) struct ErrorSummary<'a> {
     pub ok: bool,

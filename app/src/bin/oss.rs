@@ -6,13 +6,13 @@ use anyhow::Result;
 use warp_core::channel::{Channel, ChannelConfig, ChannelState, OzConfig, WarpServerConfig};
 use warp_core::AppId;
 
-// Simple wrapper around warp::run() for Warp OSS builds.
+// Simple wrapper around warp::run() for ZYH OSS builds.
 fn main() -> Result<()> {
     let mut state = ChannelState::new(
         Channel::Oss,
         ChannelConfig {
-            app_id: AppId::new("dev", "warp", "WarpOss"),
-            logfile_name: "warp-oss.log".into(),
+            app_id: AppId::new("dev", "zyh", "ZYH-Oss"),
+            logfile_name: "zyh-oss.log".into(),
             server_config: WarpServerConfig::production(),
             oz_config: OzConfig::production(),
             telemetry_config: None,
@@ -41,9 +41,9 @@ embed_plist::embed_info_plist_bytes!(r#"
     <key>CFBundleDisplayName</key>
     <string>ZYH</string>
     <key>CFBundleExecutable</key>
-    <string>warp-oss</string>
+    <string>oss</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.warp.WarpOss</string>
+    <string>dev.zyh.ZYH-Oss</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -59,7 +59,7 @@ embed_plist::embed_info_plist_bytes!(r#"
     <key>UIDesignRequiresCompatibility</key>
     <true/>
     <key>CFBundleURLTypes</key>
-    <array><dict><key>CFBundleURLName</key><string>Custom App</string><key>CFBundleURLSchemes</key><array><string>warposs</string></array></dict></array>
+    <array><dict><key>CFBundleURLName</key><string>ZYH OSS</string><key>CFBundleURLSchemes</key><array><string>zyh-oss</string></array></dict></array>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026, Denver Technologies, Inc</string>
     </dict>

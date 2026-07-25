@@ -17,7 +17,22 @@ fn safe_browser_open_url_accepts_browser_safe_urls() {
 }
 
 #[test]
-fn safe_browser_open_url_accepts_warp_channel_urls() {
+fn safe_browser_open_url_accepts_zyh_channel_urls() {
+    for scheme in [
+        "zyh",
+        "zyh-preview",
+        "zyh-dev",
+        "zyh-local",
+        "zyh-oss",
+        "zyh-integration",
+    ] {
+        let url = format!("{scheme}://action/new_window");
+        assert_eq!(safe_browser_open_url(&url).as_deref(), Some(url.as_str()));
+    }
+}
+
+#[test]
+fn safe_browser_open_url_rejects_legacy_warp_schemes() {
     for scheme in [
         "warp",
         "warppreview",
@@ -25,9 +40,11 @@ fn safe_browser_open_url_accepts_warp_channel_urls() {
         "warplocal",
         "warposs",
         "warpintegration",
+        "oz",
+        "ozlocal",
     ] {
-        let url = format!("{scheme}://action/focus_cloud_mode");
-        assert_eq!(safe_browser_open_url(&url).as_deref(), Some(url.as_str()));
+        let url = format!("{scheme}://action/new_window");
+        assert_eq!(safe_browser_open_url(&url), None, "{url}");
     }
 }
 

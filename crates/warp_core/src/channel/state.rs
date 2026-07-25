@@ -37,7 +37,7 @@ pub struct ChannelState {
 impl ChannelState {
     pub fn init() -> Self {
         let channel = Channel::Oss;
-        let app_id = AppId::new("dev", "warp", "WarpOss");
+        let app_id = AppId::new("dev", "zyh", "ZYH-Oss");
         Self {
             channel,
             additional_features: Default::default(),
@@ -390,15 +390,19 @@ impl ChannelState {
             .cloned()
     }
 
+    /// Custom URL scheme for this channel (external product contract).
+    ///
+    /// Production uses `zyh://`. Channel-specific builds use `zyh-*` schemes.
+    /// Legacy `warp://` / `warplocal://` schemes are not returned and must be rejected.
     pub fn url_scheme() -> &'static str {
         match Self::channel() {
-            Channel::Stable => "warp",
-            Channel::Preview => "warppreview",
-            Channel::Dev => "warpdev",
+            Channel::Stable => "zyh",
+            Channel::Preview => "zyh-preview",
+            Channel::Dev => "zyh-dev",
             // Dummy value--integration tests shouldn't support URL schemes.
-            Channel::Integration => "warpintegration",
-            Channel::Local => "warplocal",
-            Channel::Oss => "warposs",
+            Channel::Integration => "zyh-integration",
+            Channel::Local => "zyh-local",
+            Channel::Oss => "zyh-oss",
         }
     }
 }

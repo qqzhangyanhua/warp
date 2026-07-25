@@ -47,28 +47,38 @@ impl Channel {
         }
     }
 
-    /// Returns the CLI command name corresponding to this channel.
+    /// Returns the installed agent/CLI command name for this channel.
+    ///
+    /// External product contract: `zyh` / `zyh-*` (not legacy `oz` / `warp`).
     pub fn cli_command_name(&self) -> &'static str {
         match self {
-            Channel::Stable => "oz",
-            Channel::Dev => "oz-dev",
-            Channel::Preview => "oz-preview",
-            Channel::Local => "oz-local",
-            Channel::Integration => "oz-integration",
-            Channel::Oss => "warp-oss",
+            Channel::Stable => "zyh",
+            Channel::Dev => "zyh-dev",
+            Channel::Preview => "zyh-preview",
+            Channel::Local => "zyh-local",
+            Channel::Integration => "zyh-integration",
+            Channel::Oss => "zyh-oss",
         }
     }
 
-    /// Returns the Warp Control CLI command name corresponding to this channel.
+    /// Returns the local-control automation CLI name for this channel.
+    ///
+    /// External product contract: `zyhctrl` / `zyhctrl-*`. The method name retains
+    /// historical lineage; the returned string is the public command users install.
     pub fn warpctrl_command_name(&self) -> &'static str {
         match self {
-            Channel::Stable => "warpctrl",
-            Channel::Dev => "warpctrl-dev",
-            Channel::Preview => "warpctrl-preview",
-            Channel::Local => "warpctrl-local",
-            Channel::Integration => "warpctrl-integration",
-            Channel::Oss => "warpctrl-oss",
+            Channel::Stable => "zyhctrl",
+            Channel::Dev => "zyhctrl-dev",
+            Channel::Preview => "zyhctrl-preview",
+            Channel::Local => "zyhctrl-local",
+            Channel::Integration => "zyhctrl-integration",
+            Channel::Oss => "zyhctrl-oss",
         }
+    }
+
+    /// Alias for [`Self::warpctrl_command_name`] using the ZYH product name.
+    pub fn zyhctrl_command_name(&self) -> &'static str {
+        self.warpctrl_command_name()
     }
 }
 
@@ -80,7 +90,7 @@ impl fmt::Display for Channel {
             Channel::Dev => "dev",
             Channel::Integration => "integration",
             Channel::Local => "local",
-            Channel::Oss => "warp-oss",
+            Channel::Oss => "zyh-oss",
         })
     }
 }

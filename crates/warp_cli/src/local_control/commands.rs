@@ -1,4 +1,4 @@
-//! Implementations for user-facing `warpctrl` command groups.
+//! Implementations for user-facing `zyhctrl` command groups.
 use local_control::discovery::InstanceRecord;
 use local_control::protocol::{
     Action, ActionKind, ActionNameParams, BindingNameParams, BooleanValueParams, ColorValueParams,
@@ -203,7 +203,7 @@ pub(super) fn run_instance_command(
     }
 }
 
-/// JSON payload for `warpctrl instance list`.
+/// JSON payload for `zyhctrl instance list`.
 #[derive(Serialize)]
 pub(super) struct InstanceListOutput {
     instances: Vec<InstanceSummary>,

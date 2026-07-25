@@ -19,15 +19,18 @@ use output::write_control_error;
 
 use crate::agent::OutputFormat;
 
-/// Hidden flag used by the channel-specific Warp app binary to enter `warpctrl` mode.
-pub const CONTROL_MODE_FLAG: &str = "--warpctrl";
+/// Hidden flag used by the channel-specific ZYH app binary to enter `zyhctrl` mode.
+pub const CONTROL_MODE_FLAG: &str = "--zyhctrl";
 
-/// Parsed top-level arguments for `warpctrl`.
+/// Default public command name for local control when argv[0] is unavailable.
+pub const DEFAULT_CONTROL_COMMAND_NAME: &str = "zyhctrl";
+
+/// Parsed top-level arguments for `zyhctrl`.
 #[derive(Debug, Parser)]
 #[command(
-    name = "warpctrl",
-    display_name = "warpctrl",
-    about = "Control a running local Warp app instance"
+    name = "zyhctrl",
+    display_name = "zyhctrl",
+    about = "Control a running local ZYH app instance"
 )]
 pub struct ControlArgs {
     /// Set the output format.
@@ -36,7 +39,7 @@ pub struct ControlArgs {
         global = true,
         value_enum,
         default_value_t = OutputFormat::Pretty,
-        env = "WARP_OUTPUT_FORMAT"
+        env = "ZYH_OUTPUT_FORMAT"
     )]
     pub output_format: OutputFormat,
 
@@ -59,15 +62,16 @@ pub enum ActionCatalogCommand {
 
 impl ControlArgs {
     pub fn from_env() -> Self {
-        let bin_name = crate::binary_name().unwrap_or_else(|| "warpctrl".to_owned());
+        let bin_name = crate::binary_name()
+            .unwrap_or_else(|| DEFAULT_CONTROL_COMMAND_NAME.to_owned());
         Self::try_parse_from_args(std::env::args_os(), bin_name).unwrap_or_else(|err| err.exit())
     }
 
-    /// Parse Warp Control arguments only when the wrapper-injected mode flag is present.
+    /// Parse ZYH Control arguments only when the wrapper-injected mode flag is present.
     ///
-    /// Startup calls this before the normal Warp/Oz parser. Arguments through
-    /// `--warpctrl` are removed, and the remaining arguments are parsed as if
-    /// the standalone command name were `warpctrl`.
+    /// Startup calls this before the normal agent/CLI parser. Arguments through
+    /// `--zyhctrl` are removed, and the remaining arguments are parsed as if
+    /// the standalone command name were `zyhctrl`. Legacy `--zyhctrl` is not accepted.
     pub fn from_control_mode_env() -> Option<Self> {
         Self::try_parse_control_mode_from(std::env::args_os())
             .map(|result| result.unwrap_or_else(|err| err.exit()))
@@ -79,7 +83,7 @@ impl ControlArgs {
         I: IntoIterator<Item = T>,
         T: Into<OsString>,
     {
-        let mut stripped_args = vec![OsString::from("warpctrl")];
+        let mut stripped_args = vec![OsString::from(DEFAULT_CONTROL_COMMAND_NAME)];
         let mut found_control_mode = false;
 
         for arg in args {
@@ -93,11 +97,13 @@ impl ControlArgs {
             stripped_args.push(arg);
         }
 
-        found_control_mode.then(|| Self::try_parse_from_args(stripped_args, "warpctrl"))
+        found_control_mode
+            .then(|| Self::try_parse_from_args(stripped_args, DEFAULT_CONTROL_COMMAND_NAME))
     }
 
     pub fn clap_command() -> clap::Command {
-        let bin_name = crate::binary_name().unwrap_or_else(|| "warpctrl".to_owned());
+        let bin_name = crate::binary_name()
+            .unwrap_or_else(|| DEFAULT_CONTROL_COMMAND_NAME.to_owned());
         Self::clap_command_for_bin_name(bin_name)
     }
 
@@ -133,10 +139,10 @@ impl ControlArgs {
     }
 }
 
-/// Top-level `warpctrl` command groups.
+/// Top-level `zyhctrl` command groups.
 #[derive(Debug, Clone, Subcommand)]
 pub enum ControlCommand {
-    /// Inspect local Warp app instances.
+    /// Inspect local ZYH app instances.
     #[command(subcommand)]
     Instance(InstanceCommand),
     /// Inspect a selected local Warp app.
@@ -195,16 +201,16 @@ pub enum ControlCommand {
     /// Generate shell completions for your shell to stdout.
     ///
     /// For bash, add the following to ~/.bashrc:
-    ///     source <(path/to/warpctrl completions bash)
+    ///     source <(path/to/zyhctrl completions bash)
     ///
     /// For zsh, add the following to ~/.zshrc:
-    ///     source <(path/to/warpctrl completions zsh)
+    ///     source <(path/to/zyhctrl completions zsh)
     ///
     /// For fish, add the following to ~/.config/fish/config.fish:
-    ///     path/to/warpctrl completions fish | source
+    ///     path/to/zyhctrl completions fish | source
     ///
     /// For Powershell, add the following to $PROFILE:
-    ///     path\to\warpctrl completions powershell | Out-String | Invoke-Expression
+    ///     path\to\zyhctrl completions powershell | Out-String | Invoke-Expression
     ///
     /// If no shell is provided, this defaults to the shell that Warp was run from.
     #[command(verbatim_doc_comment)]
@@ -561,7 +567,7 @@ pub enum FileCommand {
 /// Exact selectors for a target within the selected Warp instance.
 #[derive(Debug, Clone, Args, Default)]
 pub struct TargetArgs {
-    /// Target a specific local Warp instance id from `warpctrl instance list`.
+    /// Target a specific local Warp instance id from `zyhctrl instance list`.
     #[arg(long = "instance", conflicts_with = "pid")]
     pub instance: Option<String>,
 

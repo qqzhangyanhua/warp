@@ -9,7 +9,7 @@ use super::*;
 #[test]
 fn parses_typed_create_and_setting_list_params() {
     let args = ControlArgs::try_parse_from([
-        "warpctrl",
+        "zyhctrl",
         "tab",
         "create",
         "--type",
@@ -28,7 +28,7 @@ fn parses_typed_create_and_setting_list_params() {
     assert_eq!(args.target.session.as_deref(), Some("session_1"));
 
     let args =
-        ControlArgs::try_parse_from(["warpctrl", "setting", "list", "--namespace", "editor"])
+        ControlArgs::try_parse_from(["zyhctrl", "setting", "list", "--namespace", "editor"])
             .expect("setting list parses");
     let ControlCommand::Setting(SettingCommand::List(args)) = args.command else {
         panic!("expected setting list command");
@@ -39,7 +39,7 @@ fn parses_typed_create_and_setting_list_params() {
 #[test]
 fn rejects_conflicting_instance_selectors() {
     let err = ControlArgs::try_parse_from([
-        "warpctrl",
+        "zyhctrl",
         "tab",
         "create",
         "--instance",
@@ -53,14 +53,14 @@ fn rejects_conflicting_instance_selectors() {
 
 #[test]
 fn parses_instance_and_pid_selectors() {
-    let args = ControlArgs::try_parse_from(["warpctrl", "tab", "create", "--instance", "inst_123"])
+    let args = ControlArgs::try_parse_from(["zyhctrl", "tab", "create", "--instance", "inst_123"])
         .expect("instance selector parses");
     let ControlCommand::Tab(TabCommand::Create(create)) = args.command else {
         panic!("expected tab create command");
     };
     assert_eq!(create.target.instance.as_deref(), Some("inst_123"));
 
-    let args = ControlArgs::try_parse_from(["warpctrl", "app", "ping", "--pid", "123"])
+    let args = ControlArgs::try_parse_from(["zyhctrl", "app", "ping", "--pid", "123"])
         .expect("pid selector parses");
     let ControlCommand::App(AppCommand::Ping(target)) = args.command else {
         panic!("expected app ping command");
@@ -71,7 +71,7 @@ fn parses_instance_and_pid_selectors() {
 #[test]
 fn surface_list_accepts_instance_selection() {
     let args =
-        ControlArgs::try_parse_from(["warpctrl", "surface", "list", "--instance", "inst_123"])
+        ControlArgs::try_parse_from(["zyhctrl", "surface", "list", "--instance", "inst_123"])
             .expect("surface list instance selector parses");
     let ControlCommand::Surface(SurfaceCommand::List(target)) = args.command else {
         panic!("expected surface list command");
@@ -82,17 +82,17 @@ fn surface_list_accepts_instance_selection() {
 #[test]
 fn rejects_excluded_command_routes() {
     for args in [
-        vec!["warpctrl", "history", "list"],
-        vec!["warpctrl", "block", "list"],
-        vec!["warpctrl", "block", "inspect", "block_1"],
-        vec!["warpctrl", "block", "output", "block_1"],
-        vec!["warpctrl", "input", "get"],
-        vec!["warpctrl", "input", "clear"],
-        vec!["warpctrl", "input", "mode", "set", "agent"],
-        vec!["warpctrl", "input", "run", "pwd"],
-        vec!["warpctrl", "file", "list"],
-        vec!["warpctrl", "drive", "list"],
-        vec!["warpctrl", "auth", "status"],
+        vec!["zyhctrl", "history", "list"],
+        vec!["zyhctrl", "block", "list"],
+        vec!["zyhctrl", "block", "inspect", "block_1"],
+        vec!["zyhctrl", "block", "output", "block_1"],
+        vec!["zyhctrl", "input", "get"],
+        vec!["zyhctrl", "input", "clear"],
+        vec!["zyhctrl", "input", "mode", "set", "agent"],
+        vec!["zyhctrl", "input", "run", "pwd"],
+        vec!["zyhctrl", "file", "list"],
+        vec!["zyhctrl", "drive", "list"],
+        vec!["zyhctrl", "auth", "status"],
     ] {
         assert!(ControlArgs::try_parse_from(args).is_err());
     }
@@ -100,7 +100,7 @@ fn rejects_excluded_command_routes() {
 
 #[test]
 fn parses_first_slice_instance_list() {
-    let args = ControlArgs::try_parse_from(["warpctrl", "instance", "list"])
+    let args = ControlArgs::try_parse_from(["zyhctrl", "instance", "list"])
         .expect("instance list parses");
     assert!(matches!(
         args.command,
@@ -110,31 +110,31 @@ fn parses_first_slice_instance_list() {
 
 #[test]
 fn parses_first_slice_app_smoke_metadata_commands() {
-    assert!(ControlArgs::try_parse_from(["warpctrl", "app", "ping"]).is_ok());
-    assert!(ControlArgs::try_parse_from(["warpctrl", "app", "version"]).is_ok());
-    assert!(ControlArgs::try_parse_from(["warpctrl", "app", "active"]).is_ok());
-    assert!(ControlArgs::try_parse_from(["warpctrl", "app", "focus"]).is_ok());
+    assert!(ControlArgs::try_parse_from(["zyhctrl", "app", "ping"]).is_ok());
+    assert!(ControlArgs::try_parse_from(["zyhctrl", "app", "version"]).is_ok());
+    assert!(ControlArgs::try_parse_from(["zyhctrl", "app", "active"]).is_ok());
+    assert!(ControlArgs::try_parse_from(["zyhctrl", "app", "focus"]).is_ok());
 }
 
 #[test]
 fn parses_catalog_metadata_commands() {
     let args =
-        ControlArgs::try_parse_from(["warpctrl", "action", "inspect", "surface.settings.open"])
+        ControlArgs::try_parse_from(["zyhctrl", "action", "inspect", "surface.settings.open"])
             .expect("action inspect parses");
     let ControlCommand::Action(ActionCatalogCommand::Inspect { action }) = args.command else {
         panic!("expected action inspect command");
     };
     assert_eq!(action, "surface.settings.open");
-    assert!(ControlArgs::try_parse_from(["warpctrl", "action", "list"]).is_ok());
-    assert!(ControlArgs::try_parse_from(["warpctrl", "capability", "list"]).is_ok());
+    assert!(ControlArgs::try_parse_from(["zyhctrl", "action", "list"]).is_ok());
+    assert!(ControlArgs::try_parse_from(["zyhctrl", "capability", "list"]).is_ok());
     assert!(
-        ControlArgs::try_parse_from(["warpctrl", "capability", "inspect", "tab.create"]).is_ok()
+        ControlArgs::try_parse_from(["zyhctrl", "capability", "inspect", "tab.create"]).is_ok()
     );
 }
 
 #[test]
 fn parses_control_mode_args_after_hidden_flag() {
-    let args = ControlArgs::try_parse_control_mode_from(["warp", "--warpctrl", "tab", "create"])
+    let args = ControlArgs::try_parse_control_mode_from(["warp", "--zyhctrl", "tab", "create"])
         .expect("control mode flag is present")
         .expect("control mode args parse");
     assert!(matches!(
@@ -149,8 +149,16 @@ fn ignores_args_without_control_mode_flag() {
 }
 
 #[test]
+fn rejects_legacy_warpctrl_mode_flag() {
+    assert!(
+        ControlArgs::try_parse_control_mode_from(["warp", "--warpctrl", "tab", "create"]).is_none(),
+        "legacy --warpctrl must not enter control mode"
+    );
+}
+
+#[test]
 fn parses_completion_generation_command() {
-    let args = ControlArgs::try_parse_from(["warpctrl", "completions", "bash"])
+    let args = ControlArgs::try_parse_from(["zyhctrl", "completions", "bash"])
         .expect("completions parses");
     assert!(matches!(
         args.command,
@@ -163,7 +171,7 @@ fn parses_completion_generation_command() {
 #[test]
 fn parses_exact_window_tab_pane_and_session_selectors() {
     let args = ControlArgs::try_parse_from([
-        "warpctrl",
+        "zyhctrl",
         "session",
         "inspect",
         "--window-title",
@@ -307,75 +315,75 @@ fn retained_action_examples() -> Vec<(ActionKind, Vec<&'static str>)> {
     vec![
         (
             ActionKind::InstanceList,
-            vec!["warpctrl", "instance", "list"],
+            vec!["zyhctrl", "instance", "list"],
         ),
         (
             ActionKind::InstanceInspect,
-            vec!["warpctrl", "instance", "inspect"],
+            vec!["zyhctrl", "instance", "inspect"],
         ),
-        (ActionKind::AppPing, vec!["warpctrl", "app", "ping"]),
-        (ActionKind::AppVersion, vec!["warpctrl", "app", "version"]),
-        (ActionKind::AppActive, vec!["warpctrl", "app", "active"]),
-        (ActionKind::AppFocus, vec!["warpctrl", "app", "focus"]),
+        (ActionKind::AppPing, vec!["zyhctrl", "app", "ping"]),
+        (ActionKind::AppVersion, vec!["zyhctrl", "app", "version"]),
+        (ActionKind::AppActive, vec!["zyhctrl", "app", "active"]),
+        (ActionKind::AppFocus, vec!["zyhctrl", "app", "focus"]),
         (
             ActionKind::CapabilityList,
-            vec!["warpctrl", "capability", "list"],
+            vec!["zyhctrl", "capability", "list"],
         ),
         (
             ActionKind::CapabilityInspect,
-            vec!["warpctrl", "capability", "inspect", "tab.create"],
+            vec!["zyhctrl", "capability", "inspect", "tab.create"],
         ),
-        (ActionKind::WindowList, vec!["warpctrl", "window", "list"]),
+        (ActionKind::WindowList, vec!["zyhctrl", "window", "list"]),
         (
             ActionKind::WindowInspect,
-            vec!["warpctrl", "window", "inspect"],
+            vec!["zyhctrl", "window", "inspect"],
         ),
         (
             ActionKind::WindowCreate,
-            vec!["warpctrl", "window", "create"],
+            vec!["zyhctrl", "window", "create"],
         ),
-        (ActionKind::WindowFocus, vec!["warpctrl", "window", "focus"]),
-        (ActionKind::WindowClose, vec!["warpctrl", "window", "close"]),
-        (ActionKind::TabList, vec!["warpctrl", "tab", "list"]),
-        (ActionKind::TabInspect, vec!["warpctrl", "tab", "inspect"]),
-        (ActionKind::TabCreate, vec!["warpctrl", "tab", "create"]),
-        (ActionKind::TabActivate, vec!["warpctrl", "tab", "activate"]),
+        (ActionKind::WindowFocus, vec!["zyhctrl", "window", "focus"]),
+        (ActionKind::WindowClose, vec!["zyhctrl", "window", "close"]),
+        (ActionKind::TabList, vec!["zyhctrl", "tab", "list"]),
+        (ActionKind::TabInspect, vec!["zyhctrl", "tab", "inspect"]),
+        (ActionKind::TabCreate, vec!["zyhctrl", "tab", "create"]),
+        (ActionKind::TabActivate, vec!["zyhctrl", "tab", "activate"]),
         (
             ActionKind::TabMove,
-            vec!["warpctrl", "tab", "move", "--direction", "next"],
+            vec!["zyhctrl", "tab", "move", "--direction", "next"],
         ),
-        (ActionKind::TabClose, vec!["warpctrl", "tab", "close"]),
+        (ActionKind::TabClose, vec!["zyhctrl", "tab", "close"]),
         (
             ActionKind::TabRename,
-            vec!["warpctrl", "tab", "rename", "docs"],
+            vec!["zyhctrl", "tab", "rename", "docs"],
         ),
         (
             ActionKind::TabResetName,
-            vec!["warpctrl", "tab", "reset-name"],
+            vec!["zyhctrl", "tab", "reset-name"],
         ),
         (
             ActionKind::TabColorSet,
-            vec!["warpctrl", "tab", "color", "set", "red"],
+            vec!["zyhctrl", "tab", "color", "set", "red"],
         ),
         (
             ActionKind::TabColorClear,
-            vec!["warpctrl", "tab", "color", "clear"],
+            vec!["zyhctrl", "tab", "color", "clear"],
         ),
-        (ActionKind::PaneList, vec!["warpctrl", "pane", "list"]),
-        (ActionKind::PaneInspect, vec!["warpctrl", "pane", "inspect"]),
+        (ActionKind::PaneList, vec!["zyhctrl", "pane", "list"]),
+        (ActionKind::PaneInspect, vec!["zyhctrl", "pane", "inspect"]),
         (
             ActionKind::PaneSplit,
-            vec!["warpctrl", "pane", "split", "--direction", "right"],
+            vec!["zyhctrl", "pane", "split", "--direction", "right"],
         ),
-        (ActionKind::PaneFocus, vec!["warpctrl", "pane", "focus"]),
+        (ActionKind::PaneFocus, vec!["zyhctrl", "pane", "focus"]),
         (
             ActionKind::PaneNavigate,
-            vec!["warpctrl", "pane", "navigate", "--direction", "next"],
+            vec!["zyhctrl", "pane", "navigate", "--direction", "next"],
         ),
         (
             ActionKind::PaneResize,
             vec![
-                "warpctrl",
+                "zyhctrl",
                 "pane",
                 "resize",
                 "--direction",
@@ -386,199 +394,199 @@ fn retained_action_examples() -> Vec<(ActionKind, Vec<&'static str>)> {
         ),
         (
             ActionKind::PaneMaximize,
-            vec!["warpctrl", "pane", "maximize"],
+            vec!["zyhctrl", "pane", "maximize"],
         ),
         (
             ActionKind::PaneUnmaximize,
-            vec!["warpctrl", "pane", "unmaximize"],
+            vec!["zyhctrl", "pane", "unmaximize"],
         ),
-        (ActionKind::PaneClose, vec!["warpctrl", "pane", "close"]),
+        (ActionKind::PaneClose, vec!["zyhctrl", "pane", "close"]),
         (
             ActionKind::PaneRename,
-            vec!["warpctrl", "pane", "rename", "server"],
+            vec!["zyhctrl", "pane", "rename", "server"],
         ),
         (
             ActionKind::PaneResetName,
-            vec!["warpctrl", "pane", "reset-name"],
+            vec!["zyhctrl", "pane", "reset-name"],
         ),
-        (ActionKind::SessionList, vec!["warpctrl", "session", "list"]),
+        (ActionKind::SessionList, vec!["zyhctrl", "session", "list"]),
         (
             ActionKind::SessionInspect,
-            vec!["warpctrl", "session", "inspect"],
+            vec!["zyhctrl", "session", "inspect"],
         ),
         (
             ActionKind::SessionActivate,
-            vec!["warpctrl", "session", "activate"],
+            vec!["zyhctrl", "session", "activate"],
         ),
         (
             ActionKind::SessionPrevious,
-            vec!["warpctrl", "session", "previous"],
+            vec!["zyhctrl", "session", "previous"],
         ),
-        (ActionKind::SessionNext, vec!["warpctrl", "session", "next"]),
+        (ActionKind::SessionNext, vec!["zyhctrl", "session", "next"]),
         (
             ActionKind::SessionReopenClosed,
-            vec!["warpctrl", "session", "reopen-closed"],
+            vec!["zyhctrl", "session", "reopen-closed"],
         ),
         (
             ActionKind::InputInsert,
-            vec!["warpctrl", "input", "insert", "hello"],
+            vec!["zyhctrl", "input", "insert", "hello"],
         ),
         (
             ActionKind::InputReplace,
-            vec!["warpctrl", "input", "replace", "hello"],
+            vec!["zyhctrl", "input", "replace", "hello"],
         ),
-        (ActionKind::ThemeList, vec!["warpctrl", "theme", "list"]),
-        (ActionKind::ThemeGet, vec!["warpctrl", "theme", "get"]),
+        (ActionKind::ThemeList, vec!["zyhctrl", "theme", "list"]),
+        (ActionKind::ThemeGet, vec!["zyhctrl", "theme", "get"]),
         (
             ActionKind::ThemeSet,
-            vec!["warpctrl", "theme", "set", "Dracula"],
+            vec!["zyhctrl", "theme", "set", "Dracula"],
         ),
         (
             ActionKind::ThemeSystemSet,
-            vec!["warpctrl", "theme", "system-set", "true"],
+            vec!["zyhctrl", "theme", "system-set", "true"],
         ),
         (
             ActionKind::ThemeLightSet,
-            vec!["warpctrl", "theme", "light-set", "Light"],
+            vec!["zyhctrl", "theme", "light-set", "Light"],
         ),
         (
             ActionKind::ThemeDarkSet,
-            vec!["warpctrl", "theme", "dark-set", "Dark"],
+            vec!["zyhctrl", "theme", "dark-set", "Dark"],
         ),
         (
             ActionKind::AppearanceGet,
-            vec!["warpctrl", "appearance", "get"],
+            vec!["zyhctrl", "appearance", "get"],
         ),
         (
             ActionKind::AppearanceFontSizeIncrease,
-            vec!["warpctrl", "appearance", "font-size-increase"],
+            vec!["zyhctrl", "appearance", "font-size-increase"],
         ),
         (
             ActionKind::AppearanceFontSizeDecrease,
-            vec!["warpctrl", "appearance", "font-size-decrease"],
+            vec!["zyhctrl", "appearance", "font-size-decrease"],
         ),
         (
             ActionKind::AppearanceFontSizeReset,
-            vec!["warpctrl", "appearance", "font-size-reset"],
+            vec!["zyhctrl", "appearance", "font-size-reset"],
         ),
         (
             ActionKind::AppearanceZoomIncrease,
-            vec!["warpctrl", "appearance", "zoom-increase"],
+            vec!["zyhctrl", "appearance", "zoom-increase"],
         ),
         (
             ActionKind::AppearanceZoomDecrease,
-            vec!["warpctrl", "appearance", "zoom-decrease"],
+            vec!["zyhctrl", "appearance", "zoom-decrease"],
         ),
         (
             ActionKind::AppearanceZoomReset,
-            vec!["warpctrl", "appearance", "zoom-reset"],
+            vec!["zyhctrl", "appearance", "zoom-reset"],
         ),
-        (ActionKind::SettingList, vec!["warpctrl", "setting", "list"]),
+        (ActionKind::SettingList, vec!["zyhctrl", "setting", "list"]),
         (
             ActionKind::SettingGet,
-            vec!["warpctrl", "setting", "get", "font_size"],
+            vec!["zyhctrl", "setting", "get", "font_size"],
         ),
         (
             ActionKind::SettingSet,
-            vec!["warpctrl", "setting", "set", "font_size", "14"],
+            vec!["zyhctrl", "setting", "set", "font_size", "14"],
         ),
         (
             ActionKind::SettingToggle,
-            vec!["warpctrl", "setting", "toggle", "autosuggestions"],
+            vec!["zyhctrl", "setting", "toggle", "autosuggestions"],
         ),
         (
             ActionKind::KeybindingList,
-            vec!["warpctrl", "keybinding", "list"],
+            vec!["zyhctrl", "keybinding", "list"],
         ),
         (
             ActionKind::KeybindingGet,
-            vec!["warpctrl", "keybinding", "get", "copy"],
+            vec!["zyhctrl", "keybinding", "get", "copy"],
         ),
-        (ActionKind::ActionList, vec!["warpctrl", "action", "list"]),
+        (ActionKind::ActionList, vec!["zyhctrl", "action", "list"]),
         (
             ActionKind::ActionInspect,
-            vec!["warpctrl", "action", "inspect", "tab.create"],
+            vec!["zyhctrl", "action", "inspect", "tab.create"],
         ),
-        (ActionKind::SurfaceList, vec!["warpctrl", "surface", "list"]),
+        (ActionKind::SurfaceList, vec!["zyhctrl", "surface", "list"]),
         (
             ActionKind::SurfaceSettingsOpen,
-            vec!["warpctrl", "surface", "settings", "open"],
+            vec!["zyhctrl", "surface", "settings", "open"],
         ),
         (
             ActionKind::SurfaceCommandPaletteOpen,
-            vec!["warpctrl", "surface", "command-palette", "open"],
+            vec!["zyhctrl", "surface", "command-palette", "open"],
         ),
         (
             ActionKind::SurfaceCommandSearchOpen,
-            vec!["warpctrl", "surface", "command-search", "open"],
+            vec!["zyhctrl", "surface", "command-search", "open"],
         ),
         (
             ActionKind::SurfaceThemePickerOpen,
-            vec!["warpctrl", "surface", "theme-picker", "open"],
+            vec!["zyhctrl", "surface", "theme-picker", "open"],
         ),
         (
             ActionKind::SurfaceKeybindingsOpen,
-            vec!["warpctrl", "surface", "keybindings", "open"],
+            vec!["zyhctrl", "surface", "keybindings", "open"],
         ),
         (
             ActionKind::SurfaceWarpDriveOpen,
-            vec!["warpctrl", "surface", "warp-drive", "open"],
+            vec!["zyhctrl", "surface", "warp-drive", "open"],
         ),
         (
             ActionKind::SurfaceWarpDriveToggle,
-            vec!["warpctrl", "surface", "warp-drive", "toggle"],
+            vec!["zyhctrl", "surface", "warp-drive", "toggle"],
         ),
         (
             ActionKind::SurfaceResourceCenterToggle,
-            vec!["warpctrl", "surface", "resource-center", "toggle"],
+            vec!["zyhctrl", "surface", "resource-center", "toggle"],
         ),
         (
             ActionKind::SurfaceAiAssistantToggle,
-            vec!["warpctrl", "surface", "ai-assistant", "toggle"],
+            vec!["zyhctrl", "surface", "ai-assistant", "toggle"],
         ),
         (
             ActionKind::SurfaceCodeReviewOpen,
-            vec!["warpctrl", "surface", "code-review", "open"],
+            vec!["zyhctrl", "surface", "code-review", "open"],
         ),
         (
             ActionKind::SurfaceCodeReviewToggle,
-            vec!["warpctrl", "surface", "code-review", "toggle"],
+            vec!["zyhctrl", "surface", "code-review", "toggle"],
         ),
         (
             ActionKind::SurfaceProjectExplorerOpen,
-            vec!["warpctrl", "surface", "project-explorer", "open"],
+            vec!["zyhctrl", "surface", "project-explorer", "open"],
         ),
         (
             ActionKind::SurfaceGlobalSearchOpen,
-            vec!["warpctrl", "surface", "global-search", "open"],
+            vec!["zyhctrl", "surface", "global-search", "open"],
         ),
         (
             ActionKind::SurfaceConversationListOpen,
-            vec!["warpctrl", "surface", "conversation-list", "open"],
+            vec!["zyhctrl", "surface", "conversation-list", "open"],
         ),
         (
             ActionKind::SurfaceLeftPanelToggle,
-            vec!["warpctrl", "surface", "left-panel", "toggle"],
+            vec!["zyhctrl", "surface", "left-panel", "toggle"],
         ),
         (
             ActionKind::SurfaceRightPanelToggle,
-            vec!["warpctrl", "surface", "right-panel", "toggle"],
+            vec!["zyhctrl", "surface", "right-panel", "toggle"],
         ),
         (
             ActionKind::SurfaceVerticalTabsOpen,
-            vec!["warpctrl", "surface", "vertical-tabs", "open"],
+            vec!["zyhctrl", "surface", "vertical-tabs", "open"],
         ),
         (
             ActionKind::SurfaceVerticalTabsToggle,
-            vec!["warpctrl", "surface", "vertical-tabs", "toggle"],
+            vec!["zyhctrl", "surface", "vertical-tabs", "toggle"],
         ),
         (
             ActionKind::SurfaceAgentManagementOpen,
-            vec!["warpctrl", "surface", "agent-management", "open"],
+            vec!["zyhctrl", "surface", "agent-management", "open"],
         ),
         (
             ActionKind::FileOpen,
-            vec!["warpctrl", "file", "open", "/tmp/example.txt"],
+            vec!["zyhctrl", "file", "open", "/tmp/example.txt"],
         ),
     ]
 }

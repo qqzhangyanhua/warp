@@ -7,9 +7,9 @@ temp_dir="$(mktemp -d)"
 trap 'rm -rf "$temp_dir"' EXIT
 
 bundle_dir="$temp_dir/WarpDev.app/Contents"
-wrapper_path="$bundle_dir/Resources/bin/warpctrl-dev"
+wrapper_path="$bundle_dir/Resources/bin/zyhctrl-dev"
 binary_path="$bundle_dir/MacOS/dev"
-installed_path="$temp_dir/usr/local/bin/warpctrl-dev"
+installed_path="$temp_dir/usr/local/bin/zyhctrl-dev"
 forwarded_args_file="$temp_dir/forwarded-args"
 expected_args_file="$temp_dir/expected-args"
 
@@ -25,7 +25,7 @@ chmod +x "$binary_path"
   "../../MacOS/dev"
 
 cat > "$expected_args_file" << 'EOF'
---warpctrl
+--zyhctrl
 tab
 create
 --instance

@@ -252,7 +252,7 @@ impl EnvironmentChoice {
 
             // If there are no synced environments, require the user to create one or use --no-environment.
             if options.len() == 1 {
-                let cli_name = warp_cli::binary_name().unwrap_or_else(|| "warp".to_string());
+                let cli_name = warp_cli::binary_name().unwrap_or_else(|| "zyh".to_string());
                 return Err(ResolveConfigurationError::Other(anyhow::anyhow!(
                     "No environments are configured for this account.\n\
 You can create an environment with `{cli_name} environment create`.\n\

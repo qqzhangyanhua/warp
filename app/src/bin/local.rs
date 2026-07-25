@@ -33,9 +33,9 @@ embed_plist::embed_info_plist_bytes!(r#"
     <key>CFBundleDisplayName</key>
     <string>ZYH</string>
     <key>CFBundleExecutable</key>
-    <string>warp</string>
+    <string>local</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.warp.Warp-Local</string>
+    <string>dev.zyh.ZYH-Local</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -51,7 +51,7 @@ embed_plist::embed_info_plist_bytes!(r#"
     <key>UIDesignRequiresCompatibility</key>
     <true/>
     <key>CFBundleURLTypes</key>
-    <array><dict><key>CFBundleURLName</key><string>Custom App</string><key>CFBundleURLSchemes</key><array><string>warplocal</string></array></dict></array>
+    <array><dict><key>CFBundleURLName</key><string>ZYH Local</string><key>CFBundleURLSchemes</key><array><string>zyh-local</string></array></dict></array>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026, Denver Technologies, Inc</string>
     </dict>

@@ -137,8 +137,8 @@ if [[ ",$FEATURES," =~ ",heap_usage_tracking," ]]; then
 fi
 
 if [[ ",$FEATURES," =~ ",warp_control_cli," ]]; then
-  WARPCTRL_SCRIPT_PATH="$WARP_APP_PATH/Contents/Resources/bin/warpctrl-$WARP_CHANNEL"
-  echo "Creating warpctrl wrapper script at $WARPCTRL_SCRIPT_PATH..."
+  WARPCTRL_SCRIPT_PATH="$WARP_APP_PATH/Contents/Resources/bin/zyhctrl-$WARP_CHANNEL"
+  echo "Creating zyhctrl wrapper script at $WARPCTRL_SCRIPT_PATH..."
   "${REPO_ROOT}/script/macos/create_warpctrl_wrapper" \
     "$WARPCTRL_SCRIPT_PATH" \
     "../../MacOS/$WARP_BIN_NAME"

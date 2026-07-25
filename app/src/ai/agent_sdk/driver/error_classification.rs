@@ -71,7 +71,7 @@ pub fn classify_driver_error(error: &AgentDriverError) -> (AgentTaskState, TaskS
             ),
         ),
         AgentDriverError::NotLoggedIn => {
-            let bin = warp_cli::binary_name().unwrap_or_else(|| "warp".to_string());
+            let bin = warp_cli::binary_name().unwrap_or_else(|| "zyh".to_string());
             (
                 AgentTaskState::Error,
                 TaskStatusUpdate::with_error_code(

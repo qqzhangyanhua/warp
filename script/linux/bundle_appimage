@@ -18,9 +18,9 @@ APP_DIR="$DIST_DIR/AppDir"
 
 # Extract channel suffix from BINARY_NAME
 if [ "$ARTIFACT" = "cli" ]; then
-  CHANNEL_SUFFIX="${BINARY_NAME#oz}"
+  CHANNEL_SUFFIX="${BINARY_NAME#zyh}"
 else
-  CHANNEL_SUFFIX="${BINARY_NAME#warp}"
+  CHANNEL_SUFFIX="${BINARY_NAME#zyh}"
 fi
 PACKAGE_NAME="warp-terminal$CHANNEL_SUFFIX"
 

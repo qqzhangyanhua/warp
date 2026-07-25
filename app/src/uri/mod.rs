@@ -1631,8 +1631,16 @@ fn settings_section_for_simple_subpage(subpage: &str) -> Option<SettingsSection>
 
 /// Validates an incoming custom URI for security and returns the host.
 fn validate_custom_uri(url: &Url) -> Result<UriHost> {
-    // For now the only scheme we support is `[scheme_name]://[host_str]/...
-    // Ignore all other urls that don't match this scheme for security purposes.
+    // Reject legacy Warp/Oz schemes explicitly (not only "unexpected scheme").
+    if crate::external_contracts::is_forbidden_legacy_uri_scheme(url.scheme()) {
+        return Err(anyhow!(
+            "{}",
+            crate::external_contracts::legacy_uri_scheme_rejected_message(url.scheme())
+        ));
+    }
+
+    // The only supported product scheme is the channel ZYH scheme:
+    // `[scheme_name]://[host_str]/...
     if url.scheme() != ChannelState::url_scheme() {
         return Err(anyhow!(
             "Received url with unexpected scheme: {} ",
@@ -1643,6 +1651,13 @@ fn validate_custom_uri(url: &Url) -> Result<UriHost> {
     let host_str = url
         .host_str()
         .ok_or_else(|| anyhow!("Received url with no host str"))?;
+
+    if crate::external_contracts::is_forbidden_cloud_uri_host(host_str) {
+        return Err(anyhow!(
+            "{}",
+            crate::external_contracts::cloud_uri_host_rejected_message(host_str)
+        ));
+    }
 
     let host = UriHost::from_str(host_str)?;
 

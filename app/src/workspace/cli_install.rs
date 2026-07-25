@@ -21,9 +21,9 @@ fn warpctrl_install_target_path() -> PathBuf {
 ///
 /// Oz commands are part of the shared executable's normal argument parser, so
 /// Oz can symlink directly to the current executable. Warp Control has a
-/// separate parser selected by the hidden `--warpctrl` flag, so its installed
+/// separate parser selected by the hidden `--zyhctrl` flag, so its installed
 /// symlink must target the bundled wrapper that injects that flag. Without it,
-/// Warp Control subcommands such as `tab` would reach the normal parser and be
+/// ZYH Control subcommands such as `tab` would reach the normal parser and be
 /// rejected as unknown.
 fn warpctrl_bundle_source_path() -> Result<PathBuf> {
     let current_binary =
@@ -217,7 +217,7 @@ pub fn uninstall_oz() -> Result<()> {
 ///
 /// The wrapper contains no control implementation. It resolves this installed
 /// symlink back into the app bundle, launches the shared Warp executable, and
-/// injects `--warpctrl` so startup selects the separate Warp Control parser
+/// injects `--zyhctrl` so startup selects the separate ZYH Control parser
 /// before normal parsing or GUI startup.
 pub fn install_warpctrl() -> Result<()> {
     let warpctrl_path = warpctrl_install_target_path();

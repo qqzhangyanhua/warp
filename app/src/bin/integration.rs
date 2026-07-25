@@ -18,14 +18,14 @@ pub fn main() -> Result<()> {
         ChannelConfig {
             app_id: AppId::new(
                 "dev",
-                "warp",
+                "zyh",
                 if cfg!(target_os = "macos") {
-                    "Warp-Integration"
+                    "ZYH-Integration"
                 } else {
-                    "WarpIntegration"
+                    "ZYHIntegration"
                 },
             ),
-            logfile_name: "warp_integration.log".into(),
+            logfile_name: "zyh_integration.log".into(),
             server_config: WarpServerConfig {
                 firebase_auth_api_key: "".into(),
                 // Use an IP in the IANA testing range, with the TCP discard port, to

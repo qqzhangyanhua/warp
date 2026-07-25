@@ -1,7 +1,7 @@
-pkgname=oz@@CHANNEL_SUFFIX@@
+pkgname=zyh@@CHANNEL_SUFFIX@@
 pkgver=@@VERSION@@
 pkgrel=@@RELEASE@@
-pkgdesc="The orchestration platform for cloud agents"
+pkgdesc="The local-first AI-assisted terminal CLI"
 arch=('@@ARCH@@')
 url="https://warp.dev"
 license=('custom')
@@ -41,5 +41,5 @@ package() {
 
 	# Create a symlink to the binary in /usr/bin.
 	install -d "$pkgdir"/usr/bin
-	ln -s "/opt/warpdotdev/oz@@CHANNEL_SUFFIX@@/@@BINARY_NAME@@" "$pkgdir/usr/bin/@@BINARY_NAME@@"
+	ln -s "/opt/warpdotdev/zyh@@CHANNEL_SUFFIX@@/@@BINARY_NAME@@" "$pkgdir/usr/bin/@@BINARY_NAME@@"
 }

@@ -154,8 +154,8 @@ impl ApplicationService {
 // invoking org.freedesktop.Application IPC methods.
 #[proxy(
     interface = "org.freedesktop.Application",
-    default_service = "dev.warp.WarpLocal",
-    default_path = "/dev/warp/WarpLocal",
+    default_service = "dev.zyh.ZYH-Local",
+    default_path = "/dev/zyh/ZYH-Local",
     gen_blocking = false
 )]
 trait ExistingApplication {

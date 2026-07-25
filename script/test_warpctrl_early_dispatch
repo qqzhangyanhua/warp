@@ -26,7 +26,7 @@ result = subprocess.run(
         "--features",
         "warp_control_cli",
         "--",
-        "--warpctrl",
+        "--zyhctrl",
         "--output-format",
         "json",
         "instance",

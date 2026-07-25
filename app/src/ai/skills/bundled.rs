@@ -441,10 +441,10 @@ pub(crate) async fn read_bundled_skills(
 ///
 /// Supported variables:
 /// - `{{warp_server_url}}` - The server root URL (e.g., `https://api.warp.dev`)
-/// - `{{warp_cli_binary_name}}` - The CLI binary name (e.g., `warp` or `warp-cli`)
-/// - `{{warpctrl_binary_name}}` - The channel-specific Warp Control command name
-/// - `{{warpctrl_wrapper_path}}` - Path to the bundled Warp Control wrapper
-/// - `{{warp_url_scheme}}` - The URL scheme (e.g., `warp`, `warpdev`, `warppreview`)
+/// - `{{warp_cli_binary_name}}` - The CLI binary name (e.g., `zyh` or `zyh-dev`)
+/// - `{{warpctrl_binary_name}}` - The channel-specific ZYH Control command name (`zyhctrl*`)
+/// - `{{warpctrl_wrapper_path}}` - Path to the bundled ZYH Control wrapper
+/// - `{{warp_url_scheme}}` - The URL scheme (e.g., `zyh`, `zyh-dev`, `zyh-preview`)
 /// - `{{settings_schema_path}}` - Path to the bundled JSON settings schema
 /// - `{{skill_dir}}` - Path to the bundled skill's directory
 /// - `{{settings_file_path}}` - Path to the user's settings TOML file

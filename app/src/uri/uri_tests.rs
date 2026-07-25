@@ -654,7 +654,7 @@ fn validate_custom_uri_errors_do_not_leak_query_string() {
 
 #[test]
 fn test_parse_tab_path_expands_tilde() {
-    let url = Url::parse("warp://action/new_tab?path=~/Projects").unwrap();
+    let url = Url::parse("zyh://action/new_tab?path=~/Projects").unwrap();
     let home = dirs::home_dir().expect("HOME must be set for this test");
     assert_eq!(parse_tab_path(&url), Some(home.join("Projects")));
 }
@@ -662,32 +662,32 @@ fn test_parse_tab_path_expands_tilde() {
 #[test]
 fn test_parse_tab_path_expands_url_encoded_tilde() {
     // `%7E` and `%2F` are URL-encoded `~` and `/`.
-    let url = Url::parse("warp://action/new_tab?path=%7E%2FProjects").unwrap();
+    let url = Url::parse("zyh://action/new_tab?path=%7E%2FProjects").unwrap();
     let home = dirs::home_dir().expect("HOME must be set for this test");
     assert_eq!(parse_tab_path(&url), Some(home.join("Projects")));
 }
 
 #[test]
 fn test_parse_tab_path_absolute_path_unchanged() {
-    let url = Url::parse("warp://action/new_tab?path=/tmp/foo").unwrap();
+    let url = Url::parse("zyh://action/new_tab?path=/tmp/foo").unwrap();
     assert_eq!(parse_tab_path(&url), Some(PathBuf::from("/tmp/foo")));
 }
 
 #[test]
 fn test_parse_tab_path_relative_path_unchanged() {
-    let url = Url::parse("warp://action/new_tab?path=relative/dir").unwrap();
+    let url = Url::parse("zyh://action/new_tab?path=relative/dir").unwrap();
     assert_eq!(parse_tab_path(&url), Some(PathBuf::from("relative/dir")));
 }
 
 #[test]
 fn test_parse_tab_path_missing_returns_none() {
-    let url = Url::parse("warp://action/new_tab").unwrap();
+    let url = Url::parse("zyh://action/new_tab").unwrap();
     assert_eq!(parse_tab_path(&url), None);
 }
 
 #[test]
 fn test_parse_tab_path_bare_tilde() {
-    let url = Url::parse("warp://action/new_tab?path=~").unwrap();
+    let url = Url::parse("zyh://action/new_tab?path=~").unwrap();
     let home = dirs::home_dir().expect("HOME must be set for this test");
     assert_eq!(parse_tab_path(&url), Some(home));
 }
@@ -939,4 +939,42 @@ fn test_decode_uuid_hex_rejects_wrong_length() {
 #[test]
 fn test_decode_uuid_hex_rejects_invalid_chars() {
     assert!(super::decode_uuid_hex("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ").is_none());
+}
+
+#[test]
+fn test_validate_custom_uri_rejects_legacy_schemes() {
+    for scheme in ["warp", "warplocal", "warpdev", "warppreview", "warposs", "oz", "ozlocal"] {
+        let url = Url::parse(&format!("{scheme}://action/new_window")).unwrap();
+        let err = validate_custom_uri(&url).unwrap_err().to_string();
+        assert!(
+            err.contains("no longer supported") || err.contains("unexpected scheme"),
+            "scheme {scheme}: {err}"
+        );
+        assert!(
+            err.contains("zyh") || err.contains("ZYH") || err.contains("no longer supported"),
+            "scheme {scheme} should mention ZYH: {err}"
+        );
+    }
+}
+
+#[test]
+fn test_validate_custom_uri_rejects_cloud_hosts() {
+    let scheme = ChannelState::url_scheme();
+    for host in ["shared_session", "drive", "team", "auth"] {
+        let url = Url::parse(&format!("{scheme}://{host}/x")).unwrap();
+        let err = validate_custom_uri(&url).unwrap_err().to_string();
+        assert!(
+            err.contains("not available") || err.contains(host),
+            "host {host}: {err}"
+        );
+    }
+}
+
+#[test]
+fn test_validate_custom_uri_accepts_zyh_scheme() {
+    let scheme = ChannelState::url_scheme();
+    assert!(scheme.starts_with("zyh"), "channel scheme must be zyh*, got {scheme}");
+    let url = Url::parse(&format!("{scheme}://session/A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4")).unwrap();
+    let host = validate_custom_uri(&url).unwrap();
+    assert!(matches!(host, UriHost::Session));
 }
