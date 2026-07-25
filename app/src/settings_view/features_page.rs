@@ -66,7 +66,7 @@ use crate::settings::native_preference::{NativePreferenceSettings, UserNativePre
 use crate::settings::{
     AISettingsChangedEvent, AliasExpansionEnabled, AliasExpansionSettings, AppEditorSettings,
     AtContextMenuInTerminalMode, AutocompleteSymbols, AutosuggestionKeybindingHint,
-    ChangelogSettings, CloudPreferencesSettings, CodeEditorLineNumberMode,
+    ChangelogSettings, CodeEditorLineNumberMode,
     CodeEditorLineNumberModeSetting, CodeSettings, CommandCorrections, CompletionsOpenWhileTyping,
     CopyOnSelect, CtrlTabBehavior, DefaultSessionMode, EnableSlashCommandsInTerminal,
     ErrorUnderliningEnabled, ExtraMetaKeys, GPUSettings, GlobalHotkeyMode, InputSettings,
@@ -6754,16 +6754,6 @@ impl SettingsWidget for TabKeyBehaviorWidget {
                     .build()
                     .finish(),
             );
-        if *CloudPreferencesSettings::as_ref(app).settings_sync_enabled {
-            tab_key_span.add_child(render_local_only_icon(
-                appearance,
-                view.button_mouse_states
-                    .tab_behavior_local_only_icon
-                    .clone(),
-                None,
-            ));
-        }
-
         let main_row = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
             .with_child(

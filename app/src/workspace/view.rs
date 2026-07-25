@@ -310,7 +310,7 @@ use crate::server::telemetry::{
     TabRenameEvent, WarpDriveSource,
 };
 use crate::session_management::{SessionNavigationData, SessionSource, TabNavigationData};
-use crate::settings::cloud_preferences::CloudPreferencesSettings;
+
 use crate::settings::{
     active_theme_kind, respect_system_theme, AISettings, AISettingsChangedEvent,
     AccessibilitySettings, AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings,
@@ -21630,11 +21630,6 @@ impl Workspace {
 
         if privacy_settings.is_telemetry_enabled {
             context.set.insert(flags::TELEMETRY_FLAG);
-        }
-
-        let cloud_preferences_settings = CloudPreferencesSettings::as_ref(app);
-        if *cloud_preferences_settings.settings_sync_enabled.value() {
-            context.set.insert(flags::SETTINGS_SYNC_FLAG);
         }
 
         if *block_list_settings

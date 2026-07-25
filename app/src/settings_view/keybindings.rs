@@ -19,8 +19,8 @@ use warpui::{
 };
 
 use super::settings_page::{
-    render_sub_header, LocalOnlyIconState, MatchData, PageType, SettingsPageMeta,
-    SettingsPageViewHandle, SettingsWidget,
+    render_sub_header, MatchData, PageType, SettingsPageMeta, SettingsPageViewHandle,
+    SettingsWidget,
 };
 use super::SettingsSection;
 use crate::appearance::Appearance;
@@ -31,7 +31,7 @@ use crate::editor::{
 use crate::i18n::{tr_cached, Message};
 use crate::keyboard::{write_custom_keybinding, UserDefinedKeybinding};
 use crate::search_bar::SearchBar;
-use crate::settings::CloudPreferencesSettings;
+
 use crate::util::bindings::{
     filter_bindings_including_keystroke, reset_keybinding_to_default, set_custom_keybinding,
     CommandBinding,
@@ -1113,20 +1113,11 @@ impl SettingsWidget for KeybindingsWidget {
         appearance: &Appearance,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let local_only_icon_state = if *CloudPreferencesSettings::as_ref(app).settings_sync_enabled
-        {
-            Some(LocalOnlyIconState::Visible {
-                mouse_state: self.local_only_icon_mouse_state.clone(),
-                custom_tooltip: Some(tr_cached(Message::KeybindingsNotSynced).to_string()),
-            })
-        } else {
-            None
-        };
-
+        // ZYH keeps keybindings local only; no cloud-sync "local-only" badge.
         let subheader = render_sub_header(
             appearance,
             tr_cached(Message::KeybindingsConfigureShortcuts),
-            local_only_icon_state,
+            None,
         );
         let description = self.render_description(view.bindings.as_ref(), appearance);
 
