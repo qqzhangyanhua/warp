@@ -1,6 +1,4 @@
-use local_models::ObjectRef;
-
-use super::{Argument, ArgumentType, Workflow};
+use super::{Argument, ArgumentType, ObjectRef, Workflow};
 
 fn assert_workflow_roundtrips(workflow: &Workflow) {
     let serialized = serde_json::to_string(workflow).expect("Serialized workflow.");
@@ -90,7 +88,7 @@ fn test_agent_mode_workflow_serialization() {
 }
 
 #[test]
-fn test_serialize_cloud_workflow() {
+fn test_serialize_local_workflow() {
     let sample_workflow = Workflow::new("Test name", "Command name");
     assert_workflow_roundtrips(&sample_workflow);
 
@@ -119,4 +117,10 @@ fn test_serialize_cloud_workflow() {
         environment_variables: Some(ObjectRef::new("test_uid00000000000123")),
     };
     assert_workflow_roundtrips(&workflow_with_additional_fields);
+}
+
+#[test]
+fn local_models_has_no_cloud_crate_in_name_contract() {
+    // Package-level contract: this crate is the non-cloud home for Workflow.
+    assert_eq!(env!("CARGO_PKG_NAME"), "local_models");
 }

@@ -1,3 +1,4 @@
+use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
 use std::collections::HashMap;
 
 use warp_core::ui::appearance::Appearance;
@@ -117,16 +118,19 @@ impl AliasArgumentSelector {
             }
             ArgumentType::Enum { enum_id } => {
                 let cloud_model = CloudModel::as_ref(ctx);
+                let enum_sync_id = object_ref_to_sync_id(enum_id);
 
                 // Get the variants from the unsaved enum data, if it exists.
                 // Otherwise, pull it from the cloud model.
                 let enum_variants = enum_data
-                    .get(enum_id)
+                    .get(&enum_sync_id)
                     .and_then(|workflow_enum| workflow_enum.new_data.clone())
                     .or_else(|| {
-                        cloud_model.get_workflow_enum(enum_id).map(|workflow_enum| {
-                            workflow_enum.model().string_model.variants.clone()
-                        })
+                        cloud_model
+                            .get_workflow_enum(&enum_sync_id)
+                            .map(|workflow_enum| {
+                                workflow_enum.model().string_model.variants.clone()
+                            })
                     });
 
                 match enum_variants {

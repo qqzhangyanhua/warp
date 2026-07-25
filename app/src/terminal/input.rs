@@ -321,6 +321,7 @@ use crate::voltron::{
     Voltron, VoltronEvent, VoltronFeatureView, VoltronFeatureViewHandle, VoltronFeatureViewMeta,
     VoltronItem, VoltronMetadata,
 };
+use cloud_object_models::WorkflowCloudIds;
 use crate::workflows::command_parser::{
     compute_workflow_display_data, compute_workflow_display_data_for_history_command,
     compute_workflow_display_data_with_overrides, WorkflowArgumentIndex, WorkflowDisplayData,
@@ -5425,7 +5426,7 @@ impl Input {
                 {
                     // TODO(ben): We should include the chosen env vars in the history
                     // entry.
-                    let env_vars = workflow_type.as_workflow().default_env_vars();
+                    let env_vars = workflow_type.as_workflow().default_env_vars_sync_id();
                     self.insert_workflow_into_input(
                         workflow_type,
                         workflow_source,
@@ -7843,7 +7844,7 @@ impl Input {
     ) {
         // Should not show workflows info box for read-only viewers
         let should_show_more_info_view = !self.model.lock().shared_session_status().is_reader();
-        let env_vars = workflow_type.as_workflow().default_env_vars();
+        let env_vars = workflow_type.as_workflow().default_env_vars_sync_id();
         self.insert_workflow_into_input(
             workflow_type,
             workflow_source,
@@ -7866,7 +7867,7 @@ impl Input {
     ) {
         // Should not show workflows info box for read-only viewers
         let should_show_more_info_view = !self.model.lock().shared_session_status().is_reader();
-        let env_vars = workflow_type.as_workflow().default_env_vars();
+        let env_vars = workflow_type.as_workflow().default_env_vars_sync_id();
         self.insert_workflow_into_input(
             workflow_type,
             workflow_source,
@@ -8466,7 +8467,7 @@ impl Input {
                         {
                             // TODO(ben): We should include the chosen env vars in the history
                             // entry.
-                            let env_vars = workflow_type.as_workflow().default_env_vars();
+                            let env_vars = workflow_type.as_workflow().default_env_vars_sync_id();
                             self.insert_workflow_into_input(
                                 workflow_type,
                                 workflow_source,

@@ -1,3 +1,4 @@
+use cloud_object_models::WorkflowCloudIds;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -632,15 +633,16 @@ impl SyncQueue {
     ) -> anyhow::Result<HashSet<QueueDependency>> {
         let mut dependencies = HashSet::new();
 
-        let mut object_ids = workflow_model.data.get_enum_ids();
-        object_ids.extend(workflow_model.data.default_env_vars());
+        use cloud_object_models::WorkflowCloudIds;
+        let mut object_ids = workflow_model.data.get_enum_sync_ids();
+        object_ids.extend(workflow_model.data.default_env_vars_sync_id());
 
         // For every object ID referenced in the workflow, see if a server ID already exists. If it does, update the workflow.
         for id in object_ids.into_iter() {
             if let Some(server_id) = self.try_server_id(id) {
                 workflow_model
                     .data
-                    .replace_object_id(id, SyncId::ServerId(server_id));
+                    .replace_sync_object_id(id, SyncId::ServerId(server_id));
             } else {
                 // If we don't find any dependencies and we have a client ID, this request should fail immediately
                 let queue_items = self.get_items_with_object_id(id.uid());
@@ -1805,9 +1807,7 @@ impl SyncQueue {
                             .is_some_and(|deps| deps.contains(dependency))
                         {
                             let workflow_model = Arc::make_mut(model);
-                            workflow_model.data.replace_object_id(
-                                SyncId::ClientId(client_id),
-                                SyncId::from(server_id),
+                            workflow_model.data.replace_sync_object_id(SyncId::ClientId(client_id), SyncId::from(server_id),
                             );
                         }
                     }
@@ -1819,9 +1819,7 @@ impl SyncQueue {
                             .is_some_and(|deps| deps.contains(dependency))
                         {
                             let workflow_model = Arc::make_mut(model);
-                            workflow_model.data.replace_object_id(
-                                SyncId::ClientId(client_id),
-                                SyncId::from(server_id),
+                            workflow_model.data.replace_sync_object_id(SyncId::ClientId(client_id), SyncId::from(server_id),
                             );
                         }
                     }

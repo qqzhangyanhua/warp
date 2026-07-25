@@ -1,3 +1,4 @@
+use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -1023,12 +1024,15 @@ impl WorkflowView {
                 ..
             } = workflow_data
             {
+                let default_env_vars = environment_variables
+                    .as_ref()
+                    .map(object_ref_to_sync_id);
                 self.env_vars_state = EnvironmentVariablesState {
-                    default_env_vars: *environment_variables,
+                    default_env_vars,
                     is_dirty: false,
                 };
                 self.env_vars_selector.update(ctx, |selector, ctx| {
-                    selector.set_selected_env_vars(*environment_variables, ctx)
+                    selector.set_selected_env_vars(default_env_vars, ctx)
                 });
             }
         }
@@ -1777,7 +1781,10 @@ impl WorkflowView {
                 author: None,
                 author_url: None,
                 shells: vec![],
-                environment_variables: self.env_vars_state.default_env_vars,
+                environment_variables: self
+                    .env_vars_state
+                    .default_env_vars
+                    .map(sync_id_to_object_ref),
             }
         };
 

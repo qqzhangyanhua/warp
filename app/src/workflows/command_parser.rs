@@ -4,6 +4,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::ops::Range;
 
+use cloud_object_models::object_ref_to_sync_id;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -328,7 +329,8 @@ fn compute_workflow_display_data_internal(
             );
 
         if let ArgumentType::Enum { enum_id } = workflow_argument.argument_type {
-            argument_index_to_object_id_map.insert(workflow_argument.argument_index, *enum_id);
+            argument_index_to_object_id_map
+                .insert(workflow_argument.argument_index, object_ref_to_sync_id(enum_id));
         }
     }
 

@@ -1,3 +1,4 @@
+use cloud_object_models::sync_id_to_object_ref;
 use std::collections::HashSet;
 use std::ops::Index;
 use std::sync::Arc;
@@ -1621,7 +1622,7 @@ fn test_sync_queue_enum_dependency() {
             default_value: None,
             description: None,
             arg_type: ArgumentType::Enum {
-                enum_id: SyncId::ClientId(enum_id_1),
+                enum_id: sync_id_to_object_ref(SyncId::ClientId(enum_id_1)),
             },
         },
         Argument {
@@ -1629,7 +1630,7 @@ fn test_sync_queue_enum_dependency() {
             default_value: None,
             description: None,
             arg_type: ArgumentType::Enum {
-                enum_id: SyncId::ClientId(enum_id_2),
+                enum_id: sync_id_to_object_ref(SyncId::ClientId(enum_id_2)),
             },
         },
     ]);
@@ -1641,7 +1642,7 @@ fn test_sync_queue_enum_dependency() {
                 default_value: None,
                 description: None,
                 arg_type: ArgumentType::Enum {
-                    enum_id: enum_server_id_1,
+                    enum_id: sync_id_to_object_ref(enum_server_id_1),
                 },
             },
             Argument {
@@ -1649,7 +1650,7 @@ fn test_sync_queue_enum_dependency() {
                 default_value: None,
                 description: None,
                 arg_type: ArgumentType::Enum {
-                    enum_id: SyncId::ClientId(enum_id_2),
+                    enum_id: sync_id_to_object_ref(SyncId::ClientId(enum_id_2)),
                 },
             },
         ]);
@@ -1661,7 +1662,7 @@ fn test_sync_queue_enum_dependency() {
                 default_value: None,
                 description: None,
                 arg_type: ArgumentType::Enum {
-                    enum_id: enum_server_id_1,
+                    enum_id: sync_id_to_object_ref(enum_server_id_1),
                 },
             },
             Argument {
@@ -1669,7 +1670,7 @@ fn test_sync_queue_enum_dependency() {
                 default_value: None,
                 description: None,
                 arg_type: ArgumentType::Enum {
-                    enum_id: enum_server_id_2,
+                    enum_id: sync_id_to_object_ref(enum_server_id_2),
                 },
             },
         ]);

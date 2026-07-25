@@ -1,0 +1,16 @@
+[package]
+name = "local_models"
+version = "0.1.0"
+edition = "2024"
+authors.workspace = true
+publish.workspace = true
+license.workspace = true
+description = "ZYH-owned local data models without cloud ownership or GraphQL"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+warp-workflows.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

@@ -1,3 +1,4 @@
+use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -270,7 +271,7 @@ impl WorkflowArgSelector {
         ctx: &mut ViewContext<Self>,
     ) {
         if let Some(id) = id {
-            self.base_selection = ArgumentType::Enum { enum_id: id };
+            self.base_selection = ArgumentType::Enum { enum_id: sync_id_to_object_ref(id) };
         } else {
             self.base_selection = ArgumentType::Text;
         }
@@ -342,8 +343,9 @@ impl WorkflowArgSelector {
         // separately. Ideally, the selected enum and selected type can be tracked together using the `ArgumentType` enum.
         let type_is_dirty = match self.base_selection {
             ArgumentType::Text => self.get_selected_type() != ArgumentSelectType::Text,
-            ArgumentType::Enum { enum_id } => {
-                let selected_enum_dirty = self.get_selected_enum() != Some(enum_id);
+            ArgumentType::Enum { ref enum_id } => {
+                let selected_enum_dirty =
+                    self.get_selected_enum() != Some(object_ref_to_sync_id(enum_id));
                 self.get_selected_type() != ArgumentSelectType::Enum || selected_enum_dirty
             }
         };

@@ -2909,6 +2909,7 @@ dependencies = [
  "diesel",
  "handlebars",
  "lazy_static",
+ "local_models",
  "log",
  "persistence",
  "regex",
@@ -7745,6 +7746,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "local_models"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "warp-workflows",
+]
+
+[[package]]
 name = "locale_config"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8008,17 +8018,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "managed_secrets_wasm"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "warp_managed_secrets",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -15152,6 +15151,7 @@ dependencies = [
  "libsqlite3-sys",
  "line-ending",
  "local_control",
+ "local_models",
  "log",
  "log-panics",
  "lsp",
@@ -15298,7 +15298,6 @@ dependencies = [
  "warp_logging",
  "warp_managed_secrets",
  "warp_multi_agent_api",
- "warp_multi_agent_client",
  "warp_ripgrep",
  "warp_search_core",
  "warp_server_auth",
@@ -15730,24 +15729,6 @@ dependencies = [
  "prost-reflect-build",
  "prost-types",
  "regex",
-]
-
-[[package]]
-name = "warp_multi_agent_client"
-version = "0.1.0"
-dependencies = [
- "aha-reqwest-eventsource",
- "anyhow",
- "base64 0.22.1",
- "cfg-if",
- "futures",
- "prost",
- "thiserror 2.0.17",
- "tracing",
- "tracing-futures",
- "warp_core",
- "warp_multi_agent_api",
- "warp_server_client",
 ]
 
 [[package]]

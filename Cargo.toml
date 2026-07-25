@@ -40,6 +40,7 @@ cloud_objects = { path = "crates/cloud_objects" }
 cloud_object_client = { path = "crates/cloud_object_client" }
 cloud_object_persistence = { path = "crates/cloud_object_persistence" }
 cloud_object_models = { path = "crates/cloud_object_models" }
+local_models = { path = "crates/local_models" }
 computer_use = { path = "crates/computer_use" }
 field_mask = { path = "crates/field_mask" }
 firebase = { path = "crates/firebase" }
@@ -92,7 +93,6 @@ warp_isolation_platform = { path = "crates/isolation_platform" }
 warp_js = { path = "crates/warp_js" }
 warp_logging = { path = "crates/warp_logging" }
 warp_managed_secrets = { path = "crates/managed_secrets" }
-warp_multi_agent_client = { path = "crates/warp_multi_agent_client" }
 warp_ripgrep = { path = "crates/warp_ripgrep" }
 warp_search_core = { path = "crates/warp_search_core" }
 warp_server_auth = { path = "crates/warp_server_auth" }

@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-pub use cloud_object_models::{CloudWorkflow, CloudWorkflowModel, WorkflowId};
+pub use cloud_object_models::{
+    object_ref_to_sync_id, sync_id_to_object_ref, workflow_from_cloud, CloudWorkflow,
+    CloudWorkflowModel, WorkflowCloudIds, WorkflowId,
+};
+pub use local_models::ObjectRef;
 use serde::{Deserialize, Serialize};
 use warp_core::context_flag::ContextFlag;
 use warp_core::features::FeatureFlag;

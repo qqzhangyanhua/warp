@@ -1,3 +1,4 @@
+use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
 use std::collections::HashMap;
 use std::fmt;
 use std::result::Result;
@@ -51,8 +52,8 @@ impl ExportArgument {
     fn new(argument: &Argument, app: &AppContext) -> Self {
         let arg_type = match argument.arg_type {
             ArgumentType::Text => ExportArgumentType::Text,
-            ArgumentType::Enum { enum_id } => CloudModel::as_ref(app)
-                .get_workflow_enum(&enum_id)
+            ArgumentType::Enum { ref enum_id } => CloudModel::as_ref(app)
+                .get_workflow_enum(&object_ref_to_sync_id(enum_id))
                 .map(|workflow_enum| {
                     let model = &workflow_enum.model().string_model;
                     let enum_name = model.name.clone();
@@ -104,7 +105,7 @@ impl ExportArgument {
                         let client_id = ClientId::default();
                         new_enum_info = Some((client_id, enum_data));
                         ArgumentType::Enum {
-                            enum_id: SyncId::ClientId(client_id),
+                            enum_id: sync_id_to_object_ref(SyncId::ClientId(client_id)),
                         }
                     }
                     // If we are missing some enum info, use the default type instead
@@ -355,7 +356,7 @@ where
                     author,
                     author_url,
                     shells,
-                    environment_variables,
+                    environment_variables: environment_variables.map(sync_id_to_object_ref),
                 },
                 workflow_enums,
             ))

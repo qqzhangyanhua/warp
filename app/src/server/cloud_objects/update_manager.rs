@@ -1,3 +1,4 @@
+use cloud_object_models::WorkflowCloudIds;
 use std::collections::HashSet;
 use std::future::Future;
 use std::sync::mpsc::SyncSender;
@@ -385,7 +386,7 @@ impl UpdateManager {
                                 .for_each(|workflow_object| {
                                     let mut workflow = workflow_object.model().clone();
                                     let updated_model =
-                                        workflow.data.replace_object_id(client_id, server_id);
+                                        workflow.data.replace_sync_object_id(client_id, server_id);
 
                                     // If we changed anything, then update the in-memory model, emit a CloudEvent, and update the DB
                                     if updated_model {
@@ -2871,7 +2872,7 @@ impl UpdateManager {
             let mut workflow_model = original_workflow.clone();
 
             // Duplicate all enums associated with the workflow
-            let enums = workflow_model.get_enum_ids();
+                        let enums = workflow_model.get_enum_sync_ids();
             for enum_id in enums.iter() {
                 let cloud_model = CloudModel::as_ref(ctx);
                 let object: Option<&CloudWorkflowEnum> = cloud_model.get_object_of_type(enum_id);
@@ -2896,7 +2897,7 @@ impl UpdateManager {
                     ctx,
                 );
 
-                workflow_model.replace_object_id(*enum_id, SyncId::ClientId(client_id));
+                workflow_model.replace_sync_object_id(*enum_id, SyncId::ClientId(client_id));
             }
 
             // Update the workflow with the new enum IDs, if there are any

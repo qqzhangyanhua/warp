@@ -1,3 +1,4 @@
+use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
 use std::collections::HashMap;
 
 use warp_errors::report_error;
@@ -66,7 +67,8 @@ pub fn load_argument_into_selector(
     let selected_type = argument.arg_type.clone().into();
     selector.set_selected_type(selected_type, ctx);
 
-    if let ArgumentType::Enum { enum_id } = argument.arg_type {
+    if let ArgumentType::Enum { ref enum_id } = argument.arg_type {
+        let enum_id = object_ref_to_sync_id(enum_id);
         // If we have the enum in the global list, add it to the menu
         // Otherwise, get the enum data from memory and make a new entry in the list for it
         if let Some(enum_data) = all_workflow_enums.get(&enum_id) {
@@ -125,7 +127,9 @@ pub fn extract_typed_argument_from_selector(
     // If we have arg type data with an enum ID, use that as our type, otherwise text.
     let (arg_type, default_value) = match id {
         Some(enum_id) => (
-            ArgumentType::Enum { enum_id },
+            ArgumentType::Enum {
+                enum_id: sync_id_to_object_ref(enum_id),
+            },
             None, // we haven't implemented default value for enums
         ),
         None => (

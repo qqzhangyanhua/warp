@@ -1,3 +1,4 @@
+use cloud_object_models::sync_id_to_object_ref;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -276,7 +277,7 @@ fn mock_server_workflow_with_enum(
                 default_value: None,
                 description: None,
                 arg_type: ArgumentType::Enum {
-                    enum_id: SyncId::ServerId(enum_id.into()),
+                    enum_id: sync_id_to_object_ref(SyncId::ServerId(enum_id.into())),
                 },
             }]),
         ),
@@ -1815,7 +1816,7 @@ fn test_sync_state_after_object_with_dependencies_created() {
             .with_arguments(vec![Argument {
                 name: "enum".to_string(),
                 arg_type: ArgumentType::Enum {
-                    enum_id: SyncId::ClientId(enum_client_id),
+                    enum_id: sync_id_to_object_ref(SyncId::ClientId(enum_client_id)),
                 },
                 default_value: None,
                 description: None,
@@ -1826,7 +1827,7 @@ fn test_sync_state_after_object_with_dependencies_created() {
                 vec![Argument {
                     name: "enum".to_string(),
                     arg_type: ArgumentType::Enum {
-                        enum_id: SyncId::ServerId(enum_id.into()),
+                        enum_id: sync_id_to_object_ref(SyncId::ServerId(enum_id.into())),
                     },
                     default_value: None,
                     description: None,
@@ -6005,7 +6006,7 @@ fn test_move_workflow_with_enums_personal_to_team_success() {
                 if let ModelEvent::UpsertWorkflow { workflow } = &events[2] {
                     workflow.model().data.arguments()[0].arg_type
                         == ArgumentType::Enum {
-                            enum_id: new_enum_id,
+                            enum_id: sync_id_to_object_ref(new_enum_id),
                         }
                 } else {
                     false
@@ -6153,7 +6154,7 @@ fn test_move_workflow_with_enums_personal_to_team_failure() {
                 if let ModelEvent::UpsertWorkflow { workflow } = &events[2] {
                     workflow.model().data.arguments()[0].arg_type
                         == ArgumentType::Enum {
-                            enum_id: enum_sync_id,
+                            enum_id: sync_id_to_object_ref(enum_sync_id),
                         }
                 } else {
                     false
