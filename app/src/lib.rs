@@ -173,6 +173,7 @@ use watcher::HomeDirectoryWatcher;
 
 use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
+use crate::auth::auth_state::{AuthState, AuthStateProvider};
 use crate::uri::web_intent_parser::maybe_rewrite_web_url_to_intent;
 pub mod workflows;
 pub mod workspace;
@@ -182,6 +183,7 @@ use std::collections::HashSet;
 use std::ops::Deref;
 #[cfg(feature = "local_fs")]
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use ::settings::{Setting, ToggleableSetting};
 #[cfg(feature = "local_tty")]
@@ -1195,6 +1197,17 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(|_ctx| NetworkLogModel::default());
 
     ctx.add_singleton_model(|_ctx| GPUState::new());
+
+    // Permanent-local ZYH has no Warp account, AuthManager, or ServerApi.
+    // Retained code still queries AuthStateProvider and ServerApiProvider;
+    // register logged-out/no-op instances so those paths degrade gracefully
+    // instead of panicking on a missing singleton.
+    let auth_state = Arc::new(AuthState::permanent_local(ctx));
+    {
+        let auth_state = auth_state.clone();
+        ctx.add_singleton_model(move |ctx| ServerApiProvider::new(auth_state, None, None, ctx));
+    }
+    ctx.add_singleton_model(move |_| AuthStateProvider::new(auth_state));
 
     PrivacySettings::register_singleton(ctx);
 

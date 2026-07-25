@@ -326,17 +326,14 @@ pub struct BlocklistAIHistoryModel {
 ///
 /// Missing Provider configuration does not change the binding: new interactive
 /// conversations stay Pi-bound and fail at Agent Run start with local setup
-/// guidance instead of falling back to Rust.
+/// ZYH local-only build: no warp-bridge binary exists, so all conversations
+/// use the Rust runtime (local provider path).
 fn runtime_binding_for_new_conversation(
-    is_viewing_shared_session: bool,
-    is_cli_agent_transcript: bool,
+    _is_viewing_shared_session: bool,
+    _is_cli_agent_transcript: bool,
     _ctx: &AppContext,
 ) -> AgentRuntimeBinding {
-    if is_viewing_shared_session || is_cli_agent_transcript {
-        return AgentRuntimeBinding::Rust;
-    }
-
-    AgentRuntimeBinding::Pi
+    AgentRuntimeBinding::Rust
 }
 
 /// Whether a Conversation Record may start a new Interactive Agent Run.

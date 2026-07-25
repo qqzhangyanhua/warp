@@ -1838,16 +1838,15 @@ impl BlocklistAIController {
                         if let LocalClaudeWakeTrigger::WakeOnlyStream { wake_message } =
                             &trigger_for_callback
                         {
-                            OrchestrationEventStreamer::handle(ctx).update(
-                                ctx,
-                                |streamer, ctx| {
+                            if let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) {
+                                handle.update(ctx, |streamer, ctx| {
                                     streamer.persist_dormant_claude_wake_cursor(
                                         conversation_id,
                                         wake_message,
                                         ctx,
                                     );
-                                },
-                            );
+                                });
+                            }
                         }
                         log::info!(
                             "Executing dormant Claude wake command: conversation_id={conversation_id:?} task_id={task_id:?}"
@@ -2526,15 +2525,9 @@ impl BlocklistAIController {
             &conversation_data.server_conversation_token,
         );
 
-        // Legacy Rust-bound Conversations are view-only for interactive runs.
-        // Passive/autodetected paths may still create Rust-bound records until removed.
-        if runtime_binding == AgentRuntimeBinding::Rust && !is_passive_request {
-            let message = "This conversation uses the legacy runtime and is view-only. \
-Fork it into a new conversation to continue with the Pi Agent Runtime."
-                .to_string();
-            ctx.emit(BlocklistAIControllerEvent::ShowError(message.clone()));
-            return Err(anyhow::anyhow!(message));
-        }
+        // ZYH local-only build: all conversations use the Rust runtime (local
+        // provider path). The Pi runtime requires a bundled warp-bridge binary
+        // that does not exist in this build, so the Pi guard below is a no-op.
 
         let provider_keys = ApiKeyManager::as_ref(ctx).keys();
         let provider_validation = validate_provider_inventory(provider_keys).and_then(|_| {
