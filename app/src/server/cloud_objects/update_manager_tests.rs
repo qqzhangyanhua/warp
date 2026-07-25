@@ -735,14 +735,11 @@ fn test_sync_state_after_creation_item_not_in_sync_queue_generic_object() {
         run_sync_state_after_creation_item_not_in_sync_queue(
             app,
             object_id.into(),
-            CloudPreferenceModel::new(
-                Preference::new(
-                    "foo".to_owned(),
-                    "{\"test_key\": \"test_value\"}",
-                    SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-                )
-                .expect("error creating preference"),
-            ),
+            CloudWorkflowEnumModel::new(WorkflowEnum {
+                name: "foo".to_owned(),
+                is_shared: false,
+                variants: EnumVariants::Static(vec!["v1".to_string()]),
+            }),
             client_id,
             server_api,
         )
@@ -1280,29 +1277,23 @@ fn test_bulk_create_generic_string_objects() {
         let update_manager_struct = create_update_manager_struct(&mut app, Arc::new(server_api));
 
         let inputs = vec![
-            GenericStringObjectInput::<Preference, JsonSerializer> {
+            GenericStringObjectInput::<WorkflowEnum, JsonSerializer> {
                 id: client_id_1,
-                model: CloudPreferenceModel::new(
-                    Preference::new(
-                        "storage_key_1".to_string(),
-                        "{\"test_key\": \"test_value_1\"}",
-                        SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-                    )
-                    .expect("error creating preference"),
-                ),
+                model: CloudWorkflowEnumModel::new(WorkflowEnum {
+                    name: "storage_key_1".to_string(),
+                    is_shared: false,
+                    variants: EnumVariants::Static(vec!["v1".to_string()]),
+                }),
                 initial_folder_id: None,
                 entrypoint: CloudObjectEventEntrypoint::Unknown,
             },
-            GenericStringObjectInput::<Preference, JsonSerializer> {
+            GenericStringObjectInput::<WorkflowEnum, JsonSerializer> {
                 id: client_id_2,
-                model: CloudPreferenceModel::new(
-                    Preference::new(
-                        "storage_key_2".to_string(),
-                        "{\"test_key\": \"test_value_2\"}",
-                        SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-                    )
-                    .expect("error creating preference"),
-                ),
+                model: CloudWorkflowEnumModel::new(WorkflowEnum {
+                    name: "storage_key_2".to_string(),
+                    is_shared: false,
+                    variants: EnumVariants::Static(vec!["v2".to_string()]),
+                }),
                 initial_folder_id: None,
                 entrypoint: CloudObjectEventEntrypoint::Unknown,
             },
@@ -1319,12 +1310,12 @@ fn test_bulk_create_generic_string_objects() {
                 );
             });
 
-        // Make sure that we won't block quitting even though there are pending changes at this point.
+        // WorkflowEnum warns on quit when unsaved; both bulk-created objects count.
         CloudModel::handle(&app).read(&app, |cloud_model, _| {
             assert_eq!(cloud_model.num_unsaved_objects(), 2);
             assert_eq!(
                 cloud_model.num_unsaved_objects_to_warn_about_before_quitting(),
-                0
+                2
             );
         });
 
@@ -1431,33 +1422,27 @@ fn test_sync_state_after_update_item_not_in_sync_queue_generic_string_object() {
 
         let update_manager_struct = create_update_manager_struct(&mut app, Arc::new(server_api));
 
-        // create a test json object
+        // create a test WorkflowEnum GSO (Preference no longer enqueues server sync)
         create_object(
             &mut app,
             &update_manager_struct.update_manager,
             client_id,
-            CloudPreferenceModel::new(
-                Preference::new(
-                    "foo".to_owned(),
-                    "{\"test_key\": \"test_value\"}",
-                    SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-                )
-                .expect("error creating preference"),
-            ),
+            CloudWorkflowEnumModel::new(WorkflowEnum {
+                name: "foo".to_owned(),
+                is_shared: false,
+                variants: EnumVariants::Static(vec!["v1".to_string()]),
+            }),
         );
-        // update the test json object's data
+        // update the test GSO's data
         update_manager_struct
             .update_manager
             .update(&mut app, |update_manager, ctx| {
                 update_manager.update_object(
-                    CloudPreferenceModel::new(
-                        Preference::new(
-                            "foo".to_owned(),
-                            "{\"test_key\": \"test_value_2\"}",
-                            SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-                        )
-                        .expect("error creating preference"),
-                    ),
+                    CloudWorkflowEnumModel::new(WorkflowEnum {
+                        name: "foo".to_owned(),
+                        is_shared: false,
+                        variants: EnumVariants::Static(vec!["v1".to_string(), "v2".to_string()]),
+                    }),
                     SyncId::ClientId(client_id),
                     None,
                     ctx,

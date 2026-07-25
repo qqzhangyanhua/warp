@@ -78,11 +78,11 @@ impl CloudModelType for CloudFolderModel {
         &self,
         _revision_ts: Option<Revision>,
         folder: &CloudFolder,
-    ) -> QueueItem {
-        QueueItem::UpdateFolder {
+    ) -> Option<QueueItem> {
+        Some(QueueItem::UpdateFolder {
             id: folder.id,
             model: folder.model().clone().into(),
-        }
+        })
     }
 
     fn should_update_after_server_conflict(&self) -> bool {

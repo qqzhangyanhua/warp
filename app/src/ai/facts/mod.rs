@@ -54,12 +54,12 @@ impl StringModel for AIFact {
         &self,
         revision_ts: Option<Revision>,
         object: &Self::CloudObjectType,
-    ) -> QueueItem {
-        QueueItem::UpdateAIFact {
+    ) -> Option<QueueItem> {
+        Some(QueueItem::UpdateAIFact {
             model: object.model().clone().into(),
             id: object.id,
             revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
+        })
     }
 
     fn uniqueness_key(&self) -> Option<GenericStringObjectUniqueKey> {

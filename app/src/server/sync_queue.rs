@@ -43,7 +43,6 @@ use crate::drive::CloudObjectTypeAndId;
 use crate::env_vars::CloudEnvVarCollectionModel;
 use crate::notebooks::CloudNotebookModel;
 use crate::server::cloud_objects::update_manager::InitiatedBy;
-use crate::settings::cloud_preferences::CloudPreferenceModel;
 use crate::workflows::workflow_enum::CloudWorkflowEnumModel;
 use crate::workflows::CloudWorkflowModel;
 
@@ -170,11 +169,6 @@ pub enum QueueItem {
         id: SyncId,
         model: Arc<CloudFolderModel>,
     },
-    UpdateCloudPreferences {
-        model: Arc<CloudPreferenceModel>,
-        id: SyncId,
-        revision: Option<Revision>,
-    },
     UpdateEnvVarCollection {
         model: Arc<CloudEnvVarCollectionModel>,
         id: SyncId,
@@ -233,18 +227,16 @@ impl QueueItem {
         objects: impl Iterator<Item = Box<dyn CloudObject>>,
     ) -> Vec<QueueItem> {
         objects
-            .map(|object| {
-                if let Some(create_object_queue_item) = object.create_object_queue_item(
-                    CloudObjectEventEntrypoint::default(),
-                    // InitiatedBy::User was added as a default value since we do not save the initiated_by values in the Sqlite cache.
-                    // InitiatedBy::User is a safer default option because it will show toasts.
-                    // In the future, if System events are common, we may want to save the initiated_by field in Sqlite.
-                    InitiatedBy::User,
-                ) {
-                    create_object_queue_item
-                } else {
-                    object.update_object_queue_item(None)
-                }
+            .filter_map(|object| {
+                object
+                    .create_object_queue_item(
+                        CloudObjectEventEntrypoint::default(),
+                        // InitiatedBy::User was added as a default value since we do not save the initiated_by values in the Sqlite cache.
+                        // InitiatedBy::User is a safer default option because it will show toasts.
+                        // In the future, if System events are common, we may want to save the initiated_by field in Sqlite.
+                        InitiatedBy::User,
+                    )
+                    .or_else(|| object.update_object_queue_item(None))
             })
             .collect::<Vec<_>>()
     }
@@ -442,7 +434,6 @@ impl SyncQueue {
             // Update requests will depend on any existing create/updates to the same object
             QueueItem::UpdateNotebook { id, .. }
             | QueueItem::UpdateFolder { id, .. }
-            | QueueItem::UpdateCloudPreferences { id, .. }
             | QueueItem::UpdateEnvVarCollection { id, .. }
             | QueueItem::UpdateWorkflowEnum { id, .. }
             | QueueItem::UpdateAIFact { id, .. }
@@ -557,8 +548,7 @@ impl SyncQueue {
                         )
                     })
                 }
-                QueueItem::UpdateCloudPreferences { id, .. }
-                | QueueItem::UpdateNotebook { id, .. }
+                QueueItem::UpdateNotebook { id, .. }
                 | QueueItem::UpdateWorkflow { id, .. }
                 | QueueItem::UpdateFolder { id, .. }
                 | QueueItem::UpdateEnvVarCollection { id, .. }
@@ -670,7 +660,6 @@ impl SyncQueue {
             match item {
                 QueueItem::UpdateNotebook { id, revision, .. }
                 | QueueItem::UpdateWorkflow { id, revision, .. }
-                | QueueItem::UpdateCloudPreferences { id, revision, .. }
                 | QueueItem::UpdateEnvVarCollection { id, revision, .. }
                 | QueueItem::UpdateWorkflowEnum { id, revision, .. }
                 | QueueItem::UpdateAIFact { id, revision, .. }
@@ -765,20 +754,6 @@ impl SyncQueue {
                         model.clone(),
                         id,
                         None,
-                        object_client,
-                        dequeued_item_id,
-                        ctx,
-                    );
-                }
-                QueueItem::UpdateCloudPreferences {
-                    model,
-                    id,
-                    revision,
-                } => {
-                    self.update_object(
-                        model.clone(),
-                        id,
-                        revision,
                         object_client,
                         dequeued_item_id,
                         ctx,
@@ -1253,13 +1228,10 @@ impl SyncQueue {
                         ObjectType::GenericStringObject(GenericStringObjectFormat::Json(
                             json_object_type,
                         )) => match json_object_type {
-                            JsonObjectType::Preference => {
-                                CloudPreferenceModel::send_create_request(
-                                    object_client_clone,
-                                    create_request,
-                                )
-                                .await
-                            }
+                            // Preference is local-only (#41 PR14); never enqueue creates.
+                            JsonObjectType::Preference => Err(anyhow::anyhow!(
+                                "Preference objects are local-only and cannot be created on the server"
+                            )),
                             JsonObjectType::EnvVarCollection => {
                                 CloudEnvVarCollectionModel::send_create_request(
                                     object_client_clone,
@@ -1901,9 +1873,6 @@ impl SyncQueue {
                     self.handle_update_failure_response(id, item_id, ctx);
                 }
                 QueueItem::UpdateFolder { id, .. } => {
-                    self.handle_update_failure_response(id, item_id, ctx);
-                }
-                QueueItem::UpdateCloudPreferences { id, .. } => {
                     self.handle_update_failure_response(id, item_id, ctx);
                 }
                 QueueItem::UpdateEnvVarCollection { id, .. } => {

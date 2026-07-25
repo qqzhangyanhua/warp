@@ -191,7 +191,8 @@ fn test_generic_string_object_unique_key_failure() {
     App::test((), |mut app| async move {
         let owner = Owner::mock_current_user();
         let gso_id = ClientId::default();
-        let gso_json = "{\"storage_key\":\"somepref\",\"value\":true,\"platform\":\"Global\"}";
+        let gso_json =
+            r#"{"name":"somepref","is_shared":false,"variants":{"Static":["v1"]}}"#;
         let workflow_id = ClientId::default();
         let workflow_server_id = ServerId::from(1);
         let workflow_ts = DateTime::<Utc>::default();
@@ -239,7 +240,7 @@ fn test_generic_string_object_unique_key_failure() {
             vec![
                 QueueItem::CreateObject {
                     object_type: ObjectType::GenericStringObject(GenericStringObjectFormat::Json(
-                        JsonObjectType::Preference,
+                        JsonObjectType::WorkflowEnum,
                     )),
                     owner,
                     id: gso_id,

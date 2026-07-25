@@ -3932,14 +3932,17 @@ impl DriveIndex {
         CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
             for object in cloud_model.cloud_objects_mut() {
                 if object.metadata().is_errored() {
-                    let queue_item = object
+                    let Some(queue_item) = object
                         .create_object_queue_item(
                             CloudObjectEventEntrypoint::default(),
                             // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
                             // It can be changed to InitiatedBy::System if this action was automatically kicked off and does not require toasts to notify the user of completion.
                             InitiatedBy::User,
                         )
-                        .unwrap_or(object.update_object_queue_item(None));
+                        .or_else(|| object.update_object_queue_item(None))
+                    else {
+                        continue;
+                    };
                     object.set_pending_content_changes_status(CloudObjectSyncStatus::InFlight(
                         NumInFlightRequests(1),
                     ));

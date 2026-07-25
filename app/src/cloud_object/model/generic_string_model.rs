@@ -103,11 +103,21 @@ pub trait StringModel: Clone + Debug + PartialEq + Send + Sync + 'static {
     /// Returns a sync queue item of this object that would allow it to be updated
     /// properly on the server.  Takes an optional revision_ts to set as the revision
     /// in the sync queue item.
+    ///
+    /// Returns `None` when this model type is local-only and must not enqueue
+    /// server mutations (e.g. residual Preference objects after settings sync
+    /// was removed).
     fn update_object_queue_item(
         &self,
         revision_ts: Option<Revision>,
         object: &Self::CloudObjectType,
-    ) -> QueueItem;
+    ) -> Option<QueueItem>;
+
+    /// Whether create/update of this model may be enqueued for server sync.
+    /// Local-only residual types (Preference) return false.
+    fn enqueues_server_mutations() -> bool {
+        true
+    }
 
     /// Returns whether this model type should clear on a unique key conflict.
     fn should_clear_on_unique_key_conflict(&self) -> bool {
@@ -227,6 +237,9 @@ where
         entrypoint: CloudObjectEventEntrypoint,
         initiated_by: InitiatedBy,
     ) -> Option<QueueItem> {
+        if !M::enqueues_server_mutations() {
+            return None;
+        }
         if let SyncId::ClientId(client_id) = object.id {
             return Some(QueueItem::CreateObject {
                 object_type: self.object_type(),
@@ -246,7 +259,7 @@ where
         &self,
         revision_ts: Option<Revision>,
         object: &GenericCloudObject<GenericStringObjectId, Self>,
-    ) -> QueueItem {
+    ) -> Option<QueueItem> {
         self.string_model
             .update_object_queue_item(revision_ts, object)
     }

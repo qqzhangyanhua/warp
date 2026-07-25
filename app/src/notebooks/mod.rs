@@ -102,14 +102,14 @@ impl CloudModelType for CloudNotebookModel {
         &self,
         revision_ts: Option<Revision>,
         notebook: &CloudNotebook,
-    ) -> QueueItem {
-        QueueItem::UpdateNotebook {
+    ) -> Option<QueueItem> {
+        Some(QueueItem::UpdateNotebook {
             // Note that this is intentionally a deep clone of the model because we are grabbing
             // a snapshot to update at a moment in time.
             model: notebook.model().clone().into(),
             id: notebook.id,
             revision: revision_ts.or_else(|| notebook.metadata.revision.clone()),
-        }
+        })
     }
 
     fn should_update_after_server_conflict(&self) -> bool {

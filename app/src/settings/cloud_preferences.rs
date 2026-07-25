@@ -1,10 +1,9 @@
 //! Transitional cloud Preference object adapters.
 //!
-//! The settings-sync toggle (`CloudPreferencesSettings` /
-//! `account.is_settings_sync_enabled`) is removed: ZYH keeps preferences only
-//! in local `settings.toml`. [`Preference`] / [`CloudPreference`] remain for
-//! residual cloud-object stack consumers (sync queue, persistence) until that
-//! stack is deleted (#41).
+//! Settings live only in local `settings.toml` (settings sync and
+//! CloudPreferencesSyncer are gone). [`Preference`] / [`CloudPreference`] remain
+//! so legacy Preference GSOs can still hydrate in-memory/sqlite state. They do
+//! not enqueue create or update queue items (#41 PR14).
 
 pub use cloud_object_models::{CloudPreference, CloudPreferenceModel, Platform, Preference};
 
@@ -15,7 +14,7 @@ use crate::cloud_object::{
 };
 use crate::server::sync_queue::QueueItem;
 
-/// Defines a based model for residual cloud preference objects.
+/// Residual Preference cloud objects: deserialize and store only; never sync out.
 impl StringModel for Preference {
     type CloudObjectType = CloudPreference;
 
@@ -24,17 +23,15 @@ impl StringModel for Preference {
     }
 
     fn should_enforce_revisions() -> bool {
-        // Last write wins for cloud prefs
+        // Last write wins for legacy cloud prefs
         false
     }
 
     fn should_show_activity_toasts() -> bool {
-        // No update toasts for cloud prefs
         false
     }
 
     fn warn_if_unsaved_at_quit() -> bool {
-        // Don't block quitting on unsaved cloud prefs changes
         false
     }
 
@@ -48,14 +45,15 @@ impl StringModel for Preference {
 
     fn update_object_queue_item(
         &self,
-        revision_ts: Option<Revision>,
-        object: &CloudPreference,
-    ) -> QueueItem {
-        QueueItem::UpdateCloudPreferences {
-            model: object.model().clone().into(),
-            id: object.id,
-            revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
+        _revision_ts: Option<Revision>,
+        _object: &CloudPreference,
+    ) -> Option<QueueItem> {
+        // Preferences are local-only; never enqueue server updates.
+        None
+    }
+
+    fn enqueues_server_mutations() -> bool {
+        false
     }
 
     fn should_clear_on_unique_key_conflict(&self) -> bool {

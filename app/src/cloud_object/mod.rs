@@ -148,8 +148,9 @@ pub trait CloudObject: Debug {
 
     /// Returns a sync queue item of this object that would allow it to be updated
     /// properly on the server.  Takes an optional revision_ts to set as the revision
-    /// in the sync queue item.
-    fn update_object_queue_item(&self, revision_ts: Option<Revision>) -> QueueItem;
+    /// in the sync queue item. Returns `None` when the object type is local-only
+    /// and must not enqueue server mutations.
+    fn update_object_queue_item(&self, revision_ts: Option<Revision>) -> Option<QueueItem>;
 
     /// Returns whether this model type should render as a warp drive item.
     fn renders_in_warp_drive(&self) -> bool;
@@ -483,11 +484,12 @@ pub trait CloudModelType: Debug + Clone + Send + Sync {
 
     /// Returns the sync queue item for updating this model on the server.
     /// Takes an optional revision timestamp to set in the queue item.
+    /// Returns `None` when the model type is local-only.
     fn update_object_queue_item(
         &self,
         revision_ts: Option<Revision>,
         object: &Self::CloudObjectType,
-    ) -> QueueItem;
+    ) -> Option<QueueItem>;
 
     /// Returns a serialized model.
     fn serialized(&self) -> SerializedModel;
@@ -766,7 +768,7 @@ where
             .create_object_queue_item(self, entrypoint, initiated_by)
     }
 
-    fn update_object_queue_item(&self, revision_ts: Option<Revision>) -> QueueItem {
+    fn update_object_queue_item(&self, revision_ts: Option<Revision>) -> Option<QueueItem> {
         self.model().update_object_queue_item(revision_ts, self)
     }
 

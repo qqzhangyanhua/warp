@@ -118,12 +118,12 @@ impl StringModel for MCPServer {
         &self,
         revision_ts: Option<Revision>,
         object: &Self::CloudObjectType,
-    ) -> QueueItem {
-        QueueItem::UpdateMCPServer {
+    ) -> Option<QueueItem> {
+        Some(QueueItem::UpdateMCPServer {
             model: object.model().clone().into(),
             id: object.id,
             revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
+        })
     }
 
     fn uniqueness_key(&self) -> Option<GenericStringObjectUniqueKey> {
