@@ -4,6 +4,12 @@
 //! auth, or hosted-service crates. Wire formats preserve legacy SyncId string
 //! encodings so YAML/JSON on disk remains readable.
 
+pub mod mcp;
 pub mod workflow;
 
+pub use mcp::{
+    CLIServer, FromStoredJsonError, GalleryData, JSONMCPServer, JSONTransportType, JsonTemplate,
+    MCPServer, MCPServerState, ServerSentEvents, StaticEnvVar, StaticHeader, TemplatableMCPServer,
+    TemplateVariable, TransportType,
+};
 pub use workflow::{Argument, ArgumentType, ObjectRef, Workflow};

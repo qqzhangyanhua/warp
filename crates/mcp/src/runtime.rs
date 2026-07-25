@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::future::Future;
 
 use cfg_if::cfg_if;
-use cloud_object_models::{StaticEnvVar, TransportType};
+use local_models::{StaticEnvVar, TransportType};
 use futures::FutureExt as _;
 use rmcp::transport::ConfigureCommandExt as _;
 use rmcp::ServiceExt as _;

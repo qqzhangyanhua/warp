@@ -7749,9 +7749,15 @@ dependencies = [
 name = "local_models"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "chrono",
+ "handlebars",
+ "log",
  "serde",
  "serde_json",
+ "uuid",
  "warp-workflows",
+ "warp_errors",
 ]
 
 [[package]]
@@ -8124,9 +8130,9 @@ dependencies = [
  "async-channel",
  "async-trait",
  "cfg-if",
- "cloud_object_models",
  "futures",
  "http 1.4.0",
+ "local_models",
  "log",
  "oauth2",
  "pin-project-lite",

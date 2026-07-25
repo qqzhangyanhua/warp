@@ -60,13 +60,13 @@ cfg_if::cfg_if! {
 pub mod gallery;
 pub use gallery::MCPGalleryManager;
 pub mod templatable;
+// Pure MCP payloads live in local_models; cloud wrappers remain for transitional stack.
 #[cfg(not(target_family = "wasm"))]
-pub use cloud_object_models::{
+pub use local_models::{
     CLIServer, JSONMCPServer, JSONTransportType, ServerSentEvents, StaticEnvVar, StaticHeader,
 };
-pub use cloud_object_models::{
-    CloudMCPServer, CloudMCPServerModel, MCPServer, MCPServerState, TransportType,
-};
+pub use cloud_object_models::{CloudMCPServer, CloudMCPServerModel};
+pub use local_models::{MCPServer, MCPServerState, TransportType};
 pub use templatable::{JsonTemplate, TemplatableMCPServer, TemplateVariable};
 pub mod logs;
 pub mod templatable_installation;

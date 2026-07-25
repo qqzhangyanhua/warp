@@ -8,9 +8,15 @@ license.workspace = true
 description = "ZYH-owned local data models without cloud ownership or GraphQL"
 
 [dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+handlebars.workspace = true
+log.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+uuid.workspace = true
 warp-workflows.workspace = true
+warp_errors.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
