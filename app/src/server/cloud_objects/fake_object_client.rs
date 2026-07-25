@@ -275,11 +275,10 @@ impl ObjectClient for FakeObjectClient {
     }
 
     // ───────────────────────────────────────────────────────────────
-    // The methods below are not exercised by CloudPreferencesSyncer,
-    // so they intentionally panic. If a future change to the syncer
-    // starts calling one of these, the test that triggered the call
-    // will fail loudly with a clear message rather than silently
-    // misbehave.
+    // The methods below are not exercised by current unit tests, so they
+    // intentionally panic. If a future change starts calling one of
+    // these, the test that triggered the call will fail loudly rather
+    // than silently misbehave.
     // ───────────────────────────────────────────────────────────────
 
     async fn create_workflow(

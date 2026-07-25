@@ -4573,9 +4573,7 @@ impl TypedActionView for AISettingsPageView {
                 ctx.notify();
             }
             AISettingsPageAction::ToggleAgentAttribution => {
-                // The updated value syncs to warp-server automatically via
-                // `CloudPreferencesSyncer` as a `JsonPreference` GSO keyed
-                // `Global_AgentAttributionEnabled`; no bespoke server call needed.
+                // Local settings only: ZYH does not sync preferences to a host.
                 AISettings::handle(ctx).update(ctx, |settings, ctx| {
                     report_if_error!(settings
                         .agent_attribution_enabled
