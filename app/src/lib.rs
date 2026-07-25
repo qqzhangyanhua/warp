@@ -56,7 +56,6 @@ mod platform;
 #[cfg(feature = "plugin_host")]
 mod plugin;
 mod prefix;
-mod pricing;
 mod product;
 mod profiling;
 mod projects;
@@ -1329,7 +1328,6 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(|_| RecordingController::new());
     ctx.add_singleton_model(|_| ExecutionProfileEditorManager::default());
     ctx.add_singleton_model(|_| NetworkLogPaneManager::default());
-    ctx.add_singleton_model(|_| pricing::PricingInfoModel::new());
     #[cfg(target_os = "macos")]
     if !launch_mode.is_headless() {
         AppearanceManager::as_ref(ctx).set_app_icon(ctx);

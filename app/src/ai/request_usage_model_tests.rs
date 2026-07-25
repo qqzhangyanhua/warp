@@ -3,12 +3,10 @@ use std::sync::Arc;
 use ai::api_keys::{ApiKeyManager, GrokTokens};
 use chrono::Duration;
 use warp_core::features::FeatureFlag;
-use warp_graphql::billing::{AddonCreditsOption, OveragesPricing, PricingInfo};
 use warpui::{App, ModelHandle};
 
 use super::*;
 use crate::auth::AuthStateProvider;
-use crate::pricing::PricingInfoModel;
 use crate::server::server_api::team::MockTeamClient;
 use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
@@ -61,28 +59,9 @@ fn add_request_usage_model_without_auth(app: &mut App) -> ModelHandle<AIRequestU
         warpui_extras::secure_storage::register_noop("test", ctx);
         ctx.add_singleton_model(ApiKeyManager::new);
     });
-    app.add_singleton_model(|_| PricingInfoModel::new());
     app.add_singleton_model(|ctx| {
         AIRequestUsageModel::new_for_test(ServerApiProvider::as_ref(ctx).get_ai_client(), ctx)
     })
-}
-
-fn set_addon_credits_pricing_info(app: &mut App) {
-    PricingInfoModel::handle(app).update(app, |model, ctx| {
-        model.update_pricing_info(
-            PricingInfo {
-                plans: vec![],
-                overages: OveragesPricing {
-                    price_per_request_usd_cents: 1,
-                },
-                addon_credits_options: vec![AddonCreditsOption {
-                    credits: 1000,
-                    price_usd_cents: 1000,
-                }],
-            },
-            ctx,
-        );
-    });
 }
 
 fn enable_auto_reload(workspace: &mut Workspace) {
@@ -94,6 +73,19 @@ fn enable_auto_reload(workspace: &mut Workspace) {
         .settings
         .addon_credits_settings
         .selected_auto_reload_credit_denomination = Some(1000);
+}
+
+/// ZYH AI availability is local OpenAI-compatible Providers only.
+fn add_valid_local_provider(app: &mut App) {
+    ApiKeyManager::handle(app).update(app, |manager, ctx| {
+        manager.add_custom_endpoint(
+            "local".to_string(),
+            "http://127.0.0.1:8080/v1".to_string(),
+            "test-key".to_string(),
+            vec![("model".to_string(), None, None)],
+            ctx,
+        );
+    });
 }
 
 #[test]
@@ -201,15 +193,35 @@ fn test_request_limit_info_is_unlimited_true() {
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_remaining_requests() {
+fn test_has_any_ai_remaining_false_with_only_plan_requests_remaining() {
     App::test((), |mut app| async move {
         app.add_singleton_model(UserWorkspaces::default_mock);
         let request_usage_model = add_request_usage_model(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // Some requests remaining, no bonus or overages needed.
+            // Plan request quotas are not a ZYH credit source.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 5);
-            assert!(model.has_any_ai_remaining(ctx));
+            assert!(
+                !model.has_any_ai_remaining(ctx),
+                "plan request remaining must not enable AI without a local Provider",
+            );
+        });
+    });
+}
+
+#[test]
+fn test_has_any_ai_remaining_true_with_local_provider() {
+    App::test((), |mut app| async move {
+        app.add_singleton_model(UserWorkspaces::default_mock);
+        let request_usage_model = add_request_usage_model(&mut app);
+        add_valid_local_provider(&mut app);
+
+        request_usage_model.update(&mut app, |model, ctx| {
+            model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
+            assert!(
+                model.has_any_ai_remaining(ctx),
+                "a valid local Provider endpoint must enable AI",
+            );
         });
     });
 }
@@ -240,9 +252,10 @@ fn test_buy_credits_banner_shows_with_only_ambient_bonus_credits() {
                 scope: BonusGrantScope::User,
             }];
 
+            // ZYH never surfaces buy-credits UI.
             assert_eq!(
                 model.compute_buy_addon_credits_banner_display_state(ctx),
-                BuyCreditsBannerDisplayState::OutOfCredits,
+                BuyCreditsBannerDisplayState::Hidden,
             );
         });
     });
@@ -308,9 +321,10 @@ fn test_buy_credits_banner_shows_when_non_ambient_bonus_credits_are_depleted() {
                 scope: BonusGrantScope::User,
             }];
 
+            // ZYH never surfaces buy-credits UI.
             assert_eq!(
                 model.compute_buy_addon_credits_banner_display_state(ctx),
-                BuyCreditsBannerDisplayState::OutOfCredits,
+                BuyCreditsBannerDisplayState::Hidden,
             );
         });
     });
@@ -369,16 +383,13 @@ fn test_has_any_ai_remaining_false_when_no_requests_or_bonus() {
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_user_bonus_credits() {
+fn test_has_any_ai_remaining_false_with_user_bonus_credits_only() {
     App::test((), |mut app| async move {
         app.add_singleton_model(UserWorkspaces::default_mock);
         let request_usage_model = add_request_usage_model(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests remaining.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
-
-            // User-level bonus credits remaining.
             model.bonus_grants = vec![BonusGrant {
                 created_at: Utc::now(),
                 cost_cents: 0,
@@ -392,17 +403,16 @@ fn test_has_any_ai_remaining_true_with_user_bonus_credits() {
             }];
 
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when user bonus credits exist",
+                !model.has_any_ai_remaining(ctx),
+                "cloud bonus credits must not enable AI in ZYH",
             );
         });
     });
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_workspace_overages() {
+fn test_has_any_ai_remaining_false_with_workspace_overages_only() {
     App::test((), |mut app| async move {
-        // Create a workspace with overages enabled and remaining.
         let (_uid, mut workspace) = create_test_workspace();
         workspace.settings.usage_based_pricing_settings.enabled = true;
         workspace
@@ -419,30 +429,26 @@ fn test_has_any_ai_remaining_true_with_workspace_overages() {
         let request_usage_model = add_request_usage_model(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests left and no bonus credits.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected overages to count as remaining AI when standard requests are exhausted",
+                !model.has_any_ai_remaining(ctx),
+                "usage-based overages must not enable AI in ZYH",
             );
         });
     });
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_workspace_bonus_credits() {
+fn test_has_any_ai_remaining_false_with_workspace_bonus_credits_only() {
     App::test((), |mut app| async move {
         let (uid, workspace) = create_test_workspace();
         add_user_workspaces_with_workspace(&mut app, workspace);
         let request_usage_model = add_request_usage_model(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests remaining.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
-
-            // Workspace-level bonus credits remaining.
             model.bonus_grants = vec![BonusGrant {
                 created_at: Utc::now(),
                 cost_cents: 0,
@@ -456,17 +462,16 @@ fn test_has_any_ai_remaining_true_with_workspace_bonus_credits() {
             }];
 
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when workspace bonus credits exist",
+                !model.has_any_ai_remaining(ctx),
+                "workspace bonus credits must not enable AI in ZYH",
             );
         });
     });
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_payg_enabled() {
+fn test_has_any_ai_remaining_false_with_payg_enabled_only() {
     App::test((), |mut app| async move {
-        // Create a workspace with pay-as-you-go enabled.
         let (_uid, mut workspace) = create_test_workspace();
         workspace.billing_metadata.customer_type = CustomerType::Enterprise;
         workspace
@@ -478,22 +483,20 @@ fn test_has_any_ai_remaining_true_with_payg_enabled() {
         let request_usage_model = add_request_usage_model(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests remaining, no bonus credits.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when pay-as-you-go is enabled",
+                !model.has_any_ai_remaining(ctx),
+                "enterprise pay-as-you-go must not enable AI in ZYH",
             );
         });
     });
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_enterprise_auto_reload() {
+fn test_has_any_ai_remaining_false_with_enterprise_auto_reload_only() {
     App::test((), |mut app| async move {
-        // Create a workspace with enterprise auto-reload enabled.
         let (_uid, mut workspace) = create_test_workspace();
         workspace.billing_metadata.customer_type = CustomerType::Enterprise;
         workspace
@@ -506,13 +509,12 @@ fn test_has_any_ai_remaining_true_with_enterprise_auto_reload() {
         let request_usage_model = add_request_usage_model(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests remaining, no bonus credits.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when enterprise auto-reload is enabled",
+                !model.has_any_ai_remaining(ctx),
+                "enterprise auto-reload must not enable AI in ZYH",
             );
         });
     });
@@ -544,7 +546,7 @@ fn test_has_any_ai_remaining_false_with_enterprise_auto_reload_policy_on_non_ent
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_self_serve_auto_reload() {
+fn test_has_any_ai_remaining_false_with_self_serve_auto_reload_only() {
     App::test((), |mut app| async move {
         let (_uid, mut workspace) = create_test_workspace();
         workspace
@@ -555,22 +557,22 @@ fn test_has_any_ai_remaining_true_with_self_serve_auto_reload() {
 
         add_user_workspaces_with_workspace(&mut app, workspace);
         let request_usage_model = add_request_usage_model(&mut app);
-        set_addon_credits_pricing_info(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
+            // ZYH: AI availability is local Provider / BYOK only — auto-reload is not a credit source.
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when self-serve auto-reload is enabled",
+                !model.has_any_ai_remaining(ctx),
+                "expected has_any_ai_remaining false without a local Provider key even when auto-reload was configured",
             );
         });
     });
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_self_serve_auto_reload_and_billing_v2_disabled() {
+fn test_has_any_ai_remaining_false_with_self_serve_auto_reload_and_billing_v2_disabled() {
     App::test((), |mut app| async move {
         let _guard = FeatureFlag::BillingAndUsagePageV2.override_enabled(false);
 
@@ -583,15 +585,14 @@ fn test_has_any_ai_remaining_true_with_self_serve_auto_reload_and_billing_v2_dis
 
         add_user_workspaces_with_workspace(&mut app, workspace);
         let request_usage_model = add_request_usage_model(&mut app);
-        set_addon_credits_pricing_info(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when self-serve auto-reload is enabled without Billing and Usage V2",
+                !model.has_any_ai_remaining(ctx),
+                "expected has_any_ai_remaining false without a local Provider key (billing v2 off)",
             );
         });
     });
@@ -614,7 +615,6 @@ fn test_has_any_ai_remaining_false_with_add_on_credits_policy_when_purchase_woul
 
         add_user_workspaces_with_workspace(&mut app, workspace);
         let request_usage_model = add_request_usage_model(&mut app);
-        set_addon_credits_pricing_info(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
@@ -622,7 +622,7 @@ fn test_has_any_ai_remaining_false_with_add_on_credits_policy_when_purchase_woul
 
             assert!(
                 !model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be false when add-on credit purchase would exceed the monthly spend limit",
+                "expected has_any_ai_remaining false without local Provider key",
             );
         });
     });
@@ -682,28 +682,23 @@ fn test_has_any_ai_remaining_false_both_payg_and_autoreload_disabled() {
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_byok_enabled_and_key_provided() {
+fn test_has_any_ai_remaining_true_with_local_provider_configured() {
     App::test((), |mut app| async move {
-        // Create a workspace with BYOK (Bring Your Own Key) enabled.
         let (_uid, mut workspace) = create_test_workspace();
         workspace.billing_metadata.tier.byo_api_key_policy =
             Some(ByoApiKeyPolicy { enabled: true });
 
         add_user_workspaces_with_workspace(&mut app, workspace);
         let request_usage_model = add_request_usage_model(&mut app);
-
-        ApiKeyManager::handle(&app).update(&mut app, |manager, ctx| {
-            manager.set_openai_key(Some("test-key".to_string()), ctx);
-        });
+        add_valid_local_provider(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests remaining, no bonus credits.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
             assert!(
                 model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when BYOK is enabled and a key is provided",
+                "expected has_any_ai_remaining true with a valid local Provider",
             );
         });
     });
@@ -734,10 +729,9 @@ fn test_has_any_ai_remaining_false_with_byok_enabled_but_no_key() {
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_grok_subscription_connected() {
+fn test_has_any_ai_remaining_false_with_grok_subscription_only() {
     App::test((), |mut app| async move {
-        // Workspace with BYO enabled — the policy a connected Grok
-        // subscription's OAuth token rides on.
+        // Hosted Grok OAuth is not a ZYH Provider Origin; only explicit local endpoints count.
         let (_uid, mut workspace) = create_test_workspace();
         workspace.billing_metadata.tier.byo_api_key_policy =
             Some(ByoApiKeyPolicy { enabled: true });
@@ -745,7 +739,6 @@ fn test_has_any_ai_remaining_true_with_grok_subscription_connected() {
         add_user_workspaces_with_workspace(&mut app, workspace);
         let request_usage_model = add_request_usage_model(&mut app);
 
-        // Connect a Grok subscription but provide no pasted API key.
         ApiKeyManager::handle(&app).update(&mut app, |manager, ctx| {
             manager.set_grok_tokens(
                 Some(GrokTokens {
@@ -757,13 +750,12 @@ fn test_has_any_ai_remaining_true_with_grok_subscription_connected() {
         });
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests remaining, no bonus credits.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
             assert!(
-                model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when a Grok subscription is connected and BYO is enabled",
+                !model.has_any_ai_remaining(ctx),
+                "hosted Grok OAuth must not enable AI without a local Provider endpoint",
             );
         });
     });
@@ -802,26 +794,21 @@ fn test_has_any_ai_remaining_false_with_grok_subscription_but_byo_disabled() {
 }
 
 #[test]
-fn test_has_any_ai_remaining_true_with_byo_key_and_no_workspace() {
+fn test_has_any_ai_remaining_true_with_local_provider_and_no_workspace() {
     App::test((), |mut app| async move {
         let _guard = FeatureFlag::SoloUserByok.override_enabled(true);
 
-        // No workspace — user is not on a team.
         app.add_singleton_model(UserWorkspaces::default_mock);
         let request_usage_model = add_request_usage_model(&mut app);
-
-        ApiKeyManager::handle(&app).update(&mut app, |manager, ctx| {
-            manager.set_openai_key(Some("test-key".to_string()), ctx);
-        });
+        add_valid_local_provider(&mut app);
 
         request_usage_model.update(&mut app, |model, ctx| {
-            // No standard requests remaining, no bonus credits.
             model.request_limit_info = RequestLimitInfo::new_for_test(10, 10);
             model.bonus_grants.clear();
 
             assert!(
                 model.has_any_ai_remaining(ctx),
-                "expected has_any_ai_remaining to be true when user has a BYO key but no workspace",
+                "local Provider must enable AI without a workspace",
             );
         });
     });
