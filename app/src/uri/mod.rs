@@ -30,10 +30,7 @@ use crate::features::FeatureFlag;
 use crate::i18n::{tr_cached, Message};
 use crate::launch_configs::launch_config::LaunchConfig;
 use crate::linear::{LinearAction, LinearIssueWork};
-use crate::root_view::{
-    open_new_window_get_handles, open_new_with_workspace_source, NewWorkspaceSource,
-    OpenLaunchConfigArg,
-};
+use crate::root_view::{open_new_window_get_handles, OpenLaunchConfigArg};
 use crate::server::ids::ServerId;
 use crate::server::telemetry::{LaunchConfigUiLocation, TelemetryEvent};
 use crate::settings_view::{settings_widget_deeplink_target, SettingsSection};
@@ -1023,27 +1020,10 @@ impl Action {
                 }
             }
             Action::NewCloudAgentConversation => {
-                let Some(window_id) = primary_window_id else {
-                    open_new_with_workspace_source(NewWorkspaceSource::AmbientAgent, ctx);
-                    return;
-                };
-
-                let Some(mut workspaces) = ctx.views_of_type::<Workspace>(window_id) else {
-                    log::warn!(
-                        "no workspace found in window {window_id} for new cloud agent conversation action"
-                    );
-                    return;
-                };
-
-                if let Some(workspace) = workspaces.pop() {
-                    workspace.update(ctx, |workspace, ctx| {
-                        workspace.handle_action(&WorkspaceAction::AddAmbientAgentTab, ctx);
-                    });
-                } else {
-                    log::warn!(
-                        "no workspace views in window {window_id} for new cloud agent conversation action"
-                    );
-                }
+                log::warn!(
+                    "{}",
+                    crate::cloud_product_removal::unsupported_cloud_surface_error_message()
+                );
             }
             Action::NewAgentConversation => {
                 let window_id =

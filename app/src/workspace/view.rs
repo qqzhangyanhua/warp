@@ -6198,21 +6198,7 @@ impl Workspace {
             }
         }
 
-        // 3. Cloud Agent (if flags enabled)
-        if is_any_ai_enabled
-            && FeatureFlag::AgentView.is_enabled()
-            && FeatureFlag::CloudMode.is_enabled()
-        {
-            let mut cloud_item = MenuItemFields::new(tr_cached(Message::WorkspaceCloudAgent))
-                .with_on_select_action(WorkspaceAction::AddAmbientAgentTab)
-                .with_icon(icons::Icon::LayoutAlt01);
-            if effective_default == DefaultSessionMode::CloudAgent {
-                cloud_item = cloud_item.with_key_shortcut_label(shortcut_label.clone());
-            }
-            menu_items.push(cloud_item.into_item());
-        }
-
-        // 3b. Local Docker Sandbox
+        // 3. Local Docker Sandbox
         if FeatureFlag::LocalDockerSandbox.is_enabled() {
             let mut docker_item =
                 MenuItemFields::new(tr_cached(Message::WorkspaceLocalDockerSandbox))
@@ -9578,11 +9564,6 @@ impl Workspace {
                 default_mode: DefaultSessionMode::Agent,
                 shell: None,
             },
-            Some(WorkspaceAction::AddAmbientAgentTab) => SidecarItemKind::BuiltIn {
-                name: label.to_string(),
-                default_mode: DefaultSessionMode::CloudAgent,
-                shell: None,
-            },
             Some(WorkspaceAction::AddTerminalTab { .. }) => SidecarItemKind::BuiltIn {
                 name: label.to_string(),
                 default_mode: DefaultSessionMode::Terminal,
@@ -11441,6 +11422,14 @@ impl Workspace {
     }
 
     fn add_ambient_agent_tab(&mut self, ctx: &mut ViewContext<Self>) {
+        if !crate::cloud_product_removal::may_expose_cloud_agent_surfaces() {
+            log::warn!(
+                "{}",
+                crate::cloud_product_removal::unsupported_cloud_surface_error_message()
+            );
+            return;
+        }
+
         if !FeatureFlag::AgentView.is_enabled() || !FeatureFlag::CloudMode.is_enabled() {
             return;
         }

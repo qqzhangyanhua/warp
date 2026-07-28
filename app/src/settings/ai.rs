@@ -1753,6 +1753,15 @@ impl AISettings {
     pub fn default_session_mode(&self, app: &AppContext) -> DefaultSessionMode {
         let mode = *self.default_session_mode_internal.value();
         match mode {
+            DefaultSessionMode::CloudAgent
+                if !crate::cloud_product_removal::may_expose_cloud_agent_surfaces() =>
+            {
+                if self.is_any_ai_enabled(app) {
+                    DefaultSessionMode::Agent
+                } else {
+                    DefaultSessionMode::Terminal
+                }
+            }
             // Terminal and TabConfig don't require AI.
             DefaultSessionMode::Terminal | DefaultSessionMode::TabConfig => mode,
             // Agent and CloudAgent require AI to be enabled.
