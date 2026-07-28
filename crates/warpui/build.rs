@@ -68,6 +68,34 @@ fn bindgen_shader_types() {
         .expect("Couldn't write shader type bindings!");
 }
 
+fn run_metal_tool(args: &[&str]) -> Result<(), String> {
+    let default_result = Command::new("xcrun")
+        .args(["-sdk", "macosx"])
+        .args(args)
+        .output()
+        .expect("error running Metal tool through xcrun");
+    if default_result.status.success() {
+        return Ok(());
+    }
+
+    // Xcode 26+ may install Metal as a separate MobileAsset toolchain that is
+    // not selected automatically by `xcrun -sdk macosx`.
+    let standalone_result = Command::new("xcrun")
+        .args(["-sdk", "macosx", "--toolchain", "Metal"])
+        .args(args)
+        .output()
+        .expect("error running standalone Metal toolchain through xcrun");
+    if standalone_result.status.success() {
+        return Ok(());
+    }
+
+    Err(format!(
+        "default toolchain:\n{}\nstandalone Metal toolchain:\n{}",
+        String::from_utf8_lossy(&default_result.stderr),
+        String::from_utf8_lossy(&standalone_result.stderr),
+    ))
+}
+
 fn compile_metal_shaders() {
     let header_path = "src/platform/mac/rendering/metal/shaders/shader_types.h";
     let metal_path = "src/platform/mac/rendering/metal/shaders/shaders.metal";
@@ -92,39 +120,16 @@ fn compile_metal_shaders() {
         .expect("MACOSX_DEPLOYMENT_TARGET must be set for macOS builds");
     let min_version_arg = format!("-mmacosx-version-min={min_macos_version}");
 
-    let mut compile_args = vec![
-        "-sdk",
-        "macosx",
-        "metal",
-        "-c",
-        metal_path,
-        "-o",
-        air_path,
-        &min_version_arg,
-    ];
+    let mut compile_args = vec!["metal", "-c", metal_path, "-o", air_path, &min_version_arg];
     if cfg!(feature = "enable-metal-frame-capture") {
         compile_args.push("-frecord-sources");
         compile_args.push("-gline-tables-only");
     }
-    let result = Command::new("xcrun")
-        .args(&compile_args)
-        .output()
-        .expect("error compiling metal shaders to .air");
-    assert!(
-        result.status.success(),
-        "error compiling metal shaders to .air; {}",
-        std::str::from_utf8(&result.stderr).unwrap(),
-    );
+    run_metal_tool(&compile_args)
+        .unwrap_or_else(|error| panic!("error compiling metal shaders to .air; {error}"));
 
-    let result = Command::new("xcrun")
-        .args(["-sdk", "macosx", "metallib", air_path, "-o", lib_path])
-        .output()
-        .expect("error compiling metal shaders to .metallib");
-    assert!(
-        result.status.success(),
-        "error compling metal shaders to .metallib; {}",
-        std::str::from_utf8(&result.stderr).unwrap(),
-    );
+    run_metal_tool(&["metallib", air_path, "-o", lib_path])
+        .unwrap_or_else(|error| panic!("error compiling metal shaders to .metallib; {error}"));
 }
 
 fn compile_objc_lib() {
