@@ -10,13 +10,19 @@ pub(crate) mod diff_storage;
 pub(crate) mod diff_types;
 pub(crate) mod handoff;
 
+// TODO(issue #23): Remove with legacy Warp task synchronization.
+#[allow(dead_code)]
 pub(crate) mod local_agent_task_sync_model;
+// TODO(issue #23): Remove the remaining server restoration paths from this module.
+#[allow(dead_code)]
 pub(crate) mod orchestration_event_streamer;
 pub(crate) mod orchestration_events;
+#[allow(dead_code)]
 pub(crate) mod orchestration_topology;
 mod passive_suggestions;
 pub(crate) mod queued_query;
 pub(super) use controller::RequestInput;
+#[allow(dead_code)]
 pub mod history_model;
 pub mod inline_action;
 mod input_mode_policy;
@@ -28,6 +34,8 @@ pub mod suggested_agent_mode_workflow_modal;
 mod suggestion_chip_view;
 pub mod summarization_cancel_dialog;
 pub(crate) mod telemetry;
+// TODO(issue #23): Remove Warp-hosted quota and usage UI.
+#[allow(dead_code)]
 pub mod usage;
 
 pub(crate) mod codebase_index_speedbump_banner;

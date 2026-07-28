@@ -13,6 +13,7 @@ impl GPUState {
     }
 
     /// Marks the low power GPU as available and stable
+    #[allow(dead_code)]
     pub(super) fn set_has_lower_power_gpu(
         &mut self,
         has_low_power_gpu: bool,
@@ -31,6 +32,7 @@ impl GPUState {
     }
 }
 
+#[allow(dead_code)]
 pub enum GPUStateEvent {
     LowPowerGPUAvailable,
 }

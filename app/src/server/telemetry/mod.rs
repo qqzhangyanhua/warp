@@ -1,4 +1,5 @@
 mod context;
+#[cfg(test)]
 pub mod context_provider;
 mod events;
 mod macros;
@@ -39,11 +40,6 @@ fn rudder_event_file_path() -> PathBuf {
     warp_core::paths::secure_state_dir()
         .unwrap_or_else(warp_core::paths::state_dir)
         .join(RUDDER_TELEMETRY_EVENTS_FILE_NAME)
-}
-
-/// Removes all telemetry events from the app telemetry event queue.
-pub fn clear_event_queue() {
-    let _ = warpui::telemetry::flush_events();
 }
 
 pub struct TelemetryApi {

@@ -3409,11 +3409,14 @@ impl AgentDriver {
         let terminal_view_id = self.terminal_driver.as_ref(ctx).terminal_view().id();
 
         // Register this session with LocalAgentTaskSyncModel so CLI agent
-        // status changes are reported to the server.
+        // status changes are reported to the server. No-op when the model
+        // is not registered (permanent-local ZYH has no server task sync).
         if let Some(task_id) = self.task_id {
-            LocalAgentTaskSyncModel::handle(ctx).update(ctx, |model, ctx| {
-                model.register_cli_session(terminal_view_id, task_id, ctx);
-            });
+            if let Some(handle) = LocalAgentTaskSyncModel::try_handle(ctx) {
+                handle.update(ctx, |model, ctx| {
+                    model.register_cli_session(terminal_view_id, task_id, ctx);
+                });
+            }
         }
 
         ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), move |me, _, event, ctx| match event {
@@ -3490,9 +3493,11 @@ impl AgentDriver {
     /// Removes the task mapping registered for CLI agent session status updates.
     fn unregister_cli_agent_task_sync(&self, ctx: &mut ModelContext<Self>) {
         let terminal_view_id = self.terminal_driver.as_ref(ctx).terminal_view().id();
-        LocalAgentTaskSyncModel::handle(ctx).update(ctx, |model, _| {
-            model.unregister_cli_session(terminal_view_id);
-        });
+        if let Some(handle) = LocalAgentTaskSyncModel::try_handle(ctx) {
+            handle.update(ctx, |model, _| {
+                model.unregister_cli_session(terminal_view_id);
+            });
+        }
     }
 
     /// Handle events re-emitted by the `TerminalDriver`.

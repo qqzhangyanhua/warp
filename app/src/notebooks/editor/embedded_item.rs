@@ -33,7 +33,6 @@ use crate::drive::cloud_object_styling::warp_drive_icon_color;
 use crate::drive::DriveObjectType;
 use crate::server::ids::{HashableId, ToServerId};
 use crate::ui_components::icons::Icon;
-use crate::workflows::workflow::Workflow;
 use crate::workflows::{CloudWorkflow, WorkflowId};
 
 // Spacing for the embedded workflow card.

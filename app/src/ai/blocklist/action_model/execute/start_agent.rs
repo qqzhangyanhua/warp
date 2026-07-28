@@ -180,9 +180,11 @@ impl StartAgentExecutor {
                 let _ = pending.sender.try_send(StartAgentOutcome::Started {
                     agent_id: id.clone(),
                 });
-                OrchestrationEventStreamer::handle(ctx).update(ctx, |streamer, ctx| {
-                    streamer.register_watched_run_id(pending.parent_conversation_id, id, ctx);
-                });
+                if let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) {
+                    handle.update(ctx, |streamer, ctx| {
+                        streamer.register_watched_run_id(pending.parent_conversation_id, id, ctx);
+                    });
+                }
             }
             None => {
                 report_error!(

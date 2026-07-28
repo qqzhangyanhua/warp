@@ -1,6 +1,4 @@
 use super::*;
-use diesel::connection::SimpleConnection as _;
-use diesel::prelude::*;
 
 fn query_count(connection: &mut SqliteConnection, table: &str) -> i64 {
     #[derive(QueryableByName)]

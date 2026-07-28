@@ -7,6 +7,8 @@ pub mod network_log_pane_manager;
 pub mod network_log_view;
 pub mod retry_strategies;
 pub mod server_api;
+// TODO(issue #23): Remove with the remaining cloud object synchronization stack.
+#[allow(dead_code)]
 pub mod sync_queue;
 pub mod telemetry;
 pub(crate) mod telemetry_ext;

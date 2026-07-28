@@ -1445,6 +1445,7 @@ impl LLMPreferences {
     }
 
     /// No auth required (i.e. to populate the pre-login onboarding picker).
+    #[allow(dead_code)]
     fn refresh_public_models(&self, ctx: &mut ModelContext<Self>) {
         let ai_api_client = ServerApiProvider::as_ref(ctx).get_ai_client();
         ctx.spawn(
@@ -1462,6 +1463,8 @@ impl LLMPreferences {
         );
     }
 
+    // TODO(issue #23): Remove with Warp-hosted model discovery.
+    #[allow(dead_code)]
     pub fn refresh_available_models(&self, ctx: &mut ModelContext<Self>) {
         if AuthStateProvider::as_ref(ctx).get().is_logged_in() {
             self.refresh_authed_models(ctx);

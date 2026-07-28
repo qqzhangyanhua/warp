@@ -107,9 +107,11 @@ impl WaitForEventsExecutor {
         // Blocking on descendants is the trigger to confirm parent status
         // against the server and register for the owner-side ancestor stream,
         // so children created out-of-band (Oz CLI / web API) are delivered.
-        OrchestrationEventStreamer::handle(ctx).update(ctx, |streamer, ctx| {
-            streamer.register_parent_on_wait(conversation_id, ctx);
-        });
+        if let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) {
+            handle.update(ctx, |streamer, ctx| {
+                streamer.register_parent_on_wait(conversation_id, ctx);
+            });
+        }
 
         // Bump the counter so any prior watchdog closure observes a
         // stale generation.

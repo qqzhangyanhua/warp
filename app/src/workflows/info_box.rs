@@ -16,7 +16,7 @@ use warpui::fonts::{Properties, Weight};
 use warpui::geometry::vector::Vector2F;
 use warpui::keymap::Keystroke;
 use warpui::presenter::ChildView;
-use warpui::text_layout::{ClipConfig, TextStyle};
+use warpui::text_layout::TextStyle;
 use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{
@@ -29,11 +29,9 @@ use super::command_parser::{
 };
 use super::workflow::Argument;
 use super::workflow_view::env_var_selector::{EnvVarSelector, EnvVarSelectorEvent};
-use super::{AIWorkflowOrigin, CloudWorkflow};
+use super::AIWorkflowOrigin;
 use crate::ai::blocklist::ai_brand_color;
 use crate::appearance::Appearance;
-use crate::cloud_object::model::actions::{ObjectActionType, ObjectActions};
-use crate::cloud_object::CloudObjectMetadataExt;
 use crate::server::ids::SyncId;
 use crate::settings::InputModeSettings;
 use crate::terminal::block_list_viewport::InputMode;
@@ -139,7 +137,6 @@ struct ButtonMouseStates {
     collapse: MouseStateHandle,
     view_context: MouseStateHandle,
     save_as_workflow: MouseStateHandle,
-    edit_cloud_workflow: MouseStateHandle,
     reset_command: MouseStateHandle,
     add_env_var_collection: MouseStateHandle,
 }
@@ -241,30 +238,6 @@ impl WorkflowsMoreInfoView {
             self.button_mouse_states.collapse.clone(),
             |ctx, _, _| {
                 ctx.dispatch_typed_action(WorkflowsInfoBoxViewAction::CollapseOrExpand);
-            },
-            appearance,
-        )
-    }
-
-    fn render_edit_button(
-        &self,
-        cloud_workflow: &CloudWorkflow,
-        appearance: &Appearance,
-    ) -> Box<dyn Element> {
-        let label = if cloud_workflow.model().data.is_agent_mode_workflow() {
-            "Edit prompt"
-        } else {
-            "Edit workflow"
-        };
-        let workflow = cloud_workflow.clone();
-        render_hoverable_card_button(
-            icons::Icon::Rename,
-            Some(label.to_owned()),
-            self.button_mouse_states.edit_cloud_workflow.clone(),
-            move |ctx: &mut warpui::EventContext<'_>, _, _| {
-                ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalWithCloudWorkflow(
-                    workflow.id,
-                ))
             },
             appearance,
         )

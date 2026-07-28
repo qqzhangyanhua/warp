@@ -1,4 +1,5 @@
 pub(crate) mod agent_input_footer;
+#[allow(dead_code)]
 mod agent_message_bar;
 mod agent_view_block;
 mod controller;
@@ -10,8 +11,11 @@ mod inline_agent_view_header;
 pub(crate) mod orchestration_avatar;
 pub(crate) mod orchestration_conversation_links;
 pub mod orchestration_pill_bar;
+#[allow(dead_code)]
 pub mod orchestration_pill_bar_model;
 pub mod shortcuts;
+// TODO(issue #23): Remove remaining Warp credit UI from the Agent zero state.
+#[allow(dead_code)]
 mod zero_state_block;
 
 use std::sync::LazyLock;

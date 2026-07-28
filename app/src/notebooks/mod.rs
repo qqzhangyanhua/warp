@@ -4,6 +4,8 @@ pub mod editor;
 pub mod file;
 pub mod link;
 pub mod local_markdown;
+// TODO(issue #23): Remove the Cloud Notebook manager after local notebook ownership is complete.
+#[allow(dead_code)]
 pub mod manager;
 pub mod notebook;
 mod styles;

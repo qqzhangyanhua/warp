@@ -201,6 +201,7 @@ pub fn initialize(
 // Remove sqlite database as part of Logout v0.
 // TODO: Implement per user scoping of sqlite.
 #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
+#[allow(dead_code)]
 pub fn remove(sender: &Option<SyncSender<ModelEvent>>) {
     cfg_if::cfg_if! {
         if #[cfg(feature = "local_fs")] {
@@ -215,6 +216,7 @@ pub fn remove(sender: &Option<SyncSender<ModelEvent>>) {
 
 // Reconstruct sqlite database as part of Logout v0.
 #[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
+#[allow(dead_code)]
 pub fn reconstruct(sender: &Option<SyncSender<ModelEvent>>) {
     cfg_if::cfg_if! {
         if #[cfg(feature = "local_fs")] {
@@ -296,6 +298,8 @@ impl SingletonEntity for PersistenceWriter {}
 /// of user ID->SqliteData and get the respective AppState after the user logs in.
 ///
 /// For now, to address the global scoping here, we clear all persisted data on logout.
+// Legacy cloud fields remain for persisted-data compatibility during Issue #23 migration.
+#[allow(dead_code)]
 pub struct PersistedData {
     /// Session restoration data. `None` when the launch mode's
     /// [`PersistedDataScope`] excludes it entirely (the daemon).

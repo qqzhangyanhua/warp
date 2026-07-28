@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub mod actions;
 pub mod generic_string_model;
 pub mod json_model;

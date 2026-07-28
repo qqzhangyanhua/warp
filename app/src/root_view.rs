@@ -17,7 +17,7 @@ use warp_core::context_flag::ContextFlag;
 use warp_core::user_preferences::GetUserPreferences as _;
 use warp_errors::{report_error, report_if_error};
 use warpui::elements::{
-    Border, ChildAnchor, OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Stack,
+    ChildAnchor, OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Stack,
 };
 use warpui::keymap::{EditableBinding, FixedBinding};
 use warpui::platform::{WindowBounds, WindowStyle};
@@ -60,7 +60,7 @@ use crate::terminal::keys_settings::KeysSettings;
 use crate::terminal::shell::ShellType;
 use crate::terminal::view::{cell_size_and_padding, TerminalAction};
 use crate::themes::onboarding_theme_picker_themes;
-use crate::themes::theme::{AnsiColorIdentifier, Blend, Fill, ThemeKind, WarpThemeConfig};
+use crate::themes::theme::{AnsiColorIdentifier, ThemeKind, WarpThemeConfig};
 use crate::uri::{OpenMCPSettingsArgs, OpenSettingsArgs};
 use crate::util::bindings::{self, is_binding_pty_compliant};
 use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficLightMouseStates};
@@ -81,20 +81,6 @@ const WINDOW_TITLE: &str = crate::product::PRODUCT_DISPLAY_NAME;
 lazy_static! {
     static ref FALLBACK_WINDOW_SIZE: Vector2F = vec2f(800.0, 600.0);
     static ref QUAKE_STATE: Arc<Mutex<Option<QuakeModeState>>> = Arc::new(Mutex::new(None));
-}
-
-/// This is the color of the border wrapping the whole window.
-///
-/// On MacOS, this is drawn for us by the OS. On other platforms, we must draw it ourselves. Note
-/// that this is hard-coded for the default Dark theme. Do not use this for views which respect
-/// themes.
-pub(crate) fn unthemed_window_border() -> Border {
-    if cfg!(all(not(target_os = "macos"), not(target_family = "wasm"))) {
-        // The 15% blend of fg into bg is the "ui surface" color.
-        Border::all(1.).with_border_fill(Fill::black().blend(&Fill::white().with_opacity(15)))
-    } else {
-        Border::all(1.).with_border_fill(Fill::black().with_opacity(0))
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -1531,15 +1517,6 @@ impl NewWorkspaceSource {
 /// (before login). This is needed because the server-side `is_onboarded` flag requires
 /// authentication.
 const HAS_COMPLETED_ONBOARDING_KEY: &str = "HasCompletedOnboarding";
-
-/// Returns whether the user has completed the onboarding slides locally (before login).
-pub(crate) fn has_completed_local_onboarding(ctx: &AppContext) -> bool {
-    ctx.private_user_preferences()
-        .read_value(HAS_COMPLETED_ONBOARDING_KEY)
-        .unwrap_or_default()
-        .and_then(|s| serde_json::from_str::<bool>(&s).ok())
-        .unwrap_or(false)
-}
 
 /// Persists the local onboarding-completed flag so we don't show onboarding again.
 fn mark_local_onboarding_completed(ctx: &AppContext) {

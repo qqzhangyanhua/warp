@@ -39,7 +39,7 @@ use super::aliases::WorkflowAliases;
 use super::command_parser::WorkflowCommandDisplayData;
 #[cfg(feature = "local_fs")]
 use super::local_workflow_yaml::{self, LocalWorkflowYamlError};
-use super::{CloudWorkflowModel, WorkflowSource, WorkflowType, WorkflowViewMode};
+use super::{WorkflowSource, WorkflowType, WorkflowViewMode};
 #[cfg(feature = "local_fs")]
 use warpui_extras::owner_only_file::{ContentHash, ExpectedContent};
 use crate::ai::blocklist::secret_redaction::find_secrets_in_text;

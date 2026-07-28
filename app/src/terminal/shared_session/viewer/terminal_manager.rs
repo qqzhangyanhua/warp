@@ -1722,9 +1722,11 @@ impl TerminalManager {
              consumer_id={consumer_id:?}"
         );
         if FeatureFlag::OrchestrationViewerStreamer.is_enabled() {
-            OrchestrationEventStreamer::handle(ctx).update(ctx, move |streamer, _ctx| {
-                streamer.unregister_viewer_mode_consumer(parent_task_id, consumer_id);
-            });
+            if let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) {
+                handle.update(ctx, move |streamer, _ctx| {
+                    streamer.unregister_viewer_mode_consumer(parent_task_id, consumer_id);
+                });
+            }
         }
         // `handle` drops here, releasing the per-pane viewer model.
         drop(handle);

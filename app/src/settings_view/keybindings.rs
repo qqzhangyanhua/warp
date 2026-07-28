@@ -970,9 +970,7 @@ fn trigger_keybinding_notifier(
 }
 
 #[derive(Default)]
-struct KeybindingsWidget {
-    local_only_icon_mouse_state: MouseStateHandle,
-}
+struct KeybindingsWidget;
 
 impl KeybindingsWidget {
     fn render_description(
@@ -1111,7 +1109,7 @@ impl SettingsWidget for KeybindingsWidget {
         &self,
         view: &Self::View,
         appearance: &Appearance,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Box<dyn Element> {
         // ZYH keeps keybindings local only; no cloud-sync "local-only" badge.
         let subheader = render_sub_header(

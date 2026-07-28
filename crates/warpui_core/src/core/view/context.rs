@@ -912,6 +912,10 @@ impl<V: Entity> GetSingletonModelHandle for ViewContext<'_, V> {
     fn get_singleton_model_handle<T: crate::SingletonEntity>(&self) -> ModelHandle<T> {
         self.app.get_singleton_model_handle()
     }
+
+    fn try_get_singleton_model_handle<T: crate::SingletonEntity>(&self) -> Option<ModelHandle<T>> {
+        self.app.try_get_singleton_model_handle()
+    }
 }
 
 #[cfg(test)]

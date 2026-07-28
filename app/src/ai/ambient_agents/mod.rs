@@ -11,6 +11,8 @@ use crate::ai::agent::{
 
 pub mod github_auth_notifier;
 pub mod github_auth_url;
+// TODO(issue #23): Remove with hosted scheduled Agent runs.
+#[allow(dead_code)]
 pub mod scheduled;
 pub mod spawn;
 pub mod task;

@@ -865,9 +865,12 @@ fn kill_agent_conversation(
 ) {
     let state = agent_conversation_action_state(conversation_id, ctx);
     // Tombstone every Kill so late events cannot restore a removed child.
-    OrchestrationEventStreamer::handle(ctx).update(ctx, |streamer, ctx| {
-        streamer.mark_conversation_killed(conversation_id, ctx);
-    });
+    // No-op when the streamer is not registered (permanent-local ZYH).
+    if let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) {
+        handle.update(ctx, |streamer, ctx| {
+            streamer.mark_conversation_killed(conversation_id, ctx);
+        });
+    }
 
     if let Some(state) = state {
         if state.is_in_progress {

@@ -78,6 +78,7 @@ pub const DELETED_CLOUD_TABLES: &[&str] = &[
 ];
 
 /// Local history / control tables that must not appear in [`DELETED_CLOUD_TABLES`].
+#[cfg(test)]
 pub const RETAINED_LOCAL_TABLES: &[&str] = &[
     "agent_conversations",
     "agent_runtime_runs",

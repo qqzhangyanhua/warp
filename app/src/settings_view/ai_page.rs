@@ -2157,25 +2157,6 @@ impl AISettingsPageView {
         ctx.notify();
     }
 
-    /// Returns `true` when the active Agent Mode default model is already served
-    /// by a credential the user has: a BYO key/subscription for its provider, or
-    /// one of their custom-endpoint models. `auto` models report `false` since
-    /// they always consume Warp credits.
-    fn active_base_model_is_byo_covered(ctx: &AppContext) -> bool {
-        let (active_id, active_provider) = {
-            let prefs = LLMPreferences::as_ref(ctx);
-            let active = prefs.get_active_base_model(ctx, None);
-            (active.id.clone(), active.provider.clone())
-        };
-        if LLMPreferences::as_ref(ctx)
-            .custom_llm_info_for_id(&active_id)
-            .is_some()
-        {
-            return true;
-        }
-        is_using_api_key_for_provider(&active_provider, ctx)
-    }
-
     /// The display name of the user's current default Agent Mode model, used in
     /// the prompt copy (e.g. "auto (cost-efficient)").
     fn active_base_model_display_name(ctx: &AppContext) -> String {

@@ -31,6 +31,8 @@ pub(crate) fn long_context_pricing_warning_title() -> FormattedTextInline {
 
 pub mod editor;
 pub mod model_menu_items;
+// TODO(issue #23): Remove server-backed execution profiles.
+#[allow(dead_code)]
 pub mod profiles;
 
 /// Result of resolving the cloud agent computer use setting.

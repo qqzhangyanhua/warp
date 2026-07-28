@@ -1,4 +1,4 @@
-use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
+use cloud_object_models::object_ref_to_sync_id;
 use std::collections::HashMap;
 
 use warp_core::ui::appearance::Appearance;

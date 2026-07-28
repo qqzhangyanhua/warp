@@ -38,8 +38,8 @@ use super::keybindings::KeyBindingModifyingState;
 use super::settings_page::render_sub_sub_header;
 use super::settings_page::{
     add_setting, build_reset_button, build_toggle_element, render_body_item,
-    render_body_item_label, render_dropdown_item, render_dropdown_item_label,
-    render_local_only_icon, AdditionalInfo, Category, LocalOnlyIconState, MatchData, PageType,
+    render_body_item_label, render_dropdown_item, render_dropdown_item_label, AdditionalInfo,
+    Category, LocalOnlyIconState, MatchData, PageType,
     SettingsPageMeta, SettingsPageViewHandle, SettingsWidget, ToggleState, CONTENT_FONT_SIZE,
     HEADER_PADDING, TOGGLE_BUTTON_RIGHT_PADDING,
 };
@@ -1348,7 +1348,6 @@ impl FeaturesPageAction {
 #[derive(Default)]
 struct MouseStateHandles {
     local_only_icon_tooltip_states: RefCell<HashMap<String, MouseStateHandle>>,
-    tab_behavior_local_only_icon: MouseStateHandle,
     activation_hotkey_keybinding_editor: MouseStateHandle,
     activation_hotkey_save: MouseStateHandle,
     activation_hotkey_cancel: MouseStateHandle,
@@ -6741,7 +6740,7 @@ impl SettingsWidget for TabKeyBehaviorWidget {
         appearance: &Appearance,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let mut tab_key_span = Flex::row()
+        let tab_key_span = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Start)
             .with_child(
                 appearance

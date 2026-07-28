@@ -21,6 +21,7 @@ pub struct ServerExperiments {
 impl ServerExperiments {
     /// Creates a new [`ServerExperiments`] model and seeds it with
     /// the provided `cached` experiment state.
+    #[cfg(test)]
     pub fn new_from_cache(cached: Vec<ServerExperiment>, ctx: &mut ModelContext<Self>) -> Self {
         let mut model = Self {
             latest: HashSet::new(),

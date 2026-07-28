@@ -145,6 +145,11 @@ impl LifecycleTelemetryLimiter {
 #[strum_discriminants(derive(EnumIter))]
 pub(in crate::terminal) enum LifecycleTelemetryEvent {
     /// Reports a conservative or recovery lifecycle transition.
+    ///
+    /// Constructed in unit tests and kept for the registered telemetry schema.
+    /// Production recovery paths log via `Event::LifecycleRecovery` instead of
+    /// emitting this event (ZYH does not send lifecycle telemetry).
+    #[allow(dead_code)]
     Recovery(LifecycleRecoveryRecord),
 }
 

@@ -11,6 +11,8 @@ mod auth;
 mod banner;
 mod chip_configurator;
 mod cloud_object;
+// TODO(issue #23): Remove after the permanent local-product policy migration is complete.
+#[allow(dead_code)]
 mod cloud_product_removal;
 mod code;
 mod code_review;
@@ -26,12 +28,20 @@ mod crash_recovery;
 mod crash_reporting;
 mod debug_dump;
 mod default_terminal;
+// TODO(issue #23): Remove after the permanent local-product policy migration is complete.
+#[allow(dead_code)]
 mod desktop_only_product_removal;
+// TODO(issue #23): Remove with the remaining Warp Drive cloud UI.
+#[allow(dead_code)]
 mod drive;
 #[cfg(windows)]
 mod dynamic_libraries;
 mod env_vars;
+// TODO(issue #23): Remove with the server-side experiment framework.
+#[allow(dead_code)]
 mod experiments;
+// TODO(issue #23): Remove after all legacy external names have been rejected at their boundaries.
+#[allow(dead_code)]
 mod external_contracts;
 mod external_secrets;
 #[cfg(target_family = "wasm")]
@@ -96,6 +106,8 @@ mod warp_managed_paths_watcher;
 #[cfg(target_family = "wasm")]
 mod wasm_nux_dialog;
 mod window_settings;
+// TODO(issue #23): Remove with the remaining Warp Drive sharing UI.
+#[allow(dead_code)]
 mod word_block_editor;
 mod workspaces;
 #[cfg(all(not(target_family = "wasm"), feature = "local_fs"))]
@@ -296,6 +308,8 @@ use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 /// Our embedded application assets.
 pub static ASSETS: warp_assets::Assets = warp_assets::Assets;
 
+// TODO(issue #23): Remove with legacy hosted Agent launch-source selection.
+#[allow(dead_code)]
 fn determine_agent_source(
     launch_mode: &LaunchMode,
 ) -> Option<crate::ai::ambient_agents::AgentSource> {
@@ -321,6 +335,7 @@ fn determine_agent_source(
 }
 
 #[cfg(feature = "local_fs")]
+#[allow(dead_code)]
 fn daemon_codebase_index_snapshot_storage(launch_mode: &LaunchMode) -> Option<SnapshotStorage> {
     match launch_mode {
         LaunchMode::RemoteServerDaemon { identity_key } => {
@@ -2046,6 +2061,7 @@ pub(crate) fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppC
 
 /// Focuses the active window or if there isn't one then a window with a running process
 /// and then shows the native modal.
+#[allow(dead_code)]
 fn focus_running_window_and_show_native_modal(
     sessions_summary: RunningSessionSummary,
     dialog_with_callbacks: AlertDialogWithCallbacks<AppModalCallback>,

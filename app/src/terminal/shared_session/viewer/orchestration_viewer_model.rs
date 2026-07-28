@@ -102,10 +102,13 @@ impl OrchestrationViewerModel {
             // Streamer-driven path. Subscribe to broadcast events filtered
             // on `parent_task_id`; the streamer handles SSE open/teardown,
             // cold-start seed, and cursor persistence on our behalf.
-            let streamer = OrchestrationEventStreamer::handle(ctx);
-            ctx.subscribe_to_model(&streamer, move |me, _, event, ctx| {
-                me.handle_streamer_event(event, ctx);
-            });
+            // When the streamer is not registered (permanent-local ZYH),
+            // skip the cloud SSE subscription entirely.
+            if let Some(streamer) = OrchestrationEventStreamer::try_handle(ctx) {
+                ctx.subscribe_to_model(&streamer, move |me, _, event, ctx| {
+                    me.handle_streamer_event(event, ctx);
+                });
+            }
             ctx.subscribe_to_model(
                 &BlocklistAIHistoryModel::handle(ctx),
                 |me, _, event, ctx| {
@@ -228,14 +231,16 @@ impl OrchestrationViewerModel {
 
         let parent_task_id = self.parent_task_id;
         let consumer_id = ctx.model_id();
-        OrchestrationEventStreamer::handle(ctx).update(ctx, move |streamer, ctx| {
-            streamer.register_viewer_mode_consumer(
-                parent_task_id,
-                parent_conversation_id,
-                consumer_id,
-                ctx,
-            );
-        });
+        if let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) {
+            handle.update(ctx, move |streamer, ctx| {
+                streamer.register_viewer_mode_consumer(
+                    parent_task_id,
+                    parent_conversation_id,
+                    consumer_id,
+                    ctx,
+                );
+            });
+        }
     }
 
     /// Routes broadcast events from the streamer, filtered on this model's

@@ -53,6 +53,7 @@ pub enum RewardEvent {
     OpenThemePicker,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub enum RewardKind {
     SentReferralTheme,
@@ -81,6 +82,7 @@ impl RewardView {
         }
     }
 
+    #[allow(dead_code)]
     pub fn update_reward_kind(&mut self, kind: RewardKind, ctx: &mut ViewContext<Self>) {
         self.kind = kind;
         ctx.notify();

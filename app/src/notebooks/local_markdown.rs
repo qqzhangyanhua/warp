@@ -85,6 +85,7 @@ pub fn default_save_filename(title_hint: &str) -> String {
 }
 
 /// Open an existing Markdown file from disk.
+#[allow(dead_code)]
 pub fn open_notebook(path: &Path) -> Result<LocalMarkdownNotebook, LocalMarkdownError> {
     validate_markdown_path(path)?;
     let hash = content_hash(path)?.ok_or_else(|| {

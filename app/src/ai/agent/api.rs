@@ -1,5 +1,7 @@
 pub(crate) mod convert_conversation;
 mod convert_from;
+// TODO(issue #23): Remove with the legacy hosted Agent API conversion path.
+#[allow(dead_code)]
 mod convert_to;
 mod r#impl;
 mod local_provider;

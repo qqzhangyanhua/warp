@@ -1,4 +1,6 @@
 pub mod manager;
+// TODO(issue #23): Remove cloud-backed templatable MCP conversion.
+#[allow(dead_code)]
 pub mod templatable_manager;
 
 #[cfg(not(target_family = "wasm"))]
@@ -44,19 +46,19 @@ cfg_if::cfg_if! {
         pub use file_based_manager::FileBasedMCPManager;
         pub mod file_mcp_watcher;
         pub use file_mcp_watcher::{FileMCPWatcher, FileMCPWatcherEvent};
+        // Retained local MCP contract while its settings UI is being wired.
+        #[allow(dead_code)]
         pub mod local_mcp_config;
         pub mod local_mcp_secrets;
+        #[allow(dead_code)]
         pub mod local_mcp_surface;
-        pub use local_mcp_config::{
-            LocalMcpConfigDocument, LocalMcpConfigScope, LocalMcpConfigState,
-        };
-        pub use local_mcp_surface::{
-            local_mcp_surface, materialize_local_mcp_servers, LocalMcpSurfacePolicy,
-            LocalMcpTransportKind, MaterializedLocalMcpServer, McpSettingsCardKind,
-        };
+        pub use local_mcp_config::{LocalMcpConfigDocument, LocalMcpConfigScope};
+        pub use local_mcp_surface::local_mcp_surface;
     }
 }
 
+// TODO(issue #23): Remove the hosted MCP gallery.
+#[allow(dead_code)]
 pub mod gallery;
 pub use gallery::MCPGalleryManager;
 pub mod templatable;
@@ -159,6 +161,7 @@ impl JsonModel for MCPServer {
 /// Trait for types that have a name and value field.
 /// Used for shared operations on `StaticEnvVar` and `StaticHeader`.
 #[cfg(not(target_family = "wasm"))]
+#[allow(dead_code)]
 trait NameValuePair {
     fn name(&self) -> &str;
     fn value(&self) -> &str;
@@ -224,6 +227,7 @@ fn items_to_hashmap<T: NameValuePair>(items: &[T]) -> HashMap<String, String> {
 /// - Vec of TemplateVariables
 /// - HashMap of VariableValues
 #[cfg(not(target_family = "wasm"))]
+#[allow(dead_code)]
 fn extract_template_variables<T: NameValuePair>(
     items: &[T],
 ) -> (
@@ -257,6 +261,7 @@ fn extract_template_variables<T: NameValuePair>(
 
 /// Applies values from a persisted HashMap to a collection of name/value pairs.
 #[cfg(not(target_family = "wasm"))]
+#[allow(dead_code)]
 fn apply_values<T: NameValuePair>(items: &mut [T], values: &HashMap<String, String>) {
     for item in items.iter_mut() {
         if let Some(value) = values.get(item.name()) {
@@ -313,6 +318,7 @@ fn find_server_map(
 }
 
 #[cfg(not(target_family = "wasm"))]
+#[allow(dead_code)]
 pub trait MCPServerExt {
     fn from_user_json(json: &str) -> serde_json::Result<Vec<MCPServer>>;
     #[cfg(test)]

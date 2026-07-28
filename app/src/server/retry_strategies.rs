@@ -16,6 +16,8 @@ use crate::server::server_api::presigned_upload::HttpStatusError;
 /// is borked, etc.
 /// For team memberships, we also don't yet process messages for joining or leaving a team, so the user would see these
 /// updates only after a periodic poll.
+// TODO(issue #23): Remove with the legacy cloud object poller.
+#[allow(dead_code)]
 pub const PERIODIC_POLL: Duration = Duration::from_secs(60 * 10);
 
 /// For a periodic poll, it's fine to wait for longer period of time between retries. However, we don't want this to be so
@@ -38,6 +40,8 @@ pub const OUT_OF_BAND_REQUEST_RETRY_STRATEGY: RetryOption = RetryOption::exponen
 .with_jitter(0.5 /* max_jitter_percentage */);
 
 // For listeners, retry up to 5 times, waiting between 10-40 seconds between retries.
+// TODO(issue #23): Remove with the legacy cloud object listener.
+#[allow(dead_code)]
 pub const LISTENER_RETRY_STRATEGY: RetryOption = RetryOption::linear(
     Duration::from_secs(25), /* interval */
     5,                       /* max retry count */
@@ -67,6 +71,8 @@ pub(crate) fn is_transient_http_error(e: &anyhow::Error) -> bool {
 /// cause are treated as permanent. This is intended for GraphQL operations where
 /// user-facing GraphQL errors are converted into plain `anyhow` errors at the
 /// operation layer and should not be retried or placed into transient cooldowns.
+// TODO(issue #23): Remove when the remaining server-backed agent retry path is deleted.
+#[allow(dead_code)]
 pub(crate) fn is_transient_graphql_or_http_error(e: &anyhow::Error) -> bool {
     for cause in e.chain() {
         if let Some(graphql_err) = cause.downcast_ref::<GraphQLError>() {

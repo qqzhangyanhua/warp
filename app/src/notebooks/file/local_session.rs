@@ -113,6 +113,7 @@ impl LocalNotebookSession {
     }
 
     /// Parent directory used as the base for relative links and images.
+    #[allow(dead_code)]
     pub fn document_path_for_relative_content(&self) -> Option<&Path> {
         self.path()
     }
@@ -213,6 +214,7 @@ impl LocalNotebookSession {
     }
 
     /// User accepted disk version after a conflict (or explicit reload).
+    #[allow(dead_code)]
     pub fn apply_refresh(&mut self, content_hash: ContentHash) {
         if let Self::Bound { content_hash: h, edit, .. } = self {
             *h = content_hash;

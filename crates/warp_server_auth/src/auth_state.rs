@@ -58,6 +58,15 @@ impl AuthState {
             credentials: RwLock::new(None),
         }
     }
+
+    /// Permanent-local product: no Warp account and no credentials.
+    ///
+    /// Many retained UI/model paths still read [`AuthStateProvider`] for
+    /// `is_logged_in` / `user_id` checks. Register this so those reads return
+    /// empty answers instead of panicking on a missing singleton.
+    pub fn permanent_local(ctx: &AppContext) -> Self {
+        Self::new(ctx)
+    }
     #[cfg(any(
         test,
         feature = "integration_tests",

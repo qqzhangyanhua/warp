@@ -3,8 +3,12 @@ pub mod auth;
 pub mod block;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) mod download;
+// TODO(issue #23): Remove after retained agent flows no longer depend on server harness types.
+#[allow(dead_code)]
 pub mod harness_support;
 pub mod integrations;
+// TODO(issue #23): Remove after managed MCP server resolution is fully disconnected.
+#[allow(dead_code)]
 pub mod managed_mcp;
 pub mod managed_secrets;
 pub mod object;
@@ -278,40 +282,6 @@ impl AIApiError {
             }
         } else {
             AIApiError::ServerOverloaded
-        }
-    }
-
-    /// Format a stream error into a human-readable error message. This will read the response
-    /// body if there is one.
-    pub(crate) async fn from_stream_error(
-        stream_type: &'static str,
-        err: reqwest_eventsource::Error,
-    ) -> Self {
-        match err {
-            reqwest_eventsource::Error::InvalidStatusCode(
-                http::StatusCode::TOO_MANY_REQUESTS,
-                res,
-            ) => {
-                let headers = res.headers().clone();
-                let body = res.text().await.ok();
-                Self::error_for_429(&headers, body)
-            }
-            reqwest_eventsource::Error::InvalidStatusCode(status, res) => Self::ErrorStatus(
-                status,
-                res.text()
-                    .await
-                    .unwrap_or_else(|e| format!("(no response body: {e:#})")),
-            ),
-            reqwest_eventsource::Error::Transport(err) => Self::from_transport_error(err),
-            err => AIApiError::Stream {
-                stream_type,
-                // On WASM, `reqwest_eventsource::Error` doesn't implement `Into<anyhow::Error>` or
-                // `Send` because it may contain a `wasm_bindgen` JS value.
-                #[cfg(target_family = "wasm")]
-                source: anyhow!("{err:#?}"),
-                #[cfg(not(target_family = "wasm"))]
-                source: anyhow!(err),
-            },
         }
     }
 
@@ -1362,14 +1332,18 @@ impl ServerApiProvider {
         self.auth_client.clone()
     }
 
+    // TODO(issue #23): Remove these legacy service accessors with their remaining consumers.
+    #[allow(dead_code)]
     pub fn get_block_client(&self) -> Arc<dyn BlockClient> {
         self.server_api.clone()
     }
 
+    #[allow(dead_code)]
     pub fn get_workspace_client(&self) -> Arc<dyn WorkspaceClient> {
         self.server_api.clone()
     }
 
+    #[allow(dead_code)]
     pub fn get_team_client(&self) -> Arc<dyn TeamClient> {
         self.server_api.clone()
     }
@@ -1378,6 +1352,7 @@ impl ServerApiProvider {
         self.server_api.clone()
     }
 
+    #[allow(dead_code)]
     pub fn get_cloud_objects_client(&self) -> Arc<dyn ObjectClient> {
         self.server_api.clone()
     }
@@ -1386,11 +1361,13 @@ impl ServerApiProvider {
         self.server_api.clone()
     }
 
+    #[allow(dead_code)]
     pub fn get_managed_secrets_client(&self) -> Arc<dyn ManagedSecretsClient> {
         self.server_api.clone()
     }
 
     #[cfg_attr(target_family = "wasm", expect(dead_code))]
+    #[cfg_attr(not(target_family = "wasm"), allow(dead_code))]
     pub fn get_managed_mcp_client(&self) -> Arc<dyn ManagedMcpClient> {
         self.server_api.clone()
     }

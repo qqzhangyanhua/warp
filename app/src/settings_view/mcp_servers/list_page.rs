@@ -22,7 +22,6 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
-use crate::ai::mcp::gallery::MCPGalleryManagerEvent;
 use crate::ai::mcp::templatable::{GalleryData, TemplatableMCPServer};
 use crate::ai::mcp::templatable_manager::{
     TemplatableMCPServerManager, TemplatableMCPServerManagerEvent,
@@ -59,7 +58,6 @@ use crate::settings_view::settings_page::{
     build_toggle_element, render_body_item_label, LocalOnlyIconState, ToggleState,
 };
 use crate::ui_components::blended_colors;
-use crate::util::truncation::truncate_from_end;
 use crate::view_components::action_button::{ActionButton, NakedTheme};
 use crate::view_components::DismissibleToast;
 use crate::workflows::local_workflows::tail_command_for_shell;
@@ -93,9 +91,6 @@ pub enum MCPServersListPageViewAction {
 
 pub struct MCPServersListPageView {
     server_cards: HashMap<ServerCardItemId, ViewHandle<ServerCardView>>,
-    /// Retained empty: gallery MCP is not part of the local product path.
-    #[allow(dead_code)]
-    gallery_server_cards: HashMap<ServerCardItemId, ViewHandle<ServerCardView>>,
     // MCP server cards for uninstalled file-based servers, grouped by provider.
     file_based_template_cards: HashMap<MCPProvider, Vec<ViewHandle<ServerCardView>>>,
     update_modal_state: ModalViewState<Modal<UpdateModalBody>>,
@@ -197,7 +192,6 @@ impl MCPServersListPageView {
 
         let mut me = Self {
             server_cards: Default::default(),
-            gallery_server_cards: Default::default(),
             file_based_template_cards: Default::default(),
             update_modal_state,
             search_editor,
@@ -225,28 +219,6 @@ impl MCPServersListPageView {
         }
     }
 
-    fn is_shareable(
-        item_id: ServerCardItemId,
-        server_card_status: ServerCardStatus,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        if !UserWorkspaces::as_ref(ctx).has_teams() {
-            return false;
-        }
-        if TemplatableMCPServerManager::get_first_team_space_id(ctx).is_none() {
-            return false;
-        }
-        match item_id {
-            ServerCardItemId::TemplatableMCP(_)
-            | ServerCardItemId::TemplatableMCPInstallation(_) => {
-                let is_shared = Self::is_shared(item_id, ctx);
-                let is_running = matches!(server_card_status, ServerCardStatus::Running);
-                !is_shared && is_running
-            }
-            ServerCardItemId::GalleryMCP(_) | ServerCardItemId::FileBasedMCP(_) => false,
-        }
-    }
-
     fn register_server_card(&mut self, server_card: ServerCardView, ctx: &mut ViewContext<Self>) {
         let item_id = server_card.item_id;
         let handle = ctx.add_typed_action_view(move |_ctx| server_card);
@@ -255,92 +227,6 @@ impl MCPServersListPageView {
             me.handle_server_card_event(event, ctx);
         });
         ctx.notify();
-    }
-
-    fn create_template_server_card(
-        &mut self,
-        template: &TemplatableMCPServer,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let template_uuid = template.uuid;
-        let item_id = ServerCardItemId::TemplatableMCP(template_uuid);
-        let title_chip_text = Self::get_title_chip_text(item_id, template_uuid, ctx);
-        let server_card_status = ServerCardStatus::AvailableToSave;
-        let is_shareable = Self::is_shareable(item_id, server_card_status, ctx);
-
-        let server_card = ServerCardView::new(
-            item_id,
-            template.name.clone(),
-            template
-                .description
-                .clone()
-                .or_else(|| Some("Available to install".to_string())),
-            None, // Templates can never have tools
-            None, // Templates cannot have an error
-            title_chip_text.into_iter().collect(),
-            ServerCardOptions {
-                show_share_icon_button: is_shareable,
-                ..server_card_status.into()
-            },
-        );
-        self.register_server_card(server_card, ctx);
-    }
-
-    fn create_installation_server_card(
-        &mut self,
-        installation: &TemplatableMCPServerInstallation,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let installation_uuid = installation.uuid();
-        let item_id = ServerCardItemId::TemplatableMCPInstallation(installation_uuid);
-        let uses_oauth = Self::should_show_oauth_components(item_id, ctx);
-        let server_card_status =
-            match TemplatableMCPServerManager::as_ref(ctx).get_server_state(installation_uuid) {
-                Some(state) => state.into(),
-                None => ServerCardStatus::Installed,
-            };
-        let is_shareable = Self::is_shareable(item_id, server_card_status, ctx);
-        let is_update_available = TemplatableMCPServerManager::as_ref(ctx)
-            .is_update_available_for_installation(installation_uuid, ctx);
-        let is_authorized_editor =
-            TemplatableMCPServerManager::handle(ctx).read(ctx, |templatable_manager, ctx| {
-                templatable_manager.is_authorized_editor(installation.template_uuid(), ctx)
-            });
-        let should_show_update_symbol = is_authorized_editor && is_update_available;
-
-        let title_chip_text = Self::get_title_chip_text(item_id, installation.template_uuid(), ctx);
-        let description = installation.templatable_mcp_server().description.clone();
-        let tools = (server_card_status == ServerCardStatus::Running).then_some(
-            TemplatableMCPServerManager::as_ref(ctx)
-                .tools_for_server(installation_uuid)
-                .iter()
-                .map(|tool| tool.name.to_string())
-                .collect(),
-        );
-        let error_text = if server_card_status == ServerCardStatus::Error {
-            // Get specific error message if available
-            TemplatableMCPServerManager::as_ref(ctx)
-                .get_server_error_message(installation_uuid)
-                .map(|s| s.to_string())
-        } else {
-            None
-        };
-
-        let server_card = ServerCardView::new(
-            item_id,
-            installation.templatable_mcp_server().name.clone(),
-            description,
-            tools,
-            error_text,
-            title_chip_text.into_iter().collect(),
-            ServerCardOptions {
-                show_log_out_icon_button: uses_oauth,
-                show_share_icon_button: is_shareable,
-                show_update_available_icon_button: should_show_update_symbol,
-                ..server_card_status.into()
-            },
-        );
-        self.register_server_card(server_card, ctx);
     }
 
     fn create_server_cards(&mut self, ctx: &mut ViewContext<Self>) {
@@ -361,19 +247,6 @@ impl MCPServersListPageView {
 
     fn refresh_server_cards(&mut self, ctx: &mut ViewContext<Self>) {
         self.create_server_cards(ctx);
-    }
-
-    fn create_gallery_server_cards(
-        _ctx: &mut ViewContext<Self>,
-    ) -> HashMap<ServerCardItemId, ViewHandle<ServerCardView>> {
-        #[cfg(feature = "local_fs")]
-        {
-            use crate::ai::mcp::local_mcp_surface::{local_mcp_surface, McpSettingsCardKind};
-            if !local_mcp_surface().allows_settings_card(McpSettingsCardKind::Gallery) {
-                return HashMap::new();
-            }
-        }
-        HashMap::new()
     }
 
     fn share_templatable_mcp_server(&mut self, template_uuid: Uuid, ctx: &mut ViewContext<Self>) {
@@ -960,25 +833,6 @@ impl MCPServersListPageView {
         }
     }
 
-    fn handle_mcp_gallery_manager_event(
-        &mut self,
-        event: &MCPGalleryManagerEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            MCPGalleryManagerEvent::ItemsRefreshed => {
-                self.refresh_gallery_cards(ctx);
-                // We also need to refresh the server cards, because they use the gallery information to determine if an update is available
-                self.refresh_server_cards(ctx);
-            }
-        }
-    }
-
-    fn refresh_gallery_cards(&mut self, ctx: &mut ViewContext<Self>) {
-        self.gallery_server_cards = Self::create_gallery_server_cards(ctx);
-        ctx.notify();
-    }
-
     pub fn get_modal_content(&self) -> Option<Box<dyn Element>> {
         if self.update_modal_state.is_open() {
             Some(self.update_modal_state.render())
@@ -1251,43 +1105,6 @@ impl MCPServersListPageView {
             }
         }
         (owned_server_cards, shared_server_cards)
-    }
-
-    fn deduplicate_gallery_cards(
-        &self,
-        app: &AppContext,
-    ) -> HashMap<ServerCardItemId, ViewHandle<ServerCardView>> {
-        let gallery_ids = TemplatableMCPServerManager::as_ref(app).extract_server_info(
-            |template| {
-                template
-                    .gallery_data
-                    .map(|gallery_data| gallery_data.gallery_item_id)
-            },
-            |installation| installation.gallery_uuid(),
-            app,
-        );
-        let names = TemplatableMCPServerManager::as_ref(app).extract_server_info(
-            |template| Some(template.name.to_ascii_lowercase()),
-            |installation| {
-                Some(
-                    installation
-                        .templatable_mcp_server()
-                        .name
-                        .to_ascii_lowercase(),
-                )
-            },
-            app,
-        );
-
-        let mut deduplicated_gallery_cards = self.gallery_server_cards.clone();
-        deduplicated_gallery_cards.retain(|item_id, server_card| match item_id {
-            ServerCardItemId::GalleryMCP(gallery_uuid) => {
-                !names.contains(&server_card.as_ref(app).title().to_lowercase())
-                    && !gallery_ids.contains(gallery_uuid)
-            }
-            _ => false,
-        });
-        deduplicated_gallery_cards
     }
 
     fn render_server_cards(
@@ -1645,34 +1462,6 @@ impl MCPServersListPageView {
                 // Shuts down the file-based server without purging credentials.
                 mgr.shutdown_server(uuid, ctx);
             }),
-        }
-    }
-
-    fn get_title_chip_text(
-        item_id: ServerCardItemId,
-        template_uuid: Uuid,
-        ctx: &mut ViewContext<Self>,
-    ) -> Option<TitleChip> {
-        match item_id {
-            ServerCardItemId::TemplatableMCP(_)
-            | ServerCardItemId::TemplatableMCPInstallation(_) => {
-                let is_shared =
-                    Self::is_shared(ServerCardItemId::TemplatableMCP(template_uuid), ctx);
-                let creator =
-                    TemplatableMCPServerManager::as_ref(ctx).get_creator(template_uuid, ctx);
-
-                if is_shared {
-                    match creator {
-                        Some(creator) => Some(TitleChip::text(format!("Shared by: {creator}"))),
-                        None => Some(TitleChip::text("Shared by a team member")),
-                    }
-                } else if matches!(item_id, ServerCardItemId::TemplatableMCP(_)) {
-                    Some(TitleChip::text("From another device"))
-                } else {
-                    None
-                }
-            }
-            _ => None,
         }
     }
 }

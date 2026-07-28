@@ -6,14 +6,21 @@ use warp_util::path::ShellFamily;
 
 pub mod active_env_var_collection_data;
 pub mod env_var_collection_block;
+// TODO(issue #23): Remove the legacy cloud Env Var Collection manager.
+#[allow(dead_code)]
 pub mod manager;
+#[allow(dead_code)]
 pub mod product_removal;
 pub mod view;
 
 pub use product_removal::{
     evaluate_stale_evc_restore, may_expose_evc_in_ui, may_open_or_create_evc,
-    unsupported_evc_error_message, EVC_REMOVED_GUIDANCE, StaleEvcRestoreOutcome,
+    EVC_REMOVED_GUIDANCE, StaleEvcRestoreOutcome,
 };
+
+// Test and transitional callers still reach this through the module path.
+#[cfg(any(test, feature = "test-util"))]
+pub use product_removal::unsupported_evc_error_message;
 
 use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::cloud_object::model::json_model::JsonModel;

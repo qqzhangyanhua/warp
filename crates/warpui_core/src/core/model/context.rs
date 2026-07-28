@@ -624,6 +624,10 @@ impl<M> GetSingletonModelHandle for ModelContext<'_, M> {
     fn get_singleton_model_handle<T: crate::SingletonEntity>(&self) -> ModelHandle<T> {
         self.app.get_singleton_model_handle()
     }
+
+    fn try_get_singleton_model_handle<T: crate::SingletonEntity>(&self) -> Option<ModelHandle<T>> {
+        self.app.try_get_singleton_model_handle()
+    }
 }
 
 /// A task which must run in the context of a model of type `M`.

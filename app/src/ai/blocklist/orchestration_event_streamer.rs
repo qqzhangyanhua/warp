@@ -2380,6 +2380,9 @@ fn build_pending_events(
 // covers both call sites.
 
 /// Registers a consumer of orchestration agent events for `conversation_id`.
+///
+/// No-op when the streamer singleton is not registered (permanent-local ZYH
+/// builds intentionally omit the cloud SSE streamer).
 pub fn register_agent_event_consumer<C>(
     conversation_id: AIConversationId,
     consumer_id: EntityId,
@@ -2387,12 +2390,17 @@ pub fn register_agent_event_consumer<C>(
 ) where
     C: GetSingletonModelHandle + UpdateModel,
 {
-    OrchestrationEventStreamer::handle(ctx).update(ctx, |streamer, ctx| {
+    let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) else {
+        return;
+    };
+    handle.update(ctx, |streamer, ctx| {
         streamer.register_consumer(conversation_id, consumer_id, ctx);
     });
 }
 
 /// Pair to [`register_agent_event_consumer`].
+///
+/// No-op when the streamer singleton is not registered.
 pub fn unregister_agent_event_consumer<C>(
     conversation_id: AIConversationId,
     consumer_id: EntityId,
@@ -2400,7 +2408,10 @@ pub fn unregister_agent_event_consumer<C>(
 ) where
     C: GetSingletonModelHandle + UpdateModel,
 {
-    OrchestrationEventStreamer::handle(ctx).update(ctx, |streamer, ctx| {
+    let Some(handle) = OrchestrationEventStreamer::try_handle(ctx) else {
+        return;
+    };
+    handle.update(ctx, |streamer, ctx| {
         streamer.unregister_consumer(conversation_id, consumer_id, ctx);
     });
 }

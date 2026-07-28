@@ -51,8 +51,20 @@ pub trait Entity: 'static {
 pub trait SingletonEntity: Entity + Sized {
     /// Returns the handle to the single model of this type stored within the
     /// provided application state.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this singleton was never registered.
     fn handle<T: GetSingletonModelHandle>(ctx: &T) -> ModelHandle<Self> {
         ctx.get_singleton_model_handle()
+    }
+
+    /// Returns the handle when the singleton was registered, otherwise `None`.
+    ///
+    /// Prefer this over [`Self::handle`] for optional / migration-era
+    /// singletons that are intentionally absent in some product modes.
+    fn try_handle<T: GetSingletonModelHandle>(ctx: &T) -> Option<ModelHandle<Self>> {
+        ctx.try_get_singleton_model_handle()
     }
 
     fn as_ref(ctx: &crate::AppContext) -> &Self {
@@ -64,7 +76,14 @@ pub trait SingletonEntity: Entity + Sized {
 pub trait GetSingletonModelHandle {
     /// Returns the handle to the single model of this type stored within the
     /// provided application state.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this singleton was never registered.
     fn get_singleton_model_handle<T: SingletonEntity>(&self) -> ModelHandle<T>;
+
+    /// Returns the handle when the singleton was registered, otherwise `None`.
+    fn try_get_singleton_model_handle<T: SingletonEntity>(&self) -> Option<ModelHandle<T>>;
 }
 
 pub trait AddSingletonModel {

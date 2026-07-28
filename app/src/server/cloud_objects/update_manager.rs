@@ -301,8 +301,7 @@ impl UpdateManager {
         event: &TeamTesterStatusEvent,
         ctx: &mut ModelContext<Self>,
     ) {
-        let TeamTesterStatusEvent::InitiateDataPollers { force_refresh } = event;
-        if *force_refresh {
+        if matches!(event, TeamTesterStatusEvent::ForceRefreshDataPollers) {
             self.refresh_updated_objects(ctx);
         }
 

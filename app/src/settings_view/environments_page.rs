@@ -52,10 +52,8 @@ use crate::editor::{
 };
 use crate::i18n::{tr, tr_cached, Message};
 use crate::root_view::CreateEnvironmentArg;
-use crate::server::cloud_objects::update_manager::{
-    ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
-};
-use crate::server::ids::{ClientId, ServerId, SyncId};
+use crate::server::cloud_objects::update_manager::UpdateManager;
+use crate::server::ids::{ClientId, SyncId};
 use crate::terminal::view::init_environment::mode_selector::{
     EnvironmentSetupMode, EnvironmentSetupModeSelector, EnvironmentSetupModeSelectorEvent,
 };
@@ -222,14 +220,6 @@ pub struct EnvironmentsPageView {
     search_editor: ViewHandle<EditorView>,
     empty_state_github_repos_button_mouse_state: MouseStateHandle,
     empty_state_local_repos_button_mouse_state: MouseStateHandle,
-    // Track pending save to show success toast when complete
-    pending_save_env_id: Option<SyncId>,
-    // Track pending create to show success toast when complete
-    pending_create_client_id: Option<ClientId>,
-    // Track pending delete to show success toast when complete
-    pending_delete_env_id: Option<SyncId>,
-    // Track pending share (personal -> team) to show error toast on failure
-    pending_share_server_id: Option<ServerId>,
     // Delete confirmation dialog
     delete_confirmation_dialog: ViewHandle<DeleteEnvironmentConfirmationDialog>,
     // Agent-assisted environment creation modal
@@ -523,10 +513,6 @@ impl EnvironmentsPageView {
             search_editor,
             empty_state_github_repos_button_mouse_state: MouseStateHandle::default(),
             empty_state_local_repos_button_mouse_state: MouseStateHandle::default(),
-            pending_save_env_id: None,
-            pending_create_client_id: None,
-            pending_delete_env_id: None,
-            pending_share_server_id: None,
             delete_confirmation_dialog,
             agent_assisted_environment_modal,
             new_env_button,
@@ -600,116 +586,7 @@ impl EnvironmentsPageView {
         });
     }
 
-    fn show_success_toast(&self, message: String, ctx: &mut ViewContext<Self>) {
-        let window_id = ctx.window_id();
-        ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            toast_stack.add_ephemeral_toast(DismissibleToast::success(message), window_id, ctx);
-        });
-    }
-
-    fn handle_update_manager_event(
-        &mut self,
-        event: &UpdateManagerEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let UpdateManagerEvent::ObjectOperationComplete { result } = event else {
-            return;
-        };
-
-        // Check if this is a successful update for our pending save
-        if let (ObjectOperation::Update, OperationSuccessType::Success) =
-            (&result.operation, &result.success_type)
-        {
-            let Some(server_id) = &result.server_id else {
-                return;
-            };
-
-            let should_handle = self
-                .pending_save_env_id
-                .is_some_and(|pending_env_id| server_id.uid() == pending_env_id.uid());
-
-            if should_handle {
-                self.pending_save_env_id = None;
-                self.show_success_toast(
-                    tr(ctx, Message::EnvironmentSuccessfullyUpdated).to_string(),
-                    ctx,
-                );
-
-                // No need to force a global cloud-object refresh here: on update success the
-                // sync pipeline updates this environment's `revision_ts` (used for "Last edited")
-                // in-memory via `CloudModel::set_latest_revision_and_editor`.
-                ctx.notify();
-            }
-        }
-
-        // Check if this is a successful create for our pending create
-        if let (ObjectOperation::Create { .. }, OperationSuccessType::Success) =
-            (&result.operation, &result.success_type)
-        {
-            if let Some(pending_client_id) = self.pending_create_client_id.take() {
-                // Check if the client_id in the result matches our pending client_id
-                if let Some(result_client_id) = &result.client_id {
-                    if *result_client_id == pending_client_id {
-                        self.show_success_toast(
-                            tr(ctx, Message::EnvironmentSuccessfullyCreated).to_string(),
-                            ctx,
-                        );
-                    }
-                }
-            }
-        }
-
-        // Check if this is a successful delete for our pending delete
-        if let (ObjectOperation::Delete { .. }, OperationSuccessType::Success) =
-            (&result.operation, &result.success_type)
-        {
-            if let Some(pending_env_id) = self.pending_delete_env_id.take() {
-                // Check if the server_id matches our pending environment
-                if let Some(server_id) = &result.server_id {
-                    if server_id.uid() == pending_env_id.uid() {
-                        self.show_success_toast(
-                            tr(ctx, Message::EnvironmentDeletedSuccessfully).to_string(),
-                            ctx,
-                        );
-                    }
-                }
-            }
-        }
-
-        // Check if this is a completion event for our pending share (personal -> team)
-        if matches!(&result.operation, ObjectOperation::MoveToDrive) {
-            let (Some(pending_server_id), Some(result_server_id)) =
-                (self.pending_share_server_id, result.server_id)
-            else {
-                return;
-            };
-
-            if pending_server_id != result_server_id {
-                return;
-            }
-
-            self.pending_share_server_id = None;
-
-            if matches!(result.success_type, OperationSuccessType::Success) {
-                self.show_success_toast(
-                    tr(ctx, Message::EnvironmentSuccessfullyShared).to_string(),
-                    ctx,
-                );
-            } else {
-                self.show_error_toast(
-                    tr(ctx, Message::EnvironmentFailedShareWithTeam).to_string(),
-                    ctx,
-                );
-            }
-
-            ctx.notify();
-        }
-    }
-
     fn delete_environment(&mut self, env_id: SyncId, ctx: &mut ViewContext<Self>) {
-        // Track the pending delete to show success toast when complete
-        self.pending_delete_env_id = Some(env_id);
-
         // Delete via UpdateManager
         UpdateManager::handle(ctx).update(ctx, |update_manager, ctx| {
             update_manager.delete_object_by_user(
@@ -757,9 +634,7 @@ impl EnvironmentsPageView {
                 environment,
                 share_with_team,
             } => {
-                // Generate a client ID for tracking the create operation
                 let client_id = ClientId::default();
-                self.pending_create_client_id = Some(client_id);
 
                 let owner = if *share_with_team {
                     cloud_environments::owner_for_new_environment(ctx)
@@ -804,9 +679,6 @@ impl EnvironmentsPageView {
 
                 // Get the revision from the existing environment
                 let revision = existing_env.metadata.revision.clone();
-
-                // Track the pending save to show success toast when complete
-                self.pending_save_env_id = Some(*env_id);
 
                 // Update via UpdateManager
                 UpdateManager::handle(ctx).update(ctx, |update_manager, ctx| {
@@ -971,15 +843,13 @@ impl TypedActionView for EnvironmentsPageView {
                     return;
                 };
 
-                let SyncId::ServerId(server_id) = *env_id else {
+                let SyncId::ServerId(_) = *env_id else {
                     self.show_error_toast(
                         tr(ctx, Message::EnvironmentUnableShareNotSynced).to_string(),
                         ctx,
                     );
                     return;
                 };
-
-                self.pending_share_server_id = Some(server_id);
 
                 UpdateManager::handle(ctx).update(ctx, |update_manager, ctx| {
                     update_manager.move_object_to_location(

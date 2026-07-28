@@ -1,5 +1,7 @@
 pub(super) mod chips;
 pub mod editor;
+// TODO(issue #23): Remove hosted Agent environment handoff UI.
+#[allow(dead_code)]
 mod environment_selector;
 pub mod toolbar_item;
 
@@ -77,6 +79,8 @@ use crate::settings::{
     AISettings, AISettingsChangedEvent, PrivacySettings, PrivacySettingsChangedEvent,
 };
 use crate::settings_view::SettingsSection;
+#[cfg(feature = "voice_input")]
+use crate::workspaces::user_workspaces::UserWorkspaces;
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::{
     compare_versions, plugin_manager_for, plugin_manager_for_with_shell, CliAgentPluginManager,

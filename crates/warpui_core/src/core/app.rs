@@ -312,6 +312,14 @@ impl App {
         self.0.borrow().get_singleton_model_handle()
     }
 
+    /// Returns the singleton handle when registered, otherwise `None`.
+    pub fn try_get_singleton_model_handle<T>(&self) -> Option<ModelHandle<T>>
+    where
+        T: SingletonEntity,
+    {
+        self.0.borrow().try_get_singleton_model_handle()
+    }
+
     pub fn add_window_with_bounds<T, F>(
         &mut self,
         style: WindowStyle,
@@ -526,6 +534,10 @@ impl AddSingletonModel for App {
 impl GetSingletonModelHandle for App {
     fn get_singleton_model_handle<T: SingletonEntity>(&self) -> ModelHandle<T> {
         self.0.borrow_mut().get_singleton_model_handle()
+    }
+
+    fn try_get_singleton_model_handle<T: SingletonEntity>(&self) -> Option<ModelHandle<T>> {
+        self.0.borrow().try_get_singleton_model_handle()
     }
 }
 
@@ -4909,18 +4921,23 @@ impl ReadView for AppContext {
 
 impl GetSingletonModelHandle for AppContext {
     fn get_singleton_model_handle<T: SingletonEntity>(&self) -> ModelHandle<T> {
-        match self.singleton_models.get(&std::any::TypeId::of::<T>()) {
-            Some(model_handle) => model_handle
-                .clone()
-                .downcast()
-                .expect("a registered singleton model should never have a refcount of 0"),
-            None => {
-                panic!(
-                    "Cannot get singleton model of type {:?} that was never registered",
-                    std::any::type_name::<T>()
-                );
-            }
-        }
+        self.try_get_singleton_model_handle().unwrap_or_else(|| {
+            panic!(
+                "Cannot get singleton model of type {:?} that was never registered",
+                std::any::type_name::<T>()
+            )
+        })
+    }
+
+    fn try_get_singleton_model_handle<T: SingletonEntity>(&self) -> Option<ModelHandle<T>> {
+        self.singleton_models
+            .get(&std::any::TypeId::of::<T>())
+            .map(|model_handle| {
+                model_handle
+                    .clone()
+                    .downcast()
+                    .expect("a registered singleton model should never have a refcount of 0")
+            })
     }
 }
 

@@ -26,7 +26,7 @@ use crate::ai::custom_model_routers::is_custom_router_id;
 use crate::ai::execution_profiles::model_menu_items::is_auto;
 use crate::ai::llms::{
     byo_key_source_for_model, should_show_bedrock_icon_for_model, should_show_key_icon_for_model,
-    ByoKeySource, DisableReason, LLMId, LLMInfo, LLMPreferences, LLMProvider, LLMSpec,
+    ByoKeySource, DisableReason, LLMId, LLMInfo, LLMPreferences, LLMSpec,
 };
 use crate::features::FeatureFlag;
 use crate::i18n::{tr_cached, Message as I18nMessage};
@@ -284,7 +284,6 @@ impl Entity for ModelSelectorDataSource {
 #[derive(Clone)]
 struct ModelSearchItem {
     id: LLMId,
-    provider: LLMProvider,
     spec: Option<LLMSpec>,
     leading_icon: Icon,
     credential_icon: Option<Icon>,
@@ -334,7 +333,6 @@ impl ModelSearchItem {
         };
         Self {
             id: llm.id.clone(),
-            provider: llm.provider.clone(),
             spec: llm.spec.clone(),
             leading_icon,
             credential_icon,

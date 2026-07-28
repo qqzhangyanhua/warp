@@ -487,6 +487,7 @@ fn ensure_owner_only_file(_path: &Path) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub(super) fn remove(sender: SyncSender<ModelEvent>) {
     // Instruct the writer thread to remove the database and pause processing
     // events.
@@ -498,6 +499,7 @@ pub(super) fn remove(sender: SyncSender<ModelEvent>) {
         .context("Error requesting database deletion"));
 }
 
+#[allow(dead_code)]
 pub(super) fn reconstruct(sender: SyncSender<ModelEvent>) {
     report_if_error!(sender
         .send(ModelEvent::ReconstructAndResume)
