@@ -21,6 +21,7 @@ use super::{
 };
 use crate::appearance::Appearance;
 use crate::channel::ChannelState;
+use crate::i18n::{tr_cached, Message};
 use crate::resource_center::skip_tips_and_write_to_user_defaults;
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::TelemetryEvent;
@@ -275,7 +276,7 @@ impl ResourceCenterMainView {
 
                     appearance
                         .ui_builder()
-                        .wrappable_text("Mark all as read", false)
+                        .wrappable_text(tr_cached(Message::CommonMarkAllAsRead), false)
                         .with_style(style)
                         .build()
                         .finish()

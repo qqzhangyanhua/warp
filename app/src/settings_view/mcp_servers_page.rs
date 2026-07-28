@@ -333,7 +333,7 @@ impl MCPServersSettingsPageView {
                     "Ignoring MCP deeplink autoinstall for '{autoinstall_param}': gallery is not part of the local MCP path"
                 );
                 self.add_error_toast(
-                    "Gallery MCP install is not available in the local product.".to_string(),
+                    tr(ctx, Message::McpGalleryInstallUnavailable).to_string(),
                     ctx,
                 );
                 return;
@@ -349,7 +349,10 @@ impl MCPServersSettingsPageView {
             log::warn!(
                 "Unrecognized autoinstall value '{autoinstall_param}': no matching gallery item found"
             );
-            self.add_error_toast(format!("Unknown MCP server '{autoinstall_param}'"), ctx);
+            self.add_error_toast(
+                tr(ctx, Message::McpUnknownServer).replace("{}", autoinstall_param),
+                ctx,
+            );
             return;
         };
 

@@ -3552,7 +3552,7 @@ fn render_response_footer(props: Props, app: &AppContext) -> Option<Box<dyn Elem
         )
         .with_tooltip(move || {
             ui_builder
-                .tool_tip("Continue conversation".to_string())
+                .tool_tip(tr_cached(Message::AgentContinueConversation).to_string())
                 .build()
                 .finish()
         })

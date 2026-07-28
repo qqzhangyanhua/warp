@@ -21,18 +21,12 @@ use crate::editor::{
     EditorOptions, EditorView, EnterAction, EnterSettings, Event as EditorEvent,
     PropagateAndNoOpNavigationKeys, TextOptions,
 };
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, DangerSecondaryTheme, PrimaryTheme};
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
-
-const RULE_CONTENT_PLACEHOLDER_TEXT: &str =
-    "e.g. Prefer 4-space indentation and always run tests before committing.";
-const CONFLICT_BANNER_TEXT: &str =
-    "This file changed on disk. Reload the latest content, or save again after reloading.";
-const DELETE_CONFIRM_PROMPT: &str = "Delete ~/.agents/AGENTS.md? This cannot be undone.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SaveStatus {
@@ -118,7 +112,7 @@ impl RuleEditorView {
                 },
                 ctx,
             );
-            editor.set_placeholder_text(RULE_CONTENT_PLACEHOLDER_TEXT, ctx);
+            editor.set_placeholder_text(tr(ctx, Message::RuleContentPlaceholder), ctx);
             editor
         });
         ctx.subscribe_to_view(&content_editor, |me, _editor, event, ctx| {
@@ -143,8 +137,8 @@ impl RuleEditorView {
                 })
         });
 
-        let confirm_delete_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Confirm delete", DangerSecondaryTheme)
+        let confirm_delete_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CommonConfirmDelete), DangerSecondaryTheme)
                 .with_icon(Icon::Trash)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(RuleEditorViewAction::ConfirmDelete);
@@ -159,8 +153,8 @@ impl RuleEditorView {
             )
         });
 
-        let reload_button = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("Reload", PrimaryTheme)
+        let reload_button = ctx.add_typed_action_view(|ctx| {
+            ActionButton::new(tr(ctx, Message::CommonReload), PrimaryTheme)
                 .with_icon(Icon::Refresh)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(RuleEditorViewAction::Reload);
@@ -317,11 +311,7 @@ impl RuleEditorView {
             Err(GlobalAgentRulesError::Conflict { .. }) => {
                 self.save_status = SaveStatus::Conflict;
                 self.update_save_button(ctx);
-                self.show_toast(
-                    "Could not save: the file changed on disk. Reload and try again.",
-                    true,
-                    ctx,
-                );
+                self.show_toast(tr(ctx, Message::RuleSaveConflict), true, ctx);
                 ctx.notify();
             }
             Err(error) => {
@@ -349,11 +339,7 @@ impl RuleEditorView {
             Err(GlobalAgentRulesError::Conflict { .. }) => {
                 self.save_status = SaveStatus::Conflict;
                 self.pending_delete_confirmation = false;
-                self.show_toast(
-                    "Could not delete: the file changed on disk. Reload and try again.",
-                    true,
-                    ctx,
-                );
+                self.show_toast(tr(ctx, Message::RuleDeleteConflict), true, ctx);
                 ctx.notify();
             }
             Err(error) => {
@@ -365,7 +351,21 @@ impl RuleEditorView {
     }
 
     fn show_error_toast(&self, error: &GlobalAgentRulesError, ctx: &mut ViewContext<Self>) {
-        self.show_toast(&error.to_string(), true, ctx);
+        let message = match error {
+            GlobalAgentRulesError::HomeNotFound => {
+                tr(ctx, Message::RuleHomeUnavailable).to_string()
+            }
+            GlobalAgentRulesError::Conflict { .. } => {
+                tr(ctx, Message::RuleSaveConflict).to_string()
+            }
+            GlobalAgentRulesError::UnsupportedFileType { path } => {
+                tr(ctx, Message::RuleUnsupportedFileType).replace("{}", &path.display().to_string())
+            }
+            GlobalAgentRulesError::Io(error) => {
+                tr(ctx, Message::RuleOperationFailed).replace("{}", &error.to_string())
+            }
+        };
+        self.show_toast(&message, true, ctx);
     }
 
     fn show_toast(&self, message: &str, is_error: bool, ctx: &mut ViewContext<Self>) {
@@ -403,9 +403,9 @@ impl RuleEditorView {
 
     fn render_header(&self, appearance: &Appearance) -> Box<dyn Element> {
         let title = if self.file_exists {
-            "Edit Global Rule"
+            tr_cached(Message::RuleEditGlobalTitle)
         } else {
-            "Create Global Rule"
+            tr_cached(Message::RuleCreateGlobalTitle)
         };
         Container::new(
             Flex::row()
@@ -454,7 +454,7 @@ impl RuleEditorView {
                 .with_child(
                     appearance
                         .ui_builder()
-                        .wrappable_text(CONFLICT_BANNER_TEXT, true)
+                        .wrappable_text(tr_cached(Message::RuleConflictBanner), true)
                         .with_style(style::description_text(appearance))
                         .build()
                         .finish(),
@@ -502,9 +502,15 @@ impl RuleEditorView {
         Flex::column()
             .with_child(self.render_path_label(appearance))
             .with_child(
-                Container::new(appearance.ui_builder().span("Rule").build().finish())
-                    .with_margin_bottom(style::ITEM_BOTTOM_MARGIN)
-                    .finish(),
+                Container::new(
+                    appearance
+                        .ui_builder()
+                        .span(tr_cached(Message::CommonRule))
+                        .build()
+                        .finish(),
+                )
+                .with_margin_bottom(style::ITEM_BOTTOM_MARGIN)
+                .finish(),
             )
             .with_child(self.render_content_editor(appearance))
             .finish()
@@ -517,7 +523,7 @@ impl RuleEditorView {
                     Container::new(
                         appearance
                             .ui_builder()
-                            .wrappable_text(DELETE_CONFIRM_PROMPT, true)
+                            .wrappable_text(tr_cached(Message::RuleDeleteConfirmPrompt), true)
                             .with_style(style::description_text(appearance))
                             .build()
                             .finish(),

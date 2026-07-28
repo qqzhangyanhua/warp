@@ -307,7 +307,7 @@ impl RichTextEditorView {
         })
         .with_tooltip(move || {
             ui_builder
-                .tool_tip("Insert block".to_string())
+                .tool_tip(tr_cached(Message::NotebookInsertBlock).to_string())
                 .build()
                 .finish()
         })

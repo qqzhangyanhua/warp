@@ -8,9 +8,9 @@ Status of Chinese/English localization for ZYH GUI copy.
 
 | Item | Count / note |
 |------|----------------|
-| `Message` variants | **2662** |
-| English table (`en_text`) | **2662** complete |
-| Chinese table (`zh_cn_text`) | **2662** complete |
+| `Message` variants | **2804** |
+| English table (`en_text`) | **2804** complete |
+| Chinese table (`zh_cn_text`) | **2804** complete |
 | Call sites | ~1300+ across 120+ files |
 | Guard test | `all_messages_have_non_empty_text` in `table.rs` |
 
@@ -64,6 +64,7 @@ Status of Chinese/English localization for ZYH GUI copy.
 | Pure `{err}` / backend error passthrough | Server or OS text |
 | Debug-only toasts | Heap profile, IAP credential refresh (dev/dogfood) |
 | Logs | Not UI |
+| Removed hosted-product source | Account, billing, cloud environment, sharing, and Ambient Agent UI retained only while ADR-0009 deletion proceeds is not reachable in the ZYH Local Product. |
 
 ### Known residual debt
 
@@ -74,11 +75,10 @@ Status of Chinese/English localization for ZYH GUI copy.
 | Settings toggle binding descriptions | **Migrated** to `Message` (`ToggleEnablePrefix` / `ToggleDisablePrefix` / `ToggleSuffix*`) |
 | Agent tips | **Migrated** to `Message` (`AgentTip*`) via identity-key map |
 | Settings schema `description:` fields | TOML/settings metadata; many still English (lower user impact) |
-| Rare empty states / marketing modals | Spot-check remaining hardcodes as features ship |
+| New GUI copy | Must be added through `Message`; spot-check hardcoded render arguments as features ship |
 | Agent mode rotating hint examples | Prefix localized; example English kept |
 | EditableBinding English identity strings on call sites | Intentional; Chinese applied at materialization |
-| Teams / Billing long-tail | Lower priority for anonymous-only builds |
-| HOA / feature-intro marketing copy | Long-form marketing strings |
+| Removed hosted-product UI | Not translated while its source awaits deletion under ADR-0009 |
 
 ### 2026-07-20 residual batch 1
 
@@ -109,7 +109,19 @@ Wired through `Message` + `tr` / `tr_cached`:
 - Identity English suffixes map to `Message::ToggleSuffix*`; enable/disable prefixes use `ToggleEnablePrefix` / `ToggleDisablePrefix`
 - Dynamic override composes prefix+suffix via `tr` for both locales
 
-**Rough completion (user-visible GUI):** high for Chinese daily use. Residual dual-track maps from the earlier plan are largely cleared.
+### 2026-07-28 permanent-local residual batch
+
+- Global Rule list/editor titles, placeholders, conflicts, deletion confirmation, file errors, and actions
+- Shared filterable-dropdown search and empty state
+- Code editor go-to-line title, placeholder, and validation errors
+- Local Notebook placeholders, link editor, file loading/conflicts/errors, Markdown controls, and insertion actions
+- Local Workflow placeholders, arguments, aliases, environment variables, view state, and file errors
+- Agent inline actions, requested-command choices, question input, follow-up tooltips, and code-review actions
+- Workspace conversation search, tab-config/tool-bar labels, common modal copy, tips, and resource-center completion copy
+- MCP local-product errors, SSH upload controls, `/init` copy, and retained SSH compatibility banners
+- Local custom-model Router Editor and Execution Profile Editor fields, permissions, help text, validation, and placeholders
+
+**Rough completion (retained user-visible GUI):** high. The residual scan now excludes only technical identifiers and ADR-0009 hosted-product source that is not reachable in ZYH.
 
 ---
 
@@ -154,8 +166,8 @@ User-facing app name is **ZYH**:
 ## Related docs
 
 - [CONTEXT.md](../CONTEXT.md)
-- [docs/adr/0003-offer-an-anonymous-only-product-mode.md](adr/0003-offer-an-anonymous-only-product-mode.md)
+- [docs/adr/0009-adopt-the-permanent-zyh-local-product.md](adr/0009-adopt-the-permanent-zyh-local-product.md)
 
 ---
 
-_Last updated: 2026-07-20. Residual batch 3 (settings toggle dual-track). Catalog **2662** variants; binding map 354 entries._
+_Last updated: 2026-07-28. Permanent-local residual batch. Catalog **2804** variants; binding map 354 entries._

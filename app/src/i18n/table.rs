@@ -2934,6 +2934,183 @@ Contact a team admin to upgrade for more credits.",
         Message::ToggleSuffixCrashReporting => "crash reporting",
         Message::ToggleSuffixSecretRedaction => "secret redaction",
         Message::ToggleSuffixCloudAiConversationStorage => "cloud AI conversation storage",
+        Message::CommonNoMatchesFound => "No matches found.",
+        Message::CommonViewing => "Viewing",
+        Message::CommonEditing => "Editing",
+        Message::CommonUntitled => "Untitled",
+        Message::CommonText => "Text",
+        Message::CommonLinkWebOrFile => "Link (web or file)",
+        Message::CommonReload => "Reload",
+        Message::CommonConfirmDelete => "Confirm delete",
+        Message::CommonRule => "Rule",
+        Message::CommonViewAll => "View all",
+        Message::CommonEditToolbar => "Edit toolbar",
+        Message::CommonClearUpload => "Clear upload",
+        Message::CommonHunkLabel => "Hunk:",
+        Message::CommonShortcut => "Shortcut",
+        Message::CommonComplete => "Complete!",
+        Message::CommonMarkAllAsRead => "Mark all as read",
+        Message::RuleGlobalEmpty => {
+            "Create a Global Rule or drop a Markdown file at ~/.agents/AGENTS.md to apply it across every project."
+        }
+        Message::RuleContentPlaceholder => {
+            "e.g. Prefer 4-space indentation and always run tests before committing."
+        }
+        Message::RuleConflictBanner => {
+            "This file changed on disk. Reload the latest content, or save again after reloading."
+        }
+        Message::RuleDeleteConfirmPrompt => "Delete ~/.agents/AGENTS.md? This cannot be undone.",
+        Message::RuleEditGlobalTitle => "Edit Global Rule",
+        Message::RuleCreateGlobalTitle => "Create Global Rule",
+        Message::RuleSaveConflict => {
+            "Could not save: the file changed on disk. Reload and try again."
+        }
+        Message::RuleDeleteConflict => {
+            "Could not delete: the file changed on disk. Reload and try again."
+        }
+        Message::GotoLineTitle => "Go to line",
+        Message::GotoLinePlaceholder => "Line number:Column",
+        Message::GotoLineRequired => "Please enter a line number",
+        Message::GotoLineInvalid => "Please enter a valid line number",
+        Message::GotoColumnInvalid => "Please enter a valid column number",
+        Message::NotebookLocalConflict => {
+            "This notebook could not be saved because the file changed on disk while you were editing. Copy your work, then refresh to load the disk version."
+        }
+        Message::NotebookPathCollision => {
+            "A notebook file already exists at {}. Choose a different path."
+        }
+        Message::NotebookSaveConflict => {
+            "The notebook file changed on disk before it could be saved: {}"
+        }
+        Message::NotebookInvalidExtension => {
+            "Notebook path must use a Markdown extension (.md or .markdown): {}"
+        }
+        Message::NotebookSaveFailed => "Could not save notebook: {}",
+        Message::NotebookCouldNotRead => "Could not read {}",
+        Message::NotebookLoading => "Loading {}...",
+        Message::NotebookTryAgain => "Try again",
+        Message::WorkflowCommandPlaceholder => {
+            "echo \"Hello {{your_name}}\" # insert arguments with curly braces\n# enter a single-line command or an entire shell script"
+        }
+        Message::WorkflowAgentPromptPlaceholder => {
+            "Enter your prompt here... (e.g., 'Create a function to sort an array of objects by date' or 'Help me debug this React component')."
+        }
+        Message::WorkflowAliasesHelpFull => {
+            "Aliases allow you to create short strings to execute workflows. Each alias can have different argument values and environment variables, and aliases are personal to you."
+        }
+        Message::WorkflowArguments => "Arguments",
+        Message::WorkflowNewEnvironmentVariables => "New environment variables",
+        Message::WorkflowFillArgumentsDescription => {
+            "Fill out the arguments in this workflow and copy it to run in your terminal session"
+        }
+        Message::WorkflowOpenFailed => "Could not open workflow: {}",
+        Message::WorkflowLocalUnsupported => {
+            "Local workflow files are not supported on this platform"
+        }
+        Message::WorkflowSaveAliasesFailed => "Error saving aliases",
+        Message::WorkflowContainsSecrets => {
+            "This workflow cannot be saved because it contains secrets"
+        }
+        Message::WorkflowFileExists => {
+            "A workflow file already exists at {}. Choose a different name."
+        }
+        Message::WorkflowSaveConflict => {
+            "The workflow file changed on disk before it could be saved: {}"
+        }
+        Message::WorkflowSaveFailed => "Could not save workflow: {}",
+        Message::WorkflowDeleteConflict => {
+            "The workflow file changed on disk before it could be deleted: {}"
+        }
+        Message::WorkflowDeleteFailed => "Could not delete workflow: {}",
+        Message::WorkflowAliasNamePlaceholder => "alias name",
+        Message::AgentAnswerPlaceholder => "Type your answer and press Enter",
+        Message::AgentCheckCommandNow => {
+            "Ask the agent to check this command now, skipping its timer."
+        }
+        Message::AgentContinueConversation => "Continue conversation",
+        Message::AgentFollowUpExistingConversation => "Follow up with existing conversation",
+        Message::AgentDisableSuggestedCodeBanners => {
+            "Don't show me suggested code banners again"
+        }
+        Message::CodeReviewAddDiffContext => "Add diff set as context",
+        Message::CodeReviewStashChanges => "Stash changes",
+        Message::CommonRaw => "Raw",
+        Message::CommonRendered => "Rendered",
+        Message::NotebookInsertBlock => "Insert block",
+        Message::AgentAcceptWithoutOrchestration => "Accept w/o orchestration",
+        Message::RuleDisabledSuffix => " anytime.",
+        Message::RuleHomeUnavailable => "Home directory is unavailable.",
+        Message::RuleUnsupportedFileType => {
+            "Refusing to operate on a symlink or non-regular file: {}"
+        }
+        Message::RuleOperationFailed => "Global rules file operation failed: {}",
+        Message::CodeReviewSubmitCommentsFailed => "Could not submit comments to the agent",
+        Message::WorkspaceOpenNamed => "Open: {}",
+        Message::McpUnknownServer => "Unknown MCP server '{}'",
+        Message::McpGalleryInstallUnavailable => {
+            "Gallery MCP install is not available in the local product."
+        }
+        Message::InitOptimizeTitle => "Optimize ZYH for this codebase?",
+        Message::InitOptimizeDescription => {
+            "Unlock smarter, more consistent responses by letting the Agent understand your codebase and generate rules for it. You can also do this at any point by running /init"
+        }
+        Message::CommonOptimize => "Optimize",
+        Message::InitProjectWelcome => {
+            "Great - let's begin setting up this project! Would you like to give me permission to index this codebase? It allows me to quickly understand context and provide more targeted solutions when working in this codebase. No code is stored on ZYH servers."
+        }
+        Message::InitProjectAlreadySetup => {
+            "It looks like this project has already been initialized. You can re-generate the AGENTS.md for this codebase by clicking the button below."
+        }
+        Message::SshTmuxDeprecatedTitle => "Tmux SSH warpification has been deprecated",
+        Message::SshTmuxDeprecatedBody => {
+            "Warp now connects to remote sessions using the SSH extension, which is more robust than the tmux-based flow. The tmux option has been removed."
+        }
+        Message::SshExtensionFailedTitle => "Couldn't connect to the ZYH SSH extension",
+        Message::SshExtensionFailedBody => {
+            "While advanced features like file browsing and code review are currently disabled, the rest of your Warpified experience is fully available."
+        }
+        Message::CommonModel => "Model",
+        Message::CommonModels => "Models",
+        Message::CustomRouterEditorTitle => "Router Editor",
+        Message::CustomRouterNew => "New Router",
+        Message::CustomRouterNamedPlaceholder => "{}'s custom router",
+        Message::CustomRouterMyPlaceholder => "My custom router",
+        Message::CustomRouterComplexity => "Complexity",
+        Message::CustomRouterNameRequired => "Router name is required.",
+        Message::CustomRouterDefaultModelRequired => "A default model is required.",
+        Message::CustomRouterEasyModelRequired => "An easy model is required.",
+        Message::CustomRouterMediumModelRequired => "A medium model is required.",
+        Message::CustomRouterHardModelRequired => "A hard model is required.",
+        Message::CustomRouterAtLeastOneRuleRequired => {
+            "At least one rule with a description and model is required."
+        }
+        Message::CustomRouterValidationFailed => "Validation: {}",
+        Message::CustomRouterSerializationFailed => "Serialization: {}",
+        Message::CustomRouterWriteFailed => "Write error: {}",
+        Message::CustomRouterDefaultRequired => "Default (required)",
+        Message::CustomRouterEasyRequired => "Easy (required)",
+        Message::CustomRouterMediumRequired => "Medium (required)",
+        Message::CustomRouterHardRequired => "Hard (required)",
+        Message::CustomRouterRulesDescription => {
+            "Rules are custom prompts that describe when to use a specific model. ZYH intelligently matches your tasks against these rules."
+        }
+        Message::CustomRouterRuleOrderDescription => {
+            "Rules are matched top to bottom - rules higher in the list take precedence over those below."
+        }
+        Message::CustomRouterNameLabel => "Router name",
+        Message::CustomRouterTypeLabel => "Router type",
+        Message::CustomRouterComplexityDescriptionSuffix => {
+            " routing chooses a model based on ZYH's classification of the task's difficulty."
+        }
+        Message::CustomRouterPromptDescriptionSuffix => {
+            " routing chooses a model based on custom prompts."
+        }
+        Message::CustomRouterDescriptionPlaceholder => "Describe when to use this model...",
+        Message::ExecutionProfileEditorTitle => "Profile Editor",
+        Message::AiPermissionNever => "Never",
+        Message::AiPermissionNeverAsk => "Never ask",
+        Message::AiPermissionAskUnlessAutoApprove => "Ask unless auto-approve",
+        Message::AiPlaceholderCustomInstruction => "e.g. \"YOLO code\"",
     }
 }
 
@@ -5738,6 +5915,151 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::ToggleSuffixCrashReporting => "崩溃报告",
         Message::ToggleSuffixSecretRedaction => "密钥遮盖",
         Message::ToggleSuffixCloudAiConversationStorage => "云端 AI 对话存储",
+        Message::CommonNoMatchesFound => "未找到匹配项。",
+        Message::CommonViewing => "查看中",
+        Message::CommonEditing => "编辑中",
+        Message::CommonUntitled => "未命名",
+        Message::CommonText => "文本",
+        Message::CommonLinkWebOrFile => "链接（网页或文件）",
+        Message::CommonReload => "重新加载",
+        Message::CommonConfirmDelete => "确认删除",
+        Message::CommonRule => "规则",
+        Message::CommonViewAll => "查看全部",
+        Message::CommonEditToolbar => "编辑工具栏",
+        Message::CommonClearUpload => "清除上传",
+        Message::CommonHunkLabel => "变更块：",
+        Message::CommonShortcut => "快捷键",
+        Message::CommonComplete => "完成！",
+        Message::CommonMarkAllAsRead => "全部标为已读",
+        Message::RuleGlobalEmpty => {
+            "创建全局规则，或将 Markdown 文件放到 ~/.agents/AGENTS.md，使其应用于所有项目。"
+        }
+        Message::RuleContentPlaceholder => "例如：使用 4 空格缩进，并在提交前始终运行测试。",
+        Message::RuleConflictBanner => {
+            "此文件已在磁盘上发生更改。请重新加载最新内容，然后再保存。"
+        }
+        Message::RuleDeleteConfirmPrompt => "删除 ~/.agents/AGENTS.md？此操作无法撤销。",
+        Message::RuleEditGlobalTitle => "编辑全局规则",
+        Message::RuleCreateGlobalTitle => "创建全局规则",
+        Message::RuleSaveConflict => "无法保存：磁盘上的文件已更改。请重新加载后重试。",
+        Message::RuleDeleteConflict => "无法删除：磁盘上的文件已更改。请重新加载后重试。",
+        Message::GotoLineTitle => "跳转到行",
+        Message::GotoLinePlaceholder => "行号:列号",
+        Message::GotoLineRequired => "请输入行号",
+        Message::GotoLineInvalid => "请输入有效的行号",
+        Message::GotoColumnInvalid => "请输入有效的列号",
+        Message::NotebookLocalConflict => {
+            "编辑期间磁盘上的文件已更改，因此无法保存此笔记本。请复制你的修改，然后刷新以加载磁盘版本。"
+        }
+        Message::NotebookPathCollision => "{} 已存在笔记本文件。请选择其他路径。",
+        Message::NotebookSaveConflict => "保存前磁盘上的笔记本文件已更改：{}",
+        Message::NotebookInvalidExtension => {
+            "笔记本路径必须使用 Markdown 扩展名（.md 或 .markdown）：{}"
+        }
+        Message::NotebookSaveFailed => "无法保存笔记本：{}",
+        Message::NotebookCouldNotRead => "无法读取 {}",
+        Message::NotebookLoading => "正在加载 {}...",
+        Message::NotebookTryAgain => "重试",
+        Message::WorkflowCommandPlaceholder => {
+            "echo \"Hello {{your_name}}\" # 使用花括号插入参数\n# 输入单行命令或完整的 shell 脚本"
+        }
+        Message::WorkflowAgentPromptPlaceholder => {
+            "在此输入提示词...（例如：'创建一个按日期对对象数组排序的函数' 或 '帮我调试这个 React 组件'）。"
+        }
+        Message::WorkflowAliasesHelpFull => {
+            "别名可用简短字符串执行工作流。每个别名可以有不同的参数值和环境变量，且别名仅对你可见。"
+        }
+        Message::WorkflowArguments => "参数",
+        Message::WorkflowNewEnvironmentVariables => "新建环境变量",
+        Message::WorkflowFillArgumentsDescription => {
+            "填写此工作流的参数并复制，然后在终端会话中运行"
+        }
+        Message::WorkflowOpenFailed => "无法打开工作流：{}",
+        Message::WorkflowLocalUnsupported => "此平台不支持本地工作流文件",
+        Message::WorkflowSaveAliasesFailed => "保存别名失败",
+        Message::WorkflowContainsSecrets => "此工作流包含密钥，无法保存",
+        Message::WorkflowFileExists => "{} 已存在工作流文件。请选择其他名称。",
+        Message::WorkflowSaveConflict => "保存前磁盘上的工作流文件已更改：{}",
+        Message::WorkflowSaveFailed => "无法保存工作流：{}",
+        Message::WorkflowDeleteConflict => "删除前磁盘上的工作流文件已更改：{}",
+        Message::WorkflowDeleteFailed => "无法删除工作流：{}",
+        Message::WorkflowAliasNamePlaceholder => "别名名称",
+        Message::AgentAnswerPlaceholder => "输入回答并按 Enter",
+        Message::AgentCheckCommandNow => "让 Agent 立即检查此命令并跳过计时器。",
+        Message::AgentContinueConversation => "继续对话",
+        Message::AgentFollowUpExistingConversation => "在现有对话中继续提问",
+        Message::AgentDisableSuggestedCodeBanners => "不再显示代码建议横幅",
+        Message::CodeReviewAddDiffContext => "将 diff 集添加为上下文",
+        Message::CodeReviewStashChanges => "储藏更改",
+        Message::CommonRaw => "原始内容",
+        Message::CommonRendered => "渲染结果",
+        Message::NotebookInsertBlock => "插入块",
+        Message::AgentAcceptWithoutOrchestration => "不使用编排直接接受",
+        Message::RuleDisabledSuffix => "。",
+        Message::RuleHomeUnavailable => "主目录不可用。",
+        Message::RuleUnsupportedFileType => "拒绝操作符号链接或非常规文件：{}",
+        Message::RuleOperationFailed => "全局规则文件操作失败：{}",
+        Message::CodeReviewSubmitCommentsFailed => "无法将评论提交给 Agent",
+        Message::WorkspaceOpenNamed => "打开：{}",
+        Message::McpUnknownServer => "未知的 MCP 服务器 '{}'",
+        Message::McpGalleryInstallUnavailable => "本地产品不支持从 Gallery 安装 MCP。",
+        Message::InitOptimizeTitle => "为此代码库优化 ZYH？",
+        Message::InitOptimizeDescription => {
+            "让 Agent 理解你的代码库并生成规则，以获得更智能、更一致的回答。你也可以随时运行 /init。"
+        }
+        Message::CommonOptimize => "优化",
+        Message::InitProjectWelcome => {
+            "很好，让我们开始设置此项目！是否允许索引此代码库？这能帮助我快速理解上下文，并针对代码库提供更准确的解决方案。代码不会存储在 ZYH 服务器上。"
+        }
+        Message::InitProjectAlreadySetup => {
+            "此项目似乎已经初始化。点击下方按钮可重新生成此代码库的 AGENTS.md。"
+        }
+        Message::SshTmuxDeprecatedTitle => "Tmux SSH Warpification 已弃用",
+        Message::SshTmuxDeprecatedBody => {
+            "ZYH 现在使用 SSH 扩展连接远程会话，它比基于 tmux 的流程更可靠。tmux 选项已移除。"
+        }
+        Message::SshExtensionFailedTitle => "无法连接 ZYH SSH 扩展",
+        Message::SshExtensionFailedBody => {
+            "文件浏览和代码审查等高级功能目前已禁用，其余 Warpified 功能仍可正常使用。"
+        }
+        Message::CommonModel => "模型",
+        Message::CommonModels => "模型",
+        Message::CustomRouterEditorTitle => "路由编辑器",
+        Message::CustomRouterNew => "新建路由",
+        Message::CustomRouterNamedPlaceholder => "{} 的自定义路由",
+        Message::CustomRouterMyPlaceholder => "我的自定义路由",
+        Message::CustomRouterComplexity => "复杂度",
+        Message::CustomRouterNameRequired => "路由名称为必填项。",
+        Message::CustomRouterDefaultModelRequired => "必须选择默认模型。",
+        Message::CustomRouterEasyModelRequired => "必须选择简单任务模型。",
+        Message::CustomRouterMediumModelRequired => "必须选择中等任务模型。",
+        Message::CustomRouterHardModelRequired => "必须选择困难任务模型。",
+        Message::CustomRouterAtLeastOneRuleRequired => "至少需要一条同时包含说明和模型的规则。",
+        Message::CustomRouterValidationFailed => "验证失败：{}",
+        Message::CustomRouterSerializationFailed => "序列化失败：{}",
+        Message::CustomRouterWriteFailed => "写入失败：{}",
+        Message::CustomRouterDefaultRequired => "默认（必填）",
+        Message::CustomRouterEasyRequired => "简单（必填）",
+        Message::CustomRouterMediumRequired => "中等（必填）",
+        Message::CustomRouterHardRequired => "困难（必填）",
+        Message::CustomRouterRulesDescription => {
+            "规则是用于说明何时使用特定模型的自定义提示词。ZYH 会将任务与这些规则智能匹配。"
+        }
+        Message::CustomRouterRuleOrderDescription => {
+            "规则按从上到下的顺序匹配，列表中靠前的规则优先级更高。"
+        }
+        Message::CustomRouterNameLabel => "路由名称",
+        Message::CustomRouterTypeLabel => "路由类型",
+        Message::CustomRouterComplexityDescriptionSuffix => {
+            "路由会根据 ZYH 对任务难度的判断选择模型。"
+        }
+        Message::CustomRouterPromptDescriptionSuffix => "路由会根据自定义提示词选择模型。",
+        Message::CustomRouterDescriptionPlaceholder => "描述何时使用此模型...",
+        Message::ExecutionProfileEditorTitle => "配置编辑器",
+        Message::AiPermissionNever => "从不",
+        Message::AiPermissionNeverAsk => "从不询问",
+        Message::AiPermissionAskUnlessAutoApprove => "未开启自动批准时询问",
+        Message::AiPlaceholderCustomInstruction => "例如：\"YOLO code\"",
     }
 }
 
@@ -8500,5 +8822,118 @@ mod tests {
         Message::ToggleSuffixCrashReporting,
         Message::ToggleSuffixSecretRedaction,
         Message::ToggleSuffixCloudAiConversationStorage,
+        Message::CommonNoMatchesFound,
+        Message::CommonViewing,
+        Message::CommonEditing,
+        Message::CommonUntitled,
+        Message::CommonText,
+        Message::CommonLinkWebOrFile,
+        Message::CommonReload,
+        Message::CommonConfirmDelete,
+        Message::CommonRule,
+        Message::CommonViewAll,
+        Message::CommonEditToolbar,
+        Message::CommonClearUpload,
+        Message::CommonHunkLabel,
+        Message::CommonShortcut,
+        Message::CommonComplete,
+        Message::CommonMarkAllAsRead,
+        Message::RuleGlobalEmpty,
+        Message::RuleContentPlaceholder,
+        Message::RuleConflictBanner,
+        Message::RuleDeleteConfirmPrompt,
+        Message::RuleEditGlobalTitle,
+        Message::RuleCreateGlobalTitle,
+        Message::RuleSaveConflict,
+        Message::RuleDeleteConflict,
+        Message::GotoLineTitle,
+        Message::GotoLinePlaceholder,
+        Message::GotoLineRequired,
+        Message::GotoLineInvalid,
+        Message::GotoColumnInvalid,
+        Message::NotebookLocalConflict,
+        Message::NotebookPathCollision,
+        Message::NotebookSaveConflict,
+        Message::NotebookInvalidExtension,
+        Message::NotebookSaveFailed,
+        Message::NotebookCouldNotRead,
+        Message::NotebookLoading,
+        Message::NotebookTryAgain,
+        Message::WorkflowCommandPlaceholder,
+        Message::WorkflowAgentPromptPlaceholder,
+        Message::WorkflowAliasesHelpFull,
+        Message::WorkflowArguments,
+        Message::WorkflowNewEnvironmentVariables,
+        Message::WorkflowFillArgumentsDescription,
+        Message::WorkflowOpenFailed,
+        Message::WorkflowLocalUnsupported,
+        Message::WorkflowSaveAliasesFailed,
+        Message::WorkflowContainsSecrets,
+        Message::WorkflowFileExists,
+        Message::WorkflowSaveConflict,
+        Message::WorkflowSaveFailed,
+        Message::WorkflowDeleteConflict,
+        Message::WorkflowDeleteFailed,
+        Message::WorkflowAliasNamePlaceholder,
+        Message::AgentAnswerPlaceholder,
+        Message::AgentCheckCommandNow,
+        Message::AgentContinueConversation,
+        Message::AgentFollowUpExistingConversation,
+        Message::AgentDisableSuggestedCodeBanners,
+        Message::CodeReviewAddDiffContext,
+        Message::CodeReviewStashChanges,
+        Message::CommonRaw,
+        Message::CommonRendered,
+        Message::NotebookInsertBlock,
+        Message::AgentAcceptWithoutOrchestration,
+        Message::RuleDisabledSuffix,
+        Message::RuleHomeUnavailable,
+        Message::RuleUnsupportedFileType,
+        Message::RuleOperationFailed,
+        Message::CodeReviewSubmitCommentsFailed,
+        Message::WorkspaceOpenNamed,
+        Message::McpUnknownServer,
+        Message::McpGalleryInstallUnavailable,
+        Message::InitOptimizeTitle,
+        Message::InitOptimizeDescription,
+        Message::CommonOptimize,
+        Message::InitProjectWelcome,
+        Message::InitProjectAlreadySetup,
+        Message::SshTmuxDeprecatedTitle,
+        Message::SshTmuxDeprecatedBody,
+        Message::SshExtensionFailedTitle,
+        Message::SshExtensionFailedBody,
+        Message::CommonModel,
+        Message::CommonModels,
+        Message::CustomRouterEditorTitle,
+        Message::CustomRouterNew,
+        Message::CustomRouterNamedPlaceholder,
+        Message::CustomRouterMyPlaceholder,
+        Message::CustomRouterComplexity,
+        Message::CustomRouterNameRequired,
+        Message::CustomRouterDefaultModelRequired,
+        Message::CustomRouterEasyModelRequired,
+        Message::CustomRouterMediumModelRequired,
+        Message::CustomRouterHardModelRequired,
+        Message::CustomRouterAtLeastOneRuleRequired,
+        Message::CustomRouterValidationFailed,
+        Message::CustomRouterSerializationFailed,
+        Message::CustomRouterWriteFailed,
+        Message::CustomRouterDefaultRequired,
+        Message::CustomRouterEasyRequired,
+        Message::CustomRouterMediumRequired,
+        Message::CustomRouterHardRequired,
+        Message::CustomRouterRulesDescription,
+        Message::CustomRouterRuleOrderDescription,
+        Message::CustomRouterNameLabel,
+        Message::CustomRouterTypeLabel,
+        Message::CustomRouterComplexityDescriptionSuffix,
+        Message::CustomRouterPromptDescriptionSuffix,
+        Message::CustomRouterDescriptionPlaceholder,
+        Message::ExecutionProfileEditorTitle,
+        Message::AiPermissionNever,
+        Message::AiPermissionNeverAsk,
+        Message::AiPermissionAskUnlessAutoApprove,
+        Message::AiPlaceholderCustomInstruction,
     ];
 }

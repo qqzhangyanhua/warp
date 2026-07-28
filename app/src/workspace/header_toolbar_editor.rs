@@ -15,8 +15,6 @@ use crate::workspace::tab_settings::{
 };
 use crate::Appearance;
 
-const MODAL_TITLE: &str = "Edit toolbar";
-
 pub fn init(app: &mut AppContext) {
     use warpui::keymap::macros::*;
 
@@ -341,7 +339,7 @@ impl View for HeaderToolbarEditorModal {
         render_chip_editor_modal(
             &self.chip_configurator,
             ChipEditorModalConfig {
-                title: MODAL_TITLE,
+                title: tr_cached(Message::CommonEditToolbar),
                 available_section_label: tr_cached(Message::AvailableItems),
                 is_at_defaults: self.is_at_defaults(),
                 is_dirty: self.is_dirty,

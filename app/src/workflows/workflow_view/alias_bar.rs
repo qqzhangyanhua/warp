@@ -24,6 +24,7 @@ use crate::editor::{
     EditOrigin, EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys,
     SingleLineEditorOptions, TextOptions, ValidInputType,
 };
+use crate::i18n::{tr, tr_cached, Message};
 use crate::server::ids::SyncId;
 use crate::server::telemetry::TelemetrySpace;
 use crate::ui_components::buttons::icon_button;
@@ -98,7 +99,7 @@ impl AliasBar {
                 },
                 ctx,
             );
-            view.set_placeholder_text("alias name", ctx);
+            view.set_placeholder_text(tr(ctx, Message::WorkflowAliasNamePlaceholder), ctx);
 
             view
         });
@@ -431,7 +432,7 @@ impl View for AliasBar {
                     |_state, background| {
                         appearance
                             .ui_builder()
-                            .span("Default")
+                            .span(tr_cached(Message::FeaturesDefault))
                             .with_style(UiComponentStyles {
                                 font_color: Some(
                                     appearance.theme().main_text_color(background).into_solid(),

@@ -20,6 +20,7 @@ use crate::code_review::code_review_view::{
     LoadedState, CONTENT_TOP_MARGIN,
 };
 use crate::code_review::diff_state::DiffStateModel;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::Menu;
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::ActionButton;
@@ -433,7 +434,7 @@ impl CodeReviewHeader {
             }))
             .with_tooltip(move || {
                 ui_builder
-                    .tool_tip("Add diff set as context".to_owned())
+                    .tool_tip(tr_cached(Message::CodeReviewAddDiffContext).to_owned())
                     .build()
                     .finish()
             })

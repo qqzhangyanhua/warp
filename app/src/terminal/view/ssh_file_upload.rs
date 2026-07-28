@@ -16,6 +16,7 @@ use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::UiComponent as _;
 use warpui::{Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::ssh::util::InteractiveSshCommand;
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;
@@ -416,7 +417,12 @@ impl FileUpload {
         let ui_builder = appearance.ui_builder().clone();
         Container::new(
             icon_button(appearance, Icon::X, true, file.clear_button.clone())
-                .with_tooltip(move || ui_builder.tool_tip("Clear upload".into()).build().finish())
+                .with_tooltip(move || {
+                    ui_builder
+                        .tool_tip(tr_cached(Message::CommonClearUpload).into())
+                        .build()
+                        .finish()
+                })
                 .build()
                 .on_click(move |event_ctx, _, _| {
                     event_ctx

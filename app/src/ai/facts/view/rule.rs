@@ -25,16 +25,18 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
-use crate::i18n::{Message, tr, tr_cached};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::search_bar::SearchBar;
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::ui_components::icons::Icon;
 use crate::util::path::display_path_with_host;
-use crate::view_components::DismissibleToast;
 use crate::view_components::action_button::{ActionButton, NakedTheme};
+use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
 
-pub const HEADER_TEXT: &str = "Rules";
+pub fn header_text() -> &'static str {
+    tr_cached(Message::AiRules)
+}
 fn description_text() -> &'static str {
     tr_cached(Message::RulesEnhanceAgent)
 }
@@ -43,7 +45,9 @@ fn search_placeholder_text() -> &'static str {
     tr_cached(Message::SearchRules)
 }
 
-const ZERO_STATE_TEXT_GLOBAL: &str = "Create a Global Rule or drop a Markdown file at ~/.agents/AGENTS.md to apply it across every project.";
+fn zero_state_text_global() -> &'static str {
+    tr_cached(Message::RuleGlobalEmpty)
+}
 fn zero_state_text_project() -> &'static str {
     tr_cached(Message::RulesEmptyGenerateWarpMd)
 }
@@ -54,7 +58,9 @@ fn disabled_banner_text() -> &'static str {
 fn disabled_banner_link_text() -> &'static str {
     tr_cached(Message::TurnItBackOn)
 }
-const DISABLED_BANNER_TEXT_2: &str = " anytime.";
+fn disabled_banner_suffix() -> &'static str {
+    tr_cached(Message::RuleDisabledSuffix)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuleScope {
@@ -293,7 +299,7 @@ impl RuleView {
             .with_child(
                 appearance
                     .ui_builder()
-                    .wrappable_text(HEADER_TEXT, true)
+                    .wrappable_text(header_text(), true)
                     .with_style(style::header_text())
                     .build()
                     .finish(),
@@ -419,7 +425,7 @@ impl RuleView {
             FormattedText::new([FormattedTextLine::Line(vec![
                 FormattedTextFragment::bold(disabled_banner_text()),
                 link,
-                FormattedTextFragment::bold(DISABLED_BANNER_TEXT_2),
+                FormattedTextFragment::bold(disabled_banner_suffix()),
             ])]),
             style::SUBTEXT_FONT_SIZE,
             appearance.ui_font_family(),
@@ -524,7 +530,7 @@ impl RuleView {
                 appearance
                     .ui_builder()
                     .button(ButtonVariant::Outlined, row.mouse_state.clone())
-                    .with_text_label("Edit".to_string())
+                    .with_text_label(tr_cached(Message::AiEdit).to_string())
                     .build()
                     .on_click(move |ctx, _, _| {
                         ctx.dispatch_typed_action(RuleViewAction::EditGlobalRule);
@@ -580,7 +586,7 @@ impl RuleView {
 
     fn render_zero_state(&self, appearance: &Appearance) -> Box<dyn Element> {
         let text = match self.current_scope {
-            RuleScope::Global => ZERO_STATE_TEXT_GLOBAL,
+            RuleScope::Global => zero_state_text_global(),
             RuleScope::ProjectBased => zero_state_text_project(),
         };
 

@@ -70,7 +70,6 @@ use crate::settings::{CodeSettings, CodeSettingsChangedEvent};
 fn remote_text() -> &'static str {
     tr_cached(Message::ProjectExplorerNeedsLocalWorkspace)
 }
-const DISABLED_TEXT: &str = "The Project Explorer requires access to your local workspace. Open a new session or navigate to an active session to view.";
 fn wsl_text() -> &'static str {
     tr_cached(Message::ProjectExplorerNotInWsl)
 }
@@ -2962,7 +2961,10 @@ impl View for FileTreeView {
     #[cfg(feature = "local_fs")]
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         if matches!(self.enablement, CodingPanelEnablementState::Disabled) {
-            return self.render_error_state(DISABLED_TEXT.to_string(), app);
+            return self.render_error_state(
+                tr(app, Message::ProjectExplorerOpenLocalSession).to_string(),
+                app,
+            );
         }
 
         if matches!(

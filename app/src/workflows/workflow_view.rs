@@ -1,10 +1,10 @@
-use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use alias_bar::{AliasBar, AliasBarEvent};
 use argument_editor::{ArgumentEditorRow, DEFAULT_ARGUMENT_PREFIX};
+use cloud_object_models::{object_ref_to_sync_id, sync_id_to_object_ref};
 use env_var_selector::{EnvVarSelector, EnvVarSelectorEvent};
 use itertools::Itertools;
 use pathfinder_color::ColorU;
@@ -34,14 +34,14 @@ use warpui::{
     AppContext, Element, Entity, FocusContext, ModelHandle, SingletonEntity, TypedActionView, View,
     ViewContext, ViewHandle, WindowId,
 };
+#[cfg(feature = "local_fs")]
+use warpui_extras::owner_only_file::{ContentHash, ExpectedContent};
 
 use super::aliases::WorkflowAliases;
 use super::command_parser::WorkflowCommandDisplayData;
 #[cfg(feature = "local_fs")]
 use super::local_workflow_yaml::{self, LocalWorkflowYamlError};
 use super::{WorkflowSource, WorkflowType, WorkflowViewMode};
-#[cfg(feature = "local_fs")]
-use warpui_extras::owner_only_file::{ContentHash, ExpectedContent};
 use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthState;
@@ -98,9 +98,9 @@ use crate::ui_components::dialog::{dialog_styles, Dialog};
 use crate::ui_components::icons::Icon;
 #[cfg(target_family = "wasm")]
 use crate::uri::web_intent_parser::open_url_on_desktop;
+use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::util::bindings::CustomAction;
 use crate::view_components::{DismissibleToast, ToastLink, ToastType};
-use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::workflows::workflow::{Argument, Workflow};
 use crate::workflows::CloudWorkflow;
 use crate::workspace::{ToastStack, WorkspaceAction};
@@ -158,8 +158,12 @@ fn title_placeholder_text() -> &'static str {
 fn description_placeholder_text() -> &'static str {
     tr_cached(Message::AddADescription)
 }
-const COMMAND_PLACEHOLDER_TEXT: &str = "echo \"Hello {{your_name}}\" # insert arguments with curly braces\n# enter a single-line command or an entire shell script";
-const AGENT_MODE_QUERY_PLACEHOLDER_TEXT: &str = "Enter your prompt here... (e.g., 'Create a function to sort an array of objects by date' or 'Help me debug this React component').";
+fn command_placeholder_text() -> &'static str {
+    tr_cached(Message::WorkflowCommandPlaceholder)
+}
+fn agent_mode_query_placeholder_text() -> &'static str {
+    tr_cached(Message::WorkflowAgentPromptPlaceholder)
+}
 const DESCRIPTION_MARGIN_TOP: f32 = 10.;
 
 const CORE_HORIZONATAL_MARGIN: f32 = 24.;
@@ -203,7 +207,9 @@ fn ai_assist_loading_text() -> &'static str {
     tr_cached(Message::CommonLoadingEllipsis)
 }
 
-const ALIAS_HELP_TEXT: &str = "Aliases allow you to create short strings to execute workflows. Each alias can have different argument values and environment variables, and aliases are personal to you.";
+fn alias_help_text() -> &'static str {
+    tr_cached(Message::WorkflowAliasesHelpFull)
+}
 
 fn run_on_desktop_button_text() -> &'static str {
     tr_cached(Message::RunInWarp)
@@ -424,7 +430,7 @@ impl WorkflowView {
             ctx,
             Some(EDITOR_FONT_SIZE),
             Some(monospace_font_family),
-            Some(COMMAND_PLACEHOLDER_TEXT),
+            Some(command_placeholder_text()),
             true,
             false,
             true,
@@ -434,7 +440,7 @@ impl WorkflowView {
             ctx,
             Some(EDITOR_FONT_SIZE),
             Some(monospace_font_family),
-            Some(COMMAND_PLACEHOLDER_TEXT),
+            Some(command_placeholder_text()),
             true,
             false,
             true,
@@ -553,7 +559,7 @@ impl WorkflowView {
 
         if is_for_agent_mode {
             self.content_editor.update(ctx, |editor, ctx| {
-                editor.set_placeholder_text(AGENT_MODE_QUERY_PLACEHOLDER_TEXT, ctx);
+                editor.set_placeholder_text(agent_mode_query_placeholder_text(), ctx);
                 editor.set_font_family(Appearance::as_ref(ctx).ui_font_family(), ctx);
             });
         }
@@ -619,17 +625,17 @@ impl WorkflowView {
                     ctx.notify();
                 }
                 Err(error) => {
-                    self.display_error_toast(format!("Could not open workflow: {error}"), ctx);
+                    self.display_error_toast(
+                        tr(ctx, Message::WorkflowOpenFailed).replace("{}", &error.to_string()),
+                        ctx,
+                    );
                 }
             }
         }
         #[cfg(not(feature = "local_fs"))]
         {
             let _ = (path, source, mode);
-            self.display_error_toast(
-                "Local workflow files are not supported on this platform".to_string(),
-                ctx,
-            );
+            self.display_error_toast(tr(ctx, Message::WorkflowLocalUnsupported).to_string(), ctx);
         }
     }
 
@@ -921,7 +927,7 @@ impl WorkflowView {
         self.is_for_agent_mode = workflow.model().data.is_agent_mode_workflow();
         if self.is_for_agent_mode {
             self.content_editor.update(ctx, |editor, ctx| {
-                editor.set_placeholder_text(AGENT_MODE_QUERY_PLACEHOLDER_TEXT, ctx);
+                editor.set_placeholder_text(agent_mode_query_placeholder_text(), ctx);
                 editor.set_font_family(Appearance::as_ref(ctx).ui_font_family(), ctx);
             });
         }
@@ -1007,7 +1013,7 @@ impl WorkflowView {
 
         if self.is_for_agent_mode {
             self.content_editor.update(ctx, |editor, ctx| {
-                editor.set_placeholder_text(AGENT_MODE_QUERY_PLACEHOLDER_TEXT, ctx);
+                editor.set_placeholder_text(agent_mode_query_placeholder_text(), ctx);
             });
         } else {
             self.content_editor_highlight_model
@@ -1024,9 +1030,7 @@ impl WorkflowView {
                 ..
             } = workflow_data
             {
-                let default_env_vars = environment_variables
-                    .as_ref()
-                    .map(object_ref_to_sync_id);
+                let default_env_vars = environment_variables.as_ref().map(object_ref_to_sync_id);
                 self.env_vars_state = EnvironmentVariablesState {
                     default_env_vars,
                     is_dirty: false,
@@ -1716,19 +1720,13 @@ impl WorkflowView {
             let new_workflow = self.create_workflow_object_from_input(ctx);
             ctx.emit(WorkflowViewEvent::RunWorkflow {
                 workflow: Arc::new(WorkflowType::Local(new_workflow)),
-                source: self
-                    .owner
-                    .map(Into::into)
-                    .unwrap_or(WorkflowSource::Local),
+                source: self.owner.map(Into::into).unwrap_or(WorkflowSource::Local),
                 argument_override: None,
             });
         } else if let Some(cloud_workflow) = self.get_cloud_workflow(ctx) {
             ctx.emit(WorkflowViewEvent::RunWorkflow {
                 workflow: Arc::new(WorkflowType::Local(cloud_workflow.model().data.clone())),
-                source: self
-                    .owner
-                    .map(Into::into)
-                    .unwrap_or(WorkflowSource::Local),
+                source: self.owner.map(Into::into).unwrap_or(WorkflowSource::Local),
                 argument_override: Some(self.command_display_data.get_argument_values()),
             });
         } else {
@@ -1800,7 +1798,7 @@ impl WorkflowView {
     fn save_aliases(&mut self, ctx: &mut ViewContext<Self>) {
         if let Err(e) = self.alias_bar.update(ctx, |bar, ctx| bar.save(ctx)) {
             report_error!(e.context("Error saving aliases"));
-            self.display_error_toast("Error saving aliases".to_string(), ctx);
+            self.display_error_toast(tr(ctx, Message::WorkflowSaveAliasesFailed).to_string(), ctx);
         }
     }
 
@@ -1809,10 +1807,7 @@ impl WorkflowView {
 
         // Block saving if secrets are detected in the workflow when secret redaction is enabled.
         if self.workflow_contains_secrets(ctx) {
-            self.display_error_toast(
-                "This workflow cannot be saved because it contains secrets".to_string(),
-                ctx,
-            );
+            self.display_error_toast(tr(ctx, Message::WorkflowContainsSecrets).to_string(), ctx);
             return;
         }
 
@@ -1915,10 +1910,12 @@ impl WorkflowView {
                                     workflow,
                                     ExpectedContent::Hash(entry.content_hash),
                                 )
-                                .map(|content_hash| local_workflow_yaml::LocalWorkflowEntry {
-                                    path: entry.path,
-                                    workflow: workflow.clone(),
-                                    content_hash,
+                                .map(|content_hash| {
+                                    local_workflow_yaml::LocalWorkflowEntry {
+                                        path: entry.path,
+                                        workflow: workflow.clone(),
+                                        content_hash,
+                                    }
                                 })
                             })
                     }
@@ -1955,24 +1952,22 @@ impl WorkflowView {
             }
             Err(LocalWorkflowYamlError::FilenameCollision { path }) => {
                 self.display_error_toast(
-                    format!(
-                        "A workflow file already exists at {}. Choose a different name.",
-                        path.display()
-                    ),
+                    tr(ctx, Message::WorkflowFileExists).replace("{}", &path.display().to_string()),
                     ctx,
                 );
             }
             Err(LocalWorkflowYamlError::Conflict { path }) => {
                 self.display_error_toast(
-                    format!(
-                        "The workflow file changed on disk before it could be saved: {}",
-                        path.display()
-                    ),
+                    tr(ctx, Message::WorkflowSaveConflict)
+                        .replace("{}", &path.display().to_string()),
                     ctx,
                 );
             }
             Err(error) => {
-                self.display_error_toast(format!("Could not save workflow: {error}"), ctx);
+                self.display_error_toast(
+                    tr(ctx, Message::WorkflowSaveFailed).replace("{}", &error.to_string()),
+                    ctx,
+                );
             }
         }
     }
@@ -2242,7 +2237,7 @@ impl WorkflowView {
             WorkflowViewMode::Edit => {
                 let mode_text = appearance
                     .ui_builder()
-                    .span("Editing")
+                    .span(tr_cached(Message::CommonEditing))
                     .with_style(base_text_styles)
                     .build();
                 let edit_button = accent_icon_button(
@@ -2257,7 +2252,7 @@ impl WorkflowView {
             WorkflowViewMode::View => {
                 let mode_text = appearance
                     .ui_builder()
-                    .span("Viewing")
+                    .span(tr_cached(Message::CommonViewing))
                     .with_style(base_text_styles)
                     .build();
                 let edit_button = icon_button(
@@ -2340,16 +2335,15 @@ impl WorkflowView {
                     }
                     Err(LocalWorkflowYamlError::Conflict { path }) => {
                         self.display_error_toast(
-                            format!(
-                                "The workflow file changed on disk before it could be deleted: {}",
-                                path.display()
-                            ),
+                            tr(ctx, Message::WorkflowDeleteConflict)
+                                .replace("{}", &path.display().to_string()),
                             ctx,
                         );
                     }
                     Err(error) => {
                         self.display_error_toast(
-                            format!("Could not delete workflow: {error}"),
+                            tr(ctx, Message::WorkflowDeleteFailed)
+                                .replace("{}", &error.to_string()),
                             ctx,
                         );
                     }
@@ -2580,7 +2574,7 @@ impl WorkflowView {
                 if state.is_hovered() {
                     let tooltip = ConstrainedBox::new(
                         ui_builder
-                            .tool_tip(ALIAS_HELP_TEXT.to_string())
+                            .tool_tip(alias_help_text().to_string())
                             .build()
                             .finish(),
                     )

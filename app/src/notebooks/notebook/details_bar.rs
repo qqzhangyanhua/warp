@@ -15,6 +15,7 @@ use crate::appearance::Appearance;
 use crate::cloud_object::breadcrumbs::ContainingObject;
 use crate::cloud_object::model::view::{Editor, EditorState};
 use crate::drive::sharing::ContentEditability;
+use crate::i18n::{tr, Message};
 use crate::notebooks::active_notebook_data::Mode;
 use crate::notebooks::styles;
 use crate::ui_components::breadcrumb::{render_breadcrumbs, BreadcrumbState};
@@ -167,13 +168,13 @@ impl DetailsBar {
         match editor.state {
             EditorState::None => appearance
                 .ui_builder()
-                .span("Viewing")
+                .span(tr(app, Message::CommonViewing))
                 .with_style(base_text_styles)
                 .build()
                 .finish(),
             EditorState::CurrentUser => appearance
                 .ui_builder()
-                .span("Editing")
+                .span(tr(app, Message::CommonEditing))
                 .with_style(base_text_styles)
                 .build()
                 .finish(),

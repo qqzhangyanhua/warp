@@ -5,6 +5,8 @@ use std::mem;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+#[cfg(feature = "local_fs")]
+use local_session::{ExternalUpdateOutcome, LocalNotebookSession, SavePlan};
 use pathfinder_geometry::vector::vec2f;
 #[cfg(not(target_family = "wasm"))]
 use remote_server::manager::RemoteServerManager;
@@ -44,8 +46,6 @@ use super::editor::view::{EditorViewEvent, RichTextEditorConfig, RichTextEditorV
 use super::link::{NotebookLinks, SessionSource};
 #[cfg(feature = "local_fs")]
 use super::local_markdown::{self, default_save_filename, LocalMarkdownError};
-#[cfg(feature = "local_fs")]
-use local_session::{ExternalUpdateOutcome, LocalNotebookSession, SavePlan};
 use super::telemetry::NotebookTelemetryAction;
 use super::{styles, NotebookLocation};
 use crate::appearance::Appearance;
@@ -80,9 +80,6 @@ use crate::view_components::{DismissibleToast, MarkdownToggleEvent, MarkdownTogg
 use crate::workflows::{WorkflowSource, WorkflowType};
 use crate::workspace::{ActiveSession, ToastStack};
 use crate::{cmd_or_ctrl_shift, safe_warn, send_telemetry_from_ctx};
-
-const LOCAL_CONFLICT_MESSAGE: &str = "This notebook could not be saved because the file changed on disk while you were editing. Copy your work, then refresh to load the disk version.";
-const LOCAL_REFRESH_BUTTON_TEXT: &str = "Refresh";
 
 /// Display mode for markdown files shown via the header segmented control.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -413,7 +410,7 @@ impl FileNotebookView {
         match session.save_plan() {
             SavePlan::NeedsPath => self.save_as(ctx),
             SavePlan::BlockedByConflict { .. } => {
-                self.display_error_toast(LOCAL_CONFLICT_MESSAGE.to_string(), ctx);
+                self.display_error_toast(tr(ctx, Message::NotebookLocalConflict).to_string(), ctx);
             }
             SavePlan::Write { path, expected } => {
                 let content = self.editor.as_ref(ctx).markdown(ctx);
@@ -441,8 +438,8 @@ impl FileNotebookView {
             .map(|s| s.title_hint().to_string())
             .or_else(|| self.location.as_ref().map(|l| l.name.clone()))
             .unwrap_or_else(|| "Untitled".to_string());
-        let mut config =
-            SaveFilePickerConfiguration::new().with_default_filename(default_save_filename(&suggested));
+        let mut config = SaveFilePickerConfiguration::new()
+            .with_default_filename(default_save_filename(&suggested));
         if let Some(parent) = self
             .local_path()
             .and_then(|p| p.parent().map(Path::to_path_buf))
@@ -506,10 +503,8 @@ impl FileNotebookView {
         match error {
             LocalMarkdownError::PathCollision { path } => {
                 self.display_error_toast(
-                    format!(
-                        "A notebook file already exists at {}. Choose a different path.",
-                        path.display()
-                    ),
+                    tr(ctx, Message::NotebookPathCollision)
+                        .replace("{}", &path.display().to_string()),
                     ctx,
                 );
             }
@@ -518,25 +513,24 @@ impl FileNotebookView {
                     session.apply_save_conflict();
                 }
                 self.display_error_toast(
-                    format!(
-                        "The notebook file changed on disk before it could be saved: {}",
-                        path.display()
-                    ),
+                    tr(ctx, Message::NotebookSaveConflict)
+                        .replace("{}", &path.display().to_string()),
                     ctx,
                 );
                 ctx.notify();
             }
             LocalMarkdownError::InvalidExtension { path } => {
                 self.display_error_toast(
-                    format!(
-                        "Notebook path must use a Markdown extension (.md or .markdown): {}",
-                        path.display()
-                    ),
+                    tr(ctx, Message::NotebookInvalidExtension)
+                        .replace("{}", &path.display().to_string()),
                     ctx,
                 );
             }
             error => {
-                self.display_error_toast(format!("Could not save notebook: {error}"), ctx);
+                self.display_error_toast(
+                    tr(ctx, Message::NotebookSaveFailed).replace("{}", &error.to_string()),
+                    ctx,
+                );
             }
         }
     }
@@ -1267,7 +1261,10 @@ impl FileNotebookView {
             .with_child(
                 appearance
                     .ui_builder()
-                    .paragraph(format!("Could not read {}", source.display_name()))
+                    .paragraph(
+                        tr_cached(Message::NotebookCouldNotRead)
+                            .replace("{}", &source.display_name()),
+                    )
                     .with_style(self.state_style(appearance))
                     .build()
                     .finish(),
@@ -1280,7 +1277,7 @@ impl FileNotebookView {
                         .with_text_and_icon_label(
                             TextAndIcon::new(
                                 TextAndIconAlignment::TextFirst,
-                                "Try again".to_string(),
+                                tr_cached(Message::NotebookTryAgain).to_string(),
                                 Icon::Refresh.to_warpui_icon(error_text_color),
                                 MainAxisSize::Min,
                                 MainAxisAlignment::Center,
@@ -1306,7 +1303,9 @@ impl FileNotebookView {
         Align::new(
             appearance
                 .ui_builder()
-                .paragraph(format!("Loading {}...", source.display_name()))
+                .paragraph(
+                    tr_cached(Message::NotebookLoading).replace("{}", &source.display_name()),
+                )
                 .with_style(self.state_style(appearance))
                 .build()
                 .finish(),
@@ -1379,7 +1378,7 @@ impl FileNotebookView {
             .with_child(
                 appearance
                     .ui_builder()
-                    .paragraph(LOCAL_CONFLICT_MESSAGE.to_string())
+                    .paragraph(tr_cached(Message::NotebookLocalConflict).to_string())
                     .with_style(self.state_style(appearance))
                     .build()
                     .finish(),
@@ -1395,7 +1394,7 @@ impl FileNotebookView {
                         .with_text_and_icon_label(
                             TextAndIcon::new(
                                 TextAndIconAlignment::TextFirst,
-                                LOCAL_REFRESH_BUTTON_TEXT.to_string(),
+                                tr_cached(Message::AccountRefresh).to_string(),
                                 Icon::Refresh.to_warpui_icon(error_text_color),
                                 MainAxisSize::Min,
                                 MainAxisAlignment::Center,

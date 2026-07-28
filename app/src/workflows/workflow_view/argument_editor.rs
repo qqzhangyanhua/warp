@@ -36,7 +36,6 @@ use crate::workflows::workflow::Workflow;
 use crate::workspace::WorkspaceAction;
 
 const ARGUMENT_INPUT_HEIGHT: f32 = 30.;
-const ARGUMENT_LABEL_TEXT: &str = "Arguments";
 const ARGUMENT_LABEL_HEIGHT: f32 = 20.;
 const ARGUMENT_LABEL_MARGIN_BOTTOM: f32 = 5.;
 fn argument_description_placeholder_text() -> &'static str {
@@ -570,7 +569,7 @@ impl WorkflowView {
         arguments_section_row.add_child(
             Shrinkable::new(
                 2.,
-                self.render_section_header(ARGUMENT_LABEL_TEXT, appearance),
+                self.render_section_header(tr_cached(Message::WorkflowArguments), appearance),
             )
             .finish(),
         );
@@ -598,26 +597,27 @@ impl WorkflowView {
                 .finish(),
             )
         } else {
-            arguments_section_row.add_child(Shrinkable::new(
+            arguments_section_row.add_child(
+                Shrinkable::new(
                     1.,
                     Container::new(
                         appearance
-                        .ui_builder()
-                        .span("Fill out the arguments in this workflow and copy it to run in your terminal session")
-                        .with_soft_wrap()
-                        .with_style(UiComponentStyles {
-                            font_size: Some(EDITOR_FONT_SIZE),
-                            font_color: Some(sub_text_color),
-                            ..Default::default()
-                        })
-                        .build()
-                        .finish(),
+                            .ui_builder()
+                            .span(tr_cached(Message::WorkflowFillArgumentsDescription))
+                            .with_soft_wrap()
+                            .with_style(UiComponentStyles {
+                                font_size: Some(EDITOR_FONT_SIZE),
+                                font_color: Some(sub_text_color),
+                                ..Default::default()
+                            })
+                            .build()
+                            .finish(),
                     )
                     .with_margin_left(40.)
-                    .finish()
+                    .finish(),
                 )
-                .finish()
-                );
+                .finish(),
+            );
         }
 
         arguments_section_row.finish()
@@ -839,7 +839,7 @@ impl WorkflowView {
             .with_children([
                 appearance
                     .ui_builder()
-                    .span("Environment variables")
+                    .span(tr_cached(Message::DriveEnvironmentVariables))
                     .with_style(UiComponentStyles {
                         font_size: Some(13.),
                         ..Default::default()

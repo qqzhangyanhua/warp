@@ -51,7 +51,9 @@ use crate::workspace::view::conversation_list::item::{
 };
 use crate::workspace::{ToastStack, WorkspaceAction};
 
-const VIEW_ALL_LABEL: &str = "View all";
+fn view_all_label() -> &'static str {
+    tr_cached(Message::CommonViewAll)
+}
 /// Maximum number of past items to show before the user toggles "view all".
 const INITIAL_MAX_PAST_ITEMS: usize = 10;
 
@@ -229,7 +231,7 @@ impl ConversationListView {
                 ctx,
             );
 
-            editor.set_placeholder_text("Search", ctx);
+            editor.set_placeholder_text(tr_cached(Message::SettingsSearchPlaceholder), ctx);
             editor
         });
         ctx.subscribe_to_view(&query_editor, |me, _handle, event, ctx| {
@@ -263,7 +265,7 @@ impl ConversationListView {
         // We use this as both the "view all" and "show less" button
         // (switching out the text on-toggle).
         let toggle_view_all_button = ctx.add_typed_action_view(|_| {
-            ActionButton::new(VIEW_ALL_LABEL, SecondaryTheme)
+            ActionButton::new(view_all_label(), SecondaryTheme)
                 .with_size(ButtonSize::Small)
                 .on_click(|ctx| {
                     ctx.dispatch_typed_action(ConversationListViewAction::ToggleViewAll);
@@ -1170,7 +1172,7 @@ impl TypedActionView for ConversationListView {
                 let label = if self.view_all {
                     "Show less"
                 } else {
-                    VIEW_ALL_LABEL
+                    view_all_label()
                 };
                 self.toggle_view_all_button
                     .update(ctx, |button, ctx| button.set_label(label, ctx));
