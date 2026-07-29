@@ -18,12 +18,12 @@ fn restarting_cancels_the_older_test_and_ignores_its_result() {
     });
 
     let second_generation = controller.begin();
-    controller.complete(first_generation, Ok(()));
+    assert!(!controller.complete(first_generation, Ok(())));
 
     assert!(first_cancelled.load(Ordering::SeqCst));
     assert_eq!(controller.state(), &ConnectionTestState::Testing);
 
-    controller.complete(second_generation, Ok(()));
+    assert!(controller.complete(second_generation, Ok(())));
     assert_eq!(controller.state(), &ConnectionTestState::Succeeded);
 }
 
@@ -38,7 +38,7 @@ fn cancelling_keeps_late_results_from_restoring_a_completed_state() {
     });
 
     controller.cancel();
-    controller.complete(generation, Ok(()));
+    assert!(!controller.complete(generation, Ok(())));
 
     assert!(cancelled.load(Ordering::SeqCst));
     assert_eq!(controller.state(), &ConnectionTestState::Idle);
@@ -49,7 +49,7 @@ fn provider_failures_are_exposed_as_typed_categories() {
     let mut controller = ConnectionTestController::default();
     let generation = controller.begin();
 
-    controller.complete(generation, Err(ConnectionTestFailure::RateLimited));
+    assert!(controller.complete(generation, Err(ConnectionTestFailure::RateLimited)));
 
     assert_eq!(
         controller.state(),

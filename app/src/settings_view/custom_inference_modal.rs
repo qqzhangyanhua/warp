@@ -24,7 +24,8 @@ use crate::editor::{
 use crate::i18n::{tr, Message};
 use crate::modal::{Modal, ModalViewState};
 use crate::settings_view::custom_inference_connection_test::{
-    render_connection_test_control, ConnectionTestController, ConnectionTestFailure,
+    failure_message, render_connection_test_control, ConnectionTestController,
+    ConnectionTestFailure,
 };
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, DangerSecondaryTheme};
@@ -486,16 +487,34 @@ impl CustomEndpointModal {
         let handle = ctx.spawn(
             test_provider_connection(base_url, api_key, model),
             move |me, result, ctx| {
-                me.connection_test.complete(
-                    generation,
-                    result.map_err(ConnectionTestFailure::from_api_error),
-                );
+                let result = result.map_err(ConnectionTestFailure::from_api_error);
+                if me.connection_test.complete(generation, result) {
+                    Self::show_connection_test_toast(result, ctx);
+                }
                 ctx.notify();
             },
         );
         self.connection_test
             .set_cancellation(generation, move || handle.abort());
         ctx.notify();
+    }
+
+    fn show_connection_test_toast(
+        result: Result<(), ConnectionTestFailure>,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        let window_id = ctx.window_id();
+        let toast = match result {
+            Ok(()) => crate::view_components::DismissibleToast::success(
+                tr(ctx, Message::CustomInferenceConnectionSucceeded).to_string(),
+            ),
+            Err(error) => crate::view_components::DismissibleToast::error(
+                tr(ctx, failure_message(error)).to_string(),
+            ),
+        };
+        crate::ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
+            toast_stack.add_ephemeral_toast(toast, window_id, ctx);
+        });
     }
 
     fn add_model(&mut self, ctx: &mut ViewContext<Self>) {

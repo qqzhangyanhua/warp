@@ -58,15 +58,20 @@ impl ConnectionTestController {
         }
     }
 
-    pub(super) fn complete(&mut self, generation: u64, result: Result<(), ConnectionTestFailure>) {
+    pub(super) fn complete(
+        &mut self,
+        generation: u64,
+        result: Result<(), ConnectionTestFailure>,
+    ) -> bool {
         if generation != self.generation || self.state != ConnectionTestState::Testing {
-            return;
+            return false;
         }
         self.cancellation = None;
         self.state = match result {
             Ok(()) => ConnectionTestState::Succeeded,
             Err(error) => ConnectionTestState::Failed(error),
         };
+        true
     }
 
     pub(super) fn cancel(&mut self) {
@@ -172,7 +177,7 @@ fn status_text(message: String, color: ColorU, app: &AppContext) -> Box<dyn Elem
     .finish()
 }
 
-fn failure_message(error: ConnectionTestFailure) -> Message {
+pub(super) fn failure_message(error: ConnectionTestFailure) -> Message {
     match error {
         ConnectionTestFailure::Authentication => Message::CustomInferenceConnectionAuthFailed,
         ConnectionTestFailure::MissingModel => Message::CustomInferenceConnectionModelMissing,
