@@ -32,6 +32,7 @@ use super::workflow_view::env_var_selector::{EnvVarSelector, EnvVarSelectorEvent
 use super::AIWorkflowOrigin;
 use crate::ai::blocklist::ai_brand_color;
 use crate::appearance::Appearance;
+use crate::cloud_object::model::persistence::CloudModel;
 use crate::i18n::{tr_cached, Message};
 use crate::server::ids::SyncId;
 use crate::settings::InputModeSettings;
@@ -155,8 +156,9 @@ impl WorkflowsMoreInfoView {
             ..
         } = compute_workflow_display_data(workflow.as_workflow());
 
-        let environment_variables_dropdown = (!workflow.as_workflow().is_agent_mode_workflow())
-            .then(|| {
+        let environment_variables_dropdown = (!workflow.as_workflow().is_agent_mode_workflow()
+            && CloudModel::try_handle(ctx).is_some())
+        .then(|| {
                 let dropdown = ctx.add_typed_action_view(|ctx| {
                     let mut dropdown = EnvVarSelector::new(ctx);
                     dropdown.set_orientation(FilterableDropdownOrientation::Up, ctx);

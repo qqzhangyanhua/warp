@@ -3,20 +3,6 @@ use serde_json::json;
 use strum_macros::{EnumDiscriminants, EnumIter};
 use warp_core::telemetry::{EnablementState, TelemetryEvent, TelemetryEventDesc};
 
-/// Which setup guide workflow step the user interacted with
-#[derive(Clone, Copy, Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SetupGuideStep {
-    /// Step 1: Create environment (slash command)
-    CreateEnvironment,
-    /// Step 1: Create environment (CLI command)
-    CreateEnvironmentCli,
-    /// Step 2: Create Slack integration
-    CreateSlackIntegration,
-    /// Step 2: Create Linear integration
-    CreateLinearIntegration,
-}
-
 /// Where the item was opened from
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -54,16 +40,8 @@ pub enum FilterType {
 pub enum AgentManagementTelemetryEvent {
     /// User toggled the agent management view open or closed
     ViewToggled { is_open: bool },
-    /// User opened the setup guide
-    OpenSetupGuide,
-    /// User dismissed the setup guide
-    DismissSetupGuide,
     /// User spawned a new local agent
     SpawnNewLocalAgent,
-    /// User ran a workflow step from the setup guide
-    SetupGuideStepRun { step: SetupGuideStep },
-    /// User copied a workflow step from the setup guide
-    SetupGuideStepCopy { step: SetupGuideStep },
     /// User opened a conversation
     ConversationOpened {
         conversation_id: String,
@@ -125,15 +103,7 @@ impl TelemetryEvent for AgentManagementTelemetryEvent {
             AgentManagementTelemetryEvent::ViewToggled { is_open } => {
                 Some(json!({ "is_open": is_open }))
             }
-            AgentManagementTelemetryEvent::OpenSetupGuide => None,
-            AgentManagementTelemetryEvent::DismissSetupGuide => None,
             AgentManagementTelemetryEvent::SpawnNewLocalAgent => None,
-            AgentManagementTelemetryEvent::SetupGuideStepRun { step } => {
-                Some(json!({ "step": step }))
-            }
-            AgentManagementTelemetryEvent::SetupGuideStepCopy { step } => {
-                Some(json!({ "step": step }))
-            }
             AgentManagementTelemetryEvent::ConversationOpened {
                 conversation_id,
                 opened_from,
@@ -219,11 +189,7 @@ impl TelemetryEventDesc for AgentManagementTelemetryEventDiscriminants {
     fn name(&self) -> &'static str {
         match self {
             Self::ViewToggled => "AgentManagement.ViewToggled",
-            Self::OpenSetupGuide => "AgentManagement.OpenSetupGuide",
-            Self::DismissSetupGuide => "AgentManagement.DismissSetupGuide",
             Self::SpawnNewLocalAgent => "AgentManagement.SpawnNewLocalAgent",
-            Self::SetupGuideStepRun => "AgentManagement.SetupGuideStepRun",
-            Self::SetupGuideStepCopy => "AgentManagement.SetupGuideStepCopy",
             Self::ConversationOpened => "AgentManagement.ConversationOpened",
             Self::CloudRunOpened => "AgentManagement.CloudRunOpened",
             Self::ArtifactClicked => "AgentManagement.ArtifactClicked",
@@ -249,11 +215,7 @@ impl TelemetryEventDesc for AgentManagementTelemetryEventDiscriminants {
     fn description(&self) -> &'static str {
         match self {
             Self::ViewToggled => "User toggled the agent management view open or closed",
-            Self::OpenSetupGuide => "User opened the ambient agent setup guide",
-            Self::DismissSetupGuide => "User dismissed the ambient agent setup guide",
             Self::SpawnNewLocalAgent => "User spawned a new local agent from agent management",
-            Self::SetupGuideStepRun => "User ran a workflow step from the setup guide",
-            Self::SetupGuideStepCopy => "User copied a workflow step from the setup guide",
             Self::ConversationOpened => "User opened a conversation",
             Self::CloudRunOpened => "User opened a cloud run",
             Self::ArtifactClicked => "User clicked an artifact button",

@@ -8006,19 +8006,27 @@ impl Input {
                     );
                 });
 
-                // Get enum variants
-                let cloud_model = CloudModel::as_ref(ctx);
-                let enum_variants_map = argument_index_to_object_id_map
-                    .iter()
-                    .filter_map(|(index, object_id)| {
-                        cloud_model
-                            .get_workflow_enum(object_id)
-                            .map(|workflow_enum| {
-                                workflow_enum.model().string_model.variants.clone()
-                            })
-                            .map(|variants| (*index, variants))
-                    })
-                    .collect();
+                let enum_variants_map = if argument_index_to_object_id_map.is_empty() {
+                    HashMap::new()
+                } else if let Some(cloud_model) = CloudModel::try_handle(ctx) {
+                    let cloud_model = cloud_model.as_ref(ctx);
+                    argument_index_to_object_id_map
+                        .iter()
+                        .filter_map(|(index, object_id)| {
+                            cloud_model
+                                .get_workflow_enum(object_id)
+                                .map(|workflow_enum| {
+                                    workflow_enum.model().string_model.variants.clone()
+                                })
+                                .map(|variants| (*index, variants))
+                        })
+                        .collect()
+                } else {
+                    log::warn!(
+                        "workflow enum references cannot be resolved without the removed CloudModel"
+                    );
+                    HashMap::new()
+                };
 
                 self.workflows_state.selected_workflow_state = Some(SelectedWorkflowState {
                     more_info_view: self.create_workflows_info_view(

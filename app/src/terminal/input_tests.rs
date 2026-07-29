@@ -199,6 +199,14 @@ fn renders_fixed_prompt_chip_command_without_interpolation() {
 }
 
 pub fn initialize_app(app: &mut App) {
+    initialize_app_with_cloud_model(app, true);
+}
+
+fn initialize_app_without_cloud_model(app: &mut App) {
+    initialize_app_with_cloud_model(app, false);
+}
+
+fn initialize_app_with_cloud_model(app: &mut App, register_cloud_model: bool) {
     initialize_settings_for_tests(app);
 
     // Make sure we set up all necessary custom action bindings.
@@ -210,7 +218,9 @@ pub fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| SystemStats::new());
     app.add_singleton_model(|_| Prompt::mock());
     app.add_singleton_model(SyncQueue::mock);
-    app.add_singleton_model(CloudModel::mock);
+    if register_cloud_model {
+        app.add_singleton_model(CloudModel::mock);
+    }
     app.add_singleton_model(ImportedConfigModel::new);
     app.add_singleton_model(UserWorkspaces::default_mock);
     app.add_singleton_model(TeamTesterStatus::mock);
@@ -243,6 +253,7 @@ pub fn initialize_app(app: &mut App) {
         )
     });
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
+    app.add_singleton_model(|_| crate::ai::agent::runtime::AgentRuntimeService::new());
     // The blocklist controller created during terminal bootstrap subscribes to
     // OrchestrationEventService and OrchestrationEventStreamer unconditionally,
     // so both singletons must be registered before bootstrap.
@@ -276,9 +287,15 @@ pub fn initialize_app(app: &mut App) {
     });
     app.add_singleton_model(|_| IgnoredSuggestionsModel::new(vec![]));
     app.add_singleton_model(|_| TemplatableMCPServerManager::default());
-    app.add_singleton_model(|ctx| {
-        AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
-    });
+    if register_cloud_model {
+        app.add_singleton_model(|ctx| {
+            AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
+        });
+    } else {
+        app.add_singleton_model(|ctx| {
+            AIExecutionProfilesModel::new_local(&crate::LaunchMode::new_for_unit_test(), ctx)
+        });
+    }
     app.add_singleton_model(|_| {
         crate::ai::document::ai_document_model::AIDocumentModel::new_for_test()
     });
@@ -5429,6 +5446,32 @@ fn test_powershell_should_insert_newline_on_enter() {
             assert!(!input.should_insert_newline_on_enter(ctx));
         });
     })
+}
+
+#[test]
+fn local_workflow_insertion_does_not_require_cloud_model() {
+    App::test((), |mut app| async move {
+        initialize_app_without_cloud_model(&mut app);
+
+        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
+        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
+        let workflow = Workflow::new("test", "echo {{value}}")
+            .with_arguments(vec![Argument::new("value", ArgumentType::Text)]);
+
+        input.update(&mut app, |input, ctx| {
+            input.show_workflows_info_box_on_workflow_selection(
+                WorkflowType::Local(workflow),
+                WorkflowSource::Local,
+                WorkflowSelectionSource::Undefined,
+                None,
+                ctx,
+            );
+        });
+
+        input.read(&app, |input, ctx| {
+            assert_eq!(input.buffer_text(ctx), "echo value");
+        });
+    });
 }
 
 #[test]
