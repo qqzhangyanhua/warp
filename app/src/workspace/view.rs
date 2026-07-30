@@ -3066,7 +3066,6 @@ impl Workspace {
             right_panel_view,
             working_directories_model,
 
-
             #[cfg(target_family = "wasm")]
             show_wasm_nux_dialog: WasmNUXDialog::should_display(ctx),
             #[cfg(target_family = "wasm")]
@@ -8890,22 +8889,14 @@ impl Workspace {
     }
 
     fn user_menu_items(&self, app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
-        let mut items = vec![
+        vec![
             workspace_menu_fields(app, "Settings")
                 .with_on_select_action(WorkspaceAction::ShowSettings)
                 .into_item(),
             workspace_menu_fields(app, "Keyboard shortcuts")
                 .with_on_select_action(WorkspaceAction::ToggleKeybindingsPage)
                 .into_item(),
-        ];
-
-        #[cfg(not(target_family = "wasm"))]
-        items.push(
-            workspace_menu_fields(app, "View ZYH logs")
-                .with_on_select_action(WorkspaceAction::ViewLogs)
-                .into_item(),
-        );
-        items
+        ]
     }
 
     fn selected_new_session_sidecar_selection(
@@ -17528,7 +17519,6 @@ impl Workspace {
         }
     }
 
-
     fn ask_ai_assistant(&mut self, ask_type: &AskAIType, ctx: &mut ViewContext<Self>) {
         if !self.current_workspace_state.is_ai_assistant_panel_open {
             self.toggle_ai_assistant_panel(ctx);
@@ -21344,7 +21334,6 @@ impl Workspace {
             .map(|tab| tab.pane_group.id());
         ctx.focus(&self.oz_launch_modal.view);
     }
-
 
     fn focus_free_ai_removal_modal(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.focus(&self.free_ai_removal_modal);
