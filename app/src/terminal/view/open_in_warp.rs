@@ -18,6 +18,7 @@ use warpui::{SingletonEntity, ViewContext};
 use super::{Event, InlineBannerItem, InlineBannerType, TerminalView};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::event::UserBlockCompleted;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::model::session::Session;
@@ -219,7 +220,8 @@ impl TerminalView {
                 match &self.inline_banners_state.open_in_warp_banner {
                     Some(banner_state) => {
                         ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
-                            format!("Open {} in ZYH", banner_state.target.path.display()),
+                            tr_cached(Message::TerminalOpenPathInZyh)
+                                .replace("{}", &banner_state.target.path.display().to_string()),
                             WarpA11yRole::UserAction,
                         ))
                     }
@@ -228,14 +230,14 @@ impl TerminalView {
             }
             OpenInWarpBannerAction::Close => {
                 ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
-                    "Close View in ZYH banner",
+                    tr_cached(Message::TerminalCloseOpenInZyhBanner),
                     WarpA11yRole::UserAction,
                 ))
             }
             OpenInWarpBannerAction::LearnMore => {
                 ActionAccessibilityContent::Custom(AccessibilityContent::new(
-                    "Learn more",
-                    "Learn more about opening Markdown files in ZYH",
+                    tr_cached(Message::CommonLearnMore),
+                    tr_cached(Message::TerminalLearnMarkdownOpenInZyh),
                     WarpA11yRole::UserAction,
                 ))
             }

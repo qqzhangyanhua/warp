@@ -21,6 +21,7 @@ use warpui::{
 use crate::appearance::Appearance;
 use crate::code_review::diff_menu::{CodeReviewDiffMenu, CodeReviewDiffMenuEvent};
 use crate::code_review::diff_state::DiffMode;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 
 /// A single selectable target in the diff selector menu.
@@ -162,7 +163,7 @@ impl View for DiffSelector {
         let font_size = appearance.ui_font_size();
 
         let label = if self.trigger_label.is_empty() {
-            "Uncommitted changes".to_string()
+            tr_cached(Message::CodeReviewUncommittedChanges).to_string()
         } else {
             self.trigger_label.clone()
         };

@@ -65,6 +65,7 @@ use crate::ai::execution_profiles::profiles::{
     AIExecutionProfilesModel, AIExecutionProfilesModelEvent, ClientProfileId,
 };
 use crate::ai::execution_profiles::{
+    localized_action_permission_description, localized_write_to_pty_permission_description,
     long_context_pricing_warning_title, AIExecutionProfile, AIExecutionProfileAppExt,
     ActionPermission, WriteToPtyPermission,
 };
@@ -5212,14 +5213,14 @@ impl SettingsWidget for AgentsWidget {
             agents_header.add_child(
                 build_sub_header(
                     appearance,
-                    "Agents",
+                    tr_cached(Message::AiAgents),
                     Some(styles::header_font_color(is_any_ai_enabled, app)),
                 )
                 .with_padding_bottom(HEADER_PADDING)
                 .finish(),
             );
             agents_header.add_child(render_ai_setting_description(
-                "Set the boundaries for how your Agent operates. Choose what it can access, how much autonomy it has, and when it must ask for your approval. You can also fine-tune behavior around natural language input, codebase awareness, and more.",
+                tr_cached(Message::AiAgentsDescription),
                 ai_settings.is_any_ai_enabled(app),
                 app,
             ));
@@ -5264,15 +5265,13 @@ impl AgentsWidget {
                 .finish(),
             )
             .with_child(
-                Container::new(
-                    render_ai_setting_description(
-                        "Profiles let you define how your Agent operates — from the actions it can take and when it needs approval, to the models it uses for tasks like coding and planning. You can also scope them to individual projects.",
-                        is_any_ai_enabled,
-                        app,
-                    )
-                )
+                Container::new(render_ai_setting_description(
+                    tr_cached(Message::AiProfilesDescription),
+                    is_any_ai_enabled,
+                    app,
+                ))
                 .with_margin_top(12.)
-                .finish()
+                .finish(),
             )
             .finish();
 
@@ -5316,7 +5315,7 @@ impl AgentsWidget {
         let is_any_ai_enabled = ai_settings.is_any_ai_enabled(app);
         let model_subheader = Container::new(render_custom_size_header(
             appearance,
-            "Models",
+            tr_cached(Message::AiModels),
             14.0,
             Some(styles::header_font_color(is_any_ai_enabled, app)),
         ))
@@ -5491,7 +5490,7 @@ impl AgentsWidget {
         let code_diffs = self.render_execution_profile_dropdown(
             tr_cached(Message::AiApplyCodeDiffs),
             Icon::Code2,
-            code_diff_setting.description(),
+            localized_action_permission_description(code_diff_setting),
             &view.apply_code_diffs_dropdown_menu,
             ai_settings,
             appearance,
@@ -5504,7 +5503,7 @@ impl AgentsWidget {
         read_files_flex.add_child(self.render_execution_profile_dropdown(
             tr_cached(Message::AiReadFiles),
             Icon::Notebook,
-            read_files_setting.description(),
+            localized_action_permission_description(read_files_setting),
             &view.read_files_dropdown_menu,
             ai_settings,
             appearance,
@@ -5534,7 +5533,7 @@ impl AgentsWidget {
         execute_commands_flex.add_child(self.render_execution_profile_dropdown(
             tr_cached(Message::AiExecuteCommands),
             Icon::Terminal,
-            execute_commands_setting.description(),
+            localized_action_permission_description(execute_commands_setting),
             &view.execute_commands_dropdown_menu,
             ai_settings,
             appearance,
@@ -5597,7 +5596,7 @@ impl AgentsWidget {
         let write_to_pty = self.render_execution_profile_dropdown(
             tr_cached(Message::AiInteractWithRunningCommands),
             Icon::Workflow,
-            write_to_pty_setting.description(),
+            localized_write_to_pty_permission_description(write_to_pty_setting),
             &view.write_to_pty_autonomy_dropdown_menu,
             ai_settings,
             appearance,
@@ -5868,9 +5867,7 @@ impl AgentsWidget {
         render_dropdown_item(
             appearance,
             tr_cached(Message::AiBaseModel),
-            Some(
-                "This model serves as the primary engine behind the ZYH Agent. It powers most interactions and invokes other models for tasks like planning or code generation when necessary. ZYH may automatically switch to alternate models based on model availability or for auxiliary tasks such as conversation summarization.",
-            ),
+            Some(tr_cached(Message::AiBaseModelDescription)),
             Some(show_in_prompt_checkbox),
             LocalOnlyIconState::Hidden,
             (!ai_settings.is_any_ai_enabled(app))
@@ -5898,9 +5895,9 @@ impl AgentsWidget {
             app,
         );
 
-        let codebase_context_description = vec![FormattedTextFragment::plain_text(
-            "Allow the ZYH Agent to generate an outline of your codebase that can be used for context. No code is ever stored on our servers.",
-        )];
+        let codebase_context_description = vec![FormattedTextFragment::plain_text(tr_cached(
+            Message::AiCodebaseContextDescription,
+        ))];
         let description = Container::new(
             FormattedTextElement::new(
                 FormattedText::new([FormattedTextLine::Line(codebase_context_description)]),
@@ -5966,9 +5963,7 @@ impl AgentsWidget {
 
         let subtext = {
             let subtext_fragments = vec![
-                FormattedTextFragment::plain_text(
-                    "You haven't added any MCP servers yet. Once you do, you'll be able to control how much autonomy the ZYH Agent has when interacting with them. ",
-                ),
+                FormattedTextFragment::plain_text(tr_cached(Message::AiNoMcpServersYetDescription)),
                 FormattedTextFragment::hyperlink_action(
                     tr_cached(Message::AiAddAServer),
                     AISettingsPageAction::OpenMCPServerCollection,
@@ -6031,7 +6026,7 @@ impl AgentsWidget {
         let permission_setting = self.render_execution_profile_dropdown(
             tr_cached(Message::AiCallMcpServers),
             Icon::Dataflow,
-            current_mcp_setting.description(),
+            localized_action_permission_description(current_mcp_setting),
             &view.mcp_permissions_dropdown_menu,
             ai_settings,
             appearance,
@@ -6171,7 +6166,7 @@ impl SettingsWidget for AIInputWidget {
 
         let input_header = build_sub_header(
             appearance,
-            "Input",
+            tr_cached(Message::AiInput),
             Some(styles::header_font_color(is_any_ai_enabled, app)),
         )
         .with_padding_bottom(HEADER_PADDING)
@@ -6371,12 +6366,12 @@ impl AIInputWidget {
                 Vec<FormattedTextFragment>,
             > = LazyLock::new(|| {
                 vec![
-                    FormattedTextFragment::plain_text(
-                        "Enabling natural language detection will detect when natural language is written in the terminal input, and then automatically switch to Agent Mode for AI queries.",
-                    ),
-                    FormattedTextFragment::plain_text(
-                        " Encountered an incorrect input detection? ",
-                    ),
+                    FormattedTextFragment::plain_text(tr_cached(
+                        Message::AiNaturalLanguageDetectionDescription,
+                    )),
+                    FormattedTextFragment::plain_text(tr_cached(
+                        Message::AiEncounteredIncorrectInputDetection,
+                    )),
                     FormattedTextFragment::hyperlink(
                         tr_cached(Message::AiLetUsKnow),
                         "https://warpdotdev.typeform.com/to/offrTIpq",
@@ -6481,12 +6476,9 @@ impl SettingsWidget for MCPServersWidget {
         .with_padding_bottom(HEADER_PADDING)
         .finish();
 
-        let mcp_description = vec![
-            FormattedTextFragment::plain_text(
-                "Add MCP servers to extend the ZYH Agent's capabilities. \
-            MCP servers expose data sources or tools to agents through a standardized interface, essentially acting like plugins.",
-            ),
-        ];
+        let mcp_description = vec![FormattedTextFragment::plain_text(tr_cached(
+            Message::AiMcpServersDescription,
+        ))];
 
         let description = Container::new(
             FormattedTextElement::new(
@@ -6524,9 +6516,9 @@ impl SettingsWidget for MCPServersWidget {
                         static FILE_BASED_MCP_DESCRIPTION_FRAGMENTS: LazyLock<
                             Vec<FormattedTextFragment>,
                         > = LazyLock::new(|| {
-                            vec![FormattedTextFragment::plain_text(
-                                "Automatically detect and spawn MCP servers from globally-scoped third-party AI agent configuration files (e.g. in your home directory). Servers detected inside a repository are never spawned automatically and must be enabled individually from the MCP settings page.",
-                            )]
+                            vec![FormattedTextFragment::plain_text(tr_cached(
+                                Message::AiFileBasedMcpDescription,
+                            ))]
                         });
                         Container::new(
                             FormattedTextElement::new(
@@ -6541,7 +6533,9 @@ impl SettingsWidget for MCPServersWidget {
                             )
                             .with_hyperlink_font_color(appearance.theme().accent().into_solid())
                             .register_default_click_handlers(|url, ctx, _| {
-                                ctx.dispatch_typed_action(AISettingsPageAction::HyperlinkClick(url));
+                                ctx.dispatch_typed_action(AISettingsPageAction::HyperlinkClick(
+                                    url,
+                                ));
                             })
                             .finish(),
                         )
@@ -6658,7 +6652,6 @@ impl AIFactWidget {
             .with_child(description)
             .finish()
     }
-
 }
 
 impl SettingsWidget for AIFactWidget {
@@ -8048,9 +8041,11 @@ impl ApiKeysWidget {
     ) -> Box<dyn Element> {
         let provider_name = provider.display_name();
         let tooltip_text = FormattedText::new([FormattedTextLine::Line(vec![
-            FormattedTextFragment::plain_text(format!(
-                "Your organization has provided an API key for {provider_name}. A key entered here takes precedence for {provider_name} requests."
-            )),
+            FormattedTextFragment::plain_text(
+                tr_cached(Message::AiOrganizationApiKeyDescription)
+                    .replacen("{}", provider_name, 1)
+                    .replacen("{}", provider_name, 1),
+            ),
         ])]);
         let tooltip_background = appearance.theme().tooltip_background();
         let icon_color = appearance.theme().active_ui_text_color();
@@ -8568,7 +8563,7 @@ impl ApiKeysWidget {
         );
 
         let description = render_ai_setting_description(
-            "When enabled, agent requests may be routed to one of ZYH's provided models in the event of an error. ZYH will prioritize using your API keys over your ZYH credits.",
+            tr_cached(Message::AiCreditFallbackDescription),
             ai_settings.is_any_ai_enabled(app),
             app,
         );
@@ -9038,16 +9033,15 @@ impl AwsBedrockWidget {
         let are_credentials_enabled = user_workspaces.is_aws_bedrock_credentials_enabled(app);
         let is_usage_enabled = is_section_enabled && are_credentials_enabled;
         let toggle_description = if is_admin_enforced {
-            "ZYH loads and sends local AWS CLI credentials for Bedrock-supported models. This setting is managed by your organization.".to_string()
+            tr_cached(Message::AiAwsBedrockCredentialsManagedDescription)
         } else {
-            "ZYH loads and sends local AWS CLI credentials for Bedrock-supported models."
-                .to_string()
+            tr_cached(Message::AiAwsBedrockCredentialsDescription)
         };
 
         let mut column = Flex::column().with_spacing(16.).with_child(
             Flex::column()
                 .with_child(render_ai_setting_toggle::<AwsBedrockCredentialsEnabled>(
-                    "Use AWS Bedrock credentials",
+                    tr_cached(Message::AiUseAwsBedrockCredentials),
                     AISettingsPageAction::ToggleAwsBedrockCredentialsEnabled,
                     are_credentials_enabled,
                     is_toggleable,
@@ -9179,14 +9173,14 @@ impl AwsBedrockWidget {
         );
         column.add_child(render_input(
             appearance,
-            "Login Command",
+            tr_cached(Message::AiAwsLoginCommand),
             self.aws_auth_refresh_command_editor.clone(),
             is_usage_enabled,
             app,
         ));
         column.add_child(render_input(
             appearance,
-            "AWS Profile",
+            tr_cached(Message::AiAwsProfile),
             self.aws_auth_refresh_profile_editor.clone(),
             is_usage_enabled,
             app,
@@ -9195,7 +9189,7 @@ impl AwsBedrockWidget {
         let auto_login_enabled = *AISettings::as_ref(app).aws_bedrock_auto_login.value();
 
         let toggle = render_ai_setting_toggle::<AwsBedrockAutoLogin>(
-            "Automatically run login command",
+            tr_cached(Message::AiAutomaticallyRunAwsLoginCommand),
             AISettingsPageAction::ToggleAwsBedrockAutoLogin,
             auto_login_enabled,
             is_usage_enabled,
@@ -9204,7 +9198,7 @@ impl AwsBedrockWidget {
             app,
         );
         let description = render_ai_setting_description(
-            "When enabled, the login command will run automatically when AWS Bedrock credentials expire.",
+            tr_cached(Message::AiAwsAutoLoginDescription),
             is_usage_enabled,
             app,
         );
@@ -9247,7 +9241,7 @@ impl SettingsWidget for AwsBedrockWidget {
             .with_child(
                 build_sub_header(
                     appearance,
-                    "AWS Bedrock",
+                    tr_cached(Message::AiAwsBedrock),
                     Some(styles::header_font_color(is_any_ai_enabled, app)),
                 )
                 .with_padding_bottom(HEADER_PADDING)
@@ -9297,7 +9291,14 @@ impl SettingsWidget for CustomModelRoutersWidget {
             .with_main_axis_size(MainAxisSize::Max)
             .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(build_sub_header(appearance, "Custom Routers", Some(header_color)).finish())
+            .with_child(
+                build_sub_header(
+                    appearance,
+                    tr_cached(Message::AiCustomRouters),
+                    Some(header_color),
+                )
+                .finish(),
+            )
             .with_child({
                 #[cfg(feature = "local_fs")]
                 {
@@ -9321,7 +9322,7 @@ impl SettingsWidget for CustomModelRoutersWidget {
                     .finish(),
             )
             .with_child(render_ai_setting_description(
-                "Automatically route tasks to specific models based on task complexity or custom rules. Custom routers will appear in your model selector menu.",
+                tr_cached(Message::AiCustomRoutersDescription),
                 is_any_ai_enabled,
                 app,
             ));

@@ -43,7 +43,7 @@ use crate::code::global_buffer_model::GlobalBufferModel;
 use crate::code::local_code_editor::ShowFindReferencesCard;
 use crate::code::{EditorTabBarDropTargetData, ImmediateSaveError, SaveOutcome, SaveStatus};
 use crate::editor::InteractionState;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::input::Vector2F;
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::notebooks::file::{renders_in_warp_notebook_viewer, MarkdownDisplayMode};
@@ -823,7 +823,7 @@ impl CodeView {
 
         let title = match &file_location {
             Some(location) => display_path_with_host(location, false, ctx),
-            None => "Untitled".to_string(),
+            None => tr(ctx, Message::CommonUntitled).to_string(),
         };
 
         self.pane_configuration.update(ctx, |pane_config, ctx| {
@@ -831,7 +831,7 @@ impl CodeView {
             if self.tab_group.len() > 1 {
                 secondary.push_str(&format!(" (+{})", self.tab_group.len() - 1));
             } else if is_new {
-                secondary.push_str(" (new)");
+                secondary.push_str(tr_cached(Message::CodeNewFileSuffix));
             }
 
             pane_config.set_title(title, ctx);
@@ -1507,7 +1507,7 @@ impl CodeView {
             .as_ref()
             .map(|loc| display_name_with_host(loc, app))
             .filter(|n| !n.is_empty())
-            .unwrap_or_else(|| "Untitled".to_string());
+            .unwrap_or_else(|| tr(app, Message::CommonUntitled).to_string());
         let language_icon =
             icon_from_file_path(&file_name, appearance, ItemHighlightState::Default);
         row.add_child(
@@ -1887,7 +1887,7 @@ impl CodeView {
                     .map(|loc| display_name_with_host(loc, app))
                     .filter(|n| !n.is_empty())
             })
-            .unwrap_or_else(|| "Untitled".to_string());
+            .unwrap_or_else(|| tr(app, Message::CommonUntitled).to_string());
 
         let appearance = Appearance::as_ref(app);
         let is_pane_dragging = header_ctx.draggable_state.is_dragging();

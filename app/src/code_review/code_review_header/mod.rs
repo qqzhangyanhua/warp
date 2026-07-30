@@ -321,7 +321,7 @@ impl CodeReviewHeader {
             .with_text_and_icon_label(
                 TextAndIcon::new(
                     TextAndIconAlignment::IconFirst,
-                    "Discard all".to_string(),
+                    tr_cached(Message::CodeReviewDiscardAll).to_string(),
                     Icon::ReverseLeft.to_warpui_icon(warp_core::ui::theme::Fill::Solid(
                         sub_text_color.into_solid(),
                     )),
@@ -490,6 +490,7 @@ impl CodeReviewHeader {
     fn get_header_text(diff_state_model: &ModelHandle<DiffStateModel>, app: &AppContext) -> String {
         let branch_name =
             diff_state_model.read(app, |model, ctx| model.get_current_branch_name(ctx));
-        branch_name.unwrap_or("Reviewing open changes".to_string())
+        branch_name
+            .unwrap_or_else(|| tr_cached(Message::CodeReviewReviewingOpenChanges).to_string())
     }
 }

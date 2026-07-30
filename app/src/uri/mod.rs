@@ -1142,7 +1142,7 @@ impl Action {
             | Self::FocusCloudMode => W::default(),
             Self::NewTab => W::ShowPrimaryWindow(WindowActivationFallbackBehavior::Notify {
                 title: tr_cached(Message::ToastNewTabCreated).to_owned(),
-                description: "Go to ZYH to see your new tab.".to_owned(),
+                description: tr_cached(Message::ToastNewTabDescription).to_owned(),
             }),
             Self::NewWindow => W::Nothing,
         }

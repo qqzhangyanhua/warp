@@ -71,8 +71,6 @@ use crate::view_components::compactible_split_action_button::CompactibleSplitAct
 use crate::view_components::dropdown::DropdownEvent;
 use crate::view_components::{FilterableDropdownEvent, FilterableDropdownOrientation};
 
-const RUN_AGENTS_CARD_TITLE: &str = "Can I start additional agents for this task?";
-
 pub fn init(app: &mut AppContext) {
     use warpui::keymap::macros::*;
 
@@ -313,7 +311,7 @@ impl RunAgentsCardView {
         let accept_keystroke = ENTER_KEYSTROKE.clone();
 
         let reject_button = CompactibleActionButton::new(
-            "Reject".to_string(),
+            tr_cached(Message::RequestedCommandReject).to_string(),
             Some(KeystrokeSource::Fixed(reject_keystroke)),
             ButtonSize::Small,
             RunAgentsCardViewAction::Reject,
@@ -323,7 +321,7 @@ impl RunAgentsCardView {
         );
         let position_id_prefix = format!("{action_id:?}");
         let accept_button = CompactibleSplitActionButton::new(
-            "Accept".to_string(),
+            tr_cached(Message::BlockAccept).to_string(),
             Some(KeystrokeSource::Fixed(accept_keystroke)),
             ButtonSize::Small,
             RunAgentsCardViewAction::Accept,
@@ -712,7 +710,10 @@ impl RunAgentsCardView {
         };
         accept.set_disabled(reason.is_some(), ctx);
         // Tooltip explains why the button is disabled; falls back to "Accept".
-        accept.set_tooltip(reason.or_else(|| Some("Accept".to_string())), ctx);
+        accept.set_tooltip(
+            reason.or_else(|| Some(tr_cached(Message::BlockAccept).to_string())),
+            ctx,
+        );
         self.handles.accept_button = Some(accept);
     }
 
@@ -988,7 +989,7 @@ impl View for RunAgentsCardView {
         // because restored blocks have no pending action status.
         if self.block_model.is_restored() {
             return render_status_only_card(
-                "Spawn agents cancelled".to_string(),
+                tr_cached(Message::AgentSpawnCancelled).to_string(),
                 appearance,
                 StatusKind::Cancelled,
                 app,
@@ -1000,7 +1001,7 @@ impl View for RunAgentsCardView {
         // and the action is queued for user confirmation).
         if !matches!(status, Some(AIActionStatus::Blocked)) {
             return render_status_only_card(
-                "Configuring agents\u{2026}".to_string(),
+                tr_cached(Message::AgentConfiguringAgents).to_string(),
                 appearance,
                 StatusKind::Spawning,
                 app,
@@ -1266,7 +1267,7 @@ fn render_confirmation_card(
 
 fn render_header(handles: &RunAgentsCardHandles, app: &AppContext) -> Box<dyn Element> {
     let appearance = Appearance::as_ref(app);
-    let mut config = HeaderConfig::new(RUN_AGENTS_CARD_TITLE, app)
+    let mut config = HeaderConfig::new(tr_cached(Message::AgentRunAgentsQuestion), app)
         .with_icon(icons::yellow_stop_icon(appearance))
         .with_corner_radius_override(CornerRadius::with_top(Radius::Pixels(8.)));
 
@@ -1304,10 +1305,8 @@ fn render_body(state: &RunAgentsEditState, app: &AppContext) -> Box<dyn Element>
 fn render_summary(state: &RunAgentsEditState, appearance: &Appearance) -> Box<dyn Element> {
     let theme = appearance.theme();
     let summary = if state.summary.trim().is_empty() {
-        format!(
-            "Spawn {} agent(s) to address this task.",
-            state.agent_run_configs.len()
-        )
+        tr_cached(Message::AgentSpawnSummary)
+            .replace("{}", &state.agent_run_configs.len().to_string())
     } else {
         state.summary.clone()
     };
@@ -1329,7 +1328,8 @@ fn render_agents_section(state: &RunAgentsEditState, app: &AppContext) -> Box<dy
     let appearance = Appearance::as_ref(app);
     let theme = appearance.theme();
     let label = Text::new(
-        format!("Agents ({})", state.agent_run_configs.len()),
+        tr_cached(Message::AgentAgentsCount)
+            .replace("{}", &state.agent_run_configs.len().to_string()),
         appearance.ui_font_family(),
         appearance.monospace_font_size() - 1.,
     )
@@ -1374,47 +1374,49 @@ pub(crate) fn format_terminal_state(result: &RunAgentsResult) -> (String, Status
                 .count();
             if launched == total {
                 let label = if total == 1 {
-                    "Spawned 1 agent".to_string()
+                    tr_cached(Message::AgentSpawnedOne).to_string()
                 } else {
-                    format!("Spawned {total} agents")
+                    tr_cached(Message::AgentSpawnedMany).replace("{}", &total.to_string())
                 };
                 (label, StatusKind::Success)
             } else if launched == 0 {
                 // Every child failed to launch: surface a terminal failure
                 // rather than the in-progress-looking mixed state.
                 let label = if total == 1 {
-                    "Failed to spawn agent".to_string()
+                    tr_cached(Message::AgentFailedSpawnOne).to_string()
                 } else {
-                    format!("Failed to spawn {total} agents")
+                    tr_cached(Message::AgentFailedSpawnMany).replace("{}", &total.to_string())
                 };
                 (label, StatusKind::Failure)
             } else {
                 (
-                    format!("Spawned {launched} of {total} agents"),
+                    tr_cached(Message::AgentSpawnedPartial)
+                        .replacen("{}", &launched.to_string(), 1)
+                        .replacen("{}", &total.to_string(), 1),
                     StatusKind::Mixed,
                 )
             }
         }
         RunAgentsResult::Denied { reason } => {
             let body = if reason.is_empty() {
-                "Orchestration is currently disabled. Re-enable on the plan card to launch."
-                    .to_string()
+                tr_cached(Message::AgentOrchestrationDisabled).to_string()
             } else {
-                format!(
-                    "Orchestration is currently disabled. Re-enable on the plan card to launch. ({reason})"
-                )
+                tr_cached(Message::AgentOrchestrationDisabledReason).replace("{}", reason)
             };
             (body, StatusKind::Cancelled)
         }
         RunAgentsResult::Failure { error } => {
             let label = if error.is_empty() {
-                "Failed to start orchestration".to_string()
+                tr_cached(Message::AgentFailedStartOrchestration).to_string()
             } else {
-                format!("Failed to start orchestration: {error}")
+                tr_cached(Message::AgentFailedStartOrchestrationWithError).replace("{}", error)
             };
             (label, StatusKind::Failure)
         }
-        RunAgentsResult::Cancelled => ("Spawn agents cancelled".to_string(), StatusKind::Cancelled),
+        RunAgentsResult::Cancelled => (
+            tr_cached(Message::AgentSpawnCancelled).to_string(),
+            StatusKind::Cancelled,
+        ),
     }
 }
 
@@ -1434,9 +1436,9 @@ fn render_spawning_card(
 ) -> Box<dyn Element> {
     let total = snapshot.agent_count;
     let label = if total == 1 {
-        "Spawning 1 agent\u{2026}".to_string()
+        tr_cached(Message::AgentSpawningOne).to_string()
     } else {
-        format!("Spawning {total} agents\u{2026}")
+        tr_cached(Message::AgentSpawningMany).replace("{}", &total.to_string())
     };
     render_status_only_card(label, appearance, StatusKind::Spawning, app)
 }

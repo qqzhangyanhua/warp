@@ -671,12 +671,16 @@ impl SearchItem for ModelSearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        let mut label = format!("Model: {}", self.display_text);
+        let mut label = tr_cached(I18nMessage::A11yModelNamed).replace("{}", &self.display_text);
         if self.is_selected {
-            label.push_str(" (selected)");
+            label.push_str(" (");
+            label.push_str(tr_cached(I18nMessage::A11ySelectedLower));
+            label.push(')');
         }
         if self.is_disabled() {
-            label.push_str(" (disabled)");
+            label.push_str(" (");
+            label.push_str(tr_cached(I18nMessage::A11yDisabledLower));
+            label.push(')');
         }
         label
     }

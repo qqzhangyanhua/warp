@@ -79,9 +79,9 @@ fn show_in_file_explorer_tooltip(
     mouse_state: MouseStateHandle,
 ) -> GridTooltipLink {
     let text = if cfg!(target_os = "macos") {
-        "Show in Finder"
+        tr_cached(Message::TerminalShowInFinder)
     } else {
-        "Show containing folder"
+        tr_cached(Message::TerminalShowContainingFolder)
     }
     .to_string();
     GridTooltipLink {

@@ -484,8 +484,8 @@ pub fn render_warping_indicator<V: View>(
     if let Some(take_over_button_props) = props.take_over_lrc_control_button {
         has_buttons = true;
         buttons_row.add_child(render_switch_control_to_user_button(
-            "Take over",
-            "Take over control of the command",
+            tr_cached(Message::AgentTakeOver),
+            tr_cached(Message::AgentTakeOverCommandControl),
             take_over_button_props,
             appearance,
         ));
@@ -809,9 +809,9 @@ fn render_hide_responses_button(
 ) -> Box<dyn Element> {
     let theme = appearance.theme();
     let button_text = if should_hide_responses {
-        "Show responses"
+        tr_cached(Message::AgentShowResponses)
     } else {
-        "Hide responses"
+        tr_cached(Message::AgentHideResponses)
     };
     let text = Container::new(
         Text::new(
@@ -825,9 +825,9 @@ fn render_hide_responses_button(
     .finish();
 
     let tooltip_text = if should_hide_responses {
-        "Show agent responses"
+        tr_cached(Message::AgentShowResponsesTooltip)
     } else {
-        "Hide agent responses"
+        tr_cached(Message::AgentHideResponsesTooltip)
     };
 
     render_warping_indicator_button(
@@ -891,7 +891,7 @@ fn render_stop_button(props: ButtonProps, appearance: &Appearance) -> Box<dyn El
         appearance,
         stop_icon,
         props.keystroke,
-        "Stop agent task".to_string(),
+        tr_cached(Message::AgentStopTask).to_string(),
         props.is_active,
         false,
         |ctx: &mut EventContext<'_>| {
@@ -1021,13 +1021,17 @@ fn render_force_refresh_inline(
         // Mirror `render_output_status_text` exactly: same `Text` configuration plus
         // the `Container::with_margin_top(1.)` wrapper so this sits on the same
         // baseline as the adjacent `Last seen by agent ...` text.
-        let text = Text::new(" · Check now".to_string(), font_family, font_size)
-            .with_color(color)
-            .with_style(Properties::default())
-            .with_clip(ClipConfig::end())
-            .with_selectable(false)
-            .soft_wrap(false)
-            .finish();
+        let text = Text::new(
+            tr_cached(Message::AgentCheckNowInline).to_string(),
+            font_family,
+            font_size,
+        )
+        .with_color(color)
+        .with_style(Properties::default())
+        .with_clip(ClipConfig::end())
+        .with_selectable(false)
+        .soft_wrap(false)
+        .finish();
         let text_with_margin = Container::new(text).with_margin_top(1.).finish();
 
         // Tooltip overlay, positioned above the element on hover. Same pattern as
@@ -2236,7 +2240,7 @@ fn render_mermaid_diagram_section<A: Action>(
         .finish();
 
     render_visual_card(
-        "Mermaid diagram".to_string(),
+        tr_cached(Message::A11yMermaidDiagram).to_string(),
         Icon::Dataflow,
         Container::new(mermaid_canvas)
             .with_background(theme.background())
@@ -3358,7 +3362,7 @@ fn render_invalid_api_key_error(
     .finish();
 
     let alert_text = Text::new(
-        "Provided API key is not valid",
+        tr_cached(Message::InvalidApiKeyTitle),
         appearance.ui_font_family(),
         14.,
     )
@@ -3367,10 +3371,9 @@ fn render_invalid_api_key_error(
     .finish();
 
     let detail_text = Text::new(
-        format!(
-            "Failed to authenticate with {provider} when using {model_name}. \
-                     Double-check that your API key is correct."
-        ),
+        tr_cached(Message::InvalidApiKeyDetail)
+            .replace("{provider}", provider)
+            .replace("{model}", model_name),
         appearance.ui_font_family(),
         14.,
     )
@@ -3532,7 +3535,7 @@ pub(crate) fn render_debug_footer<V: View>(
                     warpui::ui_components::button::ButtonVariant::Text,
                     props.submit_issue_button_handle,
                 )
-                .with_centered_text_label("Send Feedback".to_string())
+                .with_centered_text_label(tr_cached(Message::AgentSendFeedback).to_string())
                 .with_style(submit_button_style)
                 .with_hovered_styles(submit_button_hover_style)
                 .with_clicked_styles(submit_button_hover_style)
@@ -3548,7 +3551,7 @@ pub(crate) fn render_debug_footer<V: View>(
 
     // render the conversation's debug id so screenshots automatically show the debug id
     let debug_text = Text::new(
-        format!("Debug information: {debug_info}"),
+        tr_cached(Message::AgentDebugInformationNamed).replace("{}", &debug_info),
         appearance.ui_font_family(),
         appearance.monospace_font_size(),
     )
@@ -3592,7 +3595,7 @@ pub(crate) fn render_debug_footer<V: View>(
     })
     .finish();
     let copy_button_with_tooltip = appearance.ui_builder().tool_tip_on_element(
-        "Copy debug ID".to_string(),
+        tr_cached(Message::AgentCopyDebugId).to_string(),
         props.debug_copy_button_handle,
         copy_button,
         warpui::elements::ParentAnchor::TopRight,

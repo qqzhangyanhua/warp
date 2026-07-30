@@ -10,6 +10,7 @@ use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
 use crate::cloud_object::ObjectType;
+use crate::i18n::{tr_cached, Message};
 use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::{safe_truncate, styles};
 use crate::search::item::SearchItem;
@@ -178,10 +179,11 @@ impl SearchItem for WorkflowSearchItem {
     }
 
     fn accessibility_label(&self) -> String {
+        let label = tr_cached(Message::A11yWorkflowLabel).replace("{}", &self.workflow_name);
         if let Some(description) = &self.workflow_description {
-            format!("Workflow: {} - {}", self.workflow_name, description)
+            format!("{label} - {description}")
         } else {
-            format!("Workflow: {}", self.workflow_name)
+            label
         }
     }
 

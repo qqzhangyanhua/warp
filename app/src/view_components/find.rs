@@ -265,12 +265,10 @@ impl<T: FindModel + Entity<Event = FindEvent> + 'static> Find<T> {
     pub fn emit_result_a11y_content(&mut self, ctx: &mut ViewContext<Self>) {
         let content = if let Some(match_index) = self.model.as_ref(ctx).focused_match_index() {
             AccessibilityContent::new(
-                format!(
-                    "Result {} of {}.",
-                    match_index + 1,
-                    self.model.as_ref(ctx).match_count()
-                ),
-                "Use enter and shift-enter to navigate between matches. Escape to quit.",
+                tr_cached(Message::A11yFindResultOf)
+                    .replace("{current}", &(match_index + 1).to_string())
+                    .replace("{total}", &self.model.as_ref(ctx).match_count().to_string()),
+                tr_cached(Message::A11yFindNavigateMatchesHelp),
                 WarpA11yRole::UserAction,
             )
         } else {

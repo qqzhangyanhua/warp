@@ -533,7 +533,7 @@ impl Input {
                     .filter(|name| !name.is_empty())
                 else {
                     show_error_toast(
-                        "Please provide a tab name after /rename-tab".to_owned(),
+                        tr(ctx, I18nMessage::SlashRenameTabRequiresName).to_owned(),
                         ctx,
                     );
                     return true;
@@ -548,7 +548,7 @@ impl Input {
                     .selected_conversation_id(ctx)
                 else {
                     show_error_toast(
-                        "/rename-conversation requires an active conversation".to_owned(),
+                        tr(ctx, I18nMessage::SlashRenameConversationRequiresActive).to_owned(),
                         ctx,
                     );
                     return true;
@@ -570,10 +570,8 @@ impl Input {
                     .filter(|name| !name.is_empty())
                 else {
                     show_error_toast(
-                        format!(
-                            "Please provide a color after /set-tab-color ({})",
-                            supported_options()
-                        ),
+                        tr(ctx, I18nMessage::SlashSetTabColorRequiresColor)
+                            .replace("{}", &supported_options()),
                         ctx,
                     );
                     return true;
@@ -590,10 +588,9 @@ impl Input {
                         Some(c) => SelectedTabColor::Color(c),
                         None => {
                             show_error_toast(
-                                format!(
-                                    "Unknown tab color '{arg}'. Use one of: {}.",
-                                    supported_options()
-                                ),
+                                tr(ctx, I18nMessage::SlashUnknownTabColor)
+                                    .replace("{color}", arg)
+                                    .replace("{options}", &supported_options()),
                                 ctx,
                             );
                             return true;
@@ -619,8 +616,7 @@ impl Input {
             create_project if command.name == commands::CREATE_NEW_PROJECT.name => {
                 if argument.is_none_or(|args| args.is_empty()) {
                     show_error_toast(
-                        "Please describe the project you want to create after /create-new-project"
-                            .to_owned(),
+                        tr(ctx, I18nMessage::SlashCreateProjectRequiresDescription).to_owned(),
                         ctx,
                     );
                     return true;
@@ -687,7 +683,8 @@ impl Input {
                             }
                             Err(_) => {
                                 show_error_toast(
-                                    format!("File not found: {}", file_path.display()),
+                                    tr(ctx, I18nMessage::ToastFileNotFoundNamed)
+                                        .replace("{}", &file_path.display().to_string()),
                                     ctx,
                                 );
                                 return true;

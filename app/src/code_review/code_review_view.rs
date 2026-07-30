@@ -478,26 +478,37 @@ impl DiscardOperationType {
     pub fn title(&self) -> String {
         match self {
             DiscardOperationType::AllUncommittedChanges => {
-                "Discard uncommitted changes?".to_string()
+                tr_cached(Message::CodeReviewDiscardUncommittedTitle).to_string()
             }
             DiscardOperationType::FileUncommittedChanges => {
-                "Discard all uncommitted changes to file?".to_string()
+                tr_cached(Message::CodeReviewDiscardFileUncommittedTitle).to_string()
             }
-            DiscardOperationType::AllChangesAgainstBranch(_) => "Discard all changes?".to_string(),
+            DiscardOperationType::AllChangesAgainstBranch(_) => {
+                tr_cached(Message::CodeReviewDiscardAllChangesTitle).to_string()
+            }
             DiscardOperationType::FileChangesAgainstBranch(_) => {
-                "Discard all changes to file?".to_string()
+                tr_cached(Message::CodeReviewDiscardFileChangesTitle).to_string()
             }
         }
     }
 
     pub fn description(&self) -> Option<String> {
         match self {
-            DiscardOperationType::AllUncommittedChanges => Some("You're about to discard all local changes that haven't been committed.".to_string()),
-            DiscardOperationType::FileUncommittedChanges => Some("This will restore this file to the last committed version and discard local edits.".to_string()),
-            DiscardOperationType::AllChangesAgainstBranch(None) => Some("You're about to discard all committed and uncommitted changes.".to_string()),
-            DiscardOperationType::FileChangesAgainstBranch(None) => Some("This will restore this file to the main branch version and discard all committed and uncommitted edits.".to_string()),
-            DiscardOperationType::AllChangesAgainstBranch(Some(_)) => Some("You're about to discard all committed and uncommitted changes.".to_string()),
-            DiscardOperationType::FileChangesAgainstBranch(Some(branch)) => Some(format!("This will reset this file to the {branch} branch version and discard all committed and uncommitted edits.")),
+            DiscardOperationType::AllUncommittedChanges => {
+                Some(tr_cached(Message::CodeReviewDiscardAllLocalDescription).to_string())
+            }
+            DiscardOperationType::FileUncommittedChanges => {
+                Some(tr_cached(Message::CodeReviewRestoreLastCommittedDescription).to_string())
+            }
+            DiscardOperationType::AllChangesAgainstBranch(None | Some(_)) => {
+                Some(tr_cached(Message::CodeReviewDiscardAllChangesDescription).to_string())
+            }
+            DiscardOperationType::FileChangesAgainstBranch(None) => {
+                Some(tr_cached(Message::CodeReviewRestoreMainDescription).to_string())
+            }
+            DiscardOperationType::FileChangesAgainstBranch(Some(branch)) => {
+                Some(tr_cached(Message::CodeReviewRestoreBranchDescription).replace("{}", branch))
+            }
         }
     }
 
@@ -1506,7 +1517,7 @@ impl CodeReviewView {
 
         // 1. Always add "Uncommitted changes" first.
         targets.push(DiffTarget::new(
-            "Uncommitted changes",
+            tr_cached(Message::CodeReviewUncommittedChanges),
             DiffMode::Head,
             matches!(current_mode, DiffMode::Head),
         ));
@@ -2607,7 +2618,7 @@ impl CodeReviewView {
         let discard_tooltip_text = if git_operation_blocked {
             get_discard_button_disabled_tooltip(git_operation_blocked)
         } else {
-            "Discard changes".to_string()
+            tr_cached(Message::CodeReviewDiscardChanges).to_string()
         };
 
         let mut file_states = vec![];
@@ -3696,7 +3707,7 @@ impl CodeReviewView {
     fn render_placeholder_header(appearance: &Appearance) -> Box<dyn Element> {
         let theme = appearance.theme();
 
-        let header_text = "Loading open changes...";
+        let header_text = tr_cached(Message::CodeReviewLoadingOpenChanges);
         let loading_icon = Icon::Loading
             .to_warpui_icon(warp_core::ui::theme::Fill::Solid(
                 internal_colors::neutral_6(theme),
@@ -3850,7 +3861,7 @@ impl CodeReviewView {
             )
             .with_child(
                 Text::new(
-                    "Error loading diffs",
+                    tr_cached(Message::CodeReviewErrorLoadingDiffs),
                     appearance.ui_font_family(),
                     appearance.ui_font_size() + 2.,
                 )
@@ -3893,7 +3904,7 @@ impl CodeReviewView {
                         )
                         .with_text_and_icon_label(TextAndIcon::new(
                             TextAndIconAlignment::IconFirst,
-                            " Retry".to_string(),
+                            format!(" {}", tr_cached(Message::CommonRetry)),
                             Icon::Refresh.to_warpui_icon(warp_core::ui::theme::Fill::Solid(
                                 theme.main_text_color(theme.background()).into(),
                             )),
@@ -3958,7 +3969,7 @@ impl CodeReviewView {
             )
             .with_child(
                 Text::new(
-                    "Cannot detect diffs for this folder",
+                    tr_cached(Message::CodeReviewCannotDetectDiffsFolder),
                     appearance.ui_font_family(),
                     appearance.ui_font_size() + 2.,
                 )
@@ -4111,7 +4122,7 @@ impl CodeReviewView {
             .with_child(
                 Container::new(
                     Text::new(
-                        "As you or the Agent make changes, you'll be able to track them here.",
+                        tr_cached(Message::CodeReviewTrackChangesDescription),
                         appearance.ui_font_family(),
                         14.,
                     )
@@ -4153,7 +4164,8 @@ impl CodeReviewView {
                         zero_state_column.add_child(
                             Container::new(
                                 Text::new(
-                                    format!("Repo is initialized with a {file_name} file."),
+                                    tr_cached(Message::CodeReviewRepoInitializedWith)
+                                        .replace("{}", file_name),
                                     appearance.ui_font_family(),
                                     12.,
                                 )
@@ -4974,7 +4986,7 @@ impl CodeReviewView {
                 let save_keystroke = Keystroke::parse("cmdorctrl-s").unwrap_or_default();
                 let save_shortcut = save_keystroke.displayed();
                 let tooltip_text =
-                    format!("This file has unsaved changes. {save_shortcut} to save");
+                    tr_cached(Message::CodeReviewUnsavedSaveShortcut).replace("{}", &save_shortcut);
                 render_unsaved_circle_with_tooltip(
                     editor_state.unsaved_changes_mouse_state(),
                     tooltip_text,
@@ -5224,7 +5236,7 @@ impl CodeReviewView {
         if file.file_diff.is_binary {
             Self::styled_file_content_container(
                 Text::new(
-                    "Binary file - no diff available",
+                    tr_cached(Message::CodeReviewBinaryNoDiff),
                     appearance.monospace_font_family(),
                     appearance.monospace_font_size(),
                 )
@@ -5235,7 +5247,7 @@ impl CodeReviewView {
         } else if file.file_diff.status.is_renamed() && file.file_diff.is_empty() {
             Self::styled_file_content_container(
                 Text::new(
-                    "File renamed without changes",
+                    tr_cached(Message::CodeReviewFileRenamedWithoutChanges),
                     appearance.monospace_font_family(),
                     appearance.monospace_font_size(),
                 )
@@ -5246,7 +5258,7 @@ impl CodeReviewView {
         } else if file.file_diff.status.is_new_file() && file.file_diff.is_empty() {
             Self::styled_file_content_container(
                 Text::new(
-                    "New empty file",
+                    tr_cached(Message::CodeReviewNewEmptyFile),
                     appearance.monospace_font_family(),
                     appearance.monospace_font_size(),
                 )
@@ -5276,7 +5288,7 @@ impl CodeReviewView {
         } else {
             Self::styled_file_content_container(
                 Text::new(
-                    "Unable to load file content",
+                    tr_cached(Message::CodeReviewUnableLoadFileContent),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )
@@ -5368,7 +5380,7 @@ impl CodeReviewView {
 
         if self.discard_dialog_state.discard_file_paths.is_empty() {
             return Text::new(
-                "No file selected",
+                tr_cached(Message::CodeReviewNoFileSelected),
                 appearance.ui_font_family(),
                 appearance.ui_font_size(),
             )
@@ -5383,7 +5395,7 @@ impl CodeReviewView {
 
         let CodeReviewViewState::Loaded(loaded) = self.state() else {
             return Text::new(
-                "No files to discard",
+                tr_cached(Message::CodeReviewNoFilesToDiscard),
                 appearance.ui_font_family(),
                 appearance.ui_font_size(),
             )
@@ -6566,7 +6578,7 @@ impl CodeReviewView {
                     button.set_disabled(disabled, ctx);
                     button.set_tooltip(
                         Some(if disabled {
-                            "No changes to commit"
+                            tr_cached(Message::CodeReviewNoChangesToCommit)
                         } else {
                             tr_cached(Message::CommitChangesLocally)
                         }),
@@ -6580,15 +6592,19 @@ impl CodeReviewView {
                 });
                 self.git_operations_chevron.update(ctx, |button, ctx| {
                     button.set_disabled(disabled, ctx);
-                    button.set_tooltip(disabled.then_some("No git actions available"), ctx);
+                    button.set_tooltip(
+                        disabled.then_some(tr_cached(Message::CodeReviewNoGitActionsAvailable)),
+                        ctx,
+                    );
                 });
             }
             PrimaryGitActionMode::Push => {
                 self.git_primary_action_button.update(ctx, |button, ctx| {
-                    button.set_label("Push", ctx);
+                    button.set_label(tr_cached(Message::CodeReviewPush), ctx);
                     button.set_icon(Some(Icon::ArrowUp), ctx);
                     button.set_disabled(false, ctx);
-                    button.set_tooltip(Some("Push commits to remote"), ctx);
+                    button
+                        .set_tooltip(Some(tr_cached(Message::CodeReviewPushCommitsToRemote)), ctx);
                     button.set_on_click(
                         |ctx| ctx.dispatch_typed_action(CodeReviewAction::OpenPushDialog),
                         ctx,
@@ -6601,10 +6617,10 @@ impl CodeReviewView {
             }
             PrimaryGitActionMode::CreatePr => {
                 self.git_primary_action_button.update(ctx, |button, ctx| {
-                    button.set_label("Create PR", ctx);
+                    button.set_label(tr_cached(Message::CodeReviewCreatePr), ctx);
                     button.set_icon(Some(Icon::Github), ctx);
                     button.set_disabled(false, ctx);
-                    button.set_tooltip(Some("Create a pull request"), ctx);
+                    button.set_tooltip(Some(tr_cached(Message::CodeReviewCreatePullRequest)), ctx);
                     button.set_on_click(
                         |ctx| ctx.dispatch_typed_action(CodeReviewAction::OpenCreatePrDialog),
                         ctx,
@@ -6625,9 +6641,9 @@ impl CodeReviewView {
                         button.set_disabled(is_pr_info_refreshing, ctx);
                         button.set_tooltip(
                             Some(if is_pr_info_refreshing {
-                                "Refreshing PR info"
+                                tr_cached(Message::CodeReviewRefreshingPrInfo)
                             } else {
-                                "View pull request on GitHub"
+                                tr_cached(Message::CodeReviewViewPullRequestOnGithub)
                             }),
                             ctx,
                         );
@@ -6643,10 +6659,13 @@ impl CodeReviewView {
             }
             PrimaryGitActionMode::Publish => {
                 self.git_primary_action_button.update(ctx, |button, ctx| {
-                    button.set_label("Publish", ctx);
+                    button.set_label(tr_cached(Message::CodeReviewPublish), ctx);
                     button.set_icon(Some(Icon::UploadCloud), ctx);
                     button.set_disabled(false, ctx);
-                    button.set_tooltip(Some("Publish branch to remote"), ctx);
+                    button.set_tooltip(
+                        Some(tr_cached(Message::CodeReviewPublishBranchToRemote)),
+                        ctx,
+                    );
                     button.set_on_click(
                         |ctx| ctx.dispatch_typed_action(CodeReviewAction::PublishBranch),
                         ctx,
@@ -7685,7 +7704,7 @@ impl BackingView for CodeReviewView {
         _ctx: &view::HeaderRenderContext<'_>,
         _app: &AppContext,
     ) -> view::HeaderContent {
-        view::HeaderContent::simple("Reviewing code changes")
+        view::HeaderContent::simple(tr_cached(Message::CodeReviewReviewingCodeChanges))
     }
 
     fn set_focus_handle(&mut self, focus_handle: PaneFocusHandle, ctx: &mut ViewContext<Self>) {

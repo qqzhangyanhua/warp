@@ -28,6 +28,7 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::safe_triangle::SafeTriangle;
 use crate::themes::theme::Fill;
 use crate::ui_components::buttons::icon_button_with_color;
@@ -2540,29 +2541,31 @@ impl<A: Action + Clone> SubMenu<A> {
             Select(_) => {
                 let menu_item = match self.selected_item() {
                     Some(item) => match item {
-                        MenuItem::Item(fields) => format!("{} Selected", fields.get_a11y_text()),
+                        MenuItem::Item(fields) => tr_cached(Message::A11yMenuItemSelected)
+                            .replace("{}", fields.get_a11y_text()),
                         MenuItem::ItemsRow { items } => {
                             let selected_item_text = items
                                 .get(self.selected_item_index.unwrap_or_default())
                                 .map_or_else(|| "", |item| item.get_a11y_text());
-                            format!("{selected_item_text} Selected")
+                            tr_cached(Message::A11yMenuItemSelected)
+                                .replace("{}", selected_item_text)
                         }
                         MenuItem::Separator => String::from(""),
                         MenuItem::Submenu { fields, .. } => {
-                            format!("{} Expanded", fields.get_a11y_text())
+                            tr_cached(Message::A11yMenuItemExpanded)
+                                .replace("{}", fields.get_a11y_text())
                         }
-                        MenuItem::Header { fields, .. } => {
-                            format!("{} Selected", fields.get_a11y_text())
-                        }
+                        MenuItem::Header { fields, .. } => tr_cached(Message::A11yMenuItemSelected)
+                            .replace("{}", fields.get_a11y_text()),
                     },
                     None => String::from(""),
                 };
 
                 let instructions = if matches!(self.selected_item(), Some(MenuItem::Submenu { .. }))
                 {
-                    "Press the up key or the down key to select a menu item. Press the right key to open the submenu"
+                    tr_cached(Message::A11yMenuNavigateItemsOpenSubmenu)
                 } else {
-                    "Press the up key or the down key to select a menu item"
+                    tr_cached(Message::A11yMenuNavigateItems)
                 };
 
                 Custom(AccessibilityContent::new(
@@ -2572,23 +2575,23 @@ impl<A: Action + Clone> SubMenu<A> {
                 ))
             }
             OpenSubmenu => Custom(AccessibilityContent::new(
-                String::from("Submenu Expanded"),
-                "Press the right key to open the selected submenu",
+                tr_cached(Message::A11ySubmenuExpanded),
+                tr_cached(Message::A11yPressRightOpenSelectedSubmenu),
                 WarpA11yRole::TextRole,
             )),
             CloseSubmenu(_) => Custom(AccessibilityContent::new(
-                String::from("Submenu Closed"),
-                "Removing focus from a submenu will close the submenu",
+                tr_cached(Message::A11ySubmenuClosed),
+                tr_cached(Message::A11yRemovingFocusClosesSubmenu),
                 WarpA11yRole::TextRole,
             )),
             Close(_) => Custom(AccessibilityContent::new(
-                String::from("Menu Closed"),
-                "Press the escape key to close the menu",
+                tr_cached(Message::A11yMenuClosed),
+                tr_cached(Message::A11yPressEscapeCloseMenu),
                 WarpA11yRole::TextRole,
             )),
             Enter => Custom(AccessibilityContent::new(
-                String::from("Action Selected"),
-                "Press the enter key to execute the selected menu item action",
+                tr_cached(Message::A11yActionSelected),
+                tr_cached(Message::A11yPressEnterExecuteMenuItem),
                 WarpA11yRole::TextRole,
             )),
             HoverSubmenuLeafNode { .. }

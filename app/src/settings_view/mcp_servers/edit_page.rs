@@ -342,11 +342,11 @@ impl MCPServersEditPageView {
     fn render_header(&self, app: &AppContext) -> Box<dyn Element> {
         let appearance = Appearance::as_ref(app);
         let title = if self.server_card_item_id.is_none() {
-            "Add New MCP Server".to_string()
+            tr(app, Message::McpAddNewServer).into()
         } else if let Some(name) = self.server_model.name() {
-            format!("Edit {name} MCP Server")
+            tr(app, Message::McpEditNamedServer).replace("{}", &name)
         } else {
-            "Edit MCP Server".to_string()
+            tr(app, Message::McpEditServer).into()
         };
 
         let ui_builder = appearance.ui_builder().clone();
@@ -592,7 +592,7 @@ impl MCPServersEditPageView {
                     ctx,
                 );
             });
-            return Err("This MCP server contains secrets. Visit Settings > Privacy to modify your secret redaction settings.".to_string());
+            return Err(tr_cached(Message::McpSecretsInServerVisitPrivacy).to_string());
         }
 
         Ok(())
@@ -670,9 +670,7 @@ impl MCPServersEditPageView {
                 );
             });
 
-            return Err(
-                "Cannot add multiple MCP servers while editing a single server.".to_string(),
-            );
+            return Err(tr_cached(Message::McpCannotAddMultipleWhileEditing).to_string());
         }
 
         Ok(parsed_templatable_mcp_servers[0].clone())
@@ -780,7 +778,7 @@ impl MCPServersEditPageView {
             .into_iter()
             .find(|(provider, _)| *provider == MCPProvider::Warp)
             .map(|(_, path)| path)
-            .ok_or_else(|| "Only ZYH-managed MCP configs can be edited here.".to_string())?;
+            .ok_or_else(|| tr_cached(Message::McpOnlyManagedConfigsEditable).to_string())?;
         local_mcp_config::editor_json_for_server(&path, name).map_err(|e| e.to_string())
     }
 
@@ -811,7 +809,7 @@ impl MCPServersEditPageView {
                 .find(|(provider, _)| *provider == MCPProvider::Warp)
                 .map(|(_, path)| path)
                 .ok_or_else(|| {
-                    let message = "Only ZYH-managed MCP configs can be edited here.".to_string();
+                    let message = tr_cached(Message::McpOnlyManagedConfigsEditable).to_string();
                     Self::toast_error(ctx, message.clone());
                     message
                 })?;

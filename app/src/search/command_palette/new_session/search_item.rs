@@ -6,6 +6,7 @@ use warpui::{AppContext, Element, SingletonEntity};
 
 use super::new_session_option::NewSessionOption;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::command_palette::render_util::render_search_item_icon;
 use crate::search::result_renderer::ItemHighlightState;
@@ -74,10 +75,10 @@ impl crate::search::item::SearchItem for SearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        format!("Selected {}.", self.option.description())
+        tr_cached(Message::A11ySelectedItem).replace("{}", self.option.description())
     }
 
     fn accessibility_help_message(&self) -> Option<String> {
-        Some("Press enter to launch this session.".into())
+        Some(tr_cached(Message::A11yPressEnterLaunchSession).into())
     }
 }

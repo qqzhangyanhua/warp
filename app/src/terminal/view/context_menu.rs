@@ -1,6 +1,8 @@
 use warp_core::send_telemetry_from_ctx;
 use warpui::{SingletonEntity, UpdateView};
 
+use crate::i18n::{tr_cached, Message};
+
 use super::{
     fork_label_for_query, mark_feature_used_and_write_to_user_defaults, terminal_menu_fields,
     terminal_menu_text, AIAgentExchangeId, AIConversationId, AgentModeRewindEntrypoint, AppContext,
@@ -241,14 +243,14 @@ impl TerminalView {
         if ChannelState::channel().is_dogfood() {
             vec![
                 (
-                    "Copy debugging link".to_string(),
+                    tr_cached(Message::TerminalCopyDebuggingLink).to_string(),
                     ContextMenuAction::CopyAIDebuggingLink {
                         conversation_token: conversation_token.clone(),
                         request_id: server_output_id,
                     },
                 ),
                 (
-                    "Copy conversation ID".to_string(),
+                    tr_cached(Message::TerminalCopyConversationId).to_string(),
                     ContextMenuAction::CopyConversationId {
                         conversation_id: conversation_token,
                     },
@@ -256,7 +258,7 @@ impl TerminalView {
             ]
         } else {
             vec![(
-                "Copy debugging ID".to_string(),
+                tr_cached(Message::TerminalCopyDebuggingId).to_string(),
                 ContextMenuAction::CopyExternalDebuggingId {
                     request_id: server_output_id,
                     conversation_id: conversation_token,

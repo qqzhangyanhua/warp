@@ -178,7 +178,7 @@ impl NodeVersionPopupView {
 
         col.add_child(
             Text::new(
-                "Install nvm to enable version switching",
+                tr_cached(Message::NodeInstallNvmTitle),
                 styles.ui_font_family,
                 styles.detail_font_size + 2.,
             )
@@ -190,7 +190,7 @@ impl NodeVersionPopupView {
         col.add_child(
             Container::new(
                 Text::new(
-                    "This menu helps you switch between Node.js versions — but it requires nvm to be installed.",
+                    tr_cached(Message::NodeInstallNvmDescription),
                     styles.ui_font_family,
                     styles.detail_font_size,
                 )
@@ -239,7 +239,7 @@ impl NodeVersionPopupView {
         // Heading
         col.add_child(
             Text::new(
-                "No node versions installed",
+                tr_cached(Message::NodeNoVersionsInstalled),
                 styles.ui_font_family,
                 styles.detail_font_size + 2.,
             )
@@ -252,7 +252,7 @@ impl NodeVersionPopupView {
         col.add_child(
             Container::new(
                 Text::new(
-                    "Try installing versions with nvm",
+                    tr_cached(Message::NodeTryInstallingWithNvm),
                     styles.ui_font_family,
                     styles.detail_font_size,
                 )

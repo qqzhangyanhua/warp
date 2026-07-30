@@ -2091,9 +2091,13 @@ impl View for GlobalSearchView {
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();
 
-        let search_label = Text::new_inline("Search", appearance.ui_font_family(), 14.)
-            .with_color(blended_colors::text_sub(theme, theme.background()))
-            .finish();
+        let search_label = Text::new_inline(
+            tr_cached(Message::GlobalSearchSearch),
+            appearance.ui_font_family(),
+            14.,
+        )
+        .with_color(blended_colors::text_sub(theme, theme.background()))
+        .finish();
 
         let editor_line_height = self
             .query_editor
@@ -2145,18 +2149,20 @@ impl View for GlobalSearchView {
             .with_child(query_row);
 
         let files = self.unique_match_count();
-        let file_word = if files == 1 { "file" } else { "files" };
-
         let message = if let Some(error) = &self.last_error {
             error.clone()
         } else if self.is_search_in_progress && self.total_match_count == 0 {
-            "Searching…".to_string()
+            tr_cached(Message::GlobalSearchSearching).to_string()
         } else if !self.is_search_in_progress && self.total_match_count == 0 {
             tr_cached(Message::NoResultsReviewGitignore).to_string()
         } else {
-            match self.total_match_count {
-                1 => format!("1 result in {files} {file_word}"),
-                n => format!("{n} results in {files} {file_word}"),
+            match (self.total_match_count, files) {
+                (1, _) => tr_cached(Message::GlobalSearchOneResult).to_string(),
+                (results, 1) => tr_cached(Message::GlobalSearchResultsInOneFile)
+                    .replace("{}", &results.to_string()),
+                (results, files) => tr_cached(Message::GlobalSearchResultsInFiles)
+                    .replace("{results}", &results.to_string())
+                    .replace("{files}", &files.to_string()),
             }
         };
 
@@ -2178,7 +2184,7 @@ impl View for GlobalSearchView {
             font_color: Some(blended_colors::text_sub(theme, theme.background())),
             ..Default::default()
         };
-        let capped_message = "The result set only contains a subset of all matches. Be more specific in your search to narrow down results.".to_string();
+        let capped_message = tr_cached(Message::GlobalSearchCappedResults).to_string();
         let capped_text = Span::new(capped_message, capped_text_styles)
             .with_soft_wrap()
             .build()
@@ -2329,7 +2335,7 @@ impl GlobalSearchView {
     fn render_pre_search_state(&self, app: &AppContext) -> Box<dyn Element> {
         self.render_zero_state(
             Icon::Search,
-            "Global search",
+            tr_cached(Message::WorkspaceGlobalSearch),
             tr_cached(Message::SearchInFilesAcrossDirectories),
             app,
         )
@@ -2338,8 +2344,8 @@ impl GlobalSearchView {
     fn render_unavailable_state(&self, app: &AppContext) -> Box<dyn Element> {
         self.render_zero_state(
             Icon::AlertTriangle,
-            "Global search unavailable",
-            "Global search requires access to your local workspace. Open a new session or navigate to an active session to view.",
+            tr_cached(Message::WorkspaceGlobalSearchUnavailable),
+            tr_cached(Message::WorkspaceGlobalSearchLocalWorkspaceRequired),
             app,
         )
     }
@@ -2347,16 +2353,16 @@ impl GlobalSearchView {
     fn render_remote_state(&self, app: &AppContext) -> Box<dyn Element> {
         self.render_zero_state(
             Icon::AlertTriangle,
-            "Global search unavailable",
-            "Global search isn't available for this remote session.",
+            tr_cached(Message::WorkspaceGlobalSearchUnavailable),
+            tr_cached(Message::WorkspaceGlobalSearchRemoteUnavailable),
             app,
         )
     }
     fn render_remote_loading_state(&self, app: &AppContext) -> Box<dyn Element> {
         self.render_zero_state(
             Icon::Loading,
-            "Connecting to remote session",
-            "Global search will be available once the connection is ready.",
+            tr_cached(Message::WorkspaceConnectingToRemoteSession),
+            tr_cached(Message::WorkspaceGlobalSearchAvailableWhenConnected),
             app,
         )
     }
@@ -2364,8 +2370,8 @@ impl GlobalSearchView {
     fn render_unsupported_session_state(&self, app: &AppContext) -> Box<dyn Element> {
         self.render_zero_state(
             Icon::AlertTriangle,
-            "Global search unavailable",
-            "Global search doesn't currently work in Git Bash or WSL.",
+            tr_cached(Message::WorkspaceGlobalSearchUnavailable),
+            tr_cached(Message::WorkspaceGlobalSearchUnsupportedShell),
             app,
         )
     }

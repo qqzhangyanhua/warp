@@ -28,6 +28,7 @@ use crate::ai::blocklist::usage::rollup::{
 use crate::ai::blocklist::view_util::format_credits;
 use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::persistence::model::{
     token_usage_category_display_name, ContextWindowSegment, ContextWindowSegmentType,
     ModelTokenUsage, FULL_TERMINAL_USE_CATEGORY, PRIMARY_AGENT_CATEGORY,
@@ -1127,7 +1128,7 @@ fn render_context_window_other_tooltip(appearance: &Appearance) -> Box<dyn Eleme
     let background = theme.tooltip_background();
     let text = ConstrainedBox::new(
         Text::new(
-            "Includes other request context and temporary instructions added to help the agent better respond.".to_string(),
+            tr_cached(Message::AgentOtherContextTooltip).to_string(),
             appearance.ui_font_family(),
             appearance.ui_font_size() - 2.,
         )

@@ -15,6 +15,7 @@ use warpui_extras::owner_only_file::{
 };
 
 use super::workflow::Workflow;
+use crate::i18n::{tr_cached, Message};
 use crate::workflows::local_workflows::workflows_dir;
 
 /// Scope for a local Workflow YAML file.
@@ -110,7 +111,10 @@ pub fn sanitize_workflow_filename_stem(name: &str) -> String {
 }
 
 /// Absolute path for a new Workflow file from a display name.
-pub fn path_for_workflow_name(directory: &Path, name: &str) -> Result<PathBuf, LocalWorkflowYamlError> {
+pub fn path_for_workflow_name(
+    directory: &Path,
+    name: &str,
+) -> Result<PathBuf, LocalWorkflowYamlError> {
     let stem = sanitize_workflow_filename_stem(name);
     if stem.is_empty() {
         return Err(LocalWorkflowYamlError::InvalidFilename);
@@ -145,7 +149,10 @@ pub fn list_workflows(directory: &Path) -> Result<Vec<LocalWorkflowEntry>, Local
         match load_workflows_from_file(&path) {
             Ok(file_entries) => entries.extend(file_entries),
             Err(LocalWorkflowYamlError::InvalidYaml { path, message }) => {
-                log::warn!("Skipping invalid workflow YAML at {}: {message}", path.display());
+                log::warn!(
+                    "Skipping invalid workflow YAML at {}: {message}",
+                    path.display()
+                );
             }
             Err(error) => return Err(error),
         }
@@ -164,12 +171,11 @@ pub fn load_workflows_from_file(
         )
     })?;
     let bytes = fs::read(path)?;
-    let workflows = parse_workflow_yaml(&bytes).map_err(|message| {
-        LocalWorkflowYamlError::InvalidYaml {
+    let workflows =
+        parse_workflow_yaml(&bytes).map_err(|message| LocalWorkflowYamlError::InvalidYaml {
             path: path.to_path_buf(),
             message,
-        }
-    })?;
+        })?;
 
     Ok(workflows
         .into_iter()
@@ -187,7 +193,7 @@ pub fn load_workflow(path: &Path) -> Result<LocalWorkflowEntry, LocalWorkflowYam
     if entries.is_empty() {
         Err(LocalWorkflowYamlError::InvalidYaml {
             path: path.to_path_buf(),
-            message: "YAML file contains no workflow documents".to_string(),
+            message: tr_cached(Message::WorkflowYamlNoDocuments).to_string(),
         })
     } else {
         Ok(entries.remove(0))
@@ -249,9 +255,7 @@ pub fn rename_workflow(
 
     if destination != path {
         if destination.exists() {
-            return Err(LocalWorkflowYamlError::FilenameCollision {
-                path: destination,
-            });
+            return Err(LocalWorkflowYamlError::FilenameCollision { path: destination });
         }
         fs::rename(path, &destination)?;
     }
@@ -271,7 +275,10 @@ pub fn rename_workflow(
 }
 
 /// Delete a Workflow file when `expected` still matches.
-pub fn delete_workflow(path: &Path, expected: ExpectedContent) -> Result<(), LocalWorkflowYamlError> {
+pub fn delete_workflow(
+    path: &Path,
+    expected: ExpectedContent,
+) -> Result<(), LocalWorkflowYamlError> {
     let actual = content_hash(path)?;
     if !expected_matches(expected, actual) {
         return Err(LocalWorkflowYamlError::Conflict {

@@ -24,6 +24,7 @@ use warpui::{
     SingletonEntity as _, TypedActionView, View, ViewContext,
 };
 
+use crate::i18n::{tr_cached, Message};
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
 use crate::terminal::input::{MenuPositioning, MenuPositioningProvider};
 use crate::ui_components::icons::Icon;
@@ -532,7 +533,7 @@ impl ActionButton {
                 Some(
                     Container::new(
                         Text::new_inline(
-                            "Beta",
+                            tr_cached(Message::CommonBeta),
                             appearance.ui_font_family(),
                             overall_height - padding.top() - padding.bottom(),
                         )

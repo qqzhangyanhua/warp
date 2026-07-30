@@ -39,11 +39,11 @@ use crate::ai::blocklist::inline_action::requested_action::{
 };
 use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::view::TerminalAction;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
 
-const GENERATING_TITLE_PLACEHOLDER: &str = "Generating title...";
 const ORCHESTRATION_COLLAPSED_MAX_HEIGHT: f32 = 200.;
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct OrchestrationParticipant {
@@ -57,7 +57,7 @@ struct OrchestrationParticipant {
 impl OrchestrationParticipant {
     fn orchestrator() -> Self {
         Self {
-            display_name: "Orchestrator".to_string(),
+            display_name: tr_cached(Message::AgentOrchestrator).to_string(),
             avatar: OrchestrationAvatar::Orchestrator,
             conversation_id: None,
         }
@@ -65,8 +65,8 @@ impl OrchestrationParticipant {
 
     fn unknown_child() -> Self {
         Self {
-            display_name: "Unknown agent".to_string(),
-            avatar: OrchestrationAvatar::agent("Unknown agent".to_string()),
+            display_name: tr_cached(Message::AgentUnknown).to_string(),
+            avatar: OrchestrationAvatar::agent(tr_cached(Message::AgentUnknown).to_string()),
             conversation_id: None,
         }
     }
@@ -459,7 +459,9 @@ pub(super) fn render_send_message(
                 );
             }
             SendMessageToAgentResult::Error(error) => {
-                let label = format!("Failed to send message to {recipients}: {error}");
+                let label = tr_cached(Message::AgentSendMessageFailed)
+                    .replacen("{}", &recipients, 1)
+                    .replacen("{}", error, 1);
                 let status_icon = inline_action_icons::red_x_icon(appearance).finish();
                 return render_requested_action_row_for_text(
                     label.into(),
@@ -476,7 +478,8 @@ pub(super) fn render_send_message(
                 .finish();
             }
             SendMessageToAgentResult::Cancelled => {
-                let label = format!("Send message to {recipients} cancelled.");
+                let label =
+                    tr_cached(Message::AgentSendMessageCancelled).replace("{}", &recipients);
                 let status_icon = inline_action_icons::cancelled_icon(appearance).finish();
                 return render_requested_action_row_for_text(
                     label.into(),
@@ -502,9 +505,11 @@ pub(super) fn render_send_message(
         || status.as_ref().is_some_and(|s| s.is_queued());
 
     let label_fragments = vec![
-        FormattedTextFragment::plain_text("Sending message to "),
+        FormattedTextFragment::plain_text(tr_cached(Message::AgentSendingMessageTo)),
         FormattedTextFragment::bold(&recipients),
-        FormattedTextFragment::plain_text(format!(": {subject}")),
+        FormattedTextFragment::plain_text(
+            tr_cached(Message::AgentSendingMessageSubject).replace("{}", subject),
+        ),
     ];
     let mut header_text = render_formatted_text_element(label_fragments, app);
     if should_dim_text {
@@ -579,7 +584,7 @@ pub(super) fn render_start_agent(
         let (label_fragments, status_icon) = match result {
             StartAgentResult::Success { .. } => (
                 vec![
-                    FormattedTextFragment::plain_text("Started agent "),
+                    FormattedTextFragment::plain_text(start_agent_success_prefix(execution_mode)),
                     FormattedTextFragment::bold(name),
                     FormattedTextFragment::plain_text(start_agent_success_suffix(execution_mode)),
                 ],
@@ -597,7 +602,7 @@ pub(super) fn render_start_agent(
                 vec![
                     FormattedTextFragment::plain_text(start_agent_cancelled_prefix(execution_mode)),
                     FormattedTextFragment::bold(name),
-                    FormattedTextFragment::plain_text(" cancelled."),
+                    FormattedTextFragment::plain_text(start_agent_cancelled_suffix(execution_mode)),
                 ],
                 inline_action_icons::cancelled_icon(appearance).finish(),
             ),
@@ -726,30 +731,44 @@ pub(super) fn render_start_agent(
         .finish()
 }
 
+fn start_agent_success_prefix(execution_mode: &StartAgentExecutionMode) -> &'static str {
+    match execution_mode {
+        StartAgentExecutionMode::Local { .. } => tr_cached(Message::AgentStarted),
+        StartAgentExecutionMode::Remote { .. } => "Started agent ",
+    }
+}
+
 fn start_agent_success_suffix(execution_mode: &StartAgentExecutionMode) -> &'static str {
     match execution_mode {
-        StartAgentExecutionMode::Local { .. } => " locally.",
+        StartAgentExecutionMode::Local { .. } => tr_cached(Message::AgentStartedLocally),
         StartAgentExecutionMode::Remote { .. } => " remotely.",
     }
 }
 
 fn start_agent_error_prefix(execution_mode: &StartAgentExecutionMode) -> &'static str {
     match execution_mode {
-        StartAgentExecutionMode::Local { .. } => "Failed to start agent ",
+        StartAgentExecutionMode::Local { .. } => tr_cached(Message::AgentStartFailed),
         StartAgentExecutionMode::Remote { .. } => "Failed to start remote agent ",
     }
 }
 
 fn start_agent_cancelled_prefix(execution_mode: &StartAgentExecutionMode) -> &'static str {
     match execution_mode {
-        StartAgentExecutionMode::Local { .. } => "Start agent ",
+        StartAgentExecutionMode::Local { .. } => tr_cached(Message::AgentStartCancelled),
         StartAgentExecutionMode::Remote { .. } => "Start remote agent ",
+    }
+}
+
+fn start_agent_cancelled_suffix(execution_mode: &StartAgentExecutionMode) -> &'static str {
+    match execution_mode {
+        StartAgentExecutionMode::Local { .. } => tr_cached(Message::AgentStartCancelledSuffix),
+        StartAgentExecutionMode::Remote { .. } => " cancelled.",
     }
 }
 
 fn start_agent_in_progress_prefix(execution_mode: &StartAgentExecutionMode) -> &'static str {
     match execution_mode {
-        StartAgentExecutionMode::Local { .. } => "Starting agent ",
+        StartAgentExecutionMode::Local { .. } => tr_cached(Message::AgentStarting),
         StartAgentExecutionMode::Remote { .. } => "Starting remote agent ",
     }
 }
@@ -827,7 +846,7 @@ fn available_conversation_title_for_id(
         Some(title) if conversation.initial_query().as_deref() != Some(title.as_str()) => {
             Some(title)
         }
-        _ => Some(GENERATING_TITLE_PLACEHOLDER.to_string()),
+        _ => Some(tr_cached(Message::AgentGeneratingTitle).to_string()),
     }
 }
 

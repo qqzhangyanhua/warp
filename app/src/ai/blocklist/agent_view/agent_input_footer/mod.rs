@@ -79,8 +79,6 @@ use crate::settings::{
     AISettings, AISettingsChangedEvent, PrivacySettings, PrivacySettingsChangedEvent,
 };
 use crate::settings_view::SettingsSection;
-#[cfg(feature = "voice_input")]
-use crate::workspaces::user_workspaces::UserWorkspaces;
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::{
     compare_versions, plugin_manager_for, plugin_manager_for_with_shell, CliAgentPluginManager,
@@ -117,6 +115,8 @@ use crate::workspace::view::TOGGLE_PROJECT_EXPLORER_BINDING_NAME;
 use crate::workspace::ToastStack;
 #[cfg(not(target_family = "wasm"))]
 use crate::workspace::WorkspaceAction;
+#[cfg(feature = "voice_input")]
+use crate::workspaces::user_workspaces::UserWorkspaces;
 
 const ENABLE_NLD_TOOLTIP: &str = "Enable terminal command autodetection";
 const DISABLE_NLD_TOOLTIP: &str = "Disable terminal command autodetection";
@@ -168,10 +168,28 @@ fn footer_message(text: &str) -> Option<Message> {
         "ZYH plugin installed. Please restart the session to activate." => {
             Message::FooterWarpPluginInstalledRestart
         }
+        "ZYH plugin installed. Please run /reload-plugins to activate." => {
+            Message::FooterPluginInstalledReloadPlugins
+        }
+        "ZYH plugin installed. Please restart Codex to activate." => {
+            Message::FooterPluginInstalledRestartCodex
+        }
+        "ZYH plugin installed. Please restart Gemini CLI to activate." => {
+            Message::FooterPluginInstalledRestartGemini
+        }
         "Updating ZYH plugin..." => Message::FooterUpdatingWarpPlugin,
         "Failed to update ZYH plugin" => Message::FooterFailedUpdateWarpPlugin,
         "ZYH plugin updated. Please restart the session to activate." => {
             Message::FooterWarpPluginUpdatedRestart
+        }
+        "ZYH plugin updated. Please run /reload-plugins to activate." => {
+            Message::FooterPluginUpdatedReloadPlugins
+        }
+        "ZYH plugin updated. Please restart Codex to activate." => {
+            Message::FooterPluginUpdatedRestartCodex
+        }
+        "ZYH plugin updated. Please restart Gemini CLI to activate." => {
+            Message::FooterPluginUpdatedRestartGemini
         }
         "Voice input limit reached" => Message::FooterVoiceInputLimitReached,
         "No plugin manager available" => Message::FooterNoPluginManager,
@@ -704,12 +722,8 @@ impl AgentInputFooter {
                 #[cfg(not(target_family = "wasm"))]
                 if let CLIAgentSessionsModelEvent::Started { .. } = event {
                     if let Some(agent) = me.cli_agent(ctx) {
-                        let label = if crate::i18n::active_locale(ctx) == crate::i18n::Locale::ZhCn
-                        {
-                            format!("启用 {} 通知", agent.display_name())
-                        } else {
-                            format!("Enable {} notifications", agent.display_name())
-                        };
+                        let label = tr(ctx, Message::FooterEnableNamedNotifications)
+                            .replace("{}", agent.display_name());
                         me.install_plugin_button.update(ctx, |button, ctx| {
                             button.set_label(label, ctx);
                         });
@@ -2118,11 +2132,7 @@ impl AgentInputFooter {
             let is_cache_expired = FeatureFlag::PromptCacheExpiryWarning.is_enabled()
                 && expiry.is_some_and(|expiry| expiry <= Local::now());
             let context_remaining_tooltip =
-                if crate::i18n::active_locale(ctx) == crate::i18n::Locale::ZhCn {
-                    format!("剩余 {remaining_pct}% 上下文")
-                } else {
-                    format!("{remaining_pct}% context remaining")
-                };
+                tr(ctx, Message::FooterContextRemaining).replace("{}", &remaining_pct.to_string());
             let tooltip = if is_cache_expired {
                 format!(
                     "{context_remaining_tooltip} · {}",

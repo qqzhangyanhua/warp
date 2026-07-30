@@ -1849,7 +1849,7 @@ impl LocalCodeEditorView {
                         Shrinkable::new(
                             1.,
                             Text::new_inline(
-                                "Add as context",
+                                tr_cached(Message::CodeAddAsContext),
                                 appearance.ui_font_family(),
                                 appearance.ui_font_size(),
                             )
@@ -2383,7 +2383,7 @@ pub fn render_unsaved_changes_banner(
             Shrinkable::new(
                 1.,
                 Text::new(
-                    "This file has saved changes that are not reflected here.",
+                    tr_cached(Message::CodeSavedChangesNotReflected),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )
@@ -2480,7 +2480,7 @@ pub fn render_remote_disconnected_banner(appearance: &Appearance) -> Box<dyn Ele
             Shrinkable::new(
                 1.,
                 Text::new(
-                    "Remote host disconnected. You will not be able to see updates and save changes.",
+                    tr_cached(Message::CodeRemoteDisconnectedBanner),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )

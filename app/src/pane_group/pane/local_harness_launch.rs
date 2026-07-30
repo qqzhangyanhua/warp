@@ -19,6 +19,7 @@ use crate::ai::ambient_agents::task::{
 };
 use crate::ai::ambient_agents::{AgentConfigSnapshot, AmbientAgentTaskId};
 use crate::ai::local_harness_setup::local_harness_product_disabled_message;
+use crate::i18n::{tr_cached, Message};
 use crate::server::server_api::ai::AIClient;
 use crate::terminal::cli_agent_sessions::plugin_manager::{
     plugin_manager_for, CliAgentPluginManager,
@@ -72,14 +73,10 @@ pub(super) fn normalize_local_child_harness(harness_type: &str) -> Option<Harnes
 pub(super) fn validate_local_harness_shell(shell_type: Option<ShellType>) -> Result<(), String> {
     match shell_type {
         Some(ShellType::Bash) | Some(ShellType::Zsh) | Some(ShellType::Fish) => Ok(()),
-        Some(ShellType::PowerShell) => Err(
-            "Local child harnesses currently require bash, zsh, or fish; PowerShell is not supported."
-                .to_string(),
-        ),
-        None => Err(
-            "Local child harnesses currently require a detected bash, zsh, or fish session."
-                .to_string(),
-        ),
+        Some(ShellType::PowerShell) => {
+            Err(tr_cached(Message::AgentLocalHarnessPowerShellUnsupported).to_string())
+        }
+        None => Err(tr_cached(Message::AgentLocalHarnessShellRequired).to_string()),
     }
 }
 
@@ -175,9 +172,9 @@ pub(super) async fn prepare_local_harness_child_launch(
     let Some(harness) = normalize_local_child_harness(&harness_type) else {
         let harness_name = harness_type.trim();
         return Err(if harness_name.is_empty() {
-            "Local child harness type is missing.".to_string()
+            tr_cached(Message::AgentLocalHarnessTypeMissing).to_string()
         } else {
-            format!("Unsupported local child harness '{harness_name}'.")
+            tr_cached(Message::AgentLocalHarnessUnsupported).replace("{harness}", harness_name)
         });
     };
     if let Some(message) = local_harness_product_disabled_message(harness) {
@@ -191,10 +188,8 @@ pub(super) async fn prepare_local_harness_child_launch(
             let working_dir = startup_directory
                 .or_else(|| std::env::current_dir().ok())
                 .ok_or_else(|| {
-                    format!(
-                        "Could not resolve a working directory for the local {} child.",
-                        harness.display_name()
-                    )
+                    tr_cached(Message::AgentLocalHarnessWorkingDirectoryUnavailable)
+                        .replace("{harness}", harness.display_name())
                 })?;
             let HarnessKind::ThirdParty(third_party_harness) =
                 harness_kind(harness).map_err(|error: AgentDriverError| error.to_string())?

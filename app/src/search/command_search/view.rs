@@ -790,7 +790,7 @@ impl View for CommandSearchView {
 
     fn accessibility_contents(&self, _ctx: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
-            "Command Search".to_owned(),
+            tr_cached(Message::CommandSearchTitle).to_owned(),
             tr_cached(Message::CommandSearchA11yHelp).to_owned(),
             WarpA11yRole::MenuRole,
         ))

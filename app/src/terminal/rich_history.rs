@@ -9,6 +9,7 @@ use warpui::{AppContext, Element, SingletonEntity};
 
 use super::HistoryEntry;
 use crate::appearance::Appearance;
+use crate::i18n::{tr, Message};
 use crate::input_suggestions::AIQueryHistoryEntryDetails;
 use crate::ui_components::icons::Icon as UiIcon;
 use crate::util::time_format::{format_approx_duration_from_now, human_readable_precise_duration};
@@ -41,7 +42,7 @@ pub fn render_rich_history(entry: &HistoryEntry, ctx: &AppContext) -> Box<dyn El
         flex_column.add_child(
             Container::new(render_row_with_icon_and_paragraph(
                 icon.into(),
-                format!("Exit code {}", exit_code.value()),
+                tr(ctx, Message::TerminalExitCode).replace("{}", &exit_code.value().to_string()),
                 appearance,
             ))
             .with_margin_top(DETAILS_PARAGRAPH_SPACING)
@@ -77,9 +78,9 @@ pub fn render_rich_history(entry: &HistoryEntry, ctx: &AppContext) -> Box<dyn El
         flex_column.add_child(
             Container::new(
                 ui_builder
-                    .paragraph(format!(
-                        "Finished in {}",
-                        human_readable_precise_duration((completed_ts).sub(start_ts))
+                    .paragraph(tr(ctx, Message::TerminalFinishedIn).replace(
+                        "{}",
+                        &human_readable_precise_duration((completed_ts).sub(start_ts)),
                     ))
                     .build()
                     .finish(),
@@ -93,10 +94,10 @@ pub fn render_rich_history(entry: &HistoryEntry, ctx: &AppContext) -> Box<dyn El
         flex_column.add_child(
             Container::new(
                 ui_builder
-                    .paragraph(format!(
-                        "Last ran {}",
-                        format_approx_duration_from_now(start_ts)
-                    ))
+                    .paragraph(
+                        tr(ctx, Message::A11yLastRan)
+                            .replace("{}", &format_approx_duration_from_now(start_ts)),
+                    )
                     .build()
                     .finish(),
             )

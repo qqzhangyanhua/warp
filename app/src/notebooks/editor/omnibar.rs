@@ -27,6 +27,7 @@ use super::model::{NotebooksEditorModel, RichTextEditorModelEvent};
 use super::view::EditorViewAction;
 use super::BlockType;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::MenuVariant;
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;
@@ -441,14 +442,18 @@ impl TypedActionView for Omnibar {
                 .style_toggle_a11y(BufferTextStyle::InlineCode),
             OmnibarAction::ConvertBlock(style) => {
                 ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
-                    format!("Convert to {}", BlockType::from(style).label()),
+                    tr_cached(Message::A11yNotebookConvertTo)
+                        .replace("{}", BlockType::from(style).label()),
                     WarpA11yRole::UserAction,
                 ))
             }
             OmnibarAction::OpenLinkEditor => ActionAccessibilityContent::from_debug(),
-            OmnibarAction::UnstyleLink => ActionAccessibilityContent::Custom(
-                AccessibilityContent::new_without_help("Remove link", WarpA11yRole::UserAction),
-            ),
+            OmnibarAction::UnstyleLink => {
+                ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
+                    tr_cached(Message::A11yNotebookRemoveLink),
+                    WarpA11yRole::UserAction,
+                ))
+            }
         }
     }
 }

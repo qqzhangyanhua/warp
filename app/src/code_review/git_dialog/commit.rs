@@ -241,7 +241,7 @@ pub(super) fn confirm_tooltip(state: &CommitState, app: &AppContext) -> Option<&
     // Only nudge for a missing message; an empty Changes box is self-evident,
     // and gating a tooltip on it would also flash during the open-time load.
     if has_committable_changes(state) && commit_message(state, app).is_none() {
-        return Some("Enter a commit message");
+        return Some(tr_cached(Message::CodeReviewEnterCommitMessage));
     }
     None
 }
@@ -428,9 +428,9 @@ pub(super) fn finish_commit_chain(
         Ok(Some(pr)) => show_pr_created_toast(pr, ctx),
         Ok(None) => {
             let msg = if matches!(intent, CommitChainMode::CommitOnly) {
-                "Changes successfully committed."
+                tr_cached(Message::ToastChangesCommitted)
             } else {
-                "Changes committed and pushed."
+                tr_cached(Message::ToastChangesCommittedAndPushed)
             };
             show_toast(msg, ctx);
         }
@@ -553,7 +553,7 @@ fn render_changes_section(state: &CommitState, appearance: &Appearance) -> Box<d
     let sub_color = theme.sub_text_color(theme.surface_1()).into_solid();
 
     let changes_label = Text::new(
-        "Changes",
+        tr_cached(Message::CodeReviewChanges),
         appearance.ui_font_family(),
         appearance.ui_font_size(),
     )
@@ -561,7 +561,7 @@ fn render_changes_section(state: &CommitState, appearance: &Appearance) -> Box<d
     .finish();
 
     let include_label = Text::new(
-        "Include unstaged",
+        tr_cached(Message::CodeReviewIncludeUnstaged),
         appearance.ui_font_family(),
         appearance.ui_font_size(),
     )

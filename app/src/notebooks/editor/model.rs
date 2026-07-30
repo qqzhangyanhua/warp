@@ -47,6 +47,7 @@ use super::interaction_state_model::InteractionStateModel;
 use super::notebook_command::NotebookCommand;
 use super::NotebookWorkflow;
 use crate::editor::InteractionState;
+use crate::i18n::{tr_cached, Message};
 use crate::notebooks::editor::interaction_state_model::InteractionStateModelEvent;
 use crate::notebooks::file::MarkdownDisplayMode;
 use crate::notebooks::telemetry::BlockInfo;
@@ -1376,7 +1377,7 @@ impl NotebooksEditorModel {
 
         if let Some(command) = child_model.executable_command(ctx) {
             ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-                format!("Selected workflow: {command}"),
+                tr_cached(Message::A11yNotebookSelectedWorkflow).replace("{}", &command),
                 WarpA11yRole::TextareaRole,
             ));
         }
@@ -1733,12 +1734,19 @@ impl NotebooksEditorModel {
 
     /// Accessibility content for toggling an inline style.
     pub fn style_toggle_a11y(&self, style: BufferTextStyle) -> ActionAccessibilityContent {
-        let action = if self.is_style_active(style) {
-            "off"
-        } else {
-            "on"
+        let style_label = match style {
+            BufferTextStyle::Weight(_) => tr_cached(Message::NotebookStyleBold),
+            BufferTextStyle::Italic => tr_cached(Message::NotebookStyleItalic),
+            BufferTextStyle::Underline => tr_cached(Message::NotebookStyleUnderline),
+            BufferTextStyle::InlineCode => tr_cached(Message::NotebookStyleInlineCode),
+            BufferTextStyle::StrikeThrough => tr_cached(Message::NotebookStyleStrikethrough),
         };
-        let text = format!("{style:?} {action}");
+        let template = if self.is_style_active(style) {
+            tr_cached(Message::A11yNotebookStyleOff)
+        } else {
+            tr_cached(Message::A11yNotebookStyleOn)
+        };
+        let text = template.replace("{}", style_label);
         ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
             text,
             WarpA11yRole::UserAction,

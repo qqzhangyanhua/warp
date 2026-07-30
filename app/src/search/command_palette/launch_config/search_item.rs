@@ -5,6 +5,7 @@ use ordered_float::OrderedFloat;
 use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::launch_configs::launch_config::LaunchConfig;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::command_palette::render_util::render_search_item_icon;
@@ -71,10 +72,10 @@ impl crate::search::item::SearchItem for SearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        format!("Selected {}.", self.launch_config.name)
+        tr_cached(Message::A11ySelectedItem).replace("{}", &self.launch_config.name)
     }
 
     fn accessibility_help_message(&self) -> Option<String> {
-        Some("Press enter to use this launch configuration.".into())
+        Some(tr_cached(Message::A11yPressEnterUseLaunchConfiguration).into())
     }
 }

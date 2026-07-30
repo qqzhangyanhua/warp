@@ -1,6 +1,7 @@
 use warpui::keymap::{BindingDescription, PerPlatformKeystroke};
 
 use super::StaticCommand;
+use crate::i18n::{tr, Message};
 use crate::search::slash_command_menu::static_commands::localized_command_description;
 
 pub enum DefaultSlashCommandBinding {
@@ -36,14 +37,14 @@ pub fn binding_description(command: &StaticCommand) -> BindingDescription {
     let description = command.description;
     BindingDescription::new_preserve_case(format!("Slash command: {name}")).with_dynamic_override(
         move |ctx| {
-            if crate::i18n::active_locale(ctx) != crate::i18n::Locale::ZhCn {
-                return None;
-            }
-
-            Some(format!(
-                "斜杠命令：{name} — {}",
-                localized_command_description(ctx, description)
-            ))
+            Some(
+                tr(ctx, Message::SlashCommandNamed)
+                    .replace("{name}", name)
+                    .replace(
+                        "{description}",
+                        localized_command_description(ctx, description),
+                    ),
+            )
         },
     )
 }

@@ -6,6 +6,7 @@ use warpui::platform::Cursor;
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 
 pub enum NewFeaturePopupLabel {
@@ -56,7 +57,7 @@ impl FeaturePopup {
         match self.badge {
             FeaturePopupBadge::New => Container::new(
                 Text::new(
-                    "NEW",
+                    tr_cached(Message::CommonNewUpper),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )

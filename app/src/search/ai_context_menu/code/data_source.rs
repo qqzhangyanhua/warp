@@ -23,6 +23,8 @@ use warpui::ModelSpawner;
 #[cfg(not(target_family = "wasm"))]
 use warpui::SingletonEntity;
 
+use crate::i18n::{tr_cached, Message};
+
 #[cfg(not(target_family = "wasm"))]
 use super::search_item::CodeSearchItem;
 #[cfg(not(target_family = "wasm"))]
@@ -235,7 +237,7 @@ struct CodeSearchError;
 #[cfg(not(target_family = "wasm"))]
 impl DataSourceRunError for CodeSearchError {
     fn user_facing_error(&self) -> String {
-        "Code search failed".to_string()
+        tr_cached(Message::CodeSearchFailed).to_string()
     }
 
     fn telemetry_payload(&self) -> serde_json::Value {

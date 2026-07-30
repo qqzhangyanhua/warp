@@ -59,19 +59,14 @@ use crate::view_components::action_button::{
 };
 use crate::workspace::view::right_panel::ReviewDestination;
 
-/// Header text for the outdated section when there is exactly one outdated comment.
-const OUTDATED_SECTION_HEADER_SINGULAR: &str = "1 comment will be omitted because it is outdated.";
-/// Header text format for the outdated section when there are multiple outdated comments.
-/// Use with `format!` to insert the count.
-const OUTDATED_SECTION_HEADER_PLURAL_FMT: &str =
-    " comments will be omitted because they are outdated.";
-
 /// Returns the header text for the outdated section based on the number of outdated comments.
 fn outdated_section_header_text(count: usize) -> Cow<'static, str> {
     if count == 1 {
-        Cow::Borrowed(OUTDATED_SECTION_HEADER_SINGULAR)
+        Cow::Borrowed(tr_cached(Message::CodeReviewOneOutdatedCommentOmitted))
     } else {
-        Cow::Owned(format!("{count}{OUTDATED_SECTION_HEADER_PLURAL_FMT}"))
+        Cow::Owned(
+            tr_cached(Message::CodeReviewOutdatedCommentsOmitted).replace("{}", &count.to_string()),
+        )
     }
 }
 
@@ -961,22 +956,22 @@ impl CommentListView {
     ) -> Cow<'static, str> {
         if let ReviewDestination::Cli(agent) = destination {
             if !has_sendable_comments {
-                Cow::Borrowed("No non-outdated comments to send")
+                Cow::Borrowed(tr_cached(Message::CodeReviewNoNonOutdatedComments))
             } else {
                 let cmd = agent.command_prefix();
                 let label = if cmd.is_empty() { "CLI agent" } else { cmd };
-                Cow::Owned(format!("Send diff comments to {label}"))
+                Cow::Owned(tr_cached(Message::CodeReviewSendCommentsToNamed).replace("{}", label))
             }
         } else if !ai_enabled {
-            Cow::Borrowed("AI must be enabled to send comments to Agent")
+            Cow::Borrowed(tr_cached(Message::CodeReviewAiMustBeEnabled))
         } else if !ai_available {
-            Cow::Borrowed("Agent code review requires AI credits")
+            Cow::Borrowed(tr_cached(Message::CodeReviewRequiresAiCredits))
         } else if matches!(destination, ReviewDestination::None) {
-            Cow::Borrowed("All terminals are busy")
+            Cow::Borrowed(tr_cached(Message::CodeReviewAllTerminalsBusy))
         } else if !has_sendable_comments {
-            Cow::Borrowed("No non-outdated comments to send")
+            Cow::Borrowed(tr_cached(Message::CodeReviewNoNonOutdatedComments))
         } else {
-            Cow::Borrowed("Send diff comments to Agent")
+            Cow::Borrowed(tr_cached(Message::CodeReviewSendCommentsToAgent))
         }
     }
 
@@ -1068,9 +1063,9 @@ impl CommentListView {
             .with_on_select_action(CommentListAction::EditComment);
         if is_file_level || is_outdated {
             let tooltip_text = if is_file_level {
-                "File-level comments currently can't be edited."
+                tr_cached(Message::CodeReviewFileLevelCommentsCannotEdit)
             } else {
-                "Outdated comments can't be edited."
+                tr_cached(Message::CodeReviewOutdatedCommentsCannotEdit)
             };
             edit_item = edit_item.with_disabled(true).with_tooltip(tooltip_text);
         }

@@ -133,7 +133,7 @@ impl SearchItem for WarpAISearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        format!("ZYH AI: {}", self.item_body_text())
+        tr_cached(Message::A11yZyhAiNamed).replace("{}", self.item_body_text())
     }
 }
 
@@ -230,9 +230,9 @@ impl DataSourceRunError for GenerateCommandsFromNaturalLanguageError {
     fn user_facing_error(&self) -> String {
         match self {
             Self::BadPrompt => tr_cached(Message::NoResultsTryMoreSpecific),
-            Self::AiProviderError => "Something went wrong. Please try again.",
-            Self::RateLimited => "Looks like you're out of AI credits. Please try again later.",
-            Self::Other => "Something went wrong. Please try again.",
+            Self::AiProviderError => tr_cached(Message::TerminalSomethingWentWrong),
+            Self::RateLimited => tr_cached(Message::CommandSearchOutOfCreditsRetryLater),
+            Self::Other => tr_cached(Message::TerminalSomethingWentWrong),
         }
         .to_string()
     }

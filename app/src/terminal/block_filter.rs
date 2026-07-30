@@ -746,8 +746,8 @@ impl View for BlockFilterEditor {
 
     fn accessibility_contents(&self, _: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
-            "Type searched phrase.",
-            "Press escape to quit",
+            tr_cached(Message::FindTypeSearchedPhrase),
+            tr_cached(Message::A11yPressEscapeQuit),
             WarpA11yRole::TextareaRole,
         ))
     }

@@ -27,6 +27,7 @@ use crate::code_review::git_dialog::{
 use crate::code_review::telemetry_event::{
     CodeReviewTelemetryEvent, GitDialogStatus, GitOperationKind,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 use crate::util::git::Commit;
 
@@ -60,9 +61,9 @@ pub(super) fn new_state(publish: bool, commits: Vec<Commit>) -> PushState {
 
 pub(super) fn confirm_label(publish: bool) -> &'static str {
     if publish {
-        "Publish"
+        tr_cached(Message::CodeReviewPublish)
     } else {
-        "Push"
+        tr_cached(Message::CodeReviewPush)
     }
 }
 
@@ -76,9 +77,9 @@ pub(super) fn confirm_icon(publish: bool) -> Icon {
 
 fn loading_label(publish: bool) -> &'static str {
     if publish {
-        "Publishing…"
+        tr_cached(Message::CodeReviewPublishing)
     } else {
-        "Pushing…"
+        tr_cached(Message::CodeReviewPushing)
     }
 }
 
@@ -128,9 +129,9 @@ pub(super) fn finish_push(
     match result {
         Ok(_) => {
             let toast_msg = if publish {
-                "Branch successfully published."
+                tr_cached(Message::ToastBranchPublished)
             } else {
-                "Changes successfully pushed."
+                tr_cached(Message::ToastChangesPushed)
             };
             show_toast(toast_msg, ctx);
         }
@@ -179,7 +180,7 @@ fn render_commits_section(state: &PushState, appearance: &Appearance) -> Box<dyn
     let sub_color = theme.sub_text_color(theme.surface_1()).into_solid();
 
     let label = Text::new(
-        "Included commits",
+        tr_cached(Message::CodeReviewIncludedCommits),
         appearance.ui_font_family(),
         appearance.ui_font_size(),
     )

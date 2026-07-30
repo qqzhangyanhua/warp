@@ -245,7 +245,7 @@ impl ConversationSearchItem {
 
             let fork_button_tool_tip = appearance
                 .ui_builder()
-                .tool_tip("Fork conversation".to_string())
+                .tool_tip(tr_cached(Message::TooltipForkConversation).into())
                 .build();
 
             let fork_button_inner = icon_button(

@@ -36,6 +36,7 @@ use self::context_chip::{ChipFingerprintInput, ChipRuntimePolicy, ContextChip, R
 use self::renderer::RendererStyles;
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::themes::theme::PromptColors;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
@@ -205,6 +206,32 @@ pub enum ContextChipKind {
 }
 
 impl ContextChipKind {
+    pub fn localized_title(&self) -> String {
+        match self {
+            Self::WorkingDirectory => tr_cached(Message::ContextWorkingDirectory),
+            Self::Username => tr_cached(Message::CommonUser),
+            Self::Hostname => tr_cached(Message::ContextHost),
+            Self::VirtualEnvironment => tr_cached(Message::ContextPythonVirtualenv),
+            Self::CondaEnvironment => tr_cached(Message::ContextCondaEnvironment),
+            Self::NodeVersion => tr_cached(Message::ContextNodeVersion),
+            Self::Date => tr_cached(Message::ContextDate),
+            Self::Time12 => tr_cached(Message::ContextTime12Hour),
+            Self::Time24 => tr_cached(Message::ContextTime24Hour),
+            Self::Custom { title } => return title.clone(),
+            Self::ShellGitBranch => tr_cached(Message::ContextGitBranch),
+            Self::GitBranchStatus => tr_cached(Message::ContextGitBranchStatus),
+            Self::GitDiffStats => tr_cached(Message::ContextGitDiffStats),
+            Self::GithubPullRequest => tr_cached(Message::ContextGithubPullRequest),
+            Self::KubernetesContext => tr_cached(Message::ContextKubernetes),
+            Self::SvnBranch => tr_cached(Message::ContextSvnBranch),
+            Self::SvnDirtyItems => tr_cached(Message::ContextSvnUncommittedFileCount),
+            Self::Ssh => tr_cached(Message::ContextRemoteLogin),
+            Self::Subshell => tr_cached(Message::ContextSubshell),
+            Self::AgentPlanAndTodoList => tr_cached(Message::ContextAgentPlanAndTodoList),
+        }
+        .to_owned()
+    }
+
     pub fn to_chip(&self) -> Option<ContextChip> {
         match self {
             Self::WorkingDirectory => Some(ContextChip::builtin_with_runtime_policy(

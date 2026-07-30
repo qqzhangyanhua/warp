@@ -9,6 +9,7 @@ use warpui::fonts::{Properties, Weight};
 use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::command_palette::styles;
 use crate::search::files::icon::icon_from_file_path;
@@ -97,17 +98,17 @@ impl SearchItem for FileSearchItem {
 
     fn accessibility_label(&self) -> String {
         if self.is_directory {
-            format!("Directory: {}", self.path.display())
+            tr_cached(Message::A11yDirectoryLabel).replace("{}", &self.path.display().to_string())
         } else {
-            format!("File: {}", self.path.display())
+            tr_cached(Message::A11yFileLabel).replace("{}", &self.path.display().to_string())
         }
     }
 
     fn accessibility_help_message(&self) -> Option<String> {
         Some(if self.is_directory {
-            "Press Enter to navigate to this directory".to_string()
+            tr_cached(Message::A11yPressEnterNavigateDirectory).to_string()
         } else {
-            "Press Enter to open this file".to_string()
+            tr_cached(Message::A11yPressEnterOpenFile).to_string()
         })
     }
 
@@ -161,7 +162,7 @@ impl SearchItem for CreateFileSearchItem {
         let text_color = highlight_state.sub_text_fill(appearance).into_solid();
 
         let label = Text::new_inline(
-            format!("Create a file named {}…", &self.file_name),
+            tr_cached(Message::SearchCreateFileNamed).replace("{}", &self.file_name),
             appearance.ui_font_family(),
             appearance.monospace_font_size(),
         )
@@ -195,14 +196,11 @@ impl SearchItem for CreateFileSearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        format!("Create file: {}", self.file_name)
+        tr_cached(Message::A11yCreateFileLabel).replace("{}", &self.file_name)
     }
 
     fn accessibility_help_message(&self) -> Option<String> {
-        Some(format!(
-            "Press Enter to create {} in the current directory",
-            self.file_name
-        ))
+        Some(tr_cached(Message::A11yPressEnterCreateFile).replace("{}", &self.file_name))
     }
 
     fn render_details(&self, _ctx: &AppContext) -> Option<Box<dyn Element>> {

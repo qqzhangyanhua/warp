@@ -391,9 +391,10 @@ pub(super) fn render(props: Props, app: &AppContext) -> Box<dyn Element> {
                             && props.thinking_display_mode.should_render() =>
                         {
                             let header_text = if let Some(dur) = finished_duration {
-                                format!("Thought for {}", format_elapsed_seconds(*dur))
+                                tr_cached(Message::AgentThoughtFor)
+                                    .replace("{}", &format_elapsed_seconds(*dur))
                             } else {
-                                "Thinking".to_string()
+                                tr_cached(Message::AgentThinking).to_string()
                             };
                             if let Some(element) = render_collapsible_block(
                                 output_message,
@@ -491,7 +492,7 @@ pub(super) fn render(props: Props, app: &AppContext) -> Box<dyn Element> {
                                             // action so the user sees the error instead
                                             // of an empty box.
                                             let formatted_text = render_requested_action_body_text(
-                                                "Failed to read files".into(),
+                                                tr_cached(Message::AgentFailedReadFiles).into(),
                                                 appearance.ui_font_family(),
                                                 app,
                                             );
@@ -921,7 +922,8 @@ pub(super) fn render(props: Props, app: &AppContext) -> Box<dyn Element> {
                             SummarizationType::ConversationSummary
                         ) && !are_all_text_sections_empty(&text.sections) =>
                         {
-                            let header_text = "Conversation summarized".to_string();
+                            let header_text =
+                                tr_cached(Message::AgentConversationSummarized).to_string();
                             if let Some(element) = render_collapsible_block(
                                 output_message,
                                 header_text,
@@ -1049,7 +1051,7 @@ pub(super) fn render(props: Props, app: &AppContext) -> Box<dyn Element> {
                                         .and_then(|c| c.title())
                                         .map(|q| truncate_from_end(&q, 40));
                                     Some((
-                                        "conversation",
+                                        tr_cached(Message::AgentConversationKind),
                                         title.unwrap_or_else(|| target_id.clone()),
                                     ))
                                 })
@@ -1064,36 +1066,39 @@ pub(super) fn render(props: Props, app: &AppContext) -> Box<dyn Element> {
                                         })
                                         .map(|task| truncate_from_end(&task.title, 40));
                                     Some((
-                                        "agent run",
+                                        tr_cached(Message::AgentRunKind),
                                         title.unwrap_or_else(|| truncate_from_end(target_id, 40)),
                                     ))
                                 });
 
                             let done = is_finished || is_cancelled;
-                            let verb = if done { "Searched" } else { "Searching" };
+                            let verb = if done {
+                                tr_cached(Message::AgentSearchedPrefix)
+                            } else {
+                                tr_cached(Message::AgentSearchingPrefix)
+                            };
 
                             let mut fragments: Vec<FormattedTextFragment> =
-                                vec![FormattedTextFragment::plain_text(format!("{verb} "))];
+                                vec![FormattedTextFragment::plain_text(verb)];
                             match &target_label {
                                 Some((target_kind, name)) => {
-                                    fragments.push(FormattedTextFragment::plain_text(format!(
-                                        "{target_kind} "
-                                    )));
+                                    fragments.push(FormattedTextFragment::plain_text(*target_kind));
                                     fragments.push(FormattedTextFragment::weighted(
                                         name.as_str(),
                                         Some(markdown_parser::weight::CustomWeight::Bold),
                                     ));
                                 }
                                 None => {
-                                    fragments.push(FormattedTextFragment::plain_text(
-                                        "this conversation",
-                                    ));
+                                    fragments.push(FormattedTextFragment::plain_text(tr_cached(
+                                        Message::AgentThisConversation,
+                                    )));
                                 }
                             };
                             match query {
                                 Some(q) => {
-                                    fragments
-                                        .push(FormattedTextFragment::plain_text(format!(": {q}")));
+                                    fragments.push(FormattedTextFragment::plain_text(
+                                        tr_cached(Message::AgentSearchQuerySuffix).replace("{}", q),
+                                    ));
                                 }
                                 None if !done => {
                                     fragments.push(FormattedTextFragment::plain_text("..."));
@@ -1426,10 +1431,12 @@ fn render_search_codebase(
                                     .codebase_search_speedbump_option_handles
                                     .clone(),
                                 vec![
-                                    RadioButtonItem::text(
-                                        "Always allow file access for coding tasks",
-                                    ),
-                                    RadioButtonItem::text("Always allow file access for this repo"),
+                                    RadioButtonItem::text(tr_cached(
+                                        Message::AgentAlwaysAllowFileAccessForCodingTasks,
+                                    )),
+                                    RadioButtonItem::text(tr_cached(
+                                        Message::AgentAlwaysAllowFileAccessForThisRepo,
+                                    )),
                                 ],
                                 props
                                     .state_handles
@@ -1471,7 +1478,7 @@ fn render_search_codebase(
                                 appearance
                                     .ui_builder()
                                     .link(
-                                        "Manage AI Autonomy permissions".into(),
+                                        tr_cached(Message::AgentManageAutonomyPermissions).into(),
                                         None,
                                         Some(Box::new(move |ctx| {
                                             ctx.dispatch_typed_action(
@@ -1519,7 +1526,9 @@ fn render_search_codebase(
                         renderable_action(
                             props,
                             id,
-                            format!("Search in {}", root_repo_path.to_string_lossy()).as_str(),
+                            tr_cached(Message::AgentSearchIn)
+                                .replace("{}", &root_repo_path.to_string_lossy())
+                                .as_str(),
                             app,
                             footer,
                             appearance,
@@ -1569,7 +1578,9 @@ fn render_search_codebase(
                     renderable_action(
                         props,
                         id,
-                        format!("Searching in {}", root_repo_path.to_string_lossy()).as_str(),
+                        tr_cached(Message::AgentSearchingIn)
+                            .replace("{}", &root_repo_path.to_string_lossy())
+                            .as_str(),
                         app,
                         footer,
                         appearance,
@@ -1595,7 +1606,7 @@ fn render_search_codebase(
                                 renderable_action(
                                     props,
                                     id,
-                                    "No relevant files found.",
+                                    tr_cached(Message::AgentNoRelevantFiles),
                                     app,
                                     footer,
                                     appearance,
@@ -1630,13 +1641,12 @@ fn render_search_codebase(
                         SearchCodebaseResult::Failed { reason, .. } => {
                             let root_repo_path = root_repo_path?;
                             let message = match reason {
-                                SearchCodebaseFailureReason::CodebaseNotIndexed => format!(
-                                    "Search in {} failed because the codebase isn't indexed",
-                                    root_repo_path.to_string_lossy(),
-                                ),
-                                _ => {
-                                    format!("Search in {} failed", root_repo_path.to_string_lossy())
+                                SearchCodebaseFailureReason::CodebaseNotIndexed => {
+                                    tr_cached(Message::AgentSearchInFailedNotIndexed)
+                                        .replace("{}", &root_repo_path.to_string_lossy())
                                 }
+                                _ => tr_cached(Message::AgentSearchInFailed)
+                                    .replace("{}", &root_repo_path.to_string_lossy()),
                             };
                             renderable_action(
                                 props,
@@ -1655,7 +1665,8 @@ fn render_search_codebase(
                             renderable_action(
                                 props,
                                 id,
-                                format!("Search in {} cancelled", root_repo_path.to_string_lossy())
+                                tr_cached(Message::AgentSearchInCancelled)
+                                    .replace("{}", &root_repo_path.to_string_lossy())
                                     .as_str(),
                                 app,
                                 footer,
@@ -1674,7 +1685,9 @@ fn render_search_codebase(
             renderable_action(
                 props,
                 id,
-                format!("Search in {}", root_repo_path.to_string_lossy()).as_str(),
+                tr_cached(Message::AgentSearchIn)
+                    .replace("{}", &root_repo_path.to_string_lossy())
+                    .as_str(),
                 app,
                 footer,
                 appearance,
@@ -1875,7 +1888,7 @@ fn render_read_skill(
 
                 let skill_icon_override = icon_override_for_skill_name(&skill.name);
                 let open_button = render_skill_button(
-                    "Open skill",
+                    tr_cached(Message::AgentOpenSkill),
                     button_handle,
                     appearance,
                     skill.provider,
@@ -1973,7 +1986,7 @@ fn render_read_files(
             *shown.lock() = true;
             renderable_action =
                 renderable_action.with_footer(render_autonomy_checkbox_setting_speedbump_footer(
-                    "Always allow file access for coding tasks",
+                    tr_cached(Message::AgentAlwaysAllowFileAccessForCodingTasks),
                     *checked,
                     AIBlockAction::ToggleAutoreadFilesSpeedbumpCheckbox,
                     props
@@ -2132,20 +2145,20 @@ fn render_stopped_output(props: Props, app: &AppContext) -> Box<dyn Element> {
                         .get_item_index(&item.id)
                         .map(|index| (item, index))
                 }) {
-                    return Some(format!(
-                        "Stopped task {}/{}: \"{}\"",
-                        item_index + 1,
-                        todo_list.len(),
-                        item.title
-                    ));
+                    return Some(
+                        tr_cached(Message::AgentStoppedTaskPosition)
+                            .replace("{current}", &(item_index + 1).to_string())
+                            .replace("{total}", &todo_list.len().to_string())
+                            .replace("{title}", &item.title),
+                    );
                 }
             }
 
-            conversation
-                .initial_query()
-                .map(|task_name| format!("Stopped task: \"{task_name}\""))
+            conversation.initial_query().map(|task_name| {
+                tr_cached(Message::AgentStoppedTaskNamed).replace("{}", &task_name)
+            })
         })
-        .unwrap_or_else(|| "Stopped task".to_string());
+        .unwrap_or_else(|| tr_cached(Message::AgentStoppedTask).to_string());
 
     let stop_icon = Container::new(
         ConstrainedBox::new(gray_stop_icon(appearance).finish())
@@ -2293,7 +2306,7 @@ fn render_requested_edits_output_message(
             .view
             .as_ref(app)
             .title()
-            .unwrap_or("Could not apply changes to file.");
+            .unwrap_or_else(|| tr_cached(Message::AgentCouldNotApplyChangesToFile));
         RenderableAction::new(title, app)
             .with_icon(inline_action_icons::cancelled_icon(appearance).finish())
             .render(app)
@@ -2302,7 +2315,7 @@ fn render_requested_edits_output_message(
         match requested_edit.view.as_ref(app).display_mode() {
             DisplayMode::FullPane => Align::new(
                 Text::new_inline(
-                    "This suggestion is being edited in another tab.",
+                    tr_cached(Message::AgentSuggestionEditedAnotherTab),
                     appearance.ui_font_family(),
                     appearance.monospace_font_size(),
                 )
@@ -2446,9 +2459,10 @@ fn render_suggest_new_conversation(
     }
 
     if props.shared_session_status.is_viewer() {
-        let header_element = HeaderConfig::new("Start a new conversation", app)
-            .with_icon(gray_stop_icon(appearance))
-            .render(app);
+        let header_element =
+            HeaderConfig::new(tr_cached(Message::SlashDescStartNewConversation), app)
+                .with_icon(gray_stop_icon(appearance))
+                .render(app);
 
         return Some(
             header_element
@@ -2461,8 +2475,7 @@ fn render_suggest_new_conversation(
 
     let mut content = Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
 
-    let new_conversation_header_text =
-        "It seems like the topic changed. Would you like to make a new conversation?";
+    let new_conversation_header_text = tr_cached(Message::AgentTopicChangedNewConversation);
     let new_conversation_header_element = HeaderConfig::new(new_conversation_header_text, app)
         .with_icon(yellow_stop_icon(appearance))
         .with_corner_radius_override(CornerRadius::with_top(Radius::Pixels(8.)))
@@ -2509,7 +2522,7 @@ fn create_formatted_text_for_grep(
         .is_some_and(|status| status.is_queued());
 
     let display_path = if path == "." {
-        "the current directory".to_string()
+        tr_cached(Message::AgentCurrentDirectory).to_string()
     } else {
         shell_native_absolute_path(
             path,
@@ -2524,19 +2537,23 @@ fn create_formatted_text_for_grep(
             .expect("Queries slice should have an element");
         let mut fragments = if is_cancelled || is_queued {
             vec![
-                FormattedTextFragment::plain_text("Grep for "),
+                FormattedTextFragment::plain_text(tr_cached(Message::AgentGrepFor)),
                 FormattedTextFragment::inline_code(query),
             ]
         } else {
             vec![
-                FormattedTextFragment::plain_text("Grepping for "),
+                FormattedTextFragment::plain_text(tr_cached(Message::AgentGreppingFor)),
                 FormattedTextFragment::inline_code(query),
             ]
         };
         fragments.push(if is_cancelled {
-            FormattedTextFragment::plain_text(format!(" in {display_path} cancelled"))
+            FormattedTextFragment::plain_text(
+                tr_cached(Message::AgentInPathCancelled).replace("{}", &display_path),
+            )
         } else {
-            FormattedTextFragment::plain_text(format!(" in {display_path}"))
+            FormattedTextFragment::plain_text(
+                tr_cached(Message::AgentInPath).replace("{}", &display_path),
+            )
         });
         FormattedText::new([FormattedTextLine::Line(fragments)])
     } else {
@@ -2544,19 +2561,19 @@ fn create_formatted_text_for_grep(
 
         if is_cancelled {
             lines.push(FormattedTextLine::Line(vec![
-                FormattedTextFragment::plain_text(format!(
-                    "Cancelled grep for the following patterns in {display_path}"
-                )),
+                FormattedTextFragment::plain_text(
+                    tr_cached(Message::AgentCancelledGrepPatterns).replace("{}", &display_path),
+                ),
             ]));
         } else {
             lines.push(FormattedTextLine::Line(vec![if is_queued {
-                FormattedTextFragment::plain_text(format!(
-                    "Grep for the following patterns in {display_path}"
-                ))
+                FormattedTextFragment::plain_text(
+                    tr_cached(Message::AgentGrepPatterns).replace("{}", &display_path),
+                )
             } else {
-                FormattedTextFragment::plain_text(format!(
-                    "Grepping for the following patterns in {display_path}"
-                ))
+                FormattedTextFragment::plain_text(
+                    tr_cached(Message::AgentGreppingPatterns).replace("{}", &display_path),
+                )
             }]));
         }
 
@@ -2620,7 +2637,7 @@ fn create_formatted_text_for_file_glob(
                 props.current_working_directory,
             )
         })
-        .unwrap_or_else(|| "the current directory".to_string());
+        .unwrap_or_else(|| tr_cached(Message::AgentCurrentDirectory).to_string());
 
     let formatted_text = if patterns.len() == 1 {
         let pattern = patterns
@@ -2629,19 +2646,21 @@ fn create_formatted_text_for_file_glob(
 
         let mut fragments = if is_cancelled || is_queued {
             vec![
-                FormattedTextFragment::plain_text("Search for files that match "),
+                FormattedTextFragment::plain_text(tr_cached(Message::AgentSearchFilesMatching)),
                 FormattedTextFragment::inline_code(pattern),
             ]
         } else {
             vec![
-                FormattedTextFragment::plain_text("Finding files that match "),
+                FormattedTextFragment::plain_text(tr_cached(Message::AgentFindingFilesMatching)),
                 FormattedTextFragment::inline_code(pattern),
             ]
         };
         fragments.push(if is_cancelled {
-            FormattedTextFragment::plain_text(format!(" in {path} cancelled"))
+            FormattedTextFragment::plain_text(
+                tr_cached(Message::AgentInPathCancelled).replace("{}", &path),
+            )
         } else {
-            FormattedTextFragment::plain_text(format!(" in {path}"))
+            FormattedTextFragment::plain_text(tr_cached(Message::AgentInPath).replace("{}", &path))
         });
         FormattedText::new([FormattedTextLine::Line(fragments)])
     } else {
@@ -2649,19 +2668,19 @@ fn create_formatted_text_for_file_glob(
 
         if is_cancelled {
             lines.push(FormattedTextLine::Line(vec![
-                FormattedTextFragment::plain_text(format!(
-                    "Cancelled search for files that match the following patterns in {path}"
-                )),
+                FormattedTextFragment::plain_text(
+                    tr_cached(Message::AgentCancelledSearchFilesPatterns).replace("{}", &path),
+                ),
             ]));
         } else {
             lines.push(FormattedTextLine::Line(vec![if is_queued {
-                FormattedTextFragment::plain_text(format!(
-                    "Find files that match the following patterns in {path}"
-                ))
+                FormattedTextFragment::plain_text(
+                    tr_cached(Message::AgentFindFilesPatterns).replace("{}", &path),
+                )
             } else {
-                FormattedTextFragment::plain_text(format!(
-                    "Finding files that match the following patterns in {path}"
-                ))
+                FormattedTextFragment::plain_text(
+                    tr_cached(Message::AgentFindingFilesPatterns).replace("{}", &path),
+                )
             }]));
         }
 
@@ -2749,7 +2768,7 @@ fn render_file_retrieval_tool(
         } if show_for_action_id == action_id => {
             *shown.lock() = true;
             config = config.with_footer(render_autonomy_checkbox_setting_speedbump_footer(
-                "Always allow file access for coding tasks",
+                tr_cached(Message::AgentAlwaysAllowFileAccessForCodingTasks),
                 *checked,
                 AIBlockAction::ToggleAutoreadFilesSpeedbumpCheckbox,
                 props
@@ -2789,7 +2808,7 @@ fn render_comment_addressed_header(comment: &ReviewComment, app: &AppContext) ->
         Shrinkable::new(
             1.,
             Text::new_inline(
-                format!("Comment addressed: \"{content}\""),
+                tr_cached(Message::AgentCommentAddressed).replace("{}", &content),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size(),
             )
@@ -2957,7 +2976,7 @@ fn recording_summary(props: Props, agent_summary: Option<&str>, app: &AppContext
         .filter(|s| !s.is_empty())
         .or_else(|| title.as_deref().map(str::trim).filter(|s| !s.is_empty()))
         .map(ToString::to_string)
-        .unwrap_or_else(|| "Recording computer-use session".to_string())
+        .unwrap_or_else(|| tr_cached(Message::AgentRecordingComputerUseSession).to_string())
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -2972,19 +2991,19 @@ fn start_recording_card_text(
 ) -> RecordingCardText {
     match result {
         Some(StartRecordingResult::Success(_)) => RecordingCardText {
-            primary: "Recording started".to_string(),
+            primary: tr_cached(Message::AgentRecordingStarted).to_string(),
             subtext: Some(description.to_string()),
         },
         Some(StartRecordingResult::Error(error)) => RecordingCardText {
-            primary: "Recording failed to start".to_string(),
+            primary: tr_cached(Message::AgentRecordingFailedToStart).to_string(),
             subtext: Some(error.clone()),
         },
         Some(StartRecordingResult::Cancelled) => RecordingCardText {
-            primary: "Recording cancelled".to_string(),
+            primary: tr_cached(Message::AgentRecordingCancelled).to_string(),
             subtext: None,
         },
         None => RecordingCardText {
-            primary: "Starting recording".to_string(),
+            primary: tr_cached(Message::AgentStartingRecording).to_string(),
             subtext: Some(description.to_string()),
         },
     }
@@ -3001,21 +3020,21 @@ fn stop_recording_card_text(result: Option<&StopRecordingResult>) -> RecordingCa
                 duration
             } else {
                 // TODO(vkodithala): Switch to typed, user-facing termination copy once finalization emits structured reasons.
-                format!("Partial recording • {duration}")
+                tr_cached(Message::AgentPartialRecording).replace("{}", &duration)
             };
             RecordingCardText {
-                primary: "Recording saved".to_string(),
+                primary: tr_cached(Message::AgentRecordingSaved).to_string(),
                 subtext: Some(subtext),
             }
         }
         Some(StopRecordingResult::Error(_)) | Some(StopRecordingResult::Cancelled) => {
             RecordingCardText {
-                primary: "Recording could not be saved".to_string(),
+                primary: tr_cached(Message::AgentRecordingCouldNotBeSaved).to_string(),
                 subtext: None,
             }
         }
         None => RecordingCardText {
-            primary: "Saving recording".to_string(),
+            primary: tr_cached(Message::AgentSavingRecording).to_string(),
             subtext: None,
         },
     }
@@ -3095,8 +3114,8 @@ fn render_recording_footer(status: RecordingSpanStatus, app: &AppContext) -> Box
     let icon_offset =
         icon_size(app) + crate::ai::blocklist::inline_action::inline_action_header::ICON_MARGIN;
     let text = match status {
-        RecordingSpanStatus::Active => "Recording active",
-        RecordingSpanStatus::Captured => "Captured in recording",
+        RecordingSpanStatus::Active => tr_cached(Message::AgentRecordingActive),
+        RecordingSpanStatus::Captured => tr_cached(Message::AgentCapturedInRecording),
     };
     Container::new(
         Text::new(
@@ -3133,7 +3152,7 @@ fn render_stop_recording(
                 render_inline_action_secondary_button(
                     appearance,
                     btn,
-                    "Open recording",
+                    tr_cached(Message::AgentOpenRecording),
                     Box::new(move |ctx, _, _| {
                         ctx.dispatch_typed_action(AIBlockAction::OpenRecordingArtifact {
                             artifact_uid: artifact_uid.clone(),
@@ -3186,7 +3205,7 @@ fn render_use_computer(
             render_inline_action_secondary_button(
                 appearance,
                 btn,
-                "View screenshot",
+                tr_cached(Message::AgentViewScreenshot),
                 Box::new(move |ctx, _, _| {
                     ctx.dispatch_typed_action(AIBlockAction::ViewScreenshot {
                         action_id: action_id_clone.clone(),
@@ -3269,7 +3288,7 @@ fn render_references_footer(
     )?;
 
     let title = Text::new_inline(
-        "References",
+        tr_cached(Message::CommonReferences),
         appearance.ui_font_family(),
         appearance.monospace_font_size(),
     )
@@ -3354,7 +3373,7 @@ fn render_suggested_rules_and_prompts_footer(
     let theme = appearance.theme();
     let title_row_color = theme.sub_text_color(theme.background());
     let title_text = Text::new_inline(
-        "Suggestions:",
+        tr_cached(Message::CommonSuggestionsColon),
         appearance.ui_font_family(),
         appearance.monospace_font_size(),
     )
@@ -4094,7 +4113,7 @@ fn render_collapsible_debug_output(
         // "Debug output" label
         row.add_child(
             Text::new(
-                "Debug output".to_string(),
+                tr_cached(Message::AgentDebugOutput).to_string(),
                 appearance.ai_font_family(),
                 appearance.monospace_font_size(),
             )
@@ -4237,16 +4256,18 @@ fn conversation_search_phase(task: &crate::ai::agent::task::Task) -> Conversatio
 
 fn format_conversation_search_phase(phase: &ConversationSearchPhase) -> String {
     match phase {
-        ConversationSearchPhase::ListingMessages => "Listing messages".to_string(),
+        ConversationSearchPhase::ListingMessages => {
+            tr_cached(Message::AgentListingMessages).to_string()
+        }
         ConversationSearchPhase::Grepping { patterns } => {
             if patterns.is_empty() {
-                return "Grepping for patterns".to_string();
+                return tr_cached(Message::AgentGreppingForPatterns).to_string();
             }
             let joined = truncate_from_end(&patterns.join(", "), 60);
-            format!("Grepping for patterns: {joined}")
+            tr_cached(Message::AgentGreppingForPatternsNamed).replace("{}", &joined)
         }
         ConversationSearchPhase::ReadingMessages { count } => {
-            format!("Reading {count} messages")
+            tr_cached(Message::AgentReadingMessagesCount).replace("{}", &count.to_string())
         }
     }
 }

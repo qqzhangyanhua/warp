@@ -8,6 +8,7 @@ use crate::ai::agent::runtime::text_run::{TextRunOutcome, TextRunResult};
 use crate::ai::agent::runtime::RuntimeError;
 use crate::ai::agent::RenderableAIError;
 use crate::ai::blocklist::{BlocklistAIHistoryModel, ResponseStreamId, RuntimeTextRunFinish};
+use crate::i18n::{tr_cached, Message};
 
 impl AgentRuntimeService {
     pub(super) fn handle_text_run_result(
@@ -87,12 +88,16 @@ fn text_run_finish(outcome: &TextRunOutcome) -> RuntimeTextRunFinish {
     match outcome {
         TextRunOutcome::Completed => RuntimeTextRunFinish::Success,
         TextRunOutcome::Cancelled => RuntimeTextRunFinish::Cancelled,
-        TextRunOutcome::Failed { diagnostic_id, .. } => RuntimeTextRunFinish::Error(
-            RenderableAIError::other(format!("Pi Agent Runtime failed: {diagnostic_id}"), false),
-        ),
+        TextRunOutcome::Failed { diagnostic_id, .. } => {
+            RuntimeTextRunFinish::Error(RenderableAIError::other(
+                tr_cached(Message::AgentRuntimeFailed).replace("{}", diagnostic_id),
+                false,
+            ))
+        }
         TextRunOutcome::LimitReached { tool_request_limit } => {
             RuntimeTextRunFinish::Error(RenderableAIError::other(
-                format!("Pi Agent Runtime reached the tool request limit ({tool_request_limit})."),
+                tr_cached(Message::AgentRuntimeToolRequestLimit)
+                    .replace("{}", &tool_request_limit.to_string()),
                 false,
             ))
         }

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::i18n::{tr_cached, Message};
 #[cfg(feature = "local_fs")]
 use anyhow::Result;
 
@@ -85,13 +86,12 @@ fn config_name(directory: &Path, enable_worktree: bool) -> String {
         .file_name()
         .and_then(|n| n.to_str())
         .or_else(|| directory.to_str())
-        .unwrap_or("untitled");
-    let prefix = if enable_worktree {
-        "Worktree"
+        .unwrap_or_else(|| tr_cached(Message::CommonUntitledLower));
+    if enable_worktree {
+        tr_cached(Message::WorktreeNamed).replace("{}", repo)
     } else {
-        "New tab"
-    };
-    format!("{prefix}: {repo}")
+        tr_cached(Message::TabConfigNewTabNamed).replace("{}", repo)
+    }
 }
 
 /// Builds a `TabConfig` from the given session parameters.
@@ -129,7 +129,9 @@ pub fn build_tab_config(
             params.insert(
                 WORKTREE_BRANCH_PARAM.to_string(),
                 TabConfigParam {
-                    description: Some("New worktree branch name".to_string()),
+                    description: Some(
+                        tr_cached(Message::TabConfigNewWorktreeBranchName).to_string(),
+                    ),
                     default: Some(WORKTREE_BRANCH_DEFAULT.to_string()),
                     param_type: TabConfigParamType::Text,
                 },

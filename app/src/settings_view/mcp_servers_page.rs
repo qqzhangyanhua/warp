@@ -52,7 +52,6 @@ pub enum InstallOrigin {
     Deeplink,
 }
 
-const PAGE_TITLE_TEXT: &str = "MCP Servers";
 #[derive(Debug, Default, Copy, Clone)]
 pub enum MCPServersSettingsPage {
     #[default]
@@ -104,7 +103,7 @@ impl MCPServersSettingsPageView {
         Self {
             page: PageType::new_monolith(
                 MCPServersSettingsWidget::default(),
-                Some(PAGE_TITLE_TEXT),
+                Some(tr(ctx, Message::SettingsSectionMcpServers)),
                 true,
             ),
             current_page: MCPServersSettingsPage::default(),
@@ -318,7 +317,7 @@ impl MCPServersSettingsPageView {
                 "Ignoring MCP deeplink autoinstall for '{autoinstall_param}': installation modal already open"
             );
             self.add_error_toast(
-                "Finish the current MCP install before opening another install link.".to_string(),
+                tr(ctx, Message::McpFinishCurrentInstallBeforeAnotherLink).into(),
                 ctx,
             );
             return;
@@ -380,7 +379,7 @@ impl MCPServersSettingsPageView {
             // gallery entry cannot be turned into a valid template. Surface the
             // failure to the user rather than silently returning.
             self.add_error_toast(
-                format!("MCP server '{gallery_title}' cannot be installed from this link."),
+                tr(ctx, Message::McpServerCannotInstallFromLink).replace("{}", &gallery_title),
                 ctx,
             );
             return;

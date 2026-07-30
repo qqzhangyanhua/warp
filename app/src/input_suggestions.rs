@@ -32,6 +32,7 @@ use warpui::{
 
 use crate::ai::blocklist::{render_ai_agent_mode_icon, AIQueryHistory, AIQueryHistoryOutputStatus};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::history::LinkedWorkflowData;
 use crate::terminal::model::session::SessionId;
 use crate::terminal::rich_history::{render_ai_query_rich_history, render_rich_history};
@@ -537,14 +538,15 @@ impl InputSuggestions {
         self.get_selected_item()
             .and_then(|item| item.details.as_ref())
             .and_then(|details| match details {
-                DetailContent::RichHistory(entry) => entry
-                    .start_ts
-                    .map(|ts| format!("Last ran {}", format_approx_duration_from_now(ts))),
+                DetailContent::RichHistory(entry) => entry.start_ts.map(|ts| {
+                    tr_cached(Message::A11yLastRan)
+                        .replace("{}", &format_approx_duration_from_now(ts))
+                }),
                 DetailContent::Description(desc) => Some(desc.clone()),
-                DetailContent::AIQueryHistory(entry) => Some(format!(
-                    "Last ran {}",
-                    format_approx_duration_from_now(entry.start_time)
-                )),
+                DetailContent::AIQueryHistory(entry) => Some(
+                    tr_cached(Message::A11yLastRan)
+                        .replace("{}", &format_approx_duration_from_now(entry.start_time)),
+                ),
             })
     }
 
@@ -588,14 +590,14 @@ impl InputSuggestions {
         ) {
             (Some(text), Some(desc)) => {
                 ctx.emit_a11y_content(AccessibilityContent::new(
-                    format!("Suggestion: {text}.\n"),
+                    tr_cached(Message::A11ySuggestionLabel).replace("{}", text),
                     desc,
                     WarpA11yRole::MenuItemRole,
                 ));
             }
             (Some(text), None) => {
                 ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-                    format!("Suggestion: {text}.\n"),
+                    tr_cached(Message::A11ySuggestionLabel).replace("{}", text),
                     WarpA11yRole::MenuItemRole,
                 ));
             }
@@ -619,7 +621,7 @@ impl InputSuggestions {
 
         if let Some(text) = self.get_selected_item_text() {
             ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-                format!("Selected: {text}"),
+                tr_cached(Message::A11ySelectedLabel).replace("{}", text),
                 WarpA11yRole::MenuItemRole,
             ));
         }
@@ -644,7 +646,7 @@ impl InputSuggestions {
         ctx: &mut ViewContext<Self>,
     ) {
         ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-            "Closed suggestions.",
+            tr_cached(Message::A11yClosedSuggestions),
             WarpA11yRole::UserAction,
         ));
         ctx.emit(Event::CloseSuggestion {
@@ -884,7 +886,10 @@ impl InputSuggestions {
 
                                             let tooltip_element = appearance
                                                 .ui_builder()
-                                                .tool_tip("Ignore this suggestion".to_string())
+                                                .tool_tip(
+                                                    tr_cached(Message::TooltipIgnoreSuggestion)
+                                                        .into(),
+                                                )
                                                 .build()
                                                 .finish();
 
@@ -1084,10 +1089,9 @@ impl View for InputSuggestions {
 
     fn accessibility_contents(&self, _: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
-            "Command suggestions.",
+            tr_cached(Message::A11yCommandSuggestions),
             // TODO use bindings from user settings
-            "Navigate with tab and shift-tab, and confirm with enter. Execute selected command \
-                with command + enter. Esc leaves the suggestions menu.",
+            tr_cached(Message::A11yCommandSuggestionsHelp),
             WarpA11yRole::MenuRole,
         ))
     }

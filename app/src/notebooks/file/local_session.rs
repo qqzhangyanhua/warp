@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 
 use warpui_extras::owner_only_file::{ContentHash, ExpectedContent};
 
+use crate::i18n::{tr_cached, Message};
+
 /// Edit/conflict status for a path-bound Notebook.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditState {
@@ -48,7 +50,7 @@ impl LocalNotebookSession {
     pub fn new_unsaved(title: impl Into<String>) -> Self {
         let title = title.into();
         let title = if title.trim().is_empty() {
-            "Untitled".to_string()
+            tr_cached(Message::CommonUntitled).to_string()
         } else {
             title
         };
@@ -108,7 +110,7 @@ impl LocalNotebookSession {
             Self::Bound { path, .. } => path
                 .file_name()
                 .and_then(|n| n.to_str())
-                .unwrap_or("Untitled"),
+                .unwrap_or_else(|| tr_cached(Message::CommonUntitled)),
         }
     }
 
@@ -145,9 +147,7 @@ impl LocalNotebookSession {
                 path,
                 edit: EditState::Conflict,
                 ..
-            } => SavePlan::BlockedByConflict {
-                path: path.clone(),
-            },
+            } => SavePlan::BlockedByConflict { path: path.clone() },
             Self::Bound {
                 path,
                 content_hash,
@@ -198,9 +198,7 @@ impl LocalNotebookSession {
                 ExternalUpdateOutcome::AcceptReload
             }
             Self::Bound {
-                content_hash,
-                edit,
-                ..
+                content_hash, edit, ..
             } => {
                 if *content_hash == disk_hash && *edit == EditState::Dirty {
                     // Our own save may race with the watcher; matching hash clears dirty.
@@ -216,7 +214,12 @@ impl LocalNotebookSession {
     /// User accepted disk version after a conflict (or explicit reload).
     #[allow(dead_code)]
     pub fn apply_refresh(&mut self, content_hash: ContentHash) {
-        if let Self::Bound { content_hash: h, edit, .. } = self {
+        if let Self::Bound {
+            content_hash: h,
+            edit,
+            ..
+        } = self
+        {
             *h = content_hash;
             *edit = EditState::Clean;
         }

@@ -2768,7 +2768,7 @@ impl FileTreeView {
             )
             .with_child(
                 Text::new(
-                    "Project explorer unavailable",
+                    tr_cached(Message::CodeProjectExplorerUnavailable),
                     appearance.ui_font_family(),
                     appearance.ui_font_size() + 2.,
                 )

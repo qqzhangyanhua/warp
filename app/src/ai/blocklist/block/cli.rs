@@ -245,7 +245,7 @@ impl CLISubagentView {
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let allow_button = CompactibleSplitActionButton::new(
-            "Allow".to_string(),
+            tr_cached(Message::TerminalAllow).to_string(),
             Some(KeystrokeSource::Fixed(ACCEPT_KEYSTROKE.clone())),
             ButtonSize::Small,
             CLISubagentAction::ExecuteBlockedAction,
@@ -257,7 +257,7 @@ impl CLISubagentView {
         );
 
         let reject_button = CompactibleActionButton::new(
-            "Refine".to_string(),
+            tr_cached(Message::RequestedEditRefine).to_string(),
             Some(KeystrokeSource::Fixed(REJECT_KEYSTROKE.clone())),
             ButtonSize::Small,
             CLISubagentAction::RejectBlockedAction {
@@ -269,7 +269,7 @@ impl CLISubagentView {
         );
 
         let take_over_button = CompactibleActionButton::new(
-            "Take over".to_string(),
+            tr_cached(Message::AgentTakeOver).to_string(),
             Some(KeystrokeSource::Binding(
                 SET_INPUT_MODE_TERMINAL_ACTION_NAME,
             )),
@@ -282,7 +282,7 @@ impl CLISubagentView {
             ctx,
         );
         let transfer_control_button = CompactibleActionButton::new(
-            "Take control".to_string(),
+            tr_cached(Message::AgentTakeControl).to_string(),
             Some(KeystrokeSource::Binding(
                 SET_INPUT_MODE_TERMINAL_ACTION_NAME,
             )),
@@ -1639,7 +1639,7 @@ fn render_web_search(query: Option<String>, app: &AppContext) -> Box<dyn Element
     let theme = appearance.theme();
 
     let text = if let Some(q) = query {
-        format!("Searching the web for \"{q}\"")
+        tr_cached(Message::AgentSearchingWebFor).replace("{}", &q)
     } else {
         load_output_message_for_web_search().to_string()
     };
@@ -1868,7 +1868,10 @@ fn render_permissions_speedbump(
 
     let formatted_text = FormattedTextElement::new(
         FormattedText::new([FormattedTextLine::Line(vec![
-            FormattedTextFragment::hyperlink("Manage Agent permissions", "Settings > AI"),
+            FormattedTextFragment::hyperlink(
+                tr_cached(Message::AgentManagePermissions),
+                "Settings > AI",
+            ),
         ])]),
         font_size,
         font_family,
@@ -2039,42 +2042,47 @@ fn render_search_action_input(
             ref path,
         } => {
             let display_path = if path == "." {
-                "the current directory"
+                tr_cached(Message::AgentCurrentDirectory)
             } else {
                 path.as_str()
             };
 
             if queries.len() == 1 {
-                format!("Grep for `{}` in {}", queries[0], display_path)
+                tr_cached(Message::AgentGrepOneIn)
+                    .replace("{query}", &queries[0])
+                    .replace("{path}", display_path)
             } else {
                 let patterns_list = queries
                     .iter()
                     .map(|q| format!(" - `{q}`"))
                     .collect::<Vec<_>>()
                     .join("\n");
-                format!("Grep for the following patterns in {display_path}:\n{patterns_list}")
+                tr_cached(Message::AgentGrepManyIn)
+                    .replace("{path}", display_path)
+                    .replace("{patterns}", &patterns_list)
             }
         }
         AIAgentActionType::FileGlobV2 {
             ref patterns,
             ref search_dir,
         } => {
-            let display_path = search_dir.as_deref().unwrap_or("the current directory");
+            let display_path = search_dir
+                .as_deref()
+                .unwrap_or_else(|| tr_cached(Message::AgentCurrentDirectory));
 
             if patterns.len() == 1 {
-                format!(
-                    "Search for files that match `{}` in {}",
-                    patterns[0], display_path
-                )
+                tr_cached(Message::AgentSearchFilesMatchingIn)
+                    .replace("{pattern}", &patterns[0])
+                    .replace("{path}", display_path)
             } else {
                 let patterns_list = patterns
                     .iter()
                     .map(|p| format!(" - `{p}`"))
                     .collect::<Vec<_>>()
                     .join("\n");
-                format!(
-                    "Find files that match the following patterns in {display_path}:\n{patterns_list}"
-                )
+                tr_cached(Message::AgentFindFilesMatchingIn)
+                    .replace("{path}", display_path)
+                    .replace("{patterns}", &patterns_list)
             }
         }
         _ => return None,

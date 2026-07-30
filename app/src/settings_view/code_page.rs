@@ -102,8 +102,8 @@ impl CodeSubpage {
 
     pub fn title(&self) -> &'static str {
         match self {
-            Self::Indexing => "Codebase Indexing",
-            Self::EditorAndCodeReview => "Editor and Code Review",
+            Self::Indexing => tr_cached(Message::CodeCodebaseIndexingTitle),
+            Self::EditorAndCodeReview => tr_cached(Message::CodeEditorAndCodeReviewTitle),
         }
     }
 }
@@ -1794,12 +1794,16 @@ impl CodePageWidget {
                 )
             } else if index_state.has_synced_version() {
                 (
-                    "Stale",
+                    tr_cached(Message::CodeStale),
                     theme.nonactive_ui_detail().into_solid(),
                     Icon::ClockRefresh,
                 )
             } else {
-                ("Failed", theme.ui_error_color(), Icon::AlertTriangle)
+                (
+                    tr_cached(Message::CodeFailed),
+                    theme.ui_error_color(),
+                    Icon::AlertTriangle,
+                )
             };
 
             return IndexingStatusPresentation {
@@ -1841,9 +1845,9 @@ impl CodePageWidget {
                 let limit_reached = remote_codebase_index_limit_reached(status);
                 IndexingStatusPresentation {
                     text: Cow::from(if limit_reached {
-                        "Index limit reached"
+                        tr_cached(Message::CodeIndexLimitReachedShort)
                     } else {
-                        "Unavailable"
+                        tr_cached(Message::CodeUnavailable)
                     }),
                     color: if limit_reached {
                         theme.ui_warning_color()
@@ -2182,10 +2186,14 @@ impl CodePageWidget {
         );
 
         let (description, is_installing) = match &repo_status {
-            Some(LspRepoStatus::DisabledAndInstalled { .. }) => ("Installed", false),
-            Some(LspRepoStatus::Installing { .. }) => ("Installing...", true),
-            Some(LspRepoStatus::CheckingForInstallation) => ("Checking...", true),
-            _ => ("Available for download", false),
+            Some(LspRepoStatus::DisabledAndInstalled { .. }) => {
+                (tr_cached(Message::CodeInstalled), false)
+            }
+            Some(LspRepoStatus::Installing { .. }) => (tr_cached(Message::CodeInstalling), true),
+            Some(LspRepoStatus::CheckingForInstallation) => {
+                (tr_cached(Message::CodeChecking), true)
+            }
+            _ => (tr_cached(Message::CodeAvailableForDownload), false),
         };
 
         name_desc_column.add_child(
@@ -2454,26 +2462,30 @@ impl CodePageWidget {
                         AnsiColorIdentifier::Green
                             .to_ansi_color(&theme.terminal_colors().normal)
                             .into(),
-                        "Available",
+                        tr_cached(Message::CodeAvailable),
                     ),
                     LspState::Starting | LspState::Available { .. } => (
                         AnsiColorIdentifier::Yellow
                             .to_ansi_color(&theme.terminal_colors().normal)
                             .into(),
-                        "Busy",
+                        tr_cached(Message::CodeBusy),
                     ),
                     LspState::Failed { .. } => (
                         AnsiColorIdentifier::Red
                             .to_ansi_color(&theme.terminal_colors().normal)
                             .into(),
-                        "Failed",
+                        tr_cached(Message::CodeFailed),
                     ),
-                    LspState::Stopped { .. } | LspState::Stopping { .. } => {
-                        (theme.disabled_ui_text_color().into_solid(), "Stopped")
-                    }
+                    LspState::Stopped { .. } | LspState::Stopping { .. } => (
+                        theme.disabled_ui_text_color().into_solid(),
+                        tr_cached(Message::CodeStopped),
+                    ),
                 }
             }
-            None => (theme.disabled_ui_text_color().into_solid(), "Not running"),
+            None => (
+                theme.disabled_ui_text_color().into_solid(),
+                tr_cached(Message::CodeNotRunning),
+            ),
         }
     }
 }
@@ -2756,10 +2768,7 @@ impl SettingsWidget for CodeReviewPanelToggleWidget {
                     ctx.dispatch_typed_action(CodeSettingsPageAction::ToggleCodeReviewPanel);
                 })
                 .finish(),
-            Some(
-                "Show a button in the top right of the window to toggle the code review panel."
-                    .into(),
-            ),
+            Some(tr(app, Message::CodeReviewButtonDescription).into()),
         )
     }
 }
@@ -2847,10 +2856,7 @@ impl SettingsWidget for ProjectExplorerToggleWidget {
                     ctx.dispatch_typed_action(CodeSettingsPageAction::ToggleProjectExplorer);
                 })
                 .finish(),
-            Some(
-                "Adds an IDE-style project explorer / file tree to the left side tools panel."
-                    .into(),
-            ),
+            Some(tr(app, Message::CodeProjectExplorerDescription).into()),
         )
     }
 }
@@ -2968,7 +2974,11 @@ impl SettingsWidget for FormatOnSaveToggleWidget {
         let code_settings = CodeSettings::as_ref(app);
 
         render_body_item::<CodeSettingsPageAction>(
-            tr(app, Message::SettingsFormatOnSaveRequiresAnActiveLanguageServer).into(),
+            tr(
+                app,
+                Message::SettingsFormatOnSaveRequiresAnActiveLanguageServer,
+            )
+            .into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -2982,10 +2992,7 @@ impl SettingsWidget for FormatOnSaveToggleWidget {
                     ctx.dispatch_typed_action(CodeSettingsPageAction::ToggleFormatOnSave);
                 })
                 .finish(),
-            Some(
-                "Only applies when a language server is active for the file. Automatically formats the file with the language server on save; other LSP features (hover, go-to-definition, references, diagnostics) are unaffected."
-                    .into(),
-            ),
+            Some(tr(app, Message::CodeFormatOnSaveDescription).into()),
         )
     }
 }

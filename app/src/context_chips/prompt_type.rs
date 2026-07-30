@@ -4,6 +4,7 @@ use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 use super::current_prompt::CurrentPrompt;
 use super::prompt_snapshot::PromptSnapshot;
 use super::{ChipResult, ChipValue, ContextChipKind};
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::settings::WarpPromptSeparator;
 use crate::terminal::model::session::Sessions;
@@ -58,16 +59,19 @@ impl PromptType {
             .into_iter()
             .filter_map(|chip_result| {
                 if chip_result.value.is_some() && chip_result.kind.is_copyable() {
-                    if let Some(chip) = chip_result.kind.to_chip() {
+                    if chip_result.kind.to_chip().is_some() {
                         Some(
-                            MenuItemFields::new(format!("Copy {}", chip.title()))
-                                .with_on_select_action(TerminalAction::ContextMenu(
-                                    ContextMenuAction::CopyPrompt {
-                                        position,
-                                        part: PromptPart::ContextChip(chip_result.kind),
-                                    },
-                                ))
-                                .into_item(),
+                            MenuItemFields::new(
+                                tr_cached(Message::CommonCopyNamed)
+                                    .replace("{}", &chip_result.kind.localized_title()),
+                            )
+                            .with_on_select_action(TerminalAction::ContextMenu(
+                                ContextMenuAction::CopyPrompt {
+                                    position,
+                                    part: PromptPart::ContextChip(chip_result.kind),
+                                },
+                            ))
+                            .into_item(),
                         )
                     } else {
                         report_error!(

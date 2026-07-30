@@ -229,7 +229,7 @@ where
     let on_accent_bg = bg.is_some();
 
     let label = Text::new_inline(
-        "Select directory".to_string(),
+        tr_cached(Message::TabConfigSelectDirectory).to_string(),
         appearance.ui_font_family(),
         12.,
     )
@@ -361,7 +361,7 @@ where
             if state.is_hovered() {
                 let tooltip = Container::new(
                     Text::new_inline(
-                        "Select a git repository to enable worktree support".to_string(),
+                        tr_cached(Message::TabConfigSelectGitRepoForWorktree).to_string(),
                         font_family,
                         12.,
                     )
@@ -405,7 +405,7 @@ where
         blended_colors::text_sub(theme, theme.background())
     };
     let label = Text::new(
-        "Automatically create a worktree when opening a new tab",
+        tr_cached(Message::TabConfigAutoCreateWorktree),
         appearance.ui_font_family(),
         12.,
     )
@@ -492,9 +492,7 @@ where
             if state.is_hovered() {
                 let tooltip = Container::new(
                     Text::new_inline(
-                        "You must select that you want to automatically create a \
-                         worktree in order to select this"
-                            .to_string(),
+                        tr_cached(Message::TabConfigAutoCreateWorktreeRequired).to_string(),
                         font_family,
                         12.,
                     )
@@ -539,7 +537,7 @@ where
     };
 
     let label = Text::new(
-        "Auto-generate worktree branch name",
+        tr_cached(Message::TabConfigAutoGenerateWorktreeBranchName),
         appearance.ui_font_family(),
         12.,
     )

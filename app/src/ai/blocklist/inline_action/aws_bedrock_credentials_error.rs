@@ -113,7 +113,8 @@ impl View for AwsBedrockCredentialsErrorView {
                 .with_cross_axis_alignment(CrossAxisAlignment::Center)
                 .with_child(
                     Text::new(
-                        format!("Running `{}`...", self.login_command),
+                        tr_cached(Message::AwsRunningLoginCommand)
+                            .replace("{}", &self.login_command),
                         appearance.ui_font_family(),
                         14.,
                     )
@@ -140,7 +141,7 @@ impl View for AwsBedrockCredentialsErrorView {
 
         let make_alert_text = || {
             Text::new(
-                "AWS credentials expired or missing",
+                tr_cached(Message::AwsCredentialsExpiredOrMissing),
                 appearance.ui_font_family(),
                 14.,
             )
@@ -151,11 +152,9 @@ impl View for AwsBedrockCredentialsErrorView {
 
         let make_detail_text = || {
             Text::new(
-                format!(
-                    "Failed to authenticate with AWS Bedrock when using {}. \
-                     Run `{}` to refresh credentials.",
-                    self.model_name, self.login_command
-                ),
+                tr_cached(Message::AwsCredentialsAuthenticationFailed)
+                    .replace("{model}", &self.model_name)
+                    .replace("{command}", &self.login_command),
                 appearance.ui_font_family(),
                 14.,
             )
@@ -189,7 +188,7 @@ impl View for AwsBedrockCredentialsErrorView {
             .finish();
 
             let checkbox_label = Text::new(
-                "Always run automatically",
+                tr_cached(Message::AwsAlwaysRunAutomatically),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size() - 1.,
             )

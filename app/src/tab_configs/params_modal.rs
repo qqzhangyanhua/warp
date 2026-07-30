@@ -283,7 +283,7 @@ impl TabConfigParamsModal {
                 TabConfigParamType::Text => {
                     let default_text = param.default.clone().unwrap_or_default();
                     let placeholder = if default_text.is_empty() {
-                        format!("Enter {name}")
+                        tr(ctx, Message::CommonEnterNamed).replace("{}", name)
                     } else {
                         default_text.clone()
                     };
@@ -597,7 +597,7 @@ impl View for TabConfigParamsModal {
                     form.add_child(
                         Container::new(
                             Text::new_inline(
-                                format!("Default: {default_value}"),
+                                tr(app, Message::CommonDefaultNamed).replace("{}", default_value),
                                 appearance.ui_font_family(),
                                 appearance.ui_font_size() - 1.,
                             )

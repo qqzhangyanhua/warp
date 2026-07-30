@@ -199,7 +199,7 @@ impl Renderer {
             let tooltip = appearance.ui_builder().tool_tip(
                 self.tooltip_override_text
                     .clone()
-                    .unwrap_or_else(|| self.chip.title().to_string()),
+                    .unwrap_or_else(|| self.kind.localized_title()),
             );
             let mut stack = Stack::new();
             stack.add_child(container.finish());

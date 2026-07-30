@@ -159,17 +159,17 @@ impl WorkflowsMoreInfoView {
         let environment_variables_dropdown = (!workflow.as_workflow().is_agent_mode_workflow()
             && CloudModel::try_handle(ctx).is_some())
         .then(|| {
-                let dropdown = ctx.add_typed_action_view(|ctx| {
-                    let mut dropdown = EnvVarSelector::new(ctx);
-                    dropdown.set_orientation(FilterableDropdownOrientation::Up, ctx);
-                    dropdown.set_width(ENV_VAR_DROPDOWN_WIDTH, ctx);
-                    dropdown
-                });
-                ctx.subscribe_to_view(&dropdown, |me, _, event, ctx| {
-                    me.handle_env_var_selector_event(event, ctx);
-                });
+            let dropdown = ctx.add_typed_action_view(|ctx| {
+                let mut dropdown = EnvVarSelector::new(ctx);
+                dropdown.set_orientation(FilterableDropdownOrientation::Up, ctx);
+                dropdown.set_width(ENV_VAR_DROPDOWN_WIDTH, ctx);
                 dropdown
             });
+            ctx.subscribe_to_view(&dropdown, |me, _, event, ctx| {
+                me.handle_env_var_selector_event(event, ctx);
+            });
+            dropdown
+        });
 
         Self {
             workflow,
@@ -412,7 +412,7 @@ impl WorkflowsMoreInfoView {
             .with_child(
                 Container::new(
                     Text::new_inline(
-                        "Command edited.",
+                        tr_cached(Message::WorkflowCommandEdited),
                         appearance.ui_font_family(),
                         appearance.monospace_font_size(),
                     )
@@ -434,7 +434,7 @@ impl WorkflowsMoreInfoView {
                         ButtonVariant::Text,
                         self.button_mouse_states.reset_command.clone(),
                     )
-                    .with_centered_text_label(String::from("Reset"))
+                    .with_centered_text_label(tr_cached(Message::CommonReset).to_string())
                     .with_style(UiComponentStyles {
                         font_family_id: Some(appearance.ui_font_family()),
                         font_size: Some(appearance.monospace_font_size()),
@@ -477,7 +477,7 @@ impl WorkflowsMoreInfoView {
                     1.,
                     Container::new(
                         Text::new_inline(
-                            "to cycle parameters",
+                            tr_cached(Message::WorkflowCycleParameters),
                             appearance.ui_font_family(),
                             appearance.monospace_font_size(),
                         )
@@ -511,7 +511,7 @@ impl WorkflowsMoreInfoView {
         let workflow = self.workflow.as_workflow().to_owned();
         render_hoverable_card_button(
             icons::Icon::Workflow,
-            Some("Save as workflow".to_string()),
+            Some(tr_cached(Message::TerminalSaveAsWorkflow).to_string()),
             self.button_mouse_states.save_as_workflow.clone(),
             move |ctx, _, _| {
                 ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalForAIWorkflow(
@@ -948,7 +948,7 @@ impl WorkflowsMoreInfoView {
             appearance
                 .ui_builder()
                 .link(
-                    "View Context".into(),
+                    tr_cached(Message::WorkflowViewContext).into(),
                     Some(workflow_source),
                     None,
                     self.button_mouse_states.view_context.clone(),

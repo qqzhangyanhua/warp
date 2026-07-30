@@ -73,6 +73,7 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "attach selected text as agent context" => Some("将选中文本附加为 Agent 上下文"),
         "backward tabulation within an executing command" => Some("在执行中的命令内反向制表"),
         "bookmark selected block" => Some("收藏选中块"),
+        "new agent conversation" => Some("新建 Agent 对话"),
         "check for updates" => Some("检查更新"),
         "clear and reset ai context menu query" => Some("清除并重置 AI 上下文菜单查询"),
         "clear blocks" => Some("清除块"),
@@ -291,6 +292,30 @@ pub fn binding_description_zh_cn(en: &str) -> Option<&'static str> {
         "scroll to bottom of selected block" => Some("滚动到选中块底部"),
         "scroll to top of selected block" => Some("滚动到选中块顶部"),
         "scroll up half a page (vim)" => Some("向上滚动半页 (Vim)"),
+        "set agent thinking display: always show" => Some("设置 Agent 思考内容显示：始终显示"),
+        "set agent thinking display: never show" => Some("设置 Agent 思考内容显示：从不显示"),
+        "set agent thinking display: show & collapse" => {
+            Some("设置 Agent 思考内容显示：显示后折叠")
+        }
+        "set child-agent message display: always collapse" => {
+            Some("设置子 Agent 消息显示：始终折叠")
+        }
+        "set child-agent message display: always show" => Some("设置子 Agent 消息显示：始终显示"),
+        "set child-agent message display: show & collapse" => {
+            Some("设置子 Agent 消息显示：显示后折叠")
+        }
+        "set default prompt submission: interrupt response" => {
+            Some("设置默认提示词提交方式：中断响应")
+        }
+        "set default prompt submission: queue until response finishes" => {
+            Some("设置默认提示词提交方式：排队到响应完成")
+        }
+        "set long-running command submission: queue until command finishes" => {
+            Some("设置长时间运行命令的提交方式：排队到命令完成")
+        }
+        "set long-running command submission: send immediately" => {
+            Some("设置长时间运行命令的提交方式：立即发送")
+        }
         "select all" => Some("全选"),
         "select all blocks" => Some("选择所有块"),
         "select and move to the bottom" => Some("选择并移到底部"),

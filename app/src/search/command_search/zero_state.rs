@@ -10,6 +10,7 @@ use warpui::platform::Cursor;
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::search::{FilterChipRenderer, QueryFilter};
 use crate::settings::{AISettings, AISettingsChangedEvent};
 
@@ -180,7 +181,7 @@ impl View for CommandSearchZeroStateView {
 
         let command_search_text = Container::new(
             Text::new_inline(
-                "Command Search",
+                tr_cached(Message::CommandSearchTitle),
                 appearance.ui_font_family(),
                 styles::header_text_font_size(appearance),
             )
@@ -202,7 +203,7 @@ impl View for CommandSearchZeroStateView {
             .with_child(
                 Container::new(
                     Text::new_inline(
-                        "I'm looking for...",
+                        tr_cached(Message::CommandSearchLookingFor),
                         appearance.ui_font_family(),
                         styles::subheader_text_font_size(appearance),
                     )
@@ -221,7 +222,7 @@ impl View for CommandSearchZeroStateView {
             .with_child(
                 Container::new(
                     Text::new_inline(
-                        "Example queries",
+                        tr_cached(Message::CommandSearchExampleQueries),
                         appearance.ui_font_family(),
                         styles::subheader_text_font_size(appearance),
                     )

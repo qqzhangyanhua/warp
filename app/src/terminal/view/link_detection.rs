@@ -4,6 +4,7 @@ use serde::{Serialize, Serializer};
 use warpui::platform::Cursor;
 use warpui::ViewContext;
 
+use crate::i18n::{tr_cached, Message};
 use crate::send_telemetry_from_ctx;
 use crate::server::telemetry::{LinkOpenMethod, TelemetryEvent};
 use crate::terminal::model::grid::grid_handler::Link;
@@ -92,11 +93,11 @@ impl GridHighlightedLink {
                     .map(|path| path.is_dir())
                     .unwrap_or(false) =>
             {
-                "Open folder"
+                tr_cached(Message::CommonOpenFolder)
             }
             #[cfg(feature = "local_fs")]
-            GridHighlightedLink::File(_) => "Open file",
-            GridHighlightedLink::Url(_) => "Open link",
+            GridHighlightedLink::File(_) => tr_cached(Message::CodeOpenFile),
+            GridHighlightedLink::Url(_) => tr_cached(Message::CommonOpenLink),
         }
     }
 }
@@ -179,11 +180,11 @@ impl RichContentLink {
         match &self {
             #[cfg(feature = "local_fs")]
             RichContentLink::FilePath { absolute_path, .. } if absolute_path.is_dir() => {
-                "Open folder"
+                tr_cached(Message::CommonOpenFolder)
             }
             #[cfg(feature = "local_fs")]
-            RichContentLink::FilePath { .. } => "Open file",
-            RichContentLink::Url(_) => "Open link",
+            RichContentLink::FilePath { .. } => tr_cached(Message::CodeOpenFile),
+            RichContentLink::Url(_) => tr_cached(Message::CommonOpenLink),
         }
     }
 }

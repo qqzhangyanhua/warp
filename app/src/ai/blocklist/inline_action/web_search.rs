@@ -55,9 +55,9 @@ impl WebSearchView {
         let loading_icon = yellow_running_icon(appearance);
 
         let text = if let Some(q) = query {
-            format!("Searching the web for \"{q}\"")
+            tr_cached(Message::AgentSearchingWebFor).replace("{}", q)
         } else {
-            "Searching the web".to_string()
+            tr_cached(Message::AgentSearchingWeb).to_string()
         };
 
         super::search_results_common::render_status_header(text, loading_icon, app)
@@ -70,9 +70,9 @@ impl WebSearchView {
         app: &AppContext,
     ) -> Box<dyn Element> {
         let title_text = if query.is_empty() {
-            "Searched the web".to_string()
+            tr_cached(Message::AgentSearchedWeb).to_string()
         } else {
-            format!("Searched the web for \"{query}\"")
+            tr_cached(Message::AgentSearchedWebFor).replace("{}", query)
         };
 
         let body = if self.collapsible.is_expanded {
@@ -84,7 +84,7 @@ impl WebSearchView {
         render_collapsible_search_results(
             title_text,
             pages.len(),
-            "URLs",
+            Message::AgentUrlsCount,
             &self.collapsible,
             body,
             |ctx| {
@@ -176,9 +176,9 @@ impl View for WebSearchView {
             WebSearchStatus::Error { query } => {
                 let appearance = Appearance::as_ref(app);
                 let text = if query.is_empty() {
-                    "Web search failed".to_string()
+                    tr_cached(Message::AgentWebSearchFailed).to_string()
                 } else {
-                    format!("Web search failed for \"{query}\"")
+                    tr_cached(Message::AgentWebSearchFailedFor).replace("{}", query)
                 };
                 super::search_results_common::render_status_header(
                     text,

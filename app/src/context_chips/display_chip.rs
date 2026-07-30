@@ -45,6 +45,7 @@ use crate::context_chips::git_branch_on_click::{
 };
 use crate::context_chips::node_version_popup::{NodeVersionPopupEvent, NodeVersionPopupView};
 use crate::context_chips::spacing;
+use crate::i18n::{tr_cached, Message};
 use crate::settings::{AISettings, AISettingsChangedEvent, InputSettings};
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
 use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
@@ -585,23 +586,22 @@ impl GitBranchTrackingStatus {
     fn tooltip_text(&self) -> String {
         match &self.upstream {
             Some(upstream) if self.is_rebased() => {
-                format!("Tracking {upstream} • branch was rebased")
+                tr_cached(Message::GitTrackingRebased).replace("{upstream}", upstream)
             }
-            Some(upstream) if self.counts_available => format!(
-                "Tracking {upstream} • ahead {}, behind {}",
-                self.ahead, self.behind
-            ),
+            Some(upstream) if self.counts_available => tr_cached(Message::GitTrackingAheadBehind)
+                .replace("{upstream}", upstream)
+                .replace("{ahead}", &self.ahead.to_string())
+                .replace("{behind}", &self.behind.to_string()),
             Some(upstream) => {
-                format!("Tracking {upstream}; ahead/behind counts are unavailable")
+                tr_cached(Message::GitTrackingCountsUnavailable).replace("{upstream}", upstream)
             }
             None if self.is_rebased() => {
-                "Branch was rebased; upstream name is unavailable".to_string()
+                tr_cached(Message::GitRebasedUpstreamUnavailable).to_string()
             }
-            None if self.counts_available => format!(
-                "Ahead {}, behind {}; upstream name is unavailable",
-                self.ahead, self.behind
-            ),
-            None => "No upstream configured".to_string(),
+            None if self.counts_available => tr_cached(Message::GitAheadBehindUpstreamUnavailable)
+                .replace("{ahead}", &self.ahead.to_string())
+                .replace("{behind}", &self.behind.to_string()),
+            None => tr_cached(Message::GitNoUpstreamConfigured).to_string(),
         }
     }
 }
@@ -715,7 +715,7 @@ impl GitBranch {
 
         if branch.is_linked_worktree {
             return PromptChipShellCommand::Echo {
-                message: "The branch is already checked out in another worktree, but ZYH couldn't find its path.",
+                message: tr_cached(Message::WorktreePathNotFound),
             };
         }
 
@@ -781,7 +781,7 @@ impl GenericMenuItem for CreateGitBranch {
     }
 
     fn name(&self) -> String {
-        format!("Create new branch \"{}\"", self.0)
+        tr_cached(Message::ContextCreateNewBranchNamed).replace("{}", &self.0)
     }
 
     fn icon(&self, _app: &AppContext) -> Option<Icon> {
@@ -1074,10 +1074,9 @@ impl DisplayChip {
                             // nvm-windows has documented issues when installed alongside an existing Node.js installation.
                             // https://github.com/coreybutler/nvm-windows?tab=readme-ov-file#star-star-uninstall-any-pre-existing-node-installations-star-star
                             // Prompt the agent to remove this first.
-                            "Uninstall existing Node.js installation and install nvm for me"
-                                .to_string()
+                            tr_cached(Message::AgentUninstallNodeInstallNvmQuery).to_string()
                         } else {
-                            "Install nvm for me".to_string()
+                            tr_cached(Message::AgentInstallNvmQuery).to_string()
                         }));
                         me.close_node_version_popup(ctx);
                     }
@@ -1390,7 +1389,7 @@ impl DisplayChip {
             if state.is_hovered() && is_interactive && !menu_open {
                 let tool_tip = appearance
                     .ui_builder()
-                    .tool_tip("Change git branch".to_string())
+                    .tool_tip(tr_cached(Message::TooltipChangeGitBranch).into())
                     .build()
                     .finish();
                 stack.add_positioned_overlay_child(tool_tip, udi_tooltip_positioning());
@@ -1457,7 +1456,7 @@ impl DisplayChip {
             if state.is_hovered() {
                 let tool_tip = appearance
                     .ui_builder()
-                    .tool_tip("View pull request".to_string())
+                    .tool_tip(tr_cached(Message::TooltipViewPullRequest).into())
                     .build()
                     .finish();
                 stack.add_positioned_overlay_child(tool_tip, udi_tooltip_positioning());
@@ -1758,7 +1757,7 @@ impl DisplayChip {
                 if state.is_hovered() {
                     let tool_tip = appearance
                         .ui_builder()
-                        .tool_tip("Change working directory".to_string())
+                        .tool_tip(tr_cached(Message::TooltipChangeWorkingDirectory).into())
                         .build()
                         .finish();
 
@@ -1805,7 +1804,7 @@ impl DisplayChip {
                 if state.is_hovered() && !is_cli_agent_active {
                     let tool_tip = appearance
                         .ui_builder()
-                        .tool_tip("Working directory".to_string())
+                        .tool_tip(tr_cached(Message::TooltipWorkingDirectory).into())
                         .build()
                         .finish();
 

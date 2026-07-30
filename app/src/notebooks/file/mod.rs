@@ -437,7 +437,7 @@ impl FileNotebookView {
             .as_ref()
             .map(|s| s.title_hint().to_string())
             .or_else(|| self.location.as_ref().map(|l| l.name.clone()))
-            .unwrap_or_else(|| "Untitled".to_string());
+            .unwrap_or_else(|| tr_cached(Message::CommonUntitled).to_string());
         let mut config = SaveFilePickerConfiguration::new()
             .with_default_filename(default_save_filename(&suggested));
         if let Some(parent) = self
@@ -584,7 +584,7 @@ impl FileNotebookView {
                     None
                 }
             })
-            .unwrap_or_else(|| "Untitled".to_string());
+            .unwrap_or_else(|| tr_cached(Message::CommonUntitled).to_string());
         if self.is_dirty() {
             format!("{base} •")
         } else {
@@ -1123,9 +1123,9 @@ impl FileNotebookView {
             EditorViewEvent::Focused => ctx.emit(FileNotebookEvent::Pane(PaneEvent::FocusSelf)),
             EditorViewEvent::RunWorkflow(workflow) => {
                 let workflow_type = workflow.named_workflow(|| {
-                    self.location
-                        .as_ref()
-                        .map(|location| format!("Command from {}", location.name))
+                    self.location.as_ref().map(|location| {
+                        tr_cached(Message::NotebookCommandFrom).replace("{}", &location.name)
+                    })
                 });
                 let source = workflow.source.unwrap_or(WorkflowSource::Notebook {
                     notebook_id: None,
@@ -1607,12 +1607,12 @@ impl BackingView for FileNotebookView {
             {
                 actions.push(MenuItem::Separator);
                 actions.push(
-                    MenuItemFields::new("Save")
+                    MenuItemFields::new(tr_cached(Message::NotebookSave))
                         .with_on_select_action(FileNotebookAction::Save)
                         .into_item(),
                 );
                 actions.push(
-                    MenuItemFields::new("Save As…")
+                    MenuItemFields::new(tr_cached(Message::NotebookSaveAs))
                         .with_on_select_action(FileNotebookAction::SaveAs)
                         .into_item(),
                 );
@@ -1794,7 +1794,7 @@ impl FileLocation {
         let name = path
             .file_name()
             .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "Unnamed".to_string());
+            .unwrap_or_else(|| tr_cached(Message::CommonUnnamed).to_string());
 
         Self { breadcrumbs, name }
     }

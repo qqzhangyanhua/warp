@@ -26,6 +26,7 @@ use super::model::NotebooksEditorModel;
 use super::view::{EditorViewEvent, RichTextEditorView};
 use crate::appearance::Appearance;
 use crate::editor::{EditorView, Event as EditorEvent, SingleLineEditorOptions, TextOptions};
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 use crate::view_components::find::{
     case_sensitive_tooltip, regex_toggle_tooltip, CASE_SENSITIVE_LABEL, FIND_BAR_WIDTH,
@@ -187,7 +188,7 @@ impl FindBar {
         if searcher.has_query() {
             let match_count = searcher.match_count();
             let text = if match_count == 0 {
-                "No matches".to_string()
+                tr_cached(Message::CommonNoMatches).to_string()
             } else {
                 let mut text = String::new();
                 match searcher.selected_match() {
@@ -535,21 +536,21 @@ impl TypedActionView for FindBar {
         let text = match action {
             FindBarAction::ToggleRegex => {
                 if self.searcher.as_ref(ctx).is_regex() {
-                    "Enable regex search"
+                    tr_cached(Message::NotebookEnableRegexSearch)
                 } else {
-                    "Disable regex search"
+                    tr_cached(Message::NotebookDisableRegexSearch)
                 }
             }
             FindBarAction::ToggleCaseSensitive => {
                 if self.searcher.as_ref(ctx).is_case_sensitive() {
-                    "Enable case-sensitive search"
+                    tr_cached(Message::NotebookEnableCaseSensitiveSearch)
                 } else {
-                    "Disable case-sensitive search"
+                    tr_cached(Message::NotebookDisableCaseSensitiveSearch)
                 }
             }
-            FindBarAction::FocusNextMatch => "Focus next match",
-            FindBarAction::FocusPreviousMatch => "Focus previous match",
-            FindBarAction::Close => "Close find bar",
+            FindBarAction::FocusNextMatch => tr_cached(Message::NotebookFocusNextMatch),
+            FindBarAction::FocusPreviousMatch => tr_cached(Message::NotebookFocusPreviousMatch),
+            FindBarAction::Close => tr_cached(Message::NotebookCloseFindBar),
         };
         Some(AccessibilityContent::new_without_help(
             text,

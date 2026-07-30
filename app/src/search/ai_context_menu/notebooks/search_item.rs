@@ -10,6 +10,7 @@ use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
 use crate::cloud_object::ObjectType;
+use crate::i18n::{tr_cached, Message};
 use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::{safe_truncate, styles};
 use crate::search::item::SearchItem;
@@ -188,10 +189,11 @@ impl SearchItem for NotebookSearchItem {
     }
 
     fn accessibility_label(&self) -> String {
+        let label = tr_cached(Message::A11yNotebookLabel).replace("{}", &self.notebook_name);
         if let Some(description) = &self.notebook_description {
-            format!("Notebook: {} - {}", self.notebook_name, description)
+            format!("{label} - {description}")
         } else {
-            format!("Notebook: {}", self.notebook_name)
+            label
         }
     }
 
@@ -200,7 +202,7 @@ impl SearchItem for NotebookSearchItem {
 
         // Use notebook name, or "Untitled" if empty
         let display_name = if self.notebook_name.is_empty() {
-            "Untitled".to_string()
+            tr_cached(Message::CommonUntitled).to_string()
         } else {
             self.notebook_name.clone()
         };

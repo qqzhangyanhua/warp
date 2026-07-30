@@ -28,6 +28,7 @@ use crate::code_review::github_repo_model::{GitHubRepoEvent, GitHubRepoModel};
 use crate::context_chips::display_chip::GitLineChanges;
 use crate::editor::EditorView;
 use crate::features::FeatureFlag;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::settings::{InputSettings, WarpPromptSeparator};
 use crate::terminal::event::{BlockType, UserBlockCompleted};
@@ -1317,9 +1318,12 @@ impl CurrentPrompt {
                     .get(&chip_kind)
                     .is_some_and(|state| state.last_computed_value.is_some());
                 if has_value && chip_kind.is_copyable() {
-                    if let Some(chip) = chip_kind.to_chip() {
+                    if chip_kind.to_chip().is_some() {
                         Some(
-                            MenuItemFields::new(format!("Copy {}", chip.title()))
+                            MenuItemFields::new(
+                                tr_cached(Message::CommonCopyNamed)
+                                    .replace("{}", &chip_kind.localized_title()),
+                            )
                                 .with_on_select_action(TerminalAction::ContextMenu(
                                     ContextMenuAction::CopyPrompt {
                                         position,

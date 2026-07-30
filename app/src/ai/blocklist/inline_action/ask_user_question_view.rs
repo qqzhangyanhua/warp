@@ -742,7 +742,7 @@ impl AskUserQuestionView {
             ctx,
         );
         let skip_button = CompactibleActionButton::new(
-            "Skip all".to_string(),
+            tr_cached(I18nMessage::AgentSkipAll).to_string(),
             Some(KeystrokeSource::Fixed(CTRL_C_KEYSTROKE.clone())),
             ButtonSize::InlineActionHeader,
             AskUserQuestionViewAction::SkipAll,
@@ -751,7 +751,7 @@ impl AskUserQuestionView {
             ctx,
         );
         let next_button = CompactibleActionButton::new(
-            "Next".to_string(),
+            tr_cached(I18nMessage::CommonNext).to_string(),
             Some(KeystrokeSource::Fixed(
                 Keystroke::parse("enter").expect("keystroke should parse"),
             )),
@@ -1046,7 +1046,7 @@ impl AskUserQuestionView {
             number,
             accepted_text
                 .clone()
-                .unwrap_or_else(|| "Other...".to_string()),
+                .unwrap_or_else(|| tr_cached(I18nMessage::CommonOtherEllipsis).to_string()),
             accepted_text.is_some(),
             false,
             true,
@@ -1268,7 +1268,7 @@ impl AskUserQuestionView {
                 .finish(),
         );
         content.add_child(
-            HeaderConfig::new("Agent questions", app)
+            HeaderConfig::new(tr_cached(I18nMessage::AgentQuestions), app)
                 .with_icon(yellow_stop_icon(appearance))
                 .with_corner_radius_override(CornerRadius::with_top(Radius::Pixels(8.)))
                 .render_header(app, Some(header_right.finish())),
@@ -1322,9 +1322,12 @@ impl AskUserQuestionView {
 
     fn render_unavailable(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
         wrap_with_agent_output_item_spacing(
-            HeaderConfig::new("Questions unavailable".to_string(), app)
-                .with_icon(inline_action_icons::reverted_icon(appearance))
-                .render(app),
+            HeaderConfig::new(
+                tr_cached(I18nMessage::AgentQuestionsUnavailable).to_string(),
+                app,
+            )
+            .with_icon(inline_action_icons::reverted_icon(appearance))
+            .render(app),
             app,
         )
         .finish()
@@ -1362,12 +1365,12 @@ impl AskUserQuestionView {
             }
             AskUserQuestionResult::Error(_) | AskUserQuestionResult::Cancelled => (
                 None,
-                "Questions skipped".to_string(),
+                tr_cached(I18nMessage::QuestionsSkipped).to_string(),
                 inline_action_icons::reverted_icon(appearance),
             ),
             AskUserQuestionResult::SkippedByAutoApprove { .. } => (
                 None,
-                "Questions skipped due to auto-approve".to_string(),
+                tr_cached(I18nMessage::AgentQuestionsSkippedAutoApprove).to_string(),
                 inline_action_icons::reverted_icon(appearance),
             ),
         };
@@ -1854,14 +1857,15 @@ fn render_answers(
     let mut content = Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
     for (index, question) in questions.iter().enumerate() {
         let answer = answers.and_then(|answers| answers.get(index));
-        let question_text = format!("Q: {}", question.question);
+        let question_text =
+            tr_cached(I18nMessage::AgentQuestionNamed).replace("{}", &question.question);
         let question_label =
             render_text_with_markdown_support(&question_text, font_size, text_color, appearance);
-        let answer_text = format!(
-            "A: {}",
-            answer
+        let answer_text = tr_cached(I18nMessage::AgentAnswerNamed).replace(
+            "{}",
+            &answer
                 .map(AskUserQuestionAnswerItem::display_text)
-                .unwrap_or_else(|| "Skipped".to_string())
+                .unwrap_or_else(|| tr_cached(I18nMessage::CommonSkipped).to_string()),
         );
         let answer_label =
             render_text_with_markdown_support(&answer_text, font_size, muted_color, appearance);

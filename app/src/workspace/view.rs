@@ -29,7 +29,6 @@ use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 #[cfg(target_os = "macos")]
 use std::env;
-use std::fmt::Write;
 #[cfg(all(target_os = "macos", feature = "crash_reporting"))]
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -8225,7 +8224,7 @@ impl Workspace {
         &mut self,
         result: Result<()>,
         success_toast: DismissibleToast<WorkspaceAction>,
-        failure_message: &str,
+        failure_message: Message,
         ctx: &mut ViewContext<Self>,
     ) {
         match result {
@@ -8235,7 +8234,7 @@ impl Workspace {
                 });
             }
             Err(error) => {
-                let error_message = format!("{failure_message}: {error}");
+                let error_message = tr(ctx, failure_message).replace("{error}", &error.to_string());
                 log::warn!("{error_message}");
                 self.toast_stack.update(ctx, |toast_stack, ctx| {
                     let toast = DismissibleToast::error(error_message);
@@ -8250,12 +8249,17 @@ impl Workspace {
     fn install_oz(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.spawn(async { cli_install::install_oz() }, |view, result, ctx| {
             let command_name = ChannelState::channel().cli_command_name();
-            let message = format!("Installed the Oz CLI globally. You can now run '{command_name}' from any terminal outside of ZYH.");
+            let message = tr(ctx, Message::ToastInstalledGlobalOzCli).replace("{}", command_name);
             let toast = DismissibleToast::success(message).with_link(
                 ToastLink::new(workspace_menu_text(ctx, "Learn more").into_owned())
                     .with_href("https://docs.warp.dev/reference/cli".to_string()),
             );
-            view.handle_cli_command_result(result, toast, "Failed to install Oz command", ctx);
+            view.handle_cli_command_result(
+                result,
+                toast,
+                Message::ToastFailedInstallOzCommand,
+                ctx,
+            );
         });
     }
 
@@ -8271,7 +8275,7 @@ impl Workspace {
                 view.handle_cli_command_result(
                     result,
                     toast,
-                    "Failed to uninstall Oz command",
+                    Message::ToastFailedUninstallOzCommand,
                     ctx,
                 );
             },
@@ -8285,12 +8289,13 @@ impl Workspace {
             async { cli_install::install_warpctrl() },
             |view, result, ctx| {
                 let command_name = ChannelState::channel().warpctrl_command_name();
-                let message = format!("Installed the ZYH Control CLI globally. You can now run '{command_name}' from any terminal outside of ZYH.");
+                let message =
+                    tr(ctx, Message::ToastInstalledGlobalZyhControlCli).replace("{}", command_name);
                 let toast = DismissibleToast::success(message);
                 view.handle_cli_command_result(
                     result,
                     toast,
-                    "Failed to install ZYH Control command",
+                    Message::ToastFailedInstallZyhControlCommand,
                     ctx,
                 );
             },
@@ -8309,7 +8314,7 @@ impl Workspace {
                 view.handle_cli_command_result(
                     result,
                     toast,
-                    "Failed to uninstall ZYH Control command",
+                    Message::ToastFailedUninstallZyhControlCommand,
                     ctx,
                 );
             },
@@ -9983,13 +9988,13 @@ impl Workspace {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| repo.to_string());
         let config_name = match worktree_branch_name {
-            Some(name) if !name.is_empty() => {
-                format!("New worktree: {repo_display_name}, {name}")
-            }
-            _ if !base_branch.is_empty() => {
-                format!("New worktree: {repo_display_name}, {base_branch}")
-            }
-            _ => format!("New worktree: {repo_display_name}"),
+            Some(name) if !name.is_empty() => tr_cached(Message::WorktreeNewNamedBranch)
+                .replace("{repo}", &repo_display_name)
+                .replace("{branch}", name),
+            _ if !base_branch.is_empty() => tr_cached(Message::WorktreeNewNamedBranch)
+                .replace("{repo}", &repo_display_name)
+                .replace("{branch}", base_branch),
+            _ => tr_cached(Message::WorktreeNewNamed).replace("{}", &repo_display_name),
         };
 
         let filename_hint = if let Some(name) = worktree_branch_name {
@@ -10109,7 +10114,7 @@ impl Workspace {
             .file_name()
             .map(|name| name.to_string_lossy().to_string())
             .unwrap_or_else(|| repo_path.clone());
-        let config_name = format!("Worktree: {repo_display_name}");
+        let config_name = tr_cached(Message::WorktreeNamed).replace("{}", &repo_display_name);
         // Use the user's default session mode to decide pane type.
         let pane_type = if AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
             && AISettings::as_ref(ctx).default_session_mode(ctx) == DefaultSessionMode::Agent
@@ -12930,13 +12935,9 @@ impl Workspace {
         };
 
         WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = if crate::i18n::active_locale(ctx) == crate::i18n::Locale::ZhCn {
-                DismissibleToast::default(format!("已分叉“{title}”"))
-            } else {
-                DismissibleToast::default(
-                    tr_cached(Message::ToastForkedTitle).replace("{}", &title),
-                )
-            };
+            let toast = DismissibleToast::default(
+                tr_cached(Message::ToastForkedTitle).replace("{}", &title),
+            );
             toast_stack.add_ephemeral_toast(toast, window_id, ctx);
         });
     }
@@ -17076,16 +17077,18 @@ impl Workspace {
                 prev_mouse_reporting_enabled
             });
 
-        let verb = if prev_mouse_reporting_enabled {
-            "disabled"
+        let mut message = if prev_mouse_reporting_enabled {
+            tr_cached(Message::WorkspaceMouseReportingDisabled).to_owned()
         } else {
-            "enabled"
+            tr_cached(Message::WorkspaceMouseReportingEnabled).to_owned()
         };
-        let mut message = format!("You {verb} mouse reporting.");
         if let Some(keystroke) =
             keybinding_name_to_keystroke("workspace:toggle_mouse_reporting", ctx)
         {
-            let _ = write!(message, " Press {} to undo.", keystroke.displayed());
+            message.push_str(
+                &tr_cached(Message::ToastPressKeyToUndo)
+                    .replace("{}", &keystroke.displayed().to_string()),
+            );
         }
 
         self.toast_stack.update(ctx, |view, ctx| {
@@ -22598,13 +22601,20 @@ impl TypedActionView for Workspace {
 
                     status.is_syncing_all_inputs(window_id)
                 });
-                let verb = if enabled { "enabled" } else { "disabled" };
-                let mut message = format!("You {verb} synchronized inputs in all tabs.");
+                let mut message = tr_cached(if enabled {
+                    Message::WorkspaceSyncedInputsAllTabsEnabled
+                } else {
+                    Message::WorkspaceSyncedInputsAllTabsDisabled
+                })
+                .to_owned();
                 if let Some(keystroke) = keybinding_name_to_keystroke(
                     "workspace:toggle_sync_all_terminal_inputs_in_all_tabs",
                     ctx,
                 ) {
-                    let _ = write!(message, " Press {} to undo.", keystroke.displayed());
+                    message.push_str(
+                        &tr_cached(Message::ToastPressKeyToUndo)
+                            .replace("{}", &keystroke.displayed().to_string()),
+                    );
                 }
                 self.toast_stack.update(ctx, |view, ctx| {
                     let new_toast = DismissibleToast::default(message);
@@ -22631,13 +22641,20 @@ impl TypedActionView for Workspace {
 
                     status.should_sync_this_pane_group(current_pane_group_id, window_id)
                 });
-                let verb = if enabled { "enabled" } else { "disabled" };
-                let mut message = format!("You {verb} synchronized inputs in this tab.");
+                let mut message = tr_cached(if enabled {
+                    Message::WorkspaceSyncedInputsThisTabEnabled
+                } else {
+                    Message::WorkspaceSyncedInputsThisTabDisabled
+                })
+                .to_owned();
                 if let Some(keystroke) = keybinding_name_to_keystroke(
                     "workspace:toggle_sync_terminal_inputs_in_tab",
                     ctx,
                 ) {
-                    let _ = write!(message, " Press {} to undo.", keystroke.displayed());
+                    message.push_str(
+                        &tr_cached(Message::ToastPressKeyToUndo)
+                            .replace("{}", &keystroke.displayed().to_string()),
+                    );
                 }
                 self.toast_stack.update(ctx, |view, ctx| {
                     let new_toast = DismissibleToast::default(message);

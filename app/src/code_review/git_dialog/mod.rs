@@ -35,7 +35,7 @@ use crate::code_review::diff_state::{
 use crate::code_review::telemetry_event::{
     CodeReviewTelemetryEvent, GitDialogStatus, GitOperationKind,
 };
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::settings::AISettings;
 use crate::ui_components::dialog::{dialog_styles, Dialog};
 use crate::ui_components::icons::Icon;
@@ -131,51 +131,51 @@ fn user_facing_git_error(raw: &str) -> &'static str {
     if lower.contains("no changes added to commit") {
         // Distinct from a clean tree: changes exist but nothing is staged
         // (e.g. "include unstaged" off with an empty index).
-        "No staged changes to commit."
+        tr_cached(Message::GitNoStagedChanges)
     } else if lower.contains("nothing to commit") {
-        "No changes to commit."
+        tr_cached(Message::CodeReviewNoChangesToCommit)
     } else if lower.contains("please tell me who you are")
         || lower.contains("author identity unknown")
     {
-        "Git identity not configured. Set user.name and user.email."
+        tr_cached(Message::GitIdentityNotConfigured)
     } else if lower.contains("updates were rejected")
         || lower.contains("non-fast-forward")
         || lower.contains("fetch first")
     {
-        "Remote has new changes \u{2014} pull before pushing."
+        tr_cached(Message::GitRemoteHasNewChanges)
     } else if lower.contains("does not appear to be a git repository")
         || lower.contains("no configured push destination")
         || lower.contains("no such remote")
     {
-        "No remote configured for this branch."
+        tr_cached(Message::GitNoRemoteConfigured)
     } else if lower.contains("authentication failed")
         || lower.contains("permission denied (publickey)")
     {
-        "Authentication failed. Check your Git credentials."
+        tr_cached(Message::GitAuthenticationFailed)
     } else if lower.contains("could not resolve host")
         || lower.contains("network is unreachable")
         || lower.contains("connection timed out")
     {
-        "Network error. Check your connection."
+        tr_cached(Message::GitNetworkError)
     } else if lower.contains("repository not found") {
-        "Remote repository not found."
+        tr_cached(Message::GitRemoteRepositoryNotFound)
     } else if lower.contains("failed to execute gh command") {
         // `run_gh_command` wraps spawn failures with this prefix, which is
         // the reliable "gh binary missing" signal.
-        "GitHub CLI (gh) not installed. See https://cli.github.com/."
+        tr_cached(Message::GitHubCliNotInstalled)
     } else if lower.contains("not logged in")
         || lower.contains("authentication required")
         || lower.contains("gh auth login")
     {
         // Phrases mirror `context_chips::current_prompt::is_gh_auth_error`,
         // which has been vetted against real `gh` failure output.
-        "GitHub CLI not authenticated. Run `gh auth login`."
+        tr_cached(Message::GitHubCliNotAuthenticated)
     } else if lower.contains("another git operation is in progress") {
         // Daemon-side guard for a repo mid-merge/rebase/cherry-pick or with a
         // held index lock (see `git_operation_in_progress`).
-        "Another git operation is in progress. Finish or abort it first."
+        tr_cached(Message::GitOperationInProgress)
     } else {
-        "Git operation failed."
+        tr_cached(Message::GitOperationFailed)
     }
 }
 
@@ -196,7 +196,7 @@ fn render_branch_section(
     let sub_color = theme.sub_text_color(theme.surface_1()).into_solid();
 
     let label = Text::new(
-        "Branch",
+        tr_cached(Message::CodeReviewBranch),
         appearance.ui_font_family(),
         appearance.ui_font_size(),
     )
@@ -739,15 +739,15 @@ impl GitDialog {
 
     fn title(&self) -> &'static str {
         match &self.mode {
-            GitDialogMode::Commit(_) => "Commit your changes",
+            GitDialogMode::Commit(_) => tr_cached(Message::CodeReviewCommitYourChanges),
             GitDialogMode::Push(state) => {
                 if state.publish {
-                    "Publish branch"
+                    tr_cached(Message::CodeReviewPublishBranch)
                 } else {
-                    "Push changes"
+                    tr_cached(Message::CodeReviewPushChanges)
                 }
             }
-            GitDialogMode::CreatePr(_) => "Create pull request",
+            GitDialogMode::CreatePr(_) => tr_cached(Message::CodeReviewCreatePullRequestTitle),
         }
     }
 

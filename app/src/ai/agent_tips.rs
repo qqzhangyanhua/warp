@@ -432,10 +432,7 @@ impl AITip for AgentTip {
     }
 
     fn to_formatted_text(&self, app: &AppContext) -> Vec<FormattedTextFragment> {
-        let prefix = match crate::i18n::active_locale(app) {
-            crate::i18n::Locale::ZhCn => "提示：",
-            _ => "Tip: ",
-        };
+        let prefix = crate::i18n::tr(app, crate::i18n::Message::AgentTipPrefix);
         let desc = localized_tip_description(app, &self.description);
         let mut text = format!("{}{}", prefix, desc);
 

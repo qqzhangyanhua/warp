@@ -694,7 +694,12 @@ impl TerminalView {
             self.ambient_agent_cancel_mouse_state.clone(),
             blended_colors::text_sub(theme, theme.background()).into(),
         )
-        .with_tooltip(move || ui_builder.tool_tip("Cancel".to_string()).build().finish())
+        .with_tooltip(move || {
+            ui_builder
+                .tool_tip(tr_cached(Message::CommonCancel).into())
+                .build()
+                .finish()
+        })
         .build()
         .on_click(|ctx, _, _| {
             ctx.dispatch_typed_action::<PaneHeaderAction<TerminalAction, TerminalAction>>(
@@ -738,9 +743,9 @@ impl TerminalView {
         button
             .with_tooltip(move || {
                 let tooltip_text = if is_open {
-                    "Hide details"
+                    tr_cached(Message::AgentHideDetails)
                 } else {
-                    "Show details"
+                    tr_cached(Message::AgentShowDetails)
                 };
                 ui_builder
                     .tool_tip(tooltip_text.to_string())
@@ -1010,6 +1015,6 @@ fn default_agent_conversation_title(is_ambient_agent: bool) -> String {
     if is_ambient_agent {
         "New cloud agent".to_owned()
     } else {
-        "New agent conversation".to_owned()
+        tr_cached(Message::TerminalNewAgentConversation).to_owned()
     }
 }

@@ -38,7 +38,7 @@ impl WebFetchView {
         let appearance = Appearance::as_ref(app);
         let loading_icon = yellow_running_icon(appearance);
 
-        let text = format!("Fetching {} web pages...", urls.len());
+        let text = tr_cached(Message::AgentFetchingWebPages).replace("{}", &urls.len().to_string());
 
         super::search_results_common::render_status_header(text, loading_icon, app)
     }
@@ -50,9 +50,11 @@ impl WebFetchView {
     ) -> Box<dyn Element> {
         let successful_count = pages.iter().filter(|(_, _, success)| *success).count();
         let title_text = if successful_count == pages.len() {
-            format!("Fetched {} web pages", pages.len())
+            tr_cached(Message::AgentFetchedWebPages).replace("{}", &pages.len().to_string())
         } else {
-            format!("Fetched {} of {} web pages", successful_count, pages.len())
+            tr_cached(Message::AgentFetchedWebPagesPartial)
+                .replacen("{}", &successful_count.to_string(), 1)
+                .replacen("{}", &pages.len().to_string(), 1)
         };
 
         let body = if self.collapsible.is_expanded {
@@ -64,7 +66,7 @@ impl WebFetchView {
         render_collapsible_search_results(
             title_text,
             pages.len(),
-            "URLs",
+            Message::AgentUrlsCount,
             &self.collapsible,
             body,
             |ctx| {
@@ -172,7 +174,7 @@ impl View for WebFetchView {
             WebFetchStatus::Error => {
                 let appearance = Appearance::as_ref(app);
                 super::search_results_common::render_status_header(
-                    "Web page fetch failed".to_string(),
+                    tr_cached(Message::AgentWebPageFetchFailed).to_string(),
                     failed_icon(appearance),
                     app,
                 )

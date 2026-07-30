@@ -1163,22 +1163,16 @@ impl SettingsWidget for SecretRedactionWidget {
                 .with_child(
                     Container::new(
                         ui_builder
-                            .paragraph(
-                                "Choose how secrets are visually presented in the block list while keeping them searchable. This setting only affects what you see in the block list.",
-                            )
+                            .paragraph(tr_cached(Message::PrivacySecretVisualRedactionDescription))
                             .with_style(UiComponentStyles {
                                 font_color: Some(description_text_color),
-                                margin: Some(
-                                    Coords::default()
-                                        .top(4.)
-                                        .bottom(0.),
-                                ),
+                                margin: Some(Coords::default().top(4.).bottom(0.)),
                                 ..Default::default()
                             })
                             .build()
-                            .finish()
+                            .finish(),
                     )
-                    .finish()
+                    .finish(),
                 )
                 .finish();
 

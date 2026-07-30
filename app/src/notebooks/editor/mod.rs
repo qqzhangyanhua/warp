@@ -19,6 +19,7 @@ use warpui::fonts::FamilyId;
 use warpui::ui_components::checkbox::HOVER_BACKGROUND_COLOR;
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::notebooks::editor::embedded_item::EmbeddedWorkflow;
 use crate::settings::{derived_notebook_font_size, FontSettings};
 use crate::themes::theme::Fill;
@@ -133,13 +134,30 @@ impl BlockType {
 
     fn label(self) -> &'static str {
         match self {
-            BlockType::Text => "Text",
-            BlockType::Header(size) => size.label(),
-            BlockType::RunnableCommand => "Command",
-            BlockType::UnorderedList => "Bulleted list",
-            BlockType::OrderedList => "Numbered list",
-            BlockType::Code => "Code",
-            BlockType::TaskList => "To-do list",
+            BlockType::Text => tr_cached(Message::NotebookBlockText),
+            BlockType::Header(BlockHeaderSize::Header1) => {
+                tr_cached(Message::NotebookBlockHeading1)
+            }
+            BlockType::Header(BlockHeaderSize::Header2) => {
+                tr_cached(Message::NotebookBlockHeading2)
+            }
+            BlockType::Header(BlockHeaderSize::Header3) => {
+                tr_cached(Message::NotebookBlockHeading3)
+            }
+            BlockType::Header(BlockHeaderSize::Header4) => {
+                tr_cached(Message::NotebookBlockHeading4)
+            }
+            BlockType::Header(BlockHeaderSize::Header5) => {
+                tr_cached(Message::NotebookBlockHeading5)
+            }
+            BlockType::Header(BlockHeaderSize::Header6) => {
+                tr_cached(Message::NotebookBlockHeading6)
+            }
+            BlockType::RunnableCommand => tr_cached(Message::NotebookBlockCommand),
+            BlockType::UnorderedList => tr_cached(Message::NotebookBlockBulletedList),
+            BlockType::OrderedList => tr_cached(Message::NotebookBlockNumberedList),
+            BlockType::Code => tr_cached(Message::NotebookBlockCode),
+            BlockType::TaskList => tr_cached(Message::NotebookBlockTodoList),
         }
     }
 }

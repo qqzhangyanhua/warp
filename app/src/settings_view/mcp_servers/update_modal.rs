@@ -18,7 +18,7 @@ use warpui::{
 
 use crate::ai::mcp::{Author, MCPServerUpdate};
 use crate::appearance::Appearance;
-use crate::i18n::{tr, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::settings_view::mcp_servers::style::{
     INSTALLATION_MODAL_BUTTON_GAP, INSTALLATION_MODAL_PADDING,
 };
@@ -124,7 +124,10 @@ impl UpdateModalBody {
 
     fn render_title(&self, appearance: &Appearance) -> Box<dyn Element> {
         let theme = appearance.theme();
-        let name = self.server_name.as_deref().unwrap_or("Server");
+        let name = self
+            .server_name
+            .as_deref()
+            .unwrap_or(tr_cached(Message::McpServer));
 
         // Renders MCP avatar icon
         let avatar_content = if let Some(icon) = ExternalProductIcon::from_string(name) {
@@ -154,7 +157,7 @@ impl UpdateModalBody {
 
         // Renders MCP title text
         let title = Text::new(
-            format!("Update {name}"),
+            tr_cached(Message::McpUpdateNamed).replace("{}", name),
             appearance.ui_font_family(),
             appearance.header_font_size(),
         )
@@ -221,10 +224,8 @@ impl UpdateModalBody {
 
     fn render_description(&self, appearance: &Appearance) -> Box<dyn Element> {
         // Modal appears only when multiple updates are available
-        let description = format!(
-            "This server has {} updates available, which would you like to proceed with?",
-            self.update_options.len()
-        );
+        let description = tr_cached(Message::McpUpdatesAvailableQuestion)
+            .replace("{}", &self.update_options.len().to_string());
 
         Text::new(
             description,
@@ -258,9 +259,9 @@ impl UpdateModalBody {
                 ..
             } => {
                 let publisher_string = match publisher {
-                    Author::CurrentUser => "another device",
+                    Author::CurrentUser => tr_cached(Message::McpAnotherDevice),
                     Author::OtherUser { name } => name,
-                    Author::Unknown => "a team member",
+                    Author::Unknown => tr_cached(Message::McpTeamMember),
                 };
                 let datetime = Local
                     .timestamp_opt(*new_version_ts, 0)
@@ -268,15 +269,15 @@ impl UpdateModalBody {
                     .unwrap_or_else(Local::now);
                 let formatted_time = format_approx_duration_from_now(datetime);
                 (
-                    format!("Update from {publisher_string}"),
+                    tr_cached(Message::McpUpdateFromNamed).replace("{}", publisher_string),
                     formatted_time.to_string(),
                 )
             }
             MCPServerUpdate::Gallery {
                 name, new_version, ..
             } => (
-                format!("Update from {name}"),
-                format!("Version {new_version}"),
+                tr_cached(Message::McpUpdateFromNamed).replace("{}", name),
+                tr_cached(Message::McpVersionNamed).replace("{}", &new_version.to_string()),
             ),
         };
 
@@ -392,7 +393,7 @@ impl View for UpdateModalBody {
         // Add update options
         if self.update_options.is_empty() {
             let no_updates_text = Text::new(
-                "No updates available",
+                tr_cached(Message::McpNoUpdatesAvailable),
                 appearance.ui_font_family(),
                 appearance.ui_font_size(),
             )

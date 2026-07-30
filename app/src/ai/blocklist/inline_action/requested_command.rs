@@ -879,7 +879,7 @@ impl RequestedCommandView {
             ) if show_for_action_id == &self.action_id => {
                 *shown.lock() = true;
                 Some(render_autonomy_checkbox_setting_speedbump_footer(
-                    "Always allow Oz to execute read-only commands (relies on model)",
+                    tr_cached(Message::AgentAlwaysAllowReadonlyCommands),
                     *checked,
                     AIBlockAction::ToggleAutoexecuteReadonlyCommandsSpeedbumpCheckbox,
                     self.autoexecute_readonly_commands_speedbump_checkbox_handle
@@ -936,7 +936,7 @@ impl RequestedCommandView {
                 )
                 .with_child(
                     Text::new(
-                        "Your profile is set to always ask for permission to execute commands.",
+                        tr_cached(Message::AgentProfileAlwaysAsksCommandPermission),
                         appearance.ui_font_family(),
                         font_size,
                     )
@@ -951,7 +951,7 @@ impl RequestedCommandView {
                             appearance
                                 .ui_builder()
                                 .link(
-                                    "Manage command execution setting".into(),
+                                    tr_cached(Message::AgentManageCommandExecutionSetting).into(),
                                     None,
                                     Some(Box::new(move |ctx| {
                                         ctx.dispatch_typed_action(
@@ -1671,10 +1671,14 @@ impl View for RequestedCommandView {
                         .finish(),
                     );
                     col.add_child(
-                        Text::new_inline("(no arguments)".to_string(), font_family, TREE_FONT_SIZE)
-                            .with_color(colors.annotation)
-                            .soft_wrap(false)
-                            .finish(),
+                        Text::new_inline(
+                            tr_cached(Message::UiNoArguments).to_string(),
+                            font_family,
+                            TREE_FONT_SIZE,
+                        )
+                        .with_color(colors.annotation)
+                        .soft_wrap(false)
+                        .finish(),
                     );
                     col.finish()
                 };
@@ -1724,7 +1728,7 @@ impl View for RequestedCommandView {
                                 });
                             render_json_tree(
                                 &value,
-                                Some("Response"),
+                                Some(tr_cached(Message::CommonResponse)),
                                 &self.mcp_response_tree_state,
                                 &colors,
                                 &format!("{}-resp", self.position_id_prefix),
@@ -1739,7 +1743,7 @@ impl View for RequestedCommandView {
                                 .with_cross_axis_alignment(CrossAxisAlignment::Stretch);
                             col.add_child(
                                 Text::new_inline(
-                                    "Response".to_string(),
+                                    tr_cached(Message::CommonResponse).to_string(),
                                     font_family,
                                     TREE_FONT_SIZE,
                                 )
@@ -1748,10 +1752,14 @@ impl View for RequestedCommandView {
                                 .finish(),
                             );
                             col.add_child(
-                                Text::new(format!("Error: {e}"), font_family, TREE_FONT_SIZE)
-                                    .with_color(theme.ui_error_color())
-                                    .with_selectable(true)
-                                    .finish(),
+                                Text::new(
+                                    tr_cached(Message::CommonErrorNamed).replace("{}", &e),
+                                    font_family,
+                                    TREE_FONT_SIZE,
+                                )
+                                .with_color(theme.ui_error_color())
+                                .with_selectable(true)
+                                .finish(),
                             );
                             col.finish()
                         }
@@ -1760,7 +1768,7 @@ impl View for RequestedCommandView {
                                 .with_cross_axis_alignment(CrossAxisAlignment::Stretch);
                             col.add_child(
                                 Text::new_inline(
-                                    "Response".to_string(),
+                                    tr_cached(Message::CommonResponse).to_string(),
                                     font_family,
                                     TREE_FONT_SIZE,
                                 )
@@ -1770,7 +1778,7 @@ impl View for RequestedCommandView {
                             );
                             col.add_child(
                                 Text::new_inline(
-                                    "Cancelled".to_string(),
+                                    tr_cached(Message::CommonCancelled).to_string(),
                                     font_family,
                                     TREE_FONT_SIZE,
                                 )
@@ -1838,13 +1846,21 @@ impl View for RequestedCommandView {
                 {
                     let result_text = match result {
                         CallMCPToolResult::Success { result } => {
-                            serde_json::to_string_pretty(result)
-                                .unwrap_or_else(|_| "Error formatting JSON".to_string())
+                            serde_json::to_string_pretty(result).unwrap_or_else(|_| {
+                                tr_cached(Message::CommonErrorFormattingJson).to_string()
+                            })
                         }
-                        CallMCPToolResult::Error(error) => format!("Error: {error}"),
-                        CallMCPToolResult::Cancelled => "Tool call was cancelled".to_string(),
+                        CallMCPToolResult::Error(error) => {
+                            tr_cached(Message::CommonErrorNamed).replace("{}", error)
+                        }
+                        CallMCPToolResult::Cancelled => {
+                            tr_cached(Message::McpToolCallCancelled).to_string()
+                        }
                     };
-                    format!("{command_text}\n\nResponse: {result_text}")
+                    format!(
+                        "{command_text}\n\n{}: {result_text}",
+                        tr_cached(Message::CommonResponse)
+                    )
                 } else if self.is_header_expanded {
                     command_text.to_string()
                 } else {

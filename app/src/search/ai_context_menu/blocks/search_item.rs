@@ -9,6 +9,7 @@ use warpui::fonts::{Properties, Weight};
 use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::styles;
 use crate::search::item::SearchItem;
@@ -19,20 +20,20 @@ use crate::util::truncation::truncate_from_end;
 /// Calculate how long ago a timestamp was
 fn time_ago_string(timestamp: Option<&DateTime<Local>>) -> String {
     let Some(timestamp) = timestamp else {
-        return "Just now".to_string();
+        return tr_cached(Message::TimeJustNowSentenceCase).to_string();
     };
 
     let now = Local::now();
     let duration = now.signed_duration_since(*timestamp);
 
     if duration.num_seconds() < 60 {
-        "Just now".to_string()
+        tr_cached(Message::TimeJustNowSentenceCase).to_string()
     } else if duration.num_minutes() < 60 {
-        format!("{} minutes ago", duration.num_minutes())
+        tr_cached(Message::TimeMinutesAgo).replace("{}", &duration.num_minutes().to_string())
     } else if duration.num_hours() < 24 {
-        format!("{} hours ago", duration.num_hours())
+        tr_cached(Message::TimeHoursAgo).replace("{}", &duration.num_hours().to_string())
     } else {
-        format!("{} days ago", duration.num_days())
+        tr_cached(Message::TimeDaysAgo).replace("{}", &duration.num_days().to_string())
     }
 }
 
@@ -135,7 +136,7 @@ impl SearchItem for BlockSearchItem {
 
         // Create sub text: last 3 lines of output
         let sub_text = if self.output_lines.is_empty() {
-            "No output".to_string()
+            tr_cached(Message::CommonNoOutput).to_string()
         } else {
             let joined = self.output_lines.join("\n").trim().to_string();
             // Additional safety truncation for the hover card
@@ -206,6 +207,6 @@ impl SearchItem for BlockSearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        format!("Block: {}", self.command)
+        tr_cached(Message::A11yBlockLabel).replace("{}", &self.command)
     }
 }

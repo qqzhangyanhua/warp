@@ -3,6 +3,7 @@ use warpui::elements::{Empty, Text};
 use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::item::SearchItem;
 use crate::search::result_renderer::ItemHighlightState;
@@ -66,7 +67,7 @@ impl SearchItem for SeparatorSearchItem {
     }
 
     fn accessibility_label(&self) -> String {
-        format!("Section: {}", self.title)
+        tr_cached(Message::A11ySectionLabel).replace("{}", &self.title)
     }
 
     fn is_static_separator(&self) -> bool {

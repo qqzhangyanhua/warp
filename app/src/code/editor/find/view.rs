@@ -55,11 +55,9 @@ pub fn regex_toggle_tooltip() -> &'static str {
 pub fn case_sensitive_tooltip() -> &'static str {
     tr_cached(Message::TerminalCaseSensitiveSearch)
 }
-pub const PRESERVE_CASE_TOOLTIP: &str = "Preserve case";
 pub fn find_placeholder_text() -> &'static str {
     tr_cached(Message::FindPlaceholder)
 }
-pub const REPLACE_PLACEHOLDER_TEXT: &str = "Replace";
 
 #[derive(Default)]
 struct ButtonMouseStates {
@@ -166,7 +164,7 @@ impl CodeEditorFind {
                 },
                 ctx,
             );
-            replace_editor.set_placeholder_text(REPLACE_PLACEHOLDER_TEXT, ctx);
+            replace_editor.set_placeholder_text(tr(ctx, Message::CodeReplacePlaceholder), ctx);
             replace_editor
         });
 
@@ -379,12 +377,14 @@ impl CodeEditorFind {
     pub fn emit_result_a11y_content(&mut self, ctx: &mut ViewContext<Self>) {
         let content = if let Some(match_index) = self.searcher.as_ref(ctx).selected_match() {
             AccessibilityContent::new(
-                format!(
-                    "Result {} of {}.",
-                    match_index + 1,
-                    self.searcher.as_ref(ctx).match_count()
-                ),
-                "Use enter and shift-enter to navigate between matches. Escape to quit.",
+                tr_cached(Message::A11yCodeFindResult)
+                    .replacen("{}", &(match_index + 1).to_string(), 1)
+                    .replacen(
+                        "{}",
+                        &self.searcher.as_ref(ctx).match_count().to_string(),
+                        1,
+                    ),
+                tr_cached(Message::A11yCodeFindResultHelp),
                 WarpA11yRole::UserAction,
             )
         } else {
@@ -402,15 +402,15 @@ impl CodeEditorFind {
         let content = if let Some(match_index) = self.searcher.as_ref(ctx).selected_match() {
             let remaining_matches = self.searcher.as_ref(ctx).match_count();
             AccessibilityContent::new(
-                format!(
-                    "Successfully replaced match. Selected match is {match_index} of {remaining_matches}"
-                ),
-                "Continue pressing Enter to replace more matches, or use up/down arrows to navigate.",
+                tr_cached(Message::A11yCodeReplaceSuccess)
+                    .replacen("{}", &match_index.to_string(), 1)
+                    .replacen("{}", &remaining_matches.to_string(), 1),
+                tr_cached(Message::A11yCodeReplaceHelp),
                 WarpA11yRole::UserAction,
             )
         } else {
             AccessibilityContent::new_without_help(
-                "Successfully replaced the last match.",
+                tr_cached(Message::A11yCodeReplaceLastSuccess),
                 WarpA11yRole::UserAction,
             )
         };
@@ -867,7 +867,7 @@ impl CodeEditorFind {
             self.button_mouse_states.toggle_preserve_case.clone(),
             FindAction::TogglePreserveCase,
             editor_height,
-            Some(PRESERVE_CASE_TOOLTIP),
+            Some(tr_cached(Message::CodeFindPreserveCase)),
             ICON_PADDING,
         );
         replace_editor_row.add_child(preserve_case_icon);
@@ -937,20 +937,18 @@ impl View for CodeEditorFind {
         let match_count = self.searcher.as_ref(app).match_count();
         let selected_match = self.searcher.as_ref(app).selected_match();
         let description = match (match_count, selected_match) {
-            (0, _) | (_, None) => "Find bar for searching text in the editor.".to_string(),
-            (count, Some(current)) => format!(
-                "Find bar with {} matches found. Currently on match {} of {}.",
-                count,
-                current + 1,
-                count
-            ),
+            (0, _) | (_, None) => tr_cached(Message::A11yCodeFindBar).to_string(),
+            (count, Some(current)) => tr_cached(Message::A11yCodeFindBarWithMatches)
+                .replacen("{}", &count.to_string(), 1)
+                .replacen("{}", &(current + 1).to_string(), 1)
+                .replacen("{}", &count.to_string(), 1),
         };
 
         let is_replace_focused = self.is_replace_open && self.replace_editor.is_focused(app);
         let help_text = if is_replace_focused {
-            "Replace field focused. Type replacement text, press Enter to replace current match, Tab to return to find field. Use up/down arrows to navigate matches, Escape to close."
+            tr_cached(Message::A11yCodeReplaceFieldHelp)
         } else {
-            "Find field focused. Type to search text. Use Enter and Shift-Enter or up/down arrows to navigate between matches. Press Escape to close find bar."
+            tr_cached(Message::A11yCodeFindFieldHelp)
         };
 
         Some(AccessibilityContent::new(

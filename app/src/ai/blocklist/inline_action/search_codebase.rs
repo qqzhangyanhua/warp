@@ -156,9 +156,11 @@ impl SearchCodebaseView {
         app: &AppContext,
     ) -> Box<dyn Element> {
         let title_text = if let Some(repo_name) = &self.repo_name {
-            format!("Searched for \"{}\" in {}", self.search_query, repo_name)
+            tr_cached(Message::AgentSearchedForIn)
+                .replace("{query}", &self.search_query)
+                .replace("{repo}", repo_name)
         } else {
-            format!("Searched for \"{}\"", self.search_query)
+            tr_cached(Message::AgentSearchedFor).replace("{}", &self.search_query)
         };
 
         let body = if self.collapsible.is_expanded {
@@ -170,7 +172,7 @@ impl SearchCodebaseView {
         render_collapsible_search_results(
             title_text,
             file_contexts.len(),
-            "results",
+            Message::AgentResultsCount,
             &self.collapsible,
             body,
             |ctx| {
@@ -466,9 +468,11 @@ impl View for SearchCodebaseView {
                 | AIActionStatus::RunningAsync,
             ) => {
                 let loading_text = if let Some(repo_name) = &self.repo_name {
-                    format!("Searching for \"{}\" in {}", self.search_query, repo_name)
+                    tr_cached(Message::AgentSearchingForIn)
+                        .replace("{query}", &self.search_query)
+                        .replace("{repo}", repo_name)
                 } else {
-                    format!("Searching codebase for \"{}\"", self.search_query)
+                    tr_cached(Message::AgentSearchingCodebaseFor).replace("{}", &self.search_query)
                 };
                 let loading_icon = yellow_running_icon(appearance);
                 self.render_header(appearance, loading_text, loading_icon, app)
@@ -477,12 +481,11 @@ impl View for SearchCodebaseView {
             }
             Some(AIActionStatus::Finished(result)) if result.result.is_cancelled() => {
                 let cancelled_text = if let Some(repo_name) = &self.repo_name {
-                    format!(
-                        "Search for \"{}\" in {} cancelled",
-                        self.search_query, repo_name
-                    )
+                    tr_cached(Message::AgentSearchForInCancelled)
+                        .replace("{query}", &self.search_query)
+                        .replace("{repo}", repo_name)
                 } else {
-                    format!("Search for \"{}\" cancelled", self.search_query)
+                    tr_cached(Message::AgentSearchForCancelled).replace("{}", &self.search_query)
                 };
                 let cancelled_icon = cancelled_icon(appearance);
                 self.render_header(appearance, cancelled_text, cancelled_icon, app)
@@ -495,12 +498,11 @@ impl View for SearchCodebaseView {
                 .finish(),
             _ => {
                 let text = if let Some(repo_name) = &self.repo_name {
-                    format!(
-                        "Searched codebase for \"{}\" in {}",
-                        self.search_query, repo_name
-                    )
+                    tr_cached(Message::AgentSearchedCodebaseForIn)
+                        .replace("{query}", &self.search_query)
+                        .replace("{repo}", repo_name)
                 } else {
-                    format!("Searched codebase for \"{}\"", self.search_query)
+                    tr_cached(Message::AgentSearchedCodebaseFor).replace("{}", &self.search_query)
                 };
                 self.render_simple_header(text, app)
                     .with_agent_output_item_spacing(app)

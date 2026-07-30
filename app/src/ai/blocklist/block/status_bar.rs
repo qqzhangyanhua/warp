@@ -1035,7 +1035,10 @@ fn render_agent_tip(tip: &AgentTip, app: &AppContext) -> Box<dyn Element> {
         fragments.push(FormattedTextFragment::hyperlink_action(text, action));
     } else if let Some(link_target) = tip.link.clone() {
         fragments.push(FormattedTextFragment::plain_text(" "));
-        fragments.push(FormattedTextFragment::hyperlink("Learn more", link_target));
+        fragments.push(FormattedTextFragment::hyperlink(
+            tr_cached(Message::CommonLearnMore),
+            link_target,
+        ));
     }
 
     let formatted_text =
@@ -1094,10 +1097,8 @@ fn render_fallback_explanation<V: View>(
         .and_then(|base_id| llm_prefs.get_llm_info(base_id))
         .map(|info| info.base_model_name.as_str());
     let text = match primary_name {
-        Some(primary) => {
-            format!("The primary model ({primary}) failed. Retrying with the fallback model.")
-        }
-        None => "The primary model failed. Retrying with the fallback model.".to_owned(),
+        Some(primary) => tr_cached(Message::AgentPrimaryModelFailedNamed).replace("{}", primary),
+        None => tr_cached(Message::AgentPrimaryModelFailed).to_owned(),
     };
     let appearance = Appearance::as_ref(app);
     Text::new_inline(
@@ -1150,8 +1151,8 @@ fn resolve_fallback_warping_message<V: View>(
         return None;
     }
     Some(match display_name.as_deref() {
-        Some(name) => format!("Working with {name}."),
-        None => "Working with another model.".to_owned(),
+        Some(name) => tr_cached(Message::AgentWorkingWithNamed).replace("{}", name),
+        None => tr_cached(Message::AgentWorkingWithAnotherModel).to_owned(),
     })
 }
 

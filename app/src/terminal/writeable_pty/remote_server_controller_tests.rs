@@ -2,6 +2,7 @@ use super::{
     connection_label_from_session_hosts, connection_label_from_ssh_host,
     connection_label_from_user_and_host,
 };
+use crate::i18n::{tr_cached, Message};
 
 #[test]
 fn connection_label_prefers_ssh_host_over_reported_hostname() {
@@ -45,5 +46,8 @@ fn connection_label_from_user_and_host_matches_udi_format() {
         connection_label_from_user_and_host("", Some("ssh-testing")),
         "ssh-testing"
     );
-    assert_eq!(connection_label_from_user_and_host("", None), "Remote host");
+    assert_eq!(
+        connection_label_from_user_and_host("", None),
+        tr_cached(Message::TerminalRemoteHost)
+    );
 }

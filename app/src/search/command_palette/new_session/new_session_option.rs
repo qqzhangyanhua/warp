@@ -3,6 +3,7 @@ use std::fmt;
 
 use warpui::Action;
 
+use crate::i18n::{tr_cached, Message};
 use crate::server::telemetry::AddTabWithShellSource;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::view::TerminalAction;
@@ -37,6 +38,17 @@ impl fmt::Display for Direction {
                 Direction::Left => "Left",
             }
         )
+    }
+}
+
+impl Direction {
+    fn localized_label(&self) -> &'static str {
+        tr_cached(match self {
+            Direction::Down => Message::CommonDown,
+            Direction::Right => Message::CommonRight,
+            Direction::Up => Message::CommonUp,
+            Direction::Left => Message::CommonLeft,
+        })
     }
 }
 
@@ -83,13 +95,13 @@ impl NewSessionOption {
 impl NewSessionOption {
     pub(super) fn new(id: NewSessionOptionId, config: NewSessionConfig) -> Self {
         let description = match &config {
-            NewSessionConfig::NewTab(shell) => format!("Create New Tab: {}", shell.short_name()),
-            NewSessionConfig::NewWindow(shell) => {
-                format!("Create New Window: {}", shell.short_name())
-            }
-            NewSessionConfig::Split(direction, shell) => {
-                format!("Split Pane {direction}: {}", shell.short_name())
-            }
+            NewSessionConfig::NewTab(shell) => tr_cached(Message::CommandCreateNewTabNamed)
+                .replace("{}", shell.short_name().as_ref()),
+            NewSessionConfig::NewWindow(shell) => tr_cached(Message::CommandCreateNewWindowNamed)
+                .replace("{}", shell.short_name().as_ref()),
+            NewSessionConfig::Split(direction, shell) => tr_cached(Message::CommandSplitPaneNamed)
+                .replacen("{}", direction.localized_label(), 1)
+                .replacen("{}", shell.short_name().as_ref(), 1),
         };
         Self {
             id,

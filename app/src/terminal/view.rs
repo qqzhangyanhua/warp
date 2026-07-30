@@ -495,7 +495,7 @@ use crate::terminal::writeable_pty::{PtyIntent, PtyIntentEvent, TerminalSurface}
 use crate::terminal::{
     block_list_element::BlockHoverAction,
     // find::{Event as FindEvent, Find, FindDirection},
-    input::{Event as InputEvent, Input, INPUT_A11Y_HELPER, INPUT_A11Y_LABEL},
+    input::{Event as InputEvent, Input},
     model::block::SerializedBlock,
     shell::ShellType,
     terminal_size_element::TerminalSizeElement,
@@ -529,8 +529,8 @@ use crate::view_components::find::{Event as FindEvent, Find, FindDirection, Find
 use crate::view_components::{DismissibleToast, ToastFlavor};
 use crate::workflows::workflow::Workflow;
 use crate::workflows::WorkflowSelectionSource;
-use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::cloud_agent_capacity::CloudAgentCapacityModalVariant;
+use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{
     CommandSearchOptions, ForkAIConversationParams, ForkFromExchange,
     ForkedConversationDestination, OneTimeModalModel, ToastStack, WorkspaceAction,
@@ -897,9 +897,9 @@ impl NotificationsTrigger {
         let (title_suffix, body_prefix) = match self {
             LongRunningCommand(command_succeeded, block_duration) => {
                 let status = if *command_succeeded {
-                    "finished"
+                    tr_cached(Message::NotificationStatusFinished)
                 } else {
-                    "failed"
+                    tr_cached(Message::NotificationStatusFailed)
                 };
 
                 let duration_seconds = block_duration.as_secs_f32();
@@ -910,21 +910,32 @@ impl NotificationsTrigger {
                 };
 
                 (
-                    format!(" {status} after {duration_seconds}s"),
-                    "Latest output: ".to_string(),
+                    tr_cached(Message::NotificationFinishedAfter)
+                        .replace("{status}", status)
+                        .replace("{seconds}", &duration_seconds),
+                    tr_cached(Message::NotificationLatestOutputPrefix).to_string(),
                 )
             }
             AgentTaskCompleted(command_succeeded) => {
                 if *command_succeeded {
-                    (" finished".to_string(), "Latest output: ".to_string())
+                    (
+                        tr_cached(Message::NotificationFinishedSuffix).to_string(),
+                        tr_cached(Message::NotificationLatestOutputPrefix).to_string(),
+                    )
                 } else {
-                    (" failed".to_string(), "Error: ".to_string())
+                    (
+                        tr_cached(Message::NotificationFailedSuffix).to_string(),
+                        tr_cached(Message::NotificationErrorPrefix).to_string(),
+                    )
                 }
             }
-            NotificationsTrigger::NeedsAttention => (" blocked".to_string(), "".to_string()),
+            NotificationsTrigger::NeedsAttention => (
+                tr_cached(Message::NotificationBlockedSuffix).to_string(),
+                "".to_string(),
+            ),
             PasswordPrompt => (
-                " is waiting for a password".to_string(),
-                "Latest output: ".to_string(),
+                tr_cached(Message::NotificationWaitingPasswordSuffix).to_string(),
+                tr_cached(Message::NotificationLatestOutputPrefix).to_string(),
             ),
         };
 
@@ -986,6 +997,17 @@ impl NotificationsTrigger {
             title: format!("{title_prefix}{title_suffix}"),
             body: format!("{body_prefix}{body_suffix}"),
         }
+    }
+}
+
+fn notification_error_banner_title(error: Option<&NotificationSendError>) -> &'static str {
+    match error {
+        Some(
+            NotificationSendError::PermissionsDenied
+            | NotificationSendError::PermissionsNotYetGranted,
+        ) => tr_cached(Message::NotificationErrorNoPermission),
+        Some(NotificationSendError::Other { .. }) => tr_cached(Message::NotificationErrorOther),
+        None => tr_cached(Message::NotificationErrorSending),
     }
 }
 
@@ -3940,13 +3962,14 @@ impl TerminalView {
         let slow_bootstrap_banner = ctx.add_typed_action_view(|_| {
             Banner::<TerminalAction>::new_with_buttons(
                 BannerTextContent::formatted_text(vec![
-                    FormattedTextFragment::plain_text(
-                        "Seems like your shell is taking a while to start...  ",
+                    FormattedTextFragment::plain_text(tr_cached(Message::TerminalSlowShellStart)),
+                    FormattedTextFragment::hyperlink(
+                        tr_cached(Message::TerminalMoreInfo),
+                        KNOWN_ISSUES_URL,
                     ),
-                    FormattedTextFragment::hyperlink("More info", KNOWN_ISSUES_URL),
                 ]),
                 vec![BannerTextButton::new(
-                    "Show initialization block".to_string(),
+                    tr_cached(Message::TerminalShowInitializationBlock).to_string(),
                     Rc::new(|event_ctx, _ctx, _position| {
                         event_ctx.dispatch_typed_action(BannerAction::<TerminalAction>::Action(
                             TerminalAction::ShowInitializationBlock,
@@ -3966,14 +3989,21 @@ impl TerminalView {
 
         let control_master_error_banner = ctx.add_typed_action_view(|_| {
             Banner::new_permanently_dismissible(BannerTextContent::formatted_text(vec![
-                FormattedTextFragment::plain_text("Seems like your completions are not working ("),
-                FormattedTextFragment::hyperlink("more info", CONTROLMASTER_ISSUES_URL),
-                FormattedTextFragment::plain_text("). Enabling the SSH extension in "),
+                FormattedTextFragment::plain_text(tr_cached(
+                    Message::TerminalCompletionsNotWorking,
+                )),
+                FormattedTextFragment::hyperlink(
+                    tr_cached(Message::TerminalMoreInfoLower),
+                    CONTROLMASTER_ISSUES_URL,
+                ),
+                FormattedTextFragment::plain_text(tr_cached(Message::TerminalEnableSshExtensionIn)),
                 FormattedTextFragment::hyperlink_action(
-                    "settings",
+                    tr_cached(Message::TerminalSettingsLower),
                     TerminalAction::ShowWarpifySettings,
                 ),
-                FormattedTextFragment::plain_text(" may resolve this issue."),
+                FormattedTextFragment::plain_text(tr_cached(
+                    Message::TerminalMayResolveCompletions,
+                )),
             ]))
         });
 
@@ -3983,10 +4013,13 @@ impl TerminalView {
 
         let incompatible_configuration_banner = ctx.add_typed_action_view(|_| {
             Banner::new(BannerTextContent::formatted_text(vec![
-                FormattedTextFragment::plain_text(
-                    "Your shell configuration is incompatible with ZYH...  ",
+                FormattedTextFragment::plain_text(tr_cached(
+                    Message::TerminalShellConfigurationIncompatible,
+                )),
+                FormattedTextFragment::hyperlink(
+                    tr_cached(Message::TerminalMoreInfo),
+                    KNOWN_ISSUES_URL,
                 ),
-                FormattedTextFragment::hyperlink("More info", KNOWN_ISSUES_URL),
             ]))
         });
 
@@ -3997,18 +4030,20 @@ impl TerminalView {
         let emacs_bindings_banner = ctx.add_typed_action_view(|_| {
             Banner::new_with_buttons(
                 BannerTextContent::formatted_text(vec![
-                    FormattedTextFragment::plain_text("Did you intend "),
+                    FormattedTextFragment::plain_text(tr_cached(Message::TerminalDidYouIntend)),
                     FormattedTextFragment::inline_code("ctrl-a"),
                     FormattedTextFragment::plain_text("/"),
                     FormattedTextFragment::inline_code("ctrl-e"),
-                    FormattedTextFragment::plain_text(" to move the cursor?"),
+                    FormattedTextFragment::plain_text(tr_cached(
+                        Message::TerminalMoveCursorQuestion,
+                    )),
                 ]),
                 // Here, we use DismissalType::Temporary and DismissalType::Permanent variants
                 // as stand-ins for changing bindings vs. leaving them as-is.
                 // TODO(Linear PLAT-512): update Banner to support generic event type.
                 vec![
                     BannerTextButton::new(
-                        String::from("Yes, use Emacs-style bindings"),
+                        tr_cached(Message::TerminalUseEmacsBindings).to_string(),
                         Rc::new(|event_ctx, _app_ctx, _| {
                             event_ctx.dispatch_typed_action(
                                 BannerAction::<TerminalAction>::Dismiss(DismissalType::Temporary),
@@ -4016,7 +4051,7 @@ impl TerminalView {
                         }),
                     ),
                     BannerTextButton::new(
-                        String::from("No, keep IDE bindings"),
+                        tr_cached(Message::TerminalKeepIdeBindings).to_string(),
                         Rc::new(|event_ctx, _app_ctx, _| {
                             event_ctx.dispatch_typed_action(
                                 BannerAction::<TerminalAction>::Dismiss(DismissalType::Permanent),
@@ -4589,7 +4624,8 @@ impl TerminalView {
                             me.show_ssh_remote_server_failed_banner(
                                 *session_id,
                                 remote_server::transport::UserFacingError {
-                                    body: "Failed to start SSH extension".into(),
+                                    body: tr_cached(Message::TerminalFailedStartSshExtension)
+                                        .into(),
                                     detail: if error.is_empty() {
                                         None
                                     } else {
@@ -7717,24 +7753,25 @@ impl TerminalView {
                 .get_pending_action(app)
                 .map(|action| match &action.action {
                     AIAgentActionType::RequestCommandOutput { command, .. } => {
-                        format!("Oz needs your permission to run `{command}`")
+                        tr_cached(Message::TerminalOzNeedsPermissionRun).replace("{}", command)
                     }
                     AIAgentActionType::ReadFiles(..) => {
-                        "Oz needs your permission to read files".to_string()
+                        tr_cached(Message::TerminalOzNeedsPermissionReadFiles).to_string()
                     }
                     AIAgentActionType::SearchCodebase(..) => {
-                        "Oz needs your permission to search your codebase".to_string()
+                        tr_cached(Message::TerminalOzNeedsPermissionSearchCodebase).to_string()
                     }
                     AIAgentActionType::RequestFileEdits { .. } => {
-                        "Oz needs your permission to edit a file".to_string()
+                        tr_cached(Message::TerminalOzNeedsPermissionEditFile).to_string()
                     }
                     AIAgentActionType::WriteToLongRunningShellCommand { .. } => {
-                        "Oz needs your permission to interact with a running shell command"
-                            .to_string()
+                        tr_cached(Message::TerminalOzNeedsPermissionInteractShell).to_string()
                     }
-                    _ => "Oz needs your confirmation to continue".to_string(),
+                    _ => tr_cached(Message::TerminalOzNeedsConfirmationContinue).to_string(),
                 })
-                .unwrap_or("Oz needs your confirmation to continue".to_string());
+                .unwrap_or_else(|| {
+                    tr_cached(Message::TerminalOzNeedsConfirmationContinue).to_string()
+                });
             return Some(AIBlockNotificationSummary {
                 success: false,
                 title,
@@ -9938,8 +9975,6 @@ impl TerminalView {
     fn show_warpify_banner(
         &mut self,
         command: String,
-        title: &str,
-        lowercase_title: &str,
         warpify_keybinding: Option<Keystroke>,
         telemetry_event: TelemetryEvent,
         ctx: &mut ViewContext<Self>,
@@ -9959,12 +9994,9 @@ impl TerminalView {
         }
 
         let a11y_message = match &warpify_keybinding {
-            Some(keystroke) => format!(
-                "You can press {} to Warpify this {} for more ZYH features.",
-                keystroke.displayed(),
-                lowercase_title
-            ),
-            None => format!("You can Warpify this {lowercase_title} for more ZYH features."),
+            Some(keystroke) => tr_cached(Message::A11yTerminalWarpifySubshellWithKey)
+                .replace("{}", &keystroke.displayed()),
+            None => tr_cached(Message::A11yTerminalWarpifySubshell).to_string(),
         };
 
         model
@@ -9974,7 +10006,7 @@ impl TerminalView {
             )));
 
         let a11y_content = AccessibilityContent::new(
-            format!("{title} recognized."),
+            tr_cached(Message::A11yTerminalSubshellRecognized),
             a11y_message,
             WarpA11yRole::TextRole,
         );
@@ -10090,7 +10122,7 @@ impl TerminalView {
 
         let a11y_content = AccessibilityContent::new(
             trigger.discovery_banner_copy(),
-            "You can enable notifications through the command palette.",
+            tr_cached(Message::A11yNotificationsEnableCommandPalette),
             WarpA11yRole::TextRole,
         );
         ctx.emit_a11y_content(a11y_content);
@@ -10119,17 +10151,16 @@ impl TerminalView {
                 InlineBannerType::NotificationsError,
             ));
 
-        let banner_title = self
-            .inline_banners_state
-            .notifications_error_banner
-            .error
-            .as_ref()
-            .map(|e| e.notifications_error_banner_title())
-            .unwrap_or("Error sending notification");
+        let banner_title = notification_error_banner_title(
+            self.inline_banners_state
+                .notifications_error_banner
+                .error
+                .as_ref(),
+        );
 
         let a11y_content = AccessibilityContent::new(
             banner_title,
-            "Make sure you have enabled access for ZYH notifications in System Preferences.",
+            tr_cached(Message::A11yNotificationsSystemPreferences),
             WarpA11yRole::TextRole,
         );
         ctx.emit_a11y_content(a11y_content);
@@ -14059,7 +14090,8 @@ impl TerminalView {
         // Set fallback title since /init may have no initial query
         BlocklistAIHistoryModel::handle(ctx).update(ctx, |history, _ctx| {
             if let Some(conversation) = history.conversation_mut(&conversation_id) {
-                conversation.set_fallback_display_title("Project setup".to_string());
+                conversation
+                    .set_fallback_display_title(tr_cached(Message::AgentProjectSetup).to_string());
             }
         });
 
@@ -14675,7 +14707,7 @@ fn build_onboarding_keybindings(ctx: &AppContext) -> OnboardingKeybindings {
 /// Builds the context-menu label for forking an AI conversation from a given query.
 fn fork_label_for_query(query: &str) -> String {
     if query.is_empty() {
-        "Fork from last query".to_string()
+        tr_cached(Message::TerminalForkFromLastQuery).to_string()
     } else {
         let first_line = query.lines().next().unwrap_or(query).trim();
         let chars: Vec<char> = first_line.chars().take(21).collect();
@@ -14684,7 +14716,7 @@ fn fork_label_for_query(query: &str) -> String {
         } else {
             (chars.iter().collect::<String>(), "")
         };
-        format!("Fork from \"{truncated}{suffix}\"")
+        tr_cached(Message::TerminalForkFromQuery).replace("{}", &format!("{truncated}{suffix}"))
     }
 }
 
@@ -15135,8 +15167,9 @@ impl TerminalView {
             });
 
             let a11y_content = AccessibilityContent::new(
-                format!("Suggested corrected command: {}", correction.command),
-                "Press right arrow to insert or keep editing to ignore",
+                tr_cached(Message::A11ySuggestedCorrectedCommand)
+                    .replace("{}", &correction.command),
+                tr_cached(Message::A11yPressRightInsertCorrection),
                 WarpA11yRole::HelpRole,
             );
             ctx.emit_a11y_content(a11y_content);
@@ -21151,7 +21184,7 @@ impl TerminalView {
                     let password_trigger = NotificationsTrigger::NeedsAttention;
                     let notification_content = password_trigger.create_notification_content(
                         active_block.command_to_string(),
-                        "Command is waiting for a password".to_string(),
+                        tr_cached(Message::TerminalCommandWaitingPassword).to_string(),
                     );
                     ctx.emit(Event::SendNotification(notification_content));
                     send_telemetry_from_ctx!(
@@ -22108,16 +22141,12 @@ impl TerminalView {
             return;
         }
         let text = match blocked_type {
-            Osc52ClipboardBlockedType::Write => {
-                "A terminal program tried to write to your clipboard. This is disabled by default for security reasons, to protect against malicious software."
-            }
-            Osc52ClipboardBlockedType::Read => {
-                "A terminal program tried to read your clipboard. This is disabled by default for security reasons, to protect against malicious software."
-            }
+            Osc52ClipboardBlockedType::Write => tr_cached(Message::TerminalClipboardWriteBlocked),
+            Osc52ClipboardBlockedType::Read => tr_cached(Message::TerminalClipboardReadBlocked),
         };
         let button_label = match blocked_type {
-            Osc52ClipboardBlockedType::Write => "Allow clipboard writes",
-            Osc52ClipboardBlockedType::Read => "Allow clipboard reads and writes",
+            Osc52ClipboardBlockedType::Write => tr_cached(Message::TerminalAllowClipboardWrites),
+            Osc52ClipboardBlockedType::Read => tr_cached(Message::TerminalAllowClipboardReadWrite),
         };
         self.osc52_clipboard_blocked_banner
             .update(ctx, |banner, ctx| {
@@ -22227,23 +22256,27 @@ impl TerminalView {
         let show_banner = if honor_ps1 {
             let banner_content = if shell_plugins.contains("p10k_unsupported") {
                 Some(BannerTextContent::formatted_text(vec![
-                    FormattedTextFragment::bold("Powerlevel10k now supports ZYH!  "),
-                    FormattedTextFragment::plain_text(
-                        "You seem to be running an older (unsupported) version, please follow ",
-                    ),
+                    FormattedTextFragment::bold(tr_cached(
+                        Message::TerminalPowerlevel10kSupportsZyh,
+                    )),
+                    FormattedTextFragment::plain_text(tr_cached(
+                        Message::TerminalPowerlevel10kOlderVersion,
+                    )),
                     FormattedTextFragment::hyperlink(
-                        "these instructions",
+                        tr_cached(Message::TerminalTheseInstructions),
                         P10K_UPDATE_INSTRUCTIONS_URL,
                     ),
-                    FormattedTextFragment::plain_text(" to update to the latest version."),
+                    FormattedTextFragment::plain_text(tr_cached(
+                        Message::TerminalUpdateLatestVersion,
+                    )),
                 ]))
             } else if shell_plugins.contains("pure") {
                 Some(BannerTextContent::formatted_text(vec![
-                    FormattedTextFragment::plain_text(
-                        "Pure is not yet supported in Warp. You might consider one of the \
-                        supported prompts as an alternative.  ",
+                    FormattedTextFragment::plain_text(tr_cached(Message::TerminalPureUnsupported)),
+                    FormattedTextFragment::hyperlink(
+                        tr_cached(Message::CommonLearnMore),
+                        PROMPT_COMPATIBILITY_URL,
                     ),
-                    FormattedTextFragment::hyperlink("Learn more", PROMPT_COMPATIBILITY_URL),
                 ]))
             } else {
                 None
@@ -23171,10 +23204,12 @@ impl TerminalView {
         };
 
         let start = block.start_ts().map_or_else(String::new, |b| {
-            format!("Started at: {}", b.format("%a %b %-d at %-I:%M:%S %p"))
+            tr_cached(Message::TerminalStartedAt)
+                .replace("{}", &b.format("%a %b %-d at %-I:%M:%S %p").to_string())
         });
         let end = block.completed_ts().map_or_else(String::new, |b| {
-            format!("\nCompleted at: {}", b.format("%a %b %-d at %-I:%M:%S %p"))
+            tr_cached(Message::TerminalCompletedAt)
+                .replace("{}", &b.format("%a %b %-d at %-I:%M:%S %p").to_string())
         });
         format!("{start}{end}")
     }
@@ -23456,9 +23491,9 @@ impl TerminalView {
                         && input_mode.is_inverted_blocklist()
                         && is_long_running_command
                     {
-                        "Lock scrolling at bottom of block".to_string()
+                        tr_cached(Message::TerminalLockScrollingBottomBlock).to_string()
                     } else {
-                        "Jump to the bottom of this block".to_string()
+                        tr_cached(Message::TerminalJumpBottomBlock).to_string()
                     };
 
                     let tool_tip = appearance
@@ -23652,13 +23687,12 @@ impl TerminalView {
             .notifications_error_banner
             .banner_type
         {
-            let banner_title = self
-                .inline_banners_state
-                .notifications_error_banner
-                .error
-                .as_ref()
-                .map(|e| e.notifications_error_banner_title())
-                .unwrap_or("Error sending notification");
+            let banner_title = notification_error_banner_title(
+                self.inline_banners_state
+                    .notifications_error_banner
+                    .error
+                    .as_ref(),
+            );
 
             inline_banners.insert(
                 state.banner_id,
@@ -24984,19 +25018,23 @@ impl TerminalView {
         let model = self.model.lock();
         model.block_list().block_at(index).map(|block| {
             let status = if block.has_failed() {
-                format!("failed, status code {}", block.exit_code().value())
+                tr_cached(Message::A11yBlockFailedStatusCode)
+                    .replace("{}", &block.exit_code().value().to_string())
             } else if block.is_background() {
-                "background".to_string()
+                tr_cached(Message::A11yBlockStatusBackground).to_string()
             } else if block.is_done() {
-                "succeeded".to_string()
+                tr_cached(Message::A11yBlockStatusSucceeded).to_string()
             } else {
-                "in progress".to_string()
+                tr_cached(Message::A11yBlockStatusInProgress).to_string()
             };
             AccessibilityContent::new(
-                format!("Block {index}: {}, {}.\n", block.command_to_string(), status),
+                tr_cached(Message::A11yBlockSummary)
+                    .replace("{index}", &index.to_string())
+                    .replace("{command}", &block.command_to_string())
+                    .replace("{status}", &status),
                 // TODO (a11y) Keybindings should be taken from the actual user's
                 // configuration
-                "Press cmd-C to read and copy both command and output, and cmd-option-shift-C to read and copy output only. Press cmd-B to bookmark the block: you could navigate between bookmarked blocks quickly using option-up and option-down.",
+                tr_cached(Message::A11yBlockSelectionHelp),
                 WarpA11yRole::TextRole,
             )
         })
@@ -26062,7 +26100,7 @@ impl TypedActionView for TerminalView {
             }
             BookmarkBlock(_) | BookmarkSelectedBlock => {
                 Custom(AccessibilityContent::new_without_help(
-                    "Toggle Bookmark block",
+                    tr_cached(Message::A11yToggleBookmarkBlock),
                     WarpA11yRole::TextRole,
                 ))
             }
@@ -26072,8 +26110,8 @@ impl TypedActionView for TerminalView {
                     .tail()
                     .and_then(|index| self.selected_block_accessibility_content(index))
                 {
-                    let num_selected_text =
-                        format!("Selected {} blocks.", self.num_non_hidden_selected_blocks());
+                    let num_selected_text = tr_cached(Message::A11ySelectedBlocks)
+                        .replace("{}", &self.num_non_hidden_selected_blocks().to_string());
                     content.value = format!("{}\n{}", num_selected_text, content.value);
                     Custom(content)
                 } else {
@@ -26081,41 +26119,37 @@ impl TypedActionView for TerminalView {
                 }
             }
             SelectAllBlocks => Custom(AccessibilityContent::new_without_help(
-                format!(
-                    "Selected all {} blocks.",
-                    self.num_non_hidden_selected_blocks()
-                ),
+                tr_cached(Message::A11ySelectedAllBlocks)
+                    .replace("{}", &self.num_non_hidden_selected_blocks().to_string()),
                 WarpA11yRole::TextRole,
             )),
             ScrollToBottomOfSelectedBlocks => Custom(AccessibilityContent::new_without_help(
-                "Scrolled to bottom of selected block".to_string(),
+                tr_cached(Message::A11yScrolledBottomSelectedBlock),
                 WarpA11yRole::TextRole,
             )),
             ScrollToTopOfSelectedBlocks => Custom(AccessibilityContent::new_without_help(
-                "Scrolled to top of selected block".to_string(),
+                tr_cached(Message::A11yScrolledTopSelectedBlock),
                 WarpA11yRole::TextRole,
             )),
             ScrollToBottomOfOverhangingBlock(_) => Custom(AccessibilityContent::new_without_help(
-                "Scrolled to bottom of bottommost visible block".to_string(),
+                tr_cached(Message::A11yScrolledBottommostVisibleBlock),
                 WarpA11yRole::TextRole,
             )),
             CopyOutputs => {
                 let mut outputs = vec![];
                 self.with_non_hidden_selected_blocks(
                     |block| {
-                        outputs.push(format!(
-                            "Block {}.\nOutput: {}",
-                            block.index(),
-                            block.output_to_string()
-                        ));
+                        outputs.push(
+                            tr_cached(Message::A11yBlockOutput)
+                                .replace("{index}", &block.index().to_string())
+                                .replace("{output}", &block.output_to_string()),
+                        );
                     },
                     ctx,
                 );
-                let text = format!(
-                    "Copied {} block outputs.\n{}",
-                    outputs.len(),
-                    outputs.join("\n")
-                );
+                let text = tr_cached(Message::A11yCopiedBlockOutputs)
+                    .replace("{count}", &outputs.len().to_string())
+                    .replace("{outputs}", &outputs.join("\n"));
                 Custom(AccessibilityContent::new_without_help(
                     text,
                     WarpA11yRole::TextRole,
@@ -26125,16 +26159,18 @@ impl TypedActionView for TerminalView {
                 let mut blocks = vec![];
                 self.with_non_hidden_selected_blocks(
                     |block| {
-                        blocks.push(format!(
-                            "Block {}: {}. Output: {}",
-                            block.index(),
-                            block.command_to_string(),
-                            block.output_to_string()
-                        ));
+                        blocks.push(
+                            tr_cached(Message::A11yBlockCommandOutput)
+                                .replace("{index}", &block.index().to_string())
+                                .replace("{command}", &block.command_to_string())
+                                .replace("{output}", &block.output_to_string()),
+                        );
                     },
                     ctx,
                 );
-                let text = format!("Copied {} blocks.\n{}", blocks.len(), blocks.join("\n"));
+                let text = tr_cached(Message::A11yCopiedBlocks)
+                    .replace("{count}", &blocks.len().to_string())
+                    .replace("{blocks}", &blocks.join("\n"));
                 Custom(AccessibilityContent::new_without_help(
                     text,
                     WarpA11yRole::TextRole,
@@ -26142,15 +26178,15 @@ impl TypedActionView for TerminalView {
             }
             FocusInputAndClearSelection => {
                 Custom(AccessibilityContent::new(
-                    INPUT_A11Y_LABEL,
+                    tr_cached(Message::InputCommandInputLabel),
                     // TODO (a11y) use bindings from user settings
-                    INPUT_A11Y_HELPER,
+                    tr_cached(Message::InputCommandInputHelper),
                     WarpA11yRole::TextareaRole,
                 ))
             }
             KeyDown(key) => {
                 let label = if key.eq("\x1b") {
-                    INPUT_A11Y_LABEL
+                    tr_cached(Message::InputCommandInputLabel)
                 } else {
                     key
                 };
@@ -26160,19 +26196,20 @@ impl TypedActionView for TerminalView {
                 ))
             }
             OpenBlockFilterEditor(block_index) => Custom(AccessibilityContent::new_without_help(
-                format!("Open block filter editor for block {block_index}"),
+                tr_cached(Message::A11yOpenBlockFilterEditor)
+                    .replace("{}", &block_index.to_string()),
                 WarpA11yRole::TextRole,
             )),
             ShowInitializationBlock => Custom(AccessibilityContent::new_without_help(
-                "Showed initialization block",
+                tr_cached(Message::A11yShowedInitializationBlock),
                 WarpA11yRole::TextareaRole,
             )),
             ShowWarpifySettings => Custom(AccessibilityContent::new_without_help(
-                "Opened Warpify Settings",
+                tr_cached(Message::A11yOpenedWarpifySettings),
                 WarpA11yRole::ButtonRole,
             )),
             OpenFilesPalette { .. } => Custom(AccessibilityContent::new_without_help(
-                "Opened file search palette",
+                tr_cached(Message::A11yOpenedFileSearchPalette),
                 WarpA11yRole::ButtonRole,
             )),
             InsertCommandCorrection { .. }
@@ -26238,28 +26275,27 @@ impl TypedActionView for TerminalView {
             OpenCodeInWarp { .. } => ActionAccessibilityContent::from_debug(),
             OpenInWarpBanner(action) => self.open_in_warp_banner_accessibility_content(*action),
             OpenAIBlockAttachedBlocksMenu { .. } => Custom(AccessibilityContent::new_without_help(
-                "Open list of blocks attached as context to this AI query.".to_owned(),
+                tr_cached(Message::A11yOpenAttachedBlocksMenu),
                 WarpA11yRole::PopoverRole,
             )),
             OpenAIBlockOverflowMenu { .. } => Custom(AccessibilityContent::new_without_help(
-                "Open overflow menu with copy options for this AI block.".to_owned(),
+                tr_cached(Message::A11yOpenAiBlockOverflowMenu),
                 WarpA11yRole::PopoverRole,
             )),
             RewindAIConversation { .. } => Custom(AccessibilityContent::new_without_help(
-                "Show confirmation dialog to rewind to before this point in the AI conversation."
-                    .to_owned(),
+                tr_cached(Message::A11yShowRewindConfirmation),
                 WarpA11yRole::ButtonRole,
             )),
             ExecuteRewindAIConversation { .. } => Custom(AccessibilityContent::new_without_help(
-                "Execute rewind to before this point in the AI conversation.".to_owned(),
+                tr_cached(Message::A11yExecuteRewind),
                 WarpA11yRole::ButtonRole,
             )),
             SelectAIAttachedBlock(_) => Custom(AccessibilityContent::new_without_help(
-                "Click on a block attached as context to this AI query.".to_owned(),
+                tr_cached(Message::A11ySelectAttachedBlock),
                 WarpA11yRole::ButtonRole,
             )),
             PickRepoToOpen => Custom(AccessibilityContent::new_without_help(
-                "Use file picker to select a git repository".to_owned(),
+                tr_cached(Message::A11yPickGitRepo),
                 WarpA11yRole::PopoverRole,
             )),
             #[cfg(feature = "voice_input")]
@@ -26711,8 +26747,6 @@ impl TypedActionView for TerminalView {
                     keybinding_name_to_keystroke("terminal:warpify_subshell", ctx);
                 self.show_warpify_banner(
                     command.to_owned(),
-                    "Subshell",
-                    "subshell",
                     warpify_keybinding,
                     TelemetryEvent::ShowSubshellBanner,
                     ctx,

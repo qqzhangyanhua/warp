@@ -158,7 +158,7 @@ use crate::code_review::comments::{
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::code_review::CodeReviewTelemetryEvent;
 use crate::editor::InteractionState;
-use crate::i18n::{tr_cached, Message};
+use crate::i18n::{tr, tr_cached, Message};
 use crate::notebooks::editor::model::FileLinkResolutionContext;
 use crate::notebooks::editor::view::{EditorViewEvent, RichTextEditorView};
 use crate::server::ids::SyncId;
@@ -204,9 +204,6 @@ use crate::{
     PrivacySettings, ToastStack,
 };
 
-/// The default display name used for the user if they have no associated display name.
-const DEFAULT_USER_DISPLAY_NAME: &str = "User";
-
 const HAS_PENDING_ACTION: &str = "HasPendingAction";
 const DISPATCHED_REQUESTED_EDIT_KEYMAP_CONTEXT: &str = "PendingAIRequestedEdits";
 
@@ -235,7 +232,7 @@ fn current_user_avatar_info(app: &AppContext) -> UserAvatarInfo {
     UserAvatarInfo {
         display_name: auth_state
             .username_for_display()
-            .unwrap_or_else(|| DEFAULT_USER_DISPLAY_NAME.to_owned()),
+            .unwrap_or_else(|| tr(app, Message::CommonUser).to_owned()),
         profile_image_path: auth_state.user_photo_url(),
     }
 }
@@ -1982,7 +1979,7 @@ impl AIBlock {
 
             if !self.action_buttons.contains_key(&action.id) {
                 let run_button = CompactibleActionButton::new(
-                    "Run".to_string(),
+                    tr_cached(Message::RequestedCommandRun).to_string(),
                     Some(KeystrokeSource::Fixed(ENTER_KEYSTROKE.clone())),
                     ButtonSize::InlineActionHeader,
                     AIBlockAction::ExecuteRequestedAction {
@@ -1994,7 +1991,7 @@ impl AIBlock {
                 );
 
                 let cancel_button = CompactibleActionButton::new(
-                    "Cancel".to_string(),
+                    tr_cached(Message::CommonCancel).to_string(),
                     Some(KeystrokeSource::Fixed(CTRL_C_KEYSTROKE.clone())),
                     ButtonSize::InlineActionHeader,
                     AIBlockAction::CancelRequestedAction {
@@ -2090,9 +2087,11 @@ impl AIBlock {
                         other => other.clone(),
                     };
                     let command_text = if display_input.is_null() {
-                        format!("MCP Tool: {name}")
+                        tr_cached(Message::AgentMcpToolNamed).replace("{}", name)
                     } else {
-                        format!("MCP Tool: {name} ({display_input})")
+                        tr_cached(Message::AgentMcpToolWithInput)
+                            .replacen("{}", name, 1)
+                            .replacen("{}", &display_input.to_string(), 1)
                     };
                     self.handle_mcp_tool_stream_update(
                         action_id,
@@ -5863,8 +5862,9 @@ fn set_imported_comment_button_disabled(
     handle.update(ctx, |button, ctx| {
         button.set_disabled(should_disable, ctx);
         if should_disable {
-            let tooltip = repo_path
-                .map(|path| format!("Navigate to {} to open these comments", path.display_path()));
+            let tooltip = repo_path.map(|path| {
+                tr_cached(Message::AgentNavigateToOpenComments).replace("{}", &path.display_path())
+            });
             button.set_tooltip(tooltip, ctx);
         } else {
             button.set_tooltip(None::<String>, ctx);

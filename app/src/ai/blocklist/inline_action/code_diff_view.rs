@@ -382,7 +382,7 @@ impl RegisteredDiffStorage for WeakViewHandle<CodeDiffView> {
         let Some(view) = self.upgrade(app) else {
             log::warn!("RequestFileEdits review view vanished before execute");
             return futures::future::ready(RequestFileEditsResult::DiffApplicationFailed {
-                error: "The review surface holding these edits no longer exists".to_string(),
+                error: tr_cached(Message::CodeReviewSurfaceUnavailable).to_string(),
             })
             .boxed();
         };
@@ -1789,10 +1789,10 @@ impl CodeDiffView {
             let diff_type = diff.diff_view.as_ref(app).diff();
             let file_name = match diff.diff_view.as_ref(app).file_name() {
                 Some(file_name) if matches!(diff_type, Some(DiffType::Create { .. })) => {
-                    format!("{file_name} (new)")
+                    tr_cached(Message::CodeReviewNewFileNamed).replace("{}", &file_name)
                 }
                 Some(file_name) if matches!(diff_type, Some(DiffType::Delete { .. })) => {
-                    format!("{file_name} (deleted)")
+                    tr_cached(Message::CodeReviewDeletedFileNamed).replace("{}", &file_name)
                 }
                 Some(file_name) => {
                     // Check if this is a rename
@@ -1807,7 +1807,7 @@ impl CodeDiffView {
                         file_name
                     }
                 }
-                None => "No file name".to_string(),
+                None => tr_cached(Message::CodeReviewNoFileName).to_string(),
             };
 
             // Get the full path for the tooltip
@@ -1927,7 +1927,7 @@ impl CodeDiffView {
         if Self::is_rename_without_changes(diff_type) {
             let placeholder = Container::new(
                 Text::new(
-                    "File renamed without changes",
+                    tr_cached(Message::CodeReviewFileRenamedWithoutChanges),
                     appearance.monospace_font_family(),
                     appearance.monospace_font_size(),
                 )
@@ -2368,7 +2368,7 @@ impl CodeDiffView {
         let formatted_text = FormattedTextElement::new(
             FormattedText::new([FormattedTextLine::Line(vec![
                 FormattedTextFragment::hyperlink(
-                    "Manage suggested code banner settings",
+                    tr_cached(Message::AgentManageSuggestedCodeBanners),
                     "Settings > AI",
                 ),
             ])]),

@@ -258,7 +258,7 @@ impl InstallationModalBody {
 
         // Renders MCP title text
         let title = Text::new(
-            format!("Install {name}"),
+            tr_cached(Message::McpInstallNamed).replace("{}", &name),
             appearance.ui_font_family(),
             appearance.header_font_size(),
         )
@@ -424,9 +424,9 @@ impl InstallationModalBody {
         .finish();
 
         let source_text = if is_shared {
-            "Shared from team"
+            tr_cached(Message::McpSharedFromTeam)
         } else {
-            "From another device"
+            tr_cached(Message::McpFromAnotherDevice)
         };
 
         let label_text = Text::new_inline(

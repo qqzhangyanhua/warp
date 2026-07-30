@@ -105,8 +105,6 @@ const BUTTON_SIZE: f32 = 20.;
 const CARD_AGENT_ICON_SIZE: f32 = 24.;
 const CREATOR_AVATAR_FONT_SIZE: f32 = 10.;
 
-const SESSION_EXPIRED_TEXT: &str = "Sessions expire after one week and cannot be opened.";
-
 pub fn init(app: &mut AppContext) {
     use crate::util::bindings::cmd_or_ctrl_shift;
 
@@ -263,7 +261,7 @@ impl AgentManagementView {
                 },
                 ctx,
             );
-            editor.set_placeholder_text("Search", ctx);
+            editor.set_placeholder_text(tr(ctx, Message::SettingsSearchPlaceholder), ctx);
             editor
         });
         ctx.subscribe_to_view(&search_editor, |me, _handle, event, ctx| {
@@ -271,7 +269,7 @@ impl AgentManagementView {
         });
 
         let new_agent_button = CompactibleActionButton::new(
-            "New agent".to_string(),
+            tr(ctx, Message::AgentMgmtNewAgent).to_string(),
             None,
             ButtonSize::Small,
             AgentManagementViewAction::NewAgent,
@@ -1431,8 +1429,11 @@ impl AgentManagementView {
 
         // Early return if session is available - no status label rendered
         let (label_text, tooltip_text_opt) = match session_status {
-            SessionStatus::Expired => ("Session expired", Some(SESSION_EXPIRED_TEXT)),
-            SessionStatus::Unavailable => ("No session available", None),
+            SessionStatus::Expired => (
+                tr_cached(Message::AgentMgmtSessionExpired),
+                Some(tr_cached(Message::AgentMgmtSessionExpiredDescription)),
+            ),
+            SessionStatus::Unavailable => (tr_cached(Message::AgentMgmtNoSessionAvailable), None),
             SessionStatus::Available => return Empty::new().finish(),
         };
 
@@ -1665,7 +1666,7 @@ impl AgentManagementView {
             .creator
             .name
             .clone()
-            .unwrap_or_else(|| "Unknown".to_string());
+            .unwrap_or_else(|| tr_cached(Message::CommonUnknown).to_string());
         let avatar = Self::render_avatar_with_tooltip(
             &creator_name,
             appearance,
@@ -1715,16 +1716,19 @@ impl AgentManagementView {
         let mut metadata_parts = Vec::new();
 
         if let Some(source) = &entry.display.source {
-            metadata_parts.push(format!("Source: {}", source.display_name()));
+            metadata_parts.push(
+                tr_cached(Message::AgentMgmtSourceMetadata)
+                    .replace("{}", localized_agent_source_name(source)),
+            );
         }
 
         let availability = HarnessAvailabilityModel::as_ref(app);
         if availability.should_show_harness_selector() {
             if let Some(harness) = entry.display.harness {
-                metadata_parts.push(format!(
-                    "Harness: {}",
-                    availability.display_name_for(harness)
-                ));
+                metadata_parts.push(
+                    tr_cached(Message::AgentMgmtHarnessMetadata)
+                        .replace("{}", availability.display_name_for(harness)),
+                );
             }
         }
 
@@ -1733,25 +1737,27 @@ impl AgentManagementView {
                 executor.uid.is_some() && executor.uid == entry.display.creator.uid;
             if !same_as_creator {
                 if let Some(name) = executor.name.as_deref().or(executor.uid.as_deref()) {
-                    let label = if executor
+                    let message = if executor
                         .principal_type
                         .is_some_and(|pt| pt.is_service_account())
                     {
-                        "Agent"
+                        Message::AgentMgmtAgentMetadata
                     } else {
-                        "Executor"
+                        Message::AgentMgmtExecutorMetadata
                     };
-                    metadata_parts.push(format!("{label}: {name}"));
+                    metadata_parts.push(tr_cached(message).replace("{}", name));
                 }
             }
         }
 
         if let Some(run_time) = &entry.display.run_time {
-            metadata_parts.push(format!("Run time: {run_time}"));
+            metadata_parts
+                .push(tr_cached(Message::AgentMgmtRunTimeMetadata).replace("{}", run_time));
         }
 
         if let Some(usage) = entry.display.request_usage.map(format_credits) {
-            metadata_parts.push(format!("Credits used: {usage}"));
+            metadata_parts
+                .push(tr_cached(Message::AgentMgmtCreditsUsedMetadata).replace("{}", &usage));
         }
 
         Text::new(metadata_parts.join(" • "), font_family, font_size)
@@ -1783,7 +1789,7 @@ impl AgentManagementView {
 
         let build_header = |use_expanded: bool| {
             let title = Text::new_inline(
-                "Runs",
+                tr_cached(Message::AgentMgmtRuns),
                 appearance.ui_font_family(),
                 appearance.ui_font_size() + 4.,
             )
@@ -1886,7 +1892,7 @@ impl AgentManagementView {
             let mut stack = Stack::new().with_child(loading_icon);
             if mouse_state.is_hovered() {
                 let tooltip = ui_builder
-                    .tool_tip(String::from("Loading cloud agent runs"))
+                    .tool_tip(tr_cached(Message::AgentMgmtLoadingRuns).to_string())
                     .build()
                     .finish();
                 stack.add_positioned_overlay_child(
@@ -1909,7 +1915,7 @@ impl AgentManagementView {
         let theme = appearance.theme();
 
         let title = Text::new_inline(
-            "Runs",
+            tr_cached(Message::AgentMgmtRuns),
             appearance.ui_font_family(),
             appearance.ui_font_size() + 4.,
         )
@@ -1931,7 +1937,7 @@ impl AgentManagementView {
             .with_child(Container::new(loading_icon).with_margin_right(10.).finish())
             .with_child(
                 Text::new_inline(
-                    "Loading agents...",
+                    tr_cached(Message::AgentMgmtLoadingAgents),
                     appearance.ui_font_family(),
                     appearance.ui_font_size() + 2.,
                 )

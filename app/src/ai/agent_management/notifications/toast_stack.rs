@@ -24,6 +24,7 @@ use crate::ai::agent_management::notifications::{NotificationId, NotificationIte
 use crate::ai::agent_management::{AgentManagementEvent, AgentNotificationsModel};
 use crate::ai::artifacts::{Artifact, ArtifactButtonsRow, ArtifactButtonsRowEvent};
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::session_settings::SessionSettings;
 use crate::util::bindings::keybinding_name_to_keystroke;
 use crate::workspace::view::JUMP_TO_LATEST_TOAST_BINDING_NAME;
@@ -459,7 +460,7 @@ fn render_keybinding_hint(keystroke: Keystroke, appearance: &Appearance) -> Box<
 
     let hint_text = appearance
         .ui_builder()
-        .wrappable_text("Open conversation".to_string(), false)
+        .wrappable_text(tr_cached(Message::AgentOpenConversation).to_string(), false)
         .with_style(UiComponentStyles {
             font_size: Some(12.),
             font_color: Some(theme.disabled_text_color(theme.surface_2()).into()),

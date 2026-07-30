@@ -11,6 +11,7 @@ use super::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
 use crate::ai::agent::{SuggestedAgentModeWorkflow, SuggestedLoggingId};
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::drive::CloudObjectTypeAndId;
+use crate::i18n::{tr_cached, Message};
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
 };
@@ -142,7 +143,7 @@ impl Suggestion {
                 } else {
                     workflow.prompt.clone()
                 };
-                format!("Suggested prompt:\n{prompt}")
+                tr_cached(Message::AgentSuggestedPrompt).replace("{}", &prompt)
             }
         }
     }

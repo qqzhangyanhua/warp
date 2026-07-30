@@ -1012,9 +1012,15 @@ impl<A: InlineMenuAction, T: 'static + Send + Sync> View for InlineMenuView<A, T
         let content: Box<dyn Element>;
         if self.result_renderers.is_empty() {
             content = if self.mixer.as_ref(app).is_loading() {
-                self.render_no_results_state("Loading...".into(), app)
+                self.render_no_results_state(
+                    crate::i18n::tr_cached(crate::i18n::Message::CommonLoadingDots).into(),
+                    app,
+                )
             } else {
-                self.render_no_results_state("No results".into(), app)
+                self.render_no_results_state(
+                    crate::i18n::tr_cached(crate::i18n::Message::NoResults).into(),
+                    app,
+                )
             };
         } else {
             let results_list = self.render_results_list(app);

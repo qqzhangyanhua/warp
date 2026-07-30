@@ -11,6 +11,7 @@ use warpui::{AppContext, Element, SingletonEntity, ViewHandle};
 
 use super::compact_agent_input::CompactAgentInput;
 use crate::context_chips::spacing;
+use crate::i18n::{tr_cached, Message};
 const NUMBER_BADGE_BORDER_WIDTH: f32 = 1.;
 const NUMBER_BADGE_VERTICAL_PADDING: f32 = 1.;
 
@@ -47,7 +48,7 @@ pub(super) fn render_recommended_badge(appearance: &Appearance) -> Box<dyn Eleme
     let theme = appearance.theme();
     Container::new(
         Text::new(
-            "Recommended".to_string(),
+            tr_cached(Message::PrivacyRecommended).to_string(),
             appearance.ui_font_family(),
             appearance.monospace_font_size() - 2.,
         )

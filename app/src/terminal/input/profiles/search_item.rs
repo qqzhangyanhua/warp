@@ -182,7 +182,7 @@ impl SearchItem for ProfileSearchItem {
     fn accessibility_label(&self) -> String {
         match &self.kind {
             ProfileSearchItemKind::Profile { profile_name, .. } => {
-                format!("Profile: {profile_name}")
+                tr_cached(Message::A11yProfileNamed).replace("{}", profile_name)
             }
             ProfileSearchItemKind::ManageProfiles => {
                 tr_cached(Message::TerminalManageProfiles).to_string()

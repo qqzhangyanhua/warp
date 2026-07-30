@@ -3,6 +3,7 @@ use warpui::elements::{DraggableState, MouseStateHandle};
 use super::FileTreeItem;
 use crate::appearance::Appearance;
 use crate::code::icon_from_file_path;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 use crate::ui_components::item_highlight::ImageOrIcon;
 
@@ -23,7 +24,7 @@ impl FileTreeItem {
                     .path
                     .file_name()
                     .map(ToOwned::to_owned)
-                    .unwrap_or_else(|| String::from("File"));
+                    .unwrap_or_else(|| tr_cached(Message::CommonFile).to_owned());
 
                 let icon_from_file_path =
                     icon_from_file_path(metadata.path.as_str(), appearance).map(ImageOrIcon::Image);
@@ -48,7 +49,7 @@ impl FileTreeItem {
                     .path
                     .file_name()
                     .map(ToOwned::to_owned)
-                    .unwrap_or_else(|| String::from("Folder"));
+                    .unwrap_or_else(|| tr_cached(Message::CommonFolder).to_owned());
                 RenderState {
                     display_name,
                     icon: ImageOrIcon::Icon(Icon::Folder),

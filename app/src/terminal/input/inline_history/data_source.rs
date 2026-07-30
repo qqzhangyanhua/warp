@@ -14,6 +14,7 @@ use warpui::{AppContext, Entity, EntityId, ModelHandle, SingletonEntity};
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::ai::blocklist::BlocklistAIHistoryModel;
+use crate::i18n::{tr_cached, Message};
 use crate::input_suggestions::{HistoryInputSuggestion, HistoryOrder};
 use crate::search::data_source::{Query, QueryFilter, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
@@ -166,7 +167,7 @@ impl InlineHistoryMenuDataSource {
             };
             let title = conversation
                 .title()
-                .unwrap_or_else(|| "Untitled conversation".to_string());
+                .unwrap_or_else(|| tr_cached(Message::CommonUntitledConversation).to_string());
             let match_result = if trimmed_query.is_empty() {
                 None
             } else {

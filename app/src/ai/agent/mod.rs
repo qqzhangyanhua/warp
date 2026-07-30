@@ -51,6 +51,7 @@ use crate::code::editor_management::CodeSource;
 use crate::code_review::comments::{
     AttachedReviewComment as CodeReviewComment, ReviewCommentBatch,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::search::slash_command_menu::static_commands::commands;
 use crate::server::server_api::{AIApiError, DeserializationError};
 use crate::terminal::model::block::BlockId;
@@ -921,7 +922,8 @@ impl Display for RenderableAIError {
             Self::Other { error_message, .. } => write!(f, "{error_message}"),
             Self::AgentRuntimeUnavailable { reason } => write!(
                 f,
-                "The local Pi Agent Runtime could not start: {reason}. Fork the completed history to continue with the Rust runtime."
+                "{}",
+                tr_cached(Message::AgentRuntimeCouldNotStart).replace("{}", reason)
             ),
             Self::AgentExitedShell => write!(f, "{}", Self::AGENT_EXITED_SHELL_MESSAGE),
         }

@@ -46,6 +46,7 @@ use warpui::{AppContext, Entity, ModelAsRef, ModelContext, ModelHandle, Singleto
 use self::buffer::Peer;
 use super::{movement, PlainTextEditorViewAction, SelectionInsertion, ValidInputType};
 use crate::editor::RangeExt;
+use crate::i18n::{tr_cached, Message};
 use crate::vim_registers::VimRegisters;
 
 lazy_static! {
@@ -527,15 +528,16 @@ impl EditorModel {
                 let action = if inclusive_contains(&selection_after, start)
                     && inclusive_contains(&selection_after, end)
                 {
-                    "selected"
+                    tr_cached(Message::A11ySelectedLower)
                 } else {
-                    "unselected"
+                    tr_cached(Message::A11yUnselectedLower)
                 };
                 AccessibilityContent::new(delta, format!(", {action}"), WarpA11yRole::UserAction)
             }
-            (true, false) => {
-                AccessibilityContent::new_without_help("Unselected", WarpA11yRole::UserAction)
-            }
+            (true, false) => AccessibilityContent::new_without_help(
+                tr_cached(Message::A11yUnselected),
+                WarpA11yRole::UserAction,
+            ),
         }
     }
 

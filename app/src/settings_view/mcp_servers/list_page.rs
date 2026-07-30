@@ -236,10 +236,12 @@ impl MCPServersListPageView {
         #[cfg(feature = "local_fs")]
         {
             use crate::ai::mcp::local_mcp_surface::{local_mcp_surface, McpSettingsCardKind};
-            debug_assert!(!local_mcp_surface()
-                .allows_settings_card(McpSettingsCardKind::CloudTemplate));
-            debug_assert!(!local_mcp_surface()
-                .allows_settings_card(McpSettingsCardKind::CloudInstallation));
+            debug_assert!(
+                !local_mcp_surface().allows_settings_card(McpSettingsCardKind::CloudTemplate)
+            );
+            debug_assert!(
+                !local_mcp_surface().allows_settings_card(McpSettingsCardKind::CloudInstallation)
+            );
         }
         self.server_cards
             .retain(|id, _| matches!(id, ServerCardItemId::FileBasedMCP(_)));
@@ -865,7 +867,7 @@ impl MCPServersListPageView {
         let is_any_ai_enabled = ai_settings.is_any_ai_enabled(app);
 
         let label = render_body_item_label::<MCPServersListPageViewAction>(
-            "Auto-spawn servers from third-party agents".to_string(),
+            tr_cached(Message::AiAutoSpawnThirdPartyMcp).to_string(),
             None,
             None,
             LocalOnlyIconState::Hidden,
@@ -897,11 +899,9 @@ impl MCPServersListPageView {
         static FILE_BASED_MCP_DESCRIPTION_FRAGMENTS: std::sync::LazyLock<
             Vec<FormattedTextFragment>,
         > = std::sync::LazyLock::new(|| {
-            vec![
-                FormattedTextFragment::plain_text(
-                    "Automatically detect and spawn MCP servers from globally-scoped third-party AI agent configuration files (e.g. in your home directory). Servers detected inside a repository are never spawned automatically and must be enabled individually in the \"Detected from\" sections below.",
-                ),
-            ]
+            vec![FormattedTextFragment::plain_text(tr_cached(
+                Message::McpAutoSpawnDescription,
+            ))]
         });
 
         let description = FormattedTextElement::new(
@@ -1012,7 +1012,7 @@ impl MCPServersListPageView {
 
                 if !owned_server_cards.is_empty() {
                     page.add_child(self.render_server_cards_section(
-                        "My MCPs",
+                        tr_cached(Message::McpMyServers),
                         &owned_server_cards,
                         appearance,
                         app,
@@ -1024,8 +1024,8 @@ impl MCPServersListPageView {
                         .current_team()
                         .map(|team| team.name.clone());
                     let shared_by_text = match team_name {
-                        Some(name) => format!("Shared by ZYH and {name}"),
-                        None => "Shared by ZYH and from other devices".to_string(),
+                        Some(name) => tr_cached(Message::McpSharedByNamed).replace("{}", &name),
+                        None => tr_cached(Message::McpSharedByOtherDevices).to_string(),
                     };
 
                     page.add_child(self.render_server_cards_section(
@@ -1036,7 +1036,7 @@ impl MCPServersListPageView {
                     ));
                 } else if !filtered_gallery_cards.is_empty() {
                     page.add_child(self.render_server_cards_section(
-                        "Shared from ZYH",
+                        tr_cached(Message::McpSharedFromZyh),
                         &filtered_gallery_cards,
                         appearance,
                         app,
@@ -1045,7 +1045,8 @@ impl MCPServersListPageView {
 
                 // Render one section per provider (e.g. "Detected from Claude").
                 for (provider, cards) in &filtered_file_based_cards {
-                    let section_title = format!("Detected from {}", provider.display_name());
+                    let section_title = tr_cached(Message::McpDetectedFromNamed)
+                        .replace("{}", provider.display_name());
                     page.add_child(self.render_server_cards_section(
                         &section_title,
                         cards,
@@ -1345,7 +1346,7 @@ impl MCPServersListPageView {
                     .templatable_mcp_server()
                     .description
                     .clone()
-                    .or_else(|| Some("Detected from config file".to_string())),
+                    .or_else(|| Some(tr_cached(Message::McpDetectedFromConfigFile).to_string())),
                 None, // tools only available when running
                 None, // no error when not yet started
                 title_chips,

@@ -13,6 +13,7 @@ use crate::cloud_object::model::json_model::JsonModel;
 use crate::cloud_object::{
     GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType, Revision, UniquePer,
 };
+use crate::i18n::{tr_cached, Message};
 use crate::server::sync_queue::QueueItem;
 use crate::settings::AISettings;
 use crate::workspaces::user_workspaces::UserWorkspaces;
@@ -22,11 +23,92 @@ pub(crate) const LONG_CONTEXT_PRICING_WARNING_URL: &str =
     "https://developers.openai.com/api/docs/pricing";
 pub(crate) fn long_context_pricing_warning_title() -> FormattedTextInline {
     vec![
-        FormattedTextFragment::plain_text(
-            "OpenAI automatically applies long-context pricing when context exceeds 272,000 tokens. ",
+        FormattedTextFragment::plain_text(tr_cached(
+            Message::ExecutionProfileLongContextPricingWarning,
+        )),
+        FormattedTextFragment::hyperlink(
+            tr_cached(Message::CommonLearnMore),
+            LONG_CONTEXT_PRICING_WARNING_URL,
         ),
-        FormattedTextFragment::hyperlink("Learn more", LONG_CONTEXT_PRICING_WARNING_URL),
     ]
+}
+
+pub(crate) fn localized_action_permission_description(
+    permission: ActionPermission,
+) -> &'static str {
+    match permission {
+        ActionPermission::AgentDecides | ActionPermission::Unknown => {
+            tr_cached(Message::ExecutionProfileAgentDecidesDescription)
+        }
+        ActionPermission::AlwaysAllow => tr_cached(Message::ExecutionProfileAlwaysAllowDescription),
+        ActionPermission::AlwaysAsk => tr_cached(Message::ExecutionProfileAlwaysAskDescription),
+    }
+}
+
+pub(crate) fn localized_write_to_pty_permission_description(
+    permission: WriteToPtyPermission,
+) -> &'static str {
+    match permission {
+        WriteToPtyPermission::AlwaysAllow => {
+            tr_cached(Message::ExecutionProfileAlwaysAllowDescription)
+        }
+        WriteToPtyPermission::AskOnFirstWrite => {
+            tr_cached(Message::ExecutionProfileAskOnFirstWriteDescription)
+        }
+        WriteToPtyPermission::AlwaysAsk => {
+            tr_cached(Message::ExecutionProfileAlwaysAskRunningCommandDescription)
+        }
+        WriteToPtyPermission::Unknown => {
+            tr_cached(Message::ExecutionProfileAgentDecidesDescription)
+        }
+    }
+}
+
+pub(crate) fn localized_computer_use_permission_description(
+    permission: ComputerUsePermission,
+) -> &'static str {
+    match permission {
+        ComputerUsePermission::Never => {
+            tr_cached(Message::ExecutionProfileComputerUseDisabledDescription)
+        }
+        ComputerUsePermission::AlwaysAsk => {
+            tr_cached(Message::ExecutionProfileComputerUseAlwaysAskDescription)
+        }
+        ComputerUsePermission::AlwaysAllow => {
+            tr_cached(Message::ExecutionProfileComputerUseAlwaysAllowDescription)
+        }
+        ComputerUsePermission::Unknown => tr_cached(Message::ExecutionProfileUnknownSetting),
+    }
+}
+
+pub(crate) fn localized_ask_user_question_permission_description(
+    permission: AskUserQuestionPermission,
+) -> &'static str {
+    match permission {
+        AskUserQuestionPermission::AskExceptInAutoApprove | AskUserQuestionPermission::Unknown => {
+            tr_cached(Message::ExecutionProfileAskExceptAutoApproveDescription)
+        }
+        AskUserQuestionPermission::Never => tr_cached(Message::ExecutionProfileNeverAskDescription),
+        AskUserQuestionPermission::AlwaysAsk => {
+            tr_cached(Message::ExecutionProfileAlwaysAskQuestionDescription)
+        }
+    }
+}
+
+pub(crate) fn localized_run_agents_permission_description(
+    permission: RunAgentsPermission,
+) -> &'static str {
+    match permission {
+        RunAgentsPermission::NeverAllow | RunAgentsPermission::Unknown => {
+            tr_cached(Message::ExecutionProfileRunAgentsNeverDescription)
+        }
+        RunAgentsPermission::AlwaysAllow => {
+            tr_cached(Message::ExecutionProfileRunAgentsAlwaysAllowDescription)
+        }
+        RunAgentsPermission::AlwaysAsk => {
+            tr_cached(Message::ExecutionProfileRunAgentsAlwaysAskDescription)
+        }
+    }
 }
 
 pub mod editor;

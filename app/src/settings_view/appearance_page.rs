@@ -3614,7 +3614,11 @@ impl SettingsWidget for ToolsPanelStateScopeWidget {
         let is_enabled = *window_settings.left_panel_visibility_across_tabs;
 
         render_body_item::<AppearancePageAction>(
-            "Tools panel visibility is consistent across tabs".to_string(),
+            tr(
+                app,
+                Message::SettingsToolsPanelVisibilityConsistentAcrossTabs,
+            )
+            .into(),
             None,
             LocalOnlyIconState::for_setting(
                 LeftPanelVisibilityAcrossTabs::storage_key(),
@@ -3661,7 +3665,7 @@ impl SettingsWidget for ToolsPanelProjectExplorerWidget {
         app: &AppContext,
     ) -> Box<dyn Element> {
         render_body_item::<AppearancePageAction>(
-            "Project explorer".to_string(),
+            tr(app, Message::SettingsProjectExplorer).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -3677,7 +3681,7 @@ impl SettingsWidget for ToolsPanelProjectExplorerWidget {
                     );
                 })
                 .finish(),
-            Some("Show the project explorer / file tree tab in the tools panel.".to_string()),
+            Some(tr(app, Message::SettingsShowProjectExplorerTabInToolsPanel).into()),
         )
     }
 }
@@ -3701,7 +3705,7 @@ impl SettingsWidget for ToolsPanelConversationHistoryWidget {
         app: &AppContext,
     ) -> Box<dyn Element> {
         render_body_item::<AppearancePageAction>(
-            "Agent conversations".to_string(),
+            tr(app, Message::WorkspaceAgentConversations).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -3717,7 +3721,13 @@ impl SettingsWidget for ToolsPanelConversationHistoryWidget {
                     );
                 })
                 .finish(),
-            Some("Show the agent conversation history tab in the tools panel.".to_string()),
+            Some(
+                tr(
+                    app,
+                    Message::SettingsShowAgentConversationHistoryTabInToolsPanel,
+                )
+                .into(),
+            ),
         )
     }
 }
@@ -3741,7 +3751,7 @@ impl SettingsWidget for ToolsPanelGlobalSearchWidget {
         app: &AppContext,
     ) -> Box<dyn Element> {
         render_body_item::<AppearancePageAction>(
-            "Global search".to_string(),
+            tr(app, Message::WorkspaceGlobalSearch).into(),
             None,
             LocalOnlyIconState::Hidden,
             ToggleState::Enabled,
@@ -3756,7 +3766,7 @@ impl SettingsWidget for ToolsPanelGlobalSearchWidget {
                         .dispatch_typed_action(AppearancePageAction::ToggleToolsPanelGlobalSearch);
                 })
                 .finish(),
-            Some("Show the global file search tab in the tools panel.".to_string()),
+            Some(tr(app, Message::SettingsShowGlobalFileSearchTabInToolsPanel).into()),
         )
     }
 }
@@ -4195,7 +4205,7 @@ impl SettingsWidget for AIFontWidget {
         let mut ai_font_row = Flex::row().with_cross_axis_alignment(CrossAxisAlignment::Center);
         let mut ai_font = Flex::column();
         ai_font.add_child(render_body_item_label::<AppearancePageAction>(
-            "Agent font".to_string(),
+            tr(app, Message::AppearanceAgentFont).into(),
             None,
             None,
             LocalOnlyIconState::for_setting(
@@ -4360,7 +4370,7 @@ impl SettingsWidget for TerminalFontWidget {
         // Terminal Font
         let mut terminal_font = Flex::column();
         terminal_font.add_child(render_body_item_label::<AppearancePageAction>(
-            "Terminal font".to_string(),
+            tr(app, Message::AppearanceTerminalFont).into(),
             None,
             None,
             LocalOnlyIconState::for_setting(
@@ -4618,7 +4628,7 @@ impl SettingsWidget for ThinStrokesWidget {
     ) -> Box<dyn Element> {
         render_dropdown_item(
             appearance,
-            "Use thin strokes",
+            tr(app, Message::AppearanceUseThinStrokes),
             None,
             None,
             LocalOnlyIconState::for_setting(
@@ -4651,7 +4661,7 @@ impl SettingsWidget for MinimumContrastWidget {
     ) -> Box<dyn Element> {
         render_dropdown_item(
             appearance,
-            "Enforce minimum contrast",
+            tr(app, Message::AppearanceEnforceMinimumContrast),
             None,
             None,
             LocalOnlyIconState::for_setting(
@@ -4694,7 +4704,9 @@ impl SettingsWidget for LigaturesWidget {
                 mouse_state: self.info_mouse_state.clone(),
                 on_click_action: None,
                 secondary_text: None,
-                tooltip_override_text: Some("Ligatures may reduce performance".to_string()),
+                tooltip_override_text: Some(
+                    tr(app, Message::AppearanceLigaturesMayReducePerformance).into(),
+                ),
             }),
             LocalOnlyIconState::for_setting(
                 LigatureRenderingEnabled::storage_key(),
@@ -4867,7 +4879,7 @@ impl SettingsWidget for TabCloseButtonPositionWidget {
     ) -> Box<dyn Element> {
         render_dropdown_item(
             appearance,
-            "Tab close button position",
+            tr(app, Message::AppearanceTabCloseButtonPosition),
             None,
             None,
             LocalOnlyIconState::for_setting(
@@ -5105,8 +5117,11 @@ impl SettingsWidget for ShowVerticalTabPanelInRestoredWindowsWidget {
                 })
                 .finish(),
             Some(
-                "When enabled, reopening or restoring a window opens the vertical tabs panel even if it was closed when the window was last saved."
-                    .to_string(),
+                tr(
+                    app,
+                    Message::AppearanceRestoredWindowVerticalTabsDescription,
+                )
+                .into(),
             ),
         )
     }
@@ -5154,10 +5169,7 @@ impl SettingsWidget for HideTitleBarSearchBarInVerticalTabsWidget {
                     );
                 })
                 .finish(),
-            Some(
-                "When using the vertical tab layout, hide the search bar in the title bar. Search stays available via the command palette and keyboard shortcuts."
-                    .to_string(),
-            ),
+            Some(tr(app, Message::AppearanceHideVerticalTabsSearchDescription).into()),
         )
     }
 }
@@ -5208,8 +5220,7 @@ impl SettingsWidget for UseLatestUserPromptAsConversationTitleInTabNamesWidget {
                 })
                 .finish(),
             Some(
-                "Show the latest user prompt instead of the generated conversation title for Oz and third-party agent sessions in vertical tabs."
-                    .to_string(),
+                tr(app, Message::AppearanceLatestPromptTabTitleDescription).into(),
             ),
         )
     }
@@ -5232,7 +5243,7 @@ impl SettingsWidget for EditToolbarWidget {
         _app: &AppContext,
     ) -> Box<dyn Element> {
         let label = render_body_item_label::<AppearancePageAction>(
-            "Header toolbar layout".to_string(),
+            tr_cached(Message::AppearanceHeaderToolbarLayout).into(),
             None,
             None,
             LocalOnlyIconState::Hidden,
@@ -5338,7 +5349,7 @@ impl SettingsWidget for DirectoryTabColorsWidget {
             .with_spacing(4.)
             .with_child(
                 Text::new(
-                    "Directory tab colors",
+                    tr(app, Message::AppearanceDirectoryTabColors),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )
@@ -5348,7 +5359,7 @@ impl SettingsWidget for DirectoryTabColorsWidget {
             )
             .with_child(
                 Text::new(
-                    "Automatically color tabs based on the directory or repo you're working in.",
+                    tr(app, Message::AppearanceDirectoryTabColorsDescription),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )
@@ -5407,7 +5418,7 @@ impl SettingsWidget for DirectoryTabColorsWidget {
                 };
                 let is_selected = current_color == tab_color;
                 let tooltip_text = match ansi_id {
-                    None => "Default (no color)".to_string(),
+                    None => tr(app, Message::AppearanceDefaultNoColor).into(),
                     Some(id) => id.to_string(),
                 };
                 let dir_path_clone = PathBuf::from(&dir_path);
@@ -5578,7 +5589,7 @@ impl SettingsWidget for AltScreenPaddingWidget {
                     Container::new(
                         Align::new(
                             Text::new(
-                                "Uniform padding (px)",
+                                tr(app, Message::AppearanceUniformPaddingPx),
                                 appearance.ui_font_family(),
                                 appearance.ui_font_size(),
                             )
@@ -5636,8 +5647,8 @@ impl SettingsWidget for ZoomLevelWidget {
 
         render_dropdown_item(
             appearance,
-            "Zoom",
-            Some("Adjusts the default zoom level across all windows"),
+            tr(app, Message::AppearanceZoom),
+            Some(tr(app, Message::AppearanceZoomDescription)),
             Some(reset_button),
             LocalOnlyIconState::for_setting(
                 crate::window_settings::ZoomLevel::storage_key(),

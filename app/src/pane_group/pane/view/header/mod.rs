@@ -22,6 +22,7 @@ use warpui::{
 use super::header_content::{HeaderContent, HeaderRenderContext, StandardHeaderOptions};
 use super::PaneDropTargetData;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::menu::{Menu, MenuItem};
 use crate::pane_group::focus_state::{PaneFocusHandle, PaneGroupFocusEvent};
 use crate::pane_group::pane::view::StandardHeader;
@@ -146,7 +147,7 @@ impl<P: BackingView> PaneHeader<P> {
 
         let toolbelt_feature_popup = ctx.add_view(|_| {
             FeaturePopup::new_feature(NewFeaturePopupLabel::FromString(
-                "Open files and review code diffs".to_string(),
+                tr_cached(Message::CodeReviewOpenFilesAndReviewDiffs).to_string(),
             ))
         });
         ctx.subscribe_to_view(&toolbelt_feature_popup, move |me, _, event, ctx| {

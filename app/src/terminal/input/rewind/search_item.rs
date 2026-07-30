@@ -17,6 +17,7 @@ use warpui::{AppContext, Element, SingletonEntity};
 use crate::ai::agent::AIAgentExchangeId;
 use crate::appearance::Appearance;
 use crate::code::editor::{add_color, remove_color};
+use crate::i18n::{tr_cached, Message};
 use crate::search::{ItemHighlightState, SearchItem};
 use crate::terminal::input::inline_menu::styles::{
     font_size, icon_color, item_background, menu_background_color, primary_text_color, ICON_MARGIN,
@@ -43,7 +44,7 @@ impl RewindSearchItem {
     pub fn new_current() -> Self {
         Self {
             exchange_id: None,
-            query_text: "Current".to_string(),
+            query_text: tr_cached(Message::CommandPaletteCurrent).to_string(),
             file_changes: FileChangesInfo::default(),
             query_match_result: None,
             score: OrderedFloat(0.0),
@@ -141,7 +142,7 @@ impl SearchItem for RewindSearchItem {
         let changes_element: Box<dyn Element> = if self.is_current {
             // "Current" item shows "No code to be restored"
             Text::new_inline(
-                "No code to be restored".to_string(),
+                tr_cached(Message::RewindNoCodeToRestore).to_string(),
                 appearance.ui_font_family(),
                 secondary_font_size,
             )
@@ -174,7 +175,7 @@ impl SearchItem for RewindSearchItem {
             row.finish()
         } else {
             Text::new_inline(
-                "No code to be restored".to_string(),
+                tr_cached(Message::RewindNoCodeToRestore).to_string(),
                 appearance.ui_font_family(),
                 secondary_font_size,
             )
@@ -218,14 +219,14 @@ impl SearchItem for RewindSearchItem {
 
     fn accessibility_label(&self) -> String {
         if self.is_current {
-            "Current state (no rewind)".to_string()
+            tr_cached(Message::A11yCurrentStateNoRewind).to_string()
         } else if self.has_code_changes() {
-            format!(
-                "Rewind to: {} (+{} -{})",
-                self.query_text, self.file_changes.lines_added, self.file_changes.lines_removed
-            )
+            tr_cached(Message::A11yRewindWithChanges)
+                .replacen("{}", &self.query_text, 1)
+                .replacen("{}", &self.file_changes.lines_added.to_string(), 1)
+                .replacen("{}", &self.file_changes.lines_removed.to_string(), 1)
         } else {
-            format!("Rewind to: {} (no code changes)", self.query_text)
+            tr_cached(Message::A11yRewindNoChanges).replace("{}", &self.query_text)
         }
     }
 }

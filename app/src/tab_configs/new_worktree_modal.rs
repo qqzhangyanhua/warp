@@ -67,10 +67,6 @@ const ESC_BADGE_CORNER_RADIUS: Radius = Radius::Pixels(3.);
 const CLOSE_ICON_SIZE: f32 = 14.;
 /// Font size for inline validation error messages.
 const ERROR_FONT_SIZE: f32 = 12.;
-/// Error shown when the user-entered worktree branch name contains invalid characters.
-const INVALID_BRANCH_NAME_ERROR: &str =
-    "Name can only contain letters, numbers, hyphens, and underscores";
-
 /// Returns `true` if `name` is a valid worktree branch name.
 ///
 /// Valid names contain only ASCII letters, digits, hyphens, and underscores.
@@ -325,7 +321,7 @@ impl View for NewWorktreeModal {
         // ── Header (custom — Modal wrapper has no title) ────────────────
         let header = {
             let title = Text::new_inline(
-                "New worktree".to_string(),
+                tr_cached(Message::WorktreeNewTitle).to_string(),
                 appearance.ui_font_family(),
                 HEADER_TITLE_FONT_SIZE,
             )
@@ -407,14 +403,20 @@ impl View for NewWorktreeModal {
             .with_cross_axis_alignment(CrossAxisAlignment::Stretch);
 
         // Repo picker
-        body.add_child(Self::render_section_label("Select repository", appearance));
+        body.add_child(Self::render_section_label(
+            tr_cached(Message::WorktreeSelectRepository),
+            appearance,
+        ));
         body.add_child(ChildView::new(&self.repo_picker).finish());
 
         // Branch picker (with gap)
         body.add_child(
-            Container::new(Self::render_section_label("Select branch", appearance))
-                .with_margin_top(SECTION_GAP)
-                .finish(),
+            Container::new(Self::render_section_label(
+                tr_cached(Message::WorktreeSelectBranch),
+                appearance,
+            ))
+            .with_margin_top(SECTION_GAP)
+            .finish(),
         );
         body.add_child(ChildView::new(&self.branch_picker).finish());
 
@@ -464,7 +466,7 @@ impl View for NewWorktreeModal {
             .with_child(checkbox_element)
             .with_child(
                 Text::new_inline(
-                    "Autogenerate worktree branch name".to_string(),
+                    tr_cached(Message::WorktreeAutogenerateBranchName).to_string(),
                     appearance.ui_font_family(),
                     appearance.ui_font_size(),
                 )
@@ -483,7 +485,7 @@ impl View for NewWorktreeModal {
         if !self.autogenerate_branch_name {
             body.add_child(
                 Container::new(Self::render_section_label(
-                    "Worktree branch name",
+                    tr_cached(Message::WorktreeBranchName),
                     appearance,
                 ))
                 .with_margin_top(SECTION_GAP)
@@ -495,7 +497,7 @@ impl View for NewWorktreeModal {
                 body.add_child(
                     Container::new(
                         Text::new_inline(
-                            INVALID_BRANCH_NAME_ERROR.to_string(),
+                            tr_cached(Message::WorktreeInvalidBranchName).to_string(),
                             appearance.ui_font_family(),
                             ERROR_FONT_SIZE,
                         )

@@ -217,7 +217,8 @@ fn render_deleted_state(
         .with_main_axis_size(MainAxisSize::Max)
         .with_child(
             Text::new(
-                cached_title.unwrap_or_else(|| "Deleted conversation".to_string()),
+                cached_title
+                    .unwrap_or_else(|| tr_cached(Message::AgentDeletedConversation).to_string()),
                 appearance.ui_font_family(),
                 appearance.monospace_font_size(),
             )
@@ -228,7 +229,10 @@ fn render_deleted_state(
             })
             .finish(),
         )
-        .with_child(render_subtext("Deleted".to_string(), appearance))
+        .with_child(render_subtext(
+            tr_cached(Message::CommonDeleted).to_string(),
+            appearance,
+        ))
         .finish();
 
     render_block_container(
@@ -303,7 +307,7 @@ impl View for AgentViewEntryBlock {
                     | AgentViewEntryOrigin::AgentRequestedNewConversation
             )
         {
-            Some("Continued")
+            Some(tr_cached(Message::CommonContinued))
         } else {
             None
         };
@@ -315,9 +319,9 @@ impl View for AgentViewEntryBlock {
                 Shrinkable::new(
                     1.,
                     Text::new(
-                        conversation
-                            .title()
-                            .unwrap_or("Untitled conversation".to_string()),
+                        conversation.title().unwrap_or_else(|| {
+                            tr_cached(Message::CommonUntitledConversation).to_string()
+                        }),
                         appearance.ui_font_family(),
                         appearance.monospace_font_size(),
                     )

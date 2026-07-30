@@ -12,6 +12,7 @@ use warpui::{Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
 use super::EditorElement;
 use crate::appearance::Appearance;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
 
@@ -138,7 +139,7 @@ impl View for AutosuggestionIgnore {
             if state.is_hovered() {
                 let tool_tip = appearance
                     .ui_builder()
-                    .autosuggestion_tool_tip("Ignore this suggestion".into())
+                    .autosuggestion_tool_tip(tr_cached(Message::TooltipIgnoreSuggestion).into())
                     .build()
                     .finish();
                 stack.add_positioned_overlay_child(

@@ -149,9 +149,9 @@ impl WorkflowViewType {
 
     fn as_str<'a>(&self, category_names: &'a [String]) -> &'a str {
         match self {
-            WorkflowViewType::All => "All",
-            WorkflowViewType::LocalPersonal => "My Workflows",
-            WorkflowViewType::Project => "Repository Workflows",
+            WorkflowViewType::All => tr_cached(Message::WorkflowAll),
+            WorkflowViewType::LocalPersonal => tr_cached(Message::WorkflowMyWorkflows),
+            WorkflowViewType::Project => tr_cached(Message::WorkflowRepositoryWorkflows),
             WorkflowViewType::Team => "Team Workflows",
             WorkflowViewType::Category { category_index, .. } => &category_names[*category_index],
         }
@@ -159,15 +159,11 @@ impl WorkflowViewType {
 
     fn as_accessibility_contents(&self, category_names: &[String]) -> AccessibilityContent {
         let a11y_content = match self {
-            WorkflowViewType::Category { .. } => {
-                format!(
-                    "Showing workflows with category {}",
-                    self.as_str(category_names)
-                )
-            }
-            WorkflowViewType::All => "Showing all workflows".into(),
-            WorkflowViewType::LocalPersonal => "Showing my workflows".into(),
-            WorkflowViewType::Project => "Showing project workflows".into(),
+            WorkflowViewType::Category { .. } => tr_cached(Message::WorkflowShowingCategory)
+                .replace("{}", self.as_str(category_names)),
+            WorkflowViewType::All => tr_cached(Message::WorkflowShowingAll).into(),
+            WorkflowViewType::LocalPersonal => tr_cached(Message::WorkflowShowingMy).into(),
+            WorkflowViewType::Project => tr_cached(Message::WorkflowShowingProject).into(),
             WorkflowViewType::Team => "Showing team workflows".into(),
         };
 
@@ -910,7 +906,7 @@ impl CategoriesView {
         let theme = appearance.theme();
         workflow_types_list.add_child(
             Container::new(Self::workflow_types_label(
-                "Categories",
+                tr_cached(Message::WorkflowCategories),
                 Some(theme.sub_text_color(theme.surface_2()).into_solid()),
                 appearance.ui_builder(),
             ))
@@ -1177,7 +1173,7 @@ impl View for CategoriesView {
 
     fn accessibility_contents(&self, _: &AppContext) -> Option<AccessibilityContent> {
         Some(AccessibilityContent::new(
-            "Workflows",
+            tr_cached(Message::CommonWorkflows),
             tr_cached(Message::WorkflowSearchA11yHelp),
             WarpA11yRole::MenuRole,
         ))

@@ -192,7 +192,7 @@ impl View for AddRegexModal {
         let is_submit_enabled = !pattern_text.trim().is_empty() && is_valid_regex;
 
         let name_label = Text::new(
-            "Name (optional)",
+            tr_cached(Message::PrivacyNameOptional),
             appearance.ui_font_family(),
             LABEL_FONT_SIZE,
         )
@@ -200,7 +200,7 @@ impl View for AddRegexModal {
         .finish();
 
         let regex_label = Text::new(
-            "Regex pattern",
+            tr_cached(Message::PrivacyRegexPattern),
             appearance.ui_font_family(),
             LABEL_FONT_SIZE,
         )

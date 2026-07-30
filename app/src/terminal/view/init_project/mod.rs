@@ -375,12 +375,11 @@ impl InitStepBlock {
         mouse_states: &LanguageServersMouseStateHandles,
     ) -> Vec<KeyboardNavigableButtonBuilder> {
         let button_text = if server_info.is_installed {
-            format!("Enable {} support", server_info.server_type.language_name())
+            tr_cached(Message::InitEnableNamedSupport)
+                .replace("{}", &server_info.server_type.language_name())
         } else {
-            format!(
-                "Install and enable {}",
-                server_info.server_type.language_name()
-            )
+            tr_cached(Message::InitInstallAndEnableNamed)
+                .replace("{}", &server_info.server_type.language_name())
         };
 
         vec![
@@ -394,7 +393,7 @@ impl InitStepBlock {
                 false,
             ),
             simple_navigation_button(
-                "Skip for now.".to_string(),
+                tr_cached(Message::InitSkipForNowPeriod).to_string(),
                 mouse_states.skip_button.clone(),
                 InitProjectBlockAction::SkipLanguageServers,
                 false,
@@ -408,13 +407,13 @@ impl InitStepBlock {
     ) -> Vec<KeyboardNavigableButtonBuilder> {
         vec![
             simple_navigation_button(
-                "Yes, index this codebase.".to_string(),
+                tr_cached(Message::InitIndexThisCodebaseButton).to_string(),
                 mouse_states.index_button.clone(),
                 InitProjectBlockAction::IndexCodebase(pwd_path.to_path_buf()),
                 false,
             ),
             simple_navigation_button(
-                "Skip for now.".to_string(),
+                tr_cached(Message::InitSkipForNowPeriod).to_string(),
                 mouse_states.skip_button.clone(),
                 InitProjectBlockAction::SkipIndex,
                 false,
@@ -431,7 +430,7 @@ impl InitStepBlock {
         for (i, linkable_file) in LINKABLE_FILES.iter().enumerate() {
             if let Some(path) = linkable_files.iter().find(|p| p.ends_with(linkable_file)) {
                 buttons.push(simple_navigation_button(
-                    format!("Link existing {linkable_file} to my AGENTS.md file"),
+                    tr_cached(Message::InitLinkExistingRules).replace("{}", linkable_file),
                     mouse_states.link_buttons[i].clone(),
                     InitProjectBlockAction::LinkFromExisting(path.clone()),
                     false,
@@ -440,13 +439,13 @@ impl InitStepBlock {
         }
 
         buttons.push(simple_navigation_button(
-            "Generate AGENTS.md file".to_string(),
+            tr_cached(Message::InitGenerateAgentsMd).to_string(),
             mouse_states.generate_button.clone(),
             InitProjectBlockAction::GenerateRules,
             false,
         ));
         buttons.push(simple_navigation_button(
-            "Skip AGENTS.md generation for now".to_string(),
+            tr_cached(Message::InitSkipAgentsMdGeneration).to_string(),
             mouse_states.skip_button.clone(),
             InitProjectBlockAction::SkipRules,
             false,
@@ -634,12 +633,9 @@ impl InitStepBlock {
                     app,
                 )
                 .with_header(
-                    HeaderConfig::new(
-                        "Would you like the Agent to index this codebase? This will lead to more efficient and tailored help.",
-                        app,
-                    )
-                    .with_icon(yellow_stop_icon(appearance))
-                    .with_soft_wrap_title(),
+                    HeaderConfig::new(tr_cached(Message::InitIndexCodebasePrompt), app)
+                        .with_icon(yellow_stop_icon(appearance))
+                        .with_soft_wrap_title(),
                 )
                 .with_background_color(appearance.theme().surface_1().into_solid())
                 .with_content_item_spacing()
@@ -671,7 +667,7 @@ impl InitStepBlock {
 
         match indexing_result {
             CodebaseIndexingResult::Accepted => {
-                RenderableAction::new("Codebase index started", app)
+                RenderableAction::new(tr_cached(Message::InitCodebaseIndexStarted), app)
                     .with_icon(Icon::Check.to_warpui_icon(Fill::success()).finish())
                     .with_action_button(
                         Appearance::as_ref(app)
@@ -696,7 +692,7 @@ impl InitStepBlock {
                     .finish()
             }
             CodebaseIndexingResult::Skipped => {
-                Self::render_skipped_completion("Codebase index cancelled", app)
+                Self::render_skipped_completion(tr_cached(Message::InitCodebaseIndexCancelled), app)
             }
         }
     }
@@ -745,10 +741,8 @@ impl InitStepBlock {
         };
         Self::render_ready_with_buttons(
             action_view,
-            format!(
-                "Enable {} support for this codebase? This will give you smarter code navigation, inline error checking, and more.",
-                server_info.server_type.language_name()
-            ),
+            tr_cached(Message::InitEnableNamedSupportPrompt)
+                .replace("{}", &server_info.server_type.language_name()),
             app,
         )
     }
@@ -791,19 +785,17 @@ impl InitStepBlock {
                 servers_to_install,
             } => {
                 let label = if !servers_to_install.is_empty() {
-                    "Started installation for language support".to_string()
+                    tr_cached(Message::InitLanguageSupportInstallStarted).to_string()
                 } else if enabled_servers.len() == 1 {
-                    format!(
-                        "{} language support enabled",
-                        enabled_servers[0].language_name()
-                    )
+                    tr_cached(Message::InitNamedLanguageSupportEnabled)
+                        .replace("{}", &enabled_servers[0].language_name())
                 } else {
-                    "Language support enabled".to_string()
+                    tr_cached(Message::InitLanguageSupportEnabled).to_string()
                 };
                 Self::render_success_completion(&label, app)
             }
             LanguageServersResult::Skipped => {
-                Self::render_skipped_completion("Language support skipped", app)
+                Self::render_skipped_completion(tr_cached(Message::InitLanguageSupportSkipped), app)
             }
         }
     }
@@ -830,14 +822,14 @@ impl InitStepBlock {
                 };
                 Self::render_ready_with_buttons(
                     action_view,
-                    "Would you like to create an AGENTS.md file? ZYH can create one for you with project specific rules, context, and conventions inferred from your codebase. The agent will use this context as it codes.",
+                    tr_cached(Message::InitCreateAgentsMdPrompt),
                     app,
                 )
             }
             InitStepStatus::Running => {
                 // AI is generating AGENTS.md - show in-progress state
                 let appearance = Appearance::as_ref(app);
-                RenderableAction::new("Generating AGENTS.md...", app)
+                RenderableAction::new(tr_cached(Message::InitGeneratingAgentsMd), app)
                     .with_icon(in_progress_icon(appearance).finish())
                     .with_content_item_spacing()
                     .render(app)
@@ -923,14 +915,16 @@ impl InitStepBlock {
 
         let init_completed = self.model.as_ref(app).is_completed();
         match rules_result {
-            ProjectScopedRulesResult::LinkedFromExisting(path) => {
-                Self::render_success_completion(&format!("Project rules linked from {path}"), app)
-            }
+            ProjectScopedRulesResult::LinkedFromExisting(path) => Self::render_success_completion(
+                &tr_cached(Message::InitProjectRulesLinkedFrom).replace("{}", path),
+                app,
+            ),
             ProjectScopedRulesResult::GenerateNew {
                 button_disabled, ..
             } => {
-                let mut action = RenderableAction::new("Project rules configured", app)
-                    .with_icon(Icon::Check.to_warpui_icon(Fill::success()).finish());
+                let mut action =
+                    RenderableAction::new(tr_cached(Message::InitProjectRulesConfigured), app)
+                        .with_icon(Icon::Check.to_warpui_icon(Fill::success()).finish());
                 if init_completed {
                     action = action.with_action_button(Self::regenerate_button(
                         &mouse_states.regenerate_button,
@@ -941,8 +935,11 @@ impl InitStepBlock {
                 action.with_content_item_spacing().render(app).finish()
             }
             ProjectScopedRulesResult::AlreadyExists { button_disabled } => {
-                let mut action = RenderableAction::new("Project rules already configured", app)
-                    .with_icon(Icon::Check.to_warpui_icon(Fill::success()).finish());
+                let mut action = RenderableAction::new(
+                    tr_cached(Message::InitProjectRulesAlreadyConfigured),
+                    app,
+                )
+                .with_icon(Icon::Check.to_warpui_icon(Fill::success()).finish());
                 if init_completed {
                     action = action.with_action_button(Self::regenerate_button(
                         &mouse_states.regenerate_button,
@@ -953,7 +950,7 @@ impl InitStepBlock {
                 action.with_content_item_spacing().render(app).finish()
             }
             ProjectScopedRulesResult::Skipped => {
-                Self::render_skipped_completion("Project rules skipped", app)
+                Self::render_skipped_completion(tr_cached(Message::InitProjectRulesSkipped), app)
             }
         }
     }

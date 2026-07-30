@@ -7,6 +7,7 @@ use warpui::{AppContext, EntityId, SingletonEntity, WindowId};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::blocklist::history_model::{AIConversationMetadata, BlocklistAIHistoryModel};
+use crate::i18n::{tr_cached, Message};
 use crate::terminal::view::blocklist_filter;
 use crate::undo_close::UndoCloseStack;
 use crate::workspace::{PaneViewLocator, WorkspaceRegistry};
@@ -74,7 +75,7 @@ impl ConversationNavigationData {
         let initial_query = conversation.initial_query();
         let title = conversation
             .title()
-            .unwrap_or_else(|| "Untitled conversation".to_string());
+            .unwrap_or_else(|| tr_cached(Message::CommonUntitledConversation).to_string());
         let last_updated = conversation
             .latest_exchange()
             .map(|exchange| exchange.start_time)

@@ -16,6 +16,7 @@ use warpui::{AppContext, Element, EventContext, PaintContext, SingletonEntity as
 use super::settings::WarpifySettings;
 use super::SubshellSource;
 use crate::ai::blocklist::inline_action::inline_action_icons;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::blended_colors;
 
 /// The flag font size varies with the monospace font width, but if it gets too big it will start
@@ -181,7 +182,7 @@ pub fn render_never_warpify_ssh_link(
     let link = appearance
         .ui_builder()
         .link(
-            "Never Warpify this host".into(),
+            tr_cached(Message::WarpifyNeverThisHost).into(),
             None,
             Some(Box::new({
                 let ssh_host = ssh_host.clone();

@@ -319,7 +319,6 @@ use crate::voltron::{
     Voltron, VoltronEvent, VoltronFeatureView, VoltronFeatureViewHandle, VoltronFeatureViewMeta,
     VoltronItem, VoltronMetadata,
 };
-use cloud_object_models::WorkflowCloudIds;
 use crate::workflows::command_parser::{
     compute_workflow_display_data, compute_workflow_display_data_for_history_command,
     compute_workflow_display_data_with_overrides, WorkflowArgumentIndex, WorkflowDisplayData,
@@ -340,6 +339,7 @@ use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 use crate::ASSETS;
 #[allow(unused_imports)]
 use crate::{cmd_or_ctrl_shift, send_telemetry_from_ctx, AgentModeEntrypoint, ServerApiProvider};
+use cloud_object_models::WorkflowCloudIds;
 
 /// Drop target data for dropping content on the [`Input`].
 #[derive(Debug, Clone)]
@@ -4871,7 +4871,7 @@ impl Input {
                     ctx.dispatch_typed_action_deferred(action);
                 } else {
                     ctx.emit(Event::ShowToast {
-                        message: "Couldn't navigate to conversation.".to_string(),
+                        message: tr_cached(Message::ToastCouldntNavigateConversation).to_string(),
                         flavor: ToastFlavor::Error,
                     });
                 }
@@ -5893,26 +5893,22 @@ impl Input {
                 // Show error toast with user-friendly message
                 let user_message = match e.kind() {
                     std::io::ErrorKind::PermissionDenied => {
-                        format!(
-                            "Permission denied writing to {}. Check file permissions.",
-                            file_path.display()
-                        )
+                        tr_cached(Message::ToastPermissionDeniedWriting)
+                            .replace("{}", &file_path.display().to_string())
                     }
-                    std::io::ErrorKind::NotFound => {
-                        format!(
-                            "Directory not found: {}",
-                            file_path
+                    std::io::ErrorKind::NotFound => tr_cached(Message::ToastDirectoryNotFound)
+                        .replace(
+                            "{}",
+                            &file_path
                                 .parent()
                                 .map(|p| p.display().to_string())
-                                .unwrap_or_default()
-                        )
-                    }
-                    std::io::ErrorKind::AlreadyExists => {
-                        format!("File {} already exists", file_path.display())
-                    }
-                    _ => {
-                        format!("Failed to export to {}: {}", file_path.display(), e)
-                    }
+                                .unwrap_or_default(),
+                        ),
+                    std::io::ErrorKind::AlreadyExists => tr_cached(Message::ToastFileAlreadyExists)
+                        .replace("{}", &file_path.display().to_string()),
+                    _ => tr_cached(Message::ToastFailedExport)
+                        .replacen("{}", &file_path.display().to_string(), 1)
+                        .replacen("{}", &e.to_string(), 1),
                 };
 
                 report_error!(
@@ -8084,13 +8080,14 @@ impl Input {
         // Emit the a11y content as the last step so that it overwrites any of the a11y content
         // emitted by the editor (if multiple `AccessibilityContent`s are emitted within the same
         // event loop, the last one wins).
-        let mut accessibility_text = format!("Workflow command {} inserted.", &command_to_insert);
+        let mut accessibility_text =
+            tr_cached(Message::A11yWorkflowCommandInserted).replace("{}", &command_to_insert);
         if let Some(a11y_content) = self.selected_workflow_a11y_text(ctx) {
             let _ = write!(accessibility_text, " {a11y_content}");
         }
         ctx.emit_a11y_content(AccessibilityContent::new(
             accessibility_text,
-            "Press shift-tab to select the next workflow argument",
+            tr_cached(Message::A11yWorkflowCommandInsertedHelp),
             WarpA11yRole::UserAction,
         ));
 
@@ -8189,8 +8186,10 @@ impl Input {
             .as_ref()
             .and_then(|selected_workflow_state| {
                 selected_workflow_state.more_info_view.read(ctx, |view, _| {
-                    view.selected_argument()
-                        .map(|argument| format!("Selected Workflow argument {}", argument.name()))
+                    view.selected_argument().map(|argument| {
+                        tr_cached(Message::A11ySelectedWorkflowArgument)
+                            .replace("{}", argument.name())
+                    })
                 })
             })
     }
@@ -8442,7 +8441,7 @@ impl Input {
                 self.try_execute_command(&command, ctx);
 
                 ctx.emit_a11y_content(AccessibilityContent::new_without_help(
-                    format!("Executed: {command}"),
+                    tr_cached(Message::A11yExecutedCommand).replace("{}", &command),
                     WarpA11yRole::UserAction,
                 ));
             }

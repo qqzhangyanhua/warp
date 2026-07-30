@@ -10,6 +10,7 @@ use super::inline_action_header::{
     ICON_MARGIN, INLINE_ACTION_HEADER_VERTICAL_PADDING, INLINE_ACTION_HORIZONTAL_PADDING,
 };
 use super::inline_action_icons::icon_size;
+use crate::i18n::{tr_cached, Message};
 use crate::ui_components::icons::Icon;
 
 pub fn render_search_results_header(
@@ -198,7 +199,7 @@ impl Default for CollapsibleSearchResultsState {
 pub fn render_collapsible_search_results<F>(
     title_text: String,
     results_count: usize,
-    results_label: &str,
+    results_label: Message,
     state: &CollapsibleSearchResultsState,
     body: Option<Box<dyn Element>>,
     on_toggle: F,
@@ -207,7 +208,7 @@ pub fn render_collapsible_search_results<F>(
 where
     F: Fn(&mut EventContext) + 'static,
 {
-    let right_label = format!("{results_count} {results_label}");
+    let right_label = tr_cached(results_label).replace("{}", &results_count.to_string());
 
     let header = render_search_results_header(
         title_text,
