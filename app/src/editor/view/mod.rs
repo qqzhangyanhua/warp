@@ -6622,7 +6622,7 @@ impl EditorView {
     }
 
     pub fn right(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.can_edit(ctx) {
+        if self.can_select(ctx) {
             if self.should_propagate_rightward_navigation(ctx) {
                 ctx.emit(Event::Navigate(NavigationKey::Right));
             }

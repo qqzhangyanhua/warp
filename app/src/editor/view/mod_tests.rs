@@ -4157,6 +4157,24 @@ fn test_interaction_state() {
 }
 
 #[test]
+fn test_right_moves_cursor_when_selectable() {
+    App::test((), |mut app| async move {
+        initialize_app(&mut app);
+
+        app.add_window(WindowStyle::NotStealFocus, |ctx| {
+            let mut editor = EditorView::new_with_base_text("ab", Default::default(), ctx);
+            editor.set_interaction_state(InteractionState::Selectable, ctx);
+
+            assert_eq!(editor.single_cursor_to_point(ctx), Some(Point::new(0, 0)));
+            editor.handle_action(&EditorAction::Right, ctx);
+            assert_eq!(editor.single_cursor_to_point(ctx), Some(Point::new(0, 1)));
+
+            editor
+        });
+    });
+}
+
+#[test]
 fn test_select_next_occurrence() {
     App::test((), |mut app| async move {
         initialize_app(&mut app);
