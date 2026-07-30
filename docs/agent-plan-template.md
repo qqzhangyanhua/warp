@@ -7,7 +7,7 @@ TODO
 TODO
 
 ## Risks
-Auth? Billing? Permissions? Migrations? Infra? Public API? Generated files? Terminal model locking?
+Auth? Billing? Permissions? Migrations? Infra? Public API? Generated files? Terminal model locking? Bridge Protocol or artifacts? Provider Origin or Endpoint Allowlist?
 
 ## Plan
 1. TODO

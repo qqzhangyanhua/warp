@@ -13,6 +13,8 @@ These commands are present in repo docs or existing wrapper scripts. Do not clai
 - `cargo nextest run -p warp_completer --features v2` - completer v2 tests used by presubmit.
 - `cargo test --doc` - Rust doc tests used by presubmit.
 - `cargo test` - standard Rust tests for targeted packages.
+- `(cd tools/warp-bridge && pnpm test)` - documented Bridge test suite; passed during the 2026-07-29 harness refresh (78 tests).
+- `(cd tools/warp-bridge && pnpm typecheck)` - documented Bridge TypeScript check; passed during the 2026-07-29 harness refresh.
 
 ## Candidate Commands
 Detected but not run during harness generation:
@@ -26,6 +28,8 @@ Detected but not run during harness generation:
 - `cargo test --package warp --lib zyh_settings -- --nocapture` - focused permanent-product settings and Provider tests.
 - `cargo test -p warp_tui --test zyh_startup -- --nocapture` - PTY startup coverage for the permanent ZYH TUI.
 - `WARPUI_USE_REAL_DISPLAY_IN_INTEGRATION_TESTS=1 cargo test --package integration --test integration -- <test>` - integration-test workflow template in `.warp/workflows/run_integration_test.yaml`.
+- `(cd tools/warp-bridge && pnpm run build:fake:matrix)` - documented six-target fake Bridge build and handshake smoke test; not run during harness generation.
+- `(cd tools/warp-bridge && pnpm run build:release:matrix)` - release workflow command that tests and builds the verified Bridge artifact matrix; not run locally during harness generation.
 - `crates/warp_graphql_schema/package.json`: `yarn generate` or equivalent package-manager invocation for the detected `generate` script. Needs human confirmation before using as a standard command.
 - `crates/command-signatures-v2/js/package.json`: package scripts `build`, `clean`, and `watch`. Needs human confirmation before using as standard checks.
 
@@ -36,6 +40,7 @@ Detected but not run during harness generation:
 - Settings value tests: `crates/settings_value/tests/`.
 - WarpUI core tests and data: `crates/warpui_core/tests/`, `crates/warpui_core/test_data/`.
 - App-level SSH tests: `app/tests/ssh/`.
+- Agent Runtime Bridge tests: `tools/warp-bridge/test/`; protocol conformance fixtures: `tools/warp-bridge/protocol/fixtures/`.
 - Fixtures/data: `crates/editor/test_fixtures/`, `crates/editor/test_data/`, `crates/warp_files/test_data/`.
 
 ## Standard Check
@@ -49,6 +54,7 @@ Run:
 
 ## Notes
 - Presubmit can be expensive. For narrow work, run focused tests first, then `./scripts/check.sh` before PR-ready handoff.
+- `./scripts/check.sh` delegates to Rust-focused `./script/presubmit`; changes under `tools/warp-bridge/` also require its documented `pnpm test` and `pnpm typecheck` commands.
 - GUI integration tests are GUI-only and may require a real display.
 - TUI changes should prefer TUI render-to-lines tests and, when needed, terminal verification.
 - Startup-boundary changes should include focused GUI, TUI, and CLI tests that deny external network access and assert identity, cloud, and telemetry services are not registered.

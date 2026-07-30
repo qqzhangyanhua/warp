@@ -3,7 +3,6 @@
 ## High-Risk Areas
 - Auth and authentication:
   - `app/src/auth/`
-  - `app/src/local_mode.rs`
   - `app/src/server/server_api/auth.rs`
   - `app/src/remote_server/auth_context.rs`
   - `app/src/remote_server/auth_provider.rs`
@@ -17,8 +16,6 @@
   - `crates/cloud_object_persistence/src/encoded_permissions.rs`
   - GraphQL object-permission mutations and queries under `crates/graphql/src/api/`.
 - Billing:
-  - `app/src/billing/`
-  - `app/src/settings_view/billing_and_usage*`
   - `app/src/ai/request_usage_model.rs`
   - Agent quota/credit handling under `app/src/ai/blocklist/`
   - `crates/graphql/src/api/billing.rs`
@@ -30,20 +27,22 @@
   - `app/src/server/server_api/managed_secrets.rs`
   - `app/src/server/telemetry/secret_redaction.rs`
   - `app/src/terminal/model/secrets.rs`
+  - `app/src/terminal/model/grid/secrets.rs`
   - `crates/managed_secrets/`
-  - `crates/managed_secrets_wasm/`
   - GraphQL managed-secret and task-secret APIs.
 - Database migrations and persistence:
   - `crates/persistence/migrations/`
   - `crates/persistence/src/schema.rs`
   - `crates/persistence/schema.patch`
   - `app/src/persistence/`
+  - `app/src/zyh_home_migration.rs` and `app/src/zyh_home_migration/`
+  - `app/src/zyh_project_migration.rs` and `app/src/zyh_project_migration/`
 - Public APIs, protocols, and generated clients:
   - `crates/graphql/`
   - `crates/warp_graphql_schema/`
   - `crates/warp_server_client/`
-  - `crates/warp_multi_agent_client/`
-  - MultiAgent request/response wiring under `app/src/ai/agent/api/`
+  - `app/src/ai/agent/runtime/protocol.rs` and `app/src/ai/agent/runtime/protocol/`
+  - `tools/warp-bridge/protocol/`
   - `crates/ipc/src/protocol.rs`
   - `crates/local_control/src/protocol.rs`
   - `app/src/terminal/local_tty/server/protocol.rs`
@@ -52,12 +51,20 @@
   - `.github/workflows/`
   - `.github/actions/`
   - `script/bundle`, platform bundle scripts, release scripts, and Sentry upload scripts.
+  - `script/prepare_agent_runtime_bridge`
+  - `tools/warp-bridge/scripts/`, `tools/warp-bridge/dist/`, and `resources/bundled/agent-runtime/`
+- Permanent ZYH network and runtime boundary:
+  - `app/src/ai/agent/runtime/`
+  - `tools/warp-bridge/src/provider-transport.ts`
+  - `third_party/pi/`
+  - startup service registration and Endpoint Allowlist enforcement.
 - Terminal model locking:
   - Any path that calls or adds `TerminalModel::lock()` or equivalent `model.lock()` access on terminal state.
 
 ## Rules
 - Do not edit generated files directly.
-- Do not change auth, billing, permissions, migrations, infra, secrets, Local-only/Anonymous-only network boundaries, or public APIs without explicit risk notes and focused verification.
+- Do not change auth, billing, permissions, migrations, infra, secrets, the permanent ZYH network boundary, or public APIs without explicit risk notes and focused verification.
+- Treat Bridge Protocol schema, artifact manifests, Provider Origin enforcement, and vendored Pi updates as compatibility and security-sensitive changes.
 - Do not drop, rename, or rewrite persisted data without a compatibility plan.
 - Do not change release or deployment scripts casually.
 - Keep terminal model lock scopes short and verify callers are not already holding the same lock.
@@ -69,3 +76,4 @@
 - Recommended: a lightweight focused-check script for common Rust unit-test and clippy subsets.
 - Recommended: a lock-risk checklist for terminal model changes.
 - Recommended: a CI or presubmit check that keeps this harness in sync after script or workflow changes.
+- Recommended: include the documented Bridge `pnpm test` and `pnpm typecheck` commands in presubmit once bootstrap reliably installs its pinned dependencies.
