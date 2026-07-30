@@ -14,8 +14,9 @@ use super::SettingsSection;
 use crate::appearance::Appearance;
 use crate::channel::ChannelState;
 use crate::i18n::{tr_cached, Message};
-use crate::themes::theme::ColorScheme;
 use crate::workspace::WorkspaceAction;
+
+const ABOUT_ICON_PATH: &str = "bundled/png/zyh.png";
 
 pub struct AboutPageView {
     page: PageType<Self>,
@@ -61,14 +62,7 @@ impl SettingsWidget for AboutPageWidget {
         appearance: &Appearance,
         _app: &AppContext,
     ) -> Box<dyn Element> {
-        let theme = appearance.theme();
         let ui_builder = appearance.ui_builder();
-
-        let image_path = if theme.inferred_color_scheme() == ColorScheme::LightOnDark {
-            "bundled/svg/warp-logo-with-light-title.svg"
-        } else {
-            "bundled/svg/warp-logo-with-dark-title.svg"
-        };
 
         let version = ChannelState::app_version().unwrap_or("v#.##.###");
 
@@ -104,7 +98,9 @@ impl SettingsWidget for AboutPageWidget {
                 .with_child(
                     ConstrainedBox::new(
                         Image::new(
-                            AssetSource::Bundled { path: image_path },
+                            AssetSource::Bundled {
+                                path: ABOUT_ICON_PATH,
+                            },
                             CacheOption::BySize,
                         )
                         .finish(),
