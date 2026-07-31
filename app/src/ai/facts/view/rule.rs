@@ -9,7 +9,7 @@ use warp_util::local_or_remote_path::LocalOrRemotePath;
 use warpui::elements::{
     Align, Border, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
     Expanded, Flex, FormattedTextElement, HighlightedHyperlink, Hoverable, MainAxisAlignment,
-    MainAxisSize, MouseStateHandle, ParentElement, Shrinkable,
+    MainAxisSize, MouseStateHandle, ParentElement,
 };
 use warpui::platform::{Cursor, FilePickerConfiguration};
 use warpui::ui_components::button::ButtonVariant;
@@ -495,35 +495,13 @@ impl RuleView {
         app: &AppContext,
     ) -> Box<dyn Element> {
         let row_name = display_path_with_host(&row.file_path, false, app);
-        let mut content = Flex::column().with_child(
-            Shrinkable::new(
-                1.,
-                appearance
-                    .ui_builder()
-                    .wrappable_text(row_name, true)
-                    .with_style(style::fact_project_based_row_text(appearance))
-                    .build()
-                    .finish(),
-            )
-            .finish(),
-        );
-
-        if let Some(preview) = &row.preview {
-            content.add_child(
-                appearance
-                    .ui_builder()
-                    .wrappable_text(preview.clone(), true)
-                    .with_style(style::fact_row_subtext(appearance))
-                    .build()
-                    .finish(),
-            );
-        }
+        let content = render_file_backed_content(row_name, row.preview.clone(), appearance);
 
         let mut row_flex = Flex::row()
             .with_main_axis_size(MainAxisSize::Max)
             .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(Expanded::new(1., content.finish()).finish());
+            .with_child(Expanded::new(1., content).finish());
 
         if row.opens_editor {
             row_flex.add_child(
@@ -640,6 +618,34 @@ impl RuleView {
     }
 }
 
+fn render_file_backed_content(
+    row_name: String,
+    preview: Option<String>,
+    appearance: &Appearance,
+) -> Box<dyn Element> {
+    let mut content = Flex::column().with_child(
+        appearance
+            .ui_builder()
+            .wrappable_text(row_name, true)
+            .with_style(style::fact_project_based_row_text(appearance))
+            .build()
+            .finish(),
+    );
+
+    if let Some(preview) = preview {
+        content.add_child(
+            appearance
+                .ui_builder()
+                .wrappable_text(preview, true)
+                .with_style(style::fact_row_subtext(appearance))
+                .build()
+                .finish(),
+        );
+    }
+
+    content.finish()
+}
+
 fn truncate_preview(content: &str) -> String {
     if content.split('\n').count() > 3 {
         content.split('\n').take(3).collect::<Vec<_>>().join("\n") + "..."
@@ -734,3 +740,7 @@ impl TypedActionView for RuleView {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "rule_tests.rs"]
+mod tests;
