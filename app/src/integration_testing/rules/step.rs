@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use warpui::integration::TestStep;
 use warpui::windowing::WindowManager;
-use warpui::{async_assert, WindowId};
+use warpui::{async_assert, SingletonEntity, WindowId};
 use warpui_extras::owner_only_file::ExpectedContent;
 
 use crate::ai::facts::view::AIFactPage;
