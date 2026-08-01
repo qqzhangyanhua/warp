@@ -80,6 +80,36 @@ _Avoid_: Responses API Provider, auto-detected Provider protocol
 The scheme, host, and effective port of an OpenAI-compatible Provider Base URL. It is the only network origin to which that Provider's API Key may be sent.
 _Avoid_: Provider path, model identity
 
+## Personal Memory
+
+**Personal Memory**:
+The explicit, durable, user-controlled collection of short personal facts available across Pi-backed Interactive Agent Conversations. It is global local data, not an AI Rule, Resource Snapshot, Conversation Record, or automatically extracted conversation history.
+_Avoid_: AI Rule, conversation memory, document RAG
+
+**Personal Memory Record**:
+One canonical fact in the Personal Memory Store, including the exact user-authored content and value plus its topic, labels, optional default status, timestamps, and index state. It is independent of every Conversation Record and retains no hidden prior-value history.
+_Avoid_: conversation message, AI Fact, index entry
+
+**Personal Memory Store**:
+The application-owned, SQLite-backed source of truth for all Personal Memory Records on the current device. Full-text terms and vectors are derived state, and deleting a Conversation Record never deletes this global store.
+_Avoid_: vector database, conversation store, cloud memory
+
+**Personal Memory Index**:
+Disposable exact, full-text, and semantic retrieval data derived from Personal Memory Records. It may be invalidated or rebuilt without changing canonical records and never becomes a second source of truth.
+_Avoid_: Personal Memory Store, canonical fact, exported memory
+
+**Memory Capability**:
+The bounded create, query, update, or delete authority derived from the current user input and exposed only in that Agent Run's Tool Catalog. It grants no direct SQLite or Embedding Provider access to the Agent Runtime.
+_Avoid_: always-on memory, permission prompt, Agent Resource
+
+**Embedding Provider**:
+A separately configured OpenAI-compatible Provider identified by a Base URL, Model, and API Key and used only through the `/v1/embeddings` protocol for explicit Personal Memory operations. It is distinct from the Chat Completions Provider and is not required for exact retrieval.
+_Avoid_: Chat Completions Provider, bundled embedding model, vector index
+
+**AI Rule**:
+A user- or project-authored instruction that guides Agent behavior. It may become a Resource Snapshot for a run; unlike Personal Memory, it is executable guidance rather than untrusted factual data.
+_Avoid_: Personal Memory Record, remembered fact
+
 ## Agent Execution
 
 **Agent Runtime**:
