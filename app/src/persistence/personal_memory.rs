@@ -3,10 +3,10 @@ use diesel::prelude::*;
 use diesel::SqliteConnection;
 use futures::channel::oneshot;
 
-use super::schema::personal_memory_records;
+use super::schema::{personal_memory_records, personal_memory_vectors};
 use crate::ai::personal_memory::{
     CreatePersonalMemoryResult, NewPersonalMemoryRecord, PersonalMemoryIndexState,
-    PersonalMemoryRecord, PERSONAL_MEMORY_RECORD_LIMIT,
+    PersonalMemoryRecord, PersonalMemoryVector, PERSONAL_MEMORY_RECORD_LIMIT,
 };
 
 #[derive(Debug)]
@@ -22,6 +22,20 @@ pub struct ListPersonalMemories {
         oneshot::Sender<Result<Vec<PersonalMemoryRecord>, PersonalMemoryPersistenceError>>,
 }
 
+#[derive(Debug)]
+pub struct UpsertPersonalMemoryVector {
+    pub(crate) record_id: String,
+    pub(crate) index_identity: String,
+    pub(crate) vector: Vec<f32>,
+    pub(crate) acknowledgement: oneshot::Sender<Result<(), PersonalMemoryPersistenceError>>,
+}
+
+#[derive(Debug)]
+pub struct ListPersonalMemoryVectors {
+    pub(crate) index_identity: String,
+    pub(crate) acknowledgement:
+        oneshot::Sender<Result<Vec<PersonalMemoryVector>, PersonalMemoryPersistenceError>>,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
 pub(crate) enum PersonalMemoryPersistenceError {
@@ -68,6 +82,22 @@ struct NewPersonalMemoryRow<'a> {
     index_state: &'a str,
 }
 
+#[derive(Insertable)]
+#[diesel(table_name = personal_memory_vectors)]
+struct NewPersonalMemoryVectorRow<'a> {
+    record_id: &'a str,
+    index_identity: &'a str,
+    dimensions: i32,
+    vector: &'a [u8],
+}
+
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = personal_memory_vectors)]
+struct PersonalMemoryVectorRow {
+    record_id: String,
+    dimensions: i32,
+    vector: Vec<u8>,
+}
 
 pub(super) fn create_personal_memory(
     conn: &mut SqliteConnection,
@@ -138,6 +168,94 @@ pub(super) fn list_personal_memories(
         .collect()
 }
 
+pub(super) fn upsert_personal_memory_vector(
+    conn: &mut SqliteConnection,
+    command: &UpsertPersonalMemoryVector,
+) -> Result<(), PersonalMemoryPersistenceError> {
+    if command.index_identity.len() != 64
+        || !command
+            .index_identity
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+        || command.vector.is_empty()
+        || command.vector.len() > 8_192
+        || command.vector.iter().any(|value| !value.is_finite())
+    {
+        return Err(PersonalMemoryPersistenceError::InvalidData);
+    }
+    let dimensions = i32::try_from(command.vector.len())
+        .map_err(|_| PersonalMemoryPersistenceError::InvalidData)?;
+    let bytes = command
+        .vector
+        .iter()
+        .flat_map(|value| value.to_le_bytes())
+        .collect::<Vec<_>>();
+    conn.transaction::<_, PersonalMemoryPersistenceError, _>(|conn| {
+        use personal_memory_records::dsl as records;
+        use personal_memory_vectors::dsl as vectors;
+
+        diesel::insert_into(vectors::personal_memory_vectors)
+            .values(NewPersonalMemoryVectorRow {
+                record_id: &command.record_id,
+                index_identity: &command.index_identity,
+                dimensions,
+                vector: &bytes,
+            })
+            .on_conflict(vectors::record_id)
+            .do_update()
+            .set((
+                vectors::index_identity.eq(&command.index_identity),
+                vectors::dimensions.eq(dimensions),
+                vectors::vector.eq(&bytes),
+                vectors::updated_at.eq(diesel::dsl::now),
+            ))
+            .execute(conn)?;
+        let updated = diesel::update(
+            records::personal_memory_records.filter(records::record_id.eq(&command.record_id)),
+        )
+        .set(records::index_state.eq(PersonalMemoryIndexState::Ready.as_database_value()))
+        .execute(conn)?;
+        if updated != 1 {
+            return Err(PersonalMemoryPersistenceError::InvalidData);
+        }
+        Ok(())
+    })
+}
+
+pub(super) fn list_personal_memory_vectors(
+    conn: &mut SqliteConnection,
+    command: &ListPersonalMemoryVectors,
+) -> Result<Vec<PersonalMemoryVector>, PersonalMemoryPersistenceError> {
+    use personal_memory_vectors::dsl;
+
+    dsl::personal_memory_vectors
+        .filter(dsl::index_identity.eq(&command.index_identity))
+        .select(PersonalMemoryVectorRow::as_select())
+        .load::<PersonalMemoryVectorRow>(conn)?
+        .into_iter()
+        .map(|row| {
+            let expected_bytes = usize::try_from(row.dimensions)
+                .ok()
+                .and_then(|dimensions| dimensions.checked_mul(std::mem::size_of::<f32>()))
+                .ok_or(PersonalMemoryPersistenceError::InvalidData)?;
+            if row.vector.len() != expected_bytes {
+                return Err(PersonalMemoryPersistenceError::InvalidData);
+            }
+            let values = row
+                .vector
+                .chunks_exact(4)
+                .map(|bytes| f32::from_le_bytes(bytes.try_into().unwrap()))
+                .collect::<Vec<_>>();
+            if values.iter().any(|value| !value.is_finite()) {
+                return Err(PersonalMemoryPersistenceError::InvalidData);
+            }
+            Ok(PersonalMemoryVector {
+                record_id: row.record_id,
+                values,
+            })
+        })
+        .collect()
+}
 
 impl TryFrom<PersonalMemoryRow> for PersonalMemoryRecord {
     type Error = PersonalMemoryPersistenceError;

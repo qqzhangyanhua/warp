@@ -44,7 +44,12 @@ impl ToolExecutionAuthority {
         }
         self.inject_fault(ToolExecutionFaultPoint::AfterExecutingPersisted)?;
         self.inject_fault(ToolExecutionFaultPoint::BeforeEffect)?;
-        let service = PersonalMemoryService::new(self.persistence.clone());
+        let service = match &self.embedding {
+            Some(embedding) => {
+                PersonalMemoryService::with_embedding(self.persistence.clone(), embedding.clone())
+            }
+            None => PersonalMemoryService::new(self.persistence.clone()),
+        };
         let outcome = personal_memory_effect(&service, memory_request).await;
         self.inject_fault(ToolExecutionFaultPoint::AfterEffectReturned)?;
         let projection_bytes = self

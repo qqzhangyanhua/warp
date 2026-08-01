@@ -2,6 +2,7 @@ use warpui::elements::{Border, Container, CrossAxisAlignment, Flex, ParentElemen
 use warpui::fonts::{Properties, Weight};
 use warpui::{AppContext, Element, SingletonEntity, ViewContext};
 
+use super::personal_memory_embedding_settings::render_personal_memory_embedding_controls;
 use super::personal_memory_toggle::PersonalMemoryToggle;
 use super::{AISettingsPageView, CONTENT_FONT_SIZE};
 use crate::ai::personal_memory::{
@@ -111,6 +112,11 @@ impl SettingsWidget for PersonalMemoryWidget {
         Flex::column()
             .with_child(header)
             .with_child(self.enabled_toggle.render(view, app))
+            .with_child(render_personal_memory_embedding_controls(
+                &view.personal_memory_embedding_controls,
+                appearance,
+                app,
+            ))
             .with_child(render_state(
                 &view.personal_memory_state,
                 view.personal_memory_focus_record_id.as_deref(),

@@ -378,6 +378,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    personal_memory_vectors (id) {
+        id -> Integer,
+        record_id -> Text,
+        index_identity -> Text,
+        dimensions -> Integer,
+        vector -> Binary,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     project_rules (id) {
         id -> Integer,
         path -> Text,

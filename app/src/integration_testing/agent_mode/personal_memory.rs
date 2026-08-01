@@ -28,6 +28,10 @@ pub fn configure_personal_memory_test_provider() -> TestStep {
         |app, _, _| {
             let model_id = LLMId::from(TEST_MODEL_CONFIG_KEY);
             ApiKeyManager::handle(app).update(app, |manager, ctx| {
+                assert!(
+                    manager.keys().embedding_provider.is_none(),
+                    "Personal Memory GUI test must run without an Embedding Provider"
+                );
                 manager.add_custom_endpoint(
                     "Personal Memory Test Provider".to_string(),
                     "http://127.0.0.1:11434/v1".to_string(),

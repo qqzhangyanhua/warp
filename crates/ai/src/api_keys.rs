@@ -42,6 +42,30 @@ pub struct ApiKeys {
     pub open_router: Option<String>,
     pub custom_endpoints: Vec<CustomEndpoint>,
     pub voice_transcription: Option<VoiceTranscriptionConfig>,
+    pub embedding_provider: Option<EmbeddingProviderConfig>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EmbeddingProviderConfig {
+    pub base_url: String,
+    pub model: String,
+    pub api_key: String,
+}
+
+impl EmbeddingProviderConfig {
+    pub fn is_valid(&self) -> bool {
+        let Ok(url) = Url::parse(&self.base_url) else {
+            return false;
+        };
+        matches!(url.scheme(), "http" | "https")
+            && url.has_host()
+            && !self.model.trim().is_empty()
+            && !self.api_key.trim().is_empty()
+    }
+
+    pub fn uses_plaintext_transport(&self) -> bool {
+        Url::parse(&self.base_url).is_ok_and(|url| url.scheme() == "http")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -513,6 +537,19 @@ impl ApiKeyManager {
             return;
         }
         self.keys.voice_transcription = config;
+        ctx.emit(ApiKeyManagerEvent::KeysUpdated);
+        self.write_keys_to_secure_storage(ctx);
+    }
+
+    pub fn set_embedding_provider(
+        &mut self,
+        provider: Option<EmbeddingProviderConfig>,
+        ctx: &mut ModelContext<Self>,
+    ) {
+        if self.keys.embedding_provider == provider {
+            return;
+        }
+        self.keys.embedding_provider = provider;
         ctx.emit(ApiKeyManagerEvent::KeysUpdated);
         self.write_keys_to_secure_storage(ctx);
     }

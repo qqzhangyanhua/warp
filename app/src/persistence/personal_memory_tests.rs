@@ -70,3 +70,48 @@ fn conversation_rows_are_independent_from_personal_memory() {
 
     assert_eq!(list_personal_memories(&mut conn).unwrap().len(), 1);
 }
+
+#[test]
+fn disposable_vector_round_trips_only_for_matching_index_identity() {
+    let mut conn = connection();
+    create_personal_memory(&mut conn, &command(record("memory-1"))).unwrap();
+    let identity = "a".repeat(64);
+    let (acknowledgement, _) = futures::channel::oneshot::channel();
+    upsert_personal_memory_vector(
+        &mut conn,
+        &UpsertPersonalMemoryVector {
+            record_id: "memory-1".into(),
+            index_identity: identity.clone(),
+            vector: vec![1.0, 0.5],
+            acknowledgement,
+        },
+    )
+    .unwrap();
+    let (acknowledgement, _) = futures::channel::oneshot::channel();
+    let vectors = list_personal_memory_vectors(
+        &mut conn,
+        &ListPersonalMemoryVectors {
+            index_identity: identity,
+            acknowledgement,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(vectors.len(), 1);
+    assert_eq!(vectors[0].record_id, "memory-1");
+    assert_eq!(vectors[0].values, vec![1.0, 0.5]);
+    assert_eq!(
+        list_personal_memories(&mut conn).unwrap()[0].index_state,
+        PersonalMemoryIndexState::Ready
+    );
+    let (acknowledgement, _) = futures::channel::oneshot::channel();
+    assert!(list_personal_memory_vectors(
+        &mut conn,
+        &ListPersonalMemoryVectors {
+            index_identity: "b".repeat(64),
+            acknowledgement,
+        },
+    )
+    .unwrap()
+    .is_empty());
+}

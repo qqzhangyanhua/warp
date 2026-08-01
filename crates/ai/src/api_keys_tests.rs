@@ -34,6 +34,30 @@ fn empty_secure_storage_payloads_are_treated_as_absent() {
     assert!(deserialize_grok_tokens("").unwrap().is_none());
 }
 
+#[test]
+fn legacy_secure_storage_payload_has_no_embedding_provider() {
+    let keys = deserialize_api_keys(r#"{"openai":"key"}"#).unwrap();
+
+    assert!(keys.embedding_provider.is_none());
+}
+
+#[test]
+fn embedding_provider_requires_separate_complete_configuration() {
+    let configured = EmbeddingProviderConfig {
+        base_url: "http://localhost:11434/v1".into(),
+        model: "bge-m3".into(),
+        api_key: "embedding-key".into(),
+    };
+
+    assert!(configured.is_valid());
+    assert!(configured.uses_plaintext_transport());
+    assert!(!EmbeddingProviderConfig {
+        model: String::new(),
+        ..configured
+    }
+    .is_valid());
+}
+
 fn grok_tokens(access_token: &str, expires_in: Option<u64>) -> GrokTokens {
     GrokTokens {
         access_token: access_token.into(),
@@ -225,6 +249,7 @@ fn serde_round_trip_with_provider_keys() {
         open_router: Some("sk-or-xxx".into()),
         custom_endpoints: vec![],
         voice_transcription: None,
+        embedding_provider: None,
     };
     let json = serde_json::to_string(&keys).unwrap();
     let deser: ApiKeys = serde_json::from_str(&json).unwrap();
@@ -248,6 +273,7 @@ fn serde_round_trip_with_custom_endpoints() {
             ),
         ],
         voice_transcription: None,
+        embedding_provider: None,
     };
     let json = serde_json::to_string(&keys).unwrap();
     let deser: ApiKeys = serde_json::from_str(&json).unwrap();
@@ -285,6 +311,20 @@ fn has_any_key_true_for_custom_endpoints_only() {
         ..Default::default()
     };
     assert!(keys.has_any_key());
+}
+
+#[test]
+fn embedding_provider_does_not_count_as_a_chat_provider_key() {
+    let keys = ApiKeys {
+        embedding_provider: Some(EmbeddingProviderConfig {
+            base_url: "https://provider.example/v1".into(),
+            model: "bge-m3".into(),
+            api_key: "embedding-key".into(),
+        }),
+        ..Default::default()
+    };
+
+    assert!(!keys.has_any_key());
 }
 
 #[test]
@@ -365,6 +405,7 @@ fn provider_key_count_counts_each_provider_key() {
         open_router: Some("sk-or".into()),
         custom_endpoints: vec![],
         voice_transcription: None,
+        embedding_provider: None,
     };
     assert_eq!(keys.provider_key_count(), 4);
 }
@@ -378,6 +419,7 @@ fn provider_key_count_ignores_blank_keys_and_endpoints() {
         open_router: None,
         custom_endpoints: vec![endpoint("ep", "https://a.io", "k", &[("m", None)])],
         voice_transcription: None,
+        embedding_provider: None,
     };
     // Only the non-blank OpenAI key counts; the whitespace Anthropic key and the
     // custom endpoint are excluded.

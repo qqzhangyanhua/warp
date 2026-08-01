@@ -34,7 +34,8 @@ pub use persistence::model;
 pub use persistence::schema;
 #[cfg(feature = "local_fs")]
 pub(crate) use personal_memory::{
-    CreatePersonalMemory, ListPersonalMemories, PersonalMemoryPersistenceError,
+    CreatePersonalMemory, ListPersonalMemories, ListPersonalMemoryVectors,
+    PersonalMemoryPersistenceError, UpsertPersonalMemoryVector,
 };
 #[cfg(all(test, feature = "local_fs"))]
 pub(crate) use sqlite::start_writer;
@@ -465,6 +466,10 @@ pub enum ModelEvent {
     CreatePersonalMemory(CreatePersonalMemory),
     #[cfg(feature = "local_fs")]
     ListPersonalMemories(ListPersonalMemories),
+    #[cfg(feature = "local_fs")]
+    UpsertPersonalMemoryVector(UpsertPersonalMemoryVector),
+    #[cfg(feature = "local_fs")]
+    ListPersonalMemoryVectors(ListPersonalMemoryVectors),
     /// Persists read-time-derived conversation summaries for rows written
     /// before the `summary` column existed.
     BackfillConversationSummaries {

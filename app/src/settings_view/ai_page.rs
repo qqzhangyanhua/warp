@@ -106,9 +106,13 @@ use crate::view_components::{
 use crate::workspaces::user_workspaces::UserWorkspacesEvent;
 
 #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+mod personal_memory_embedding_settings;
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
 mod personal_memory_settings;
 #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
 mod personal_memory_toggle;
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+use personal_memory_embedding_settings::PersonalMemoryEmbeddingControls;
 #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
 use personal_memory_settings::{PersonalMemorySettingsState, PersonalMemoryWidget};
 
@@ -636,6 +640,8 @@ pub struct AISettingsPageView {
     personal_memory_state: PersonalMemorySettingsState,
     #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
     personal_memory_focus_record_id: Option<String>,
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    personal_memory_embedding_controls: PersonalMemoryEmbeddingControls,
     voice_input_toggle_key_dropdown: ViewHandle<Dropdown<AISettingsPageAction>>,
     voice_provider_dropdown: ViewHandle<Dropdown<AISettingsPageAction>>,
     voice_model_editor: ViewHandle<EditorView>,
@@ -1944,6 +1950,8 @@ impl AISettingsPageView {
             },
         );
 
+        #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+        let personal_memory_embedding_controls = PersonalMemoryEmbeddingControls::new(ctx);
 
         Self {
             page: Self::build_page(None, ctx),
@@ -1952,6 +1960,8 @@ impl AISettingsPageView {
             personal_memory_state: PersonalMemorySettingsState::default(),
             #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
             personal_memory_focus_record_id: None,
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            personal_memory_embedding_controls,
             voice_input_toggle_key_dropdown,
             voice_provider_dropdown,
             voice_model_editor,
@@ -3674,6 +3684,8 @@ pub enum AISettingsPageAction {
     SetVoiceProvider(Option<String>),
     TestVoiceProvider,
     #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    TestPersonalMemoryEmbeddingProvider,
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
     TogglePersonalMemory,
     ToggleGlobalAI,
     ToggleActiveAI,
@@ -3844,6 +3856,10 @@ impl TypedActionView for AISettingsPageView {
                         Err(error) => me.show_voice_test_toast(false, &error.to_string(), ctx),
                     },
                 );
+            }
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            AISettingsPageAction::TestPersonalMemoryEmbeddingProvider => {
+                self.test_personal_memory_embedding_provider(ctx);
             }
             #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
             AISettingsPageAction::TogglePersonalMemory => {

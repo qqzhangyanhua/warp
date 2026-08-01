@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
+use ai::api_keys::ApiKeyManager;
 use ai::skills::SkillPathOrigin;
 use async_channel::{Receiver, Sender};
 #[cfg(not(test))]
@@ -46,6 +47,7 @@ use crate::ai::agent::api::RequestParams;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
 use crate::ai::agent::EntrypointType;
 use crate::ai::blocklist::{BlocklistAIActionModel, BlocklistAIHistoryModel, ResponseStreamId};
+use crate::ai::personal_memory::EmbeddingProvider;
 use crate::persistence::ModelEvent;
 use crate::settings::AISettings;
 use crate::GlobalResourceHandlesProvider;
@@ -178,6 +180,13 @@ impl AgentRuntimeService {
         } else {
             None
         };
+        let embedding = memory_capability
+            .as_ref()
+            .and_then(|_| ApiKeyManager::as_ref(ctx).keys().embedding_provider.clone())
+            .and_then(|config| EmbeddingProvider::new(config).ok())
+            .map(|provider| {
+                Arc::new(provider) as crate::ai::personal_memory::SharedEmbeddingClient
+            });
         let tool_catalog =
             ToolCatalog::for_user_input(request_params.mcp_context.as_ref(), memory_capability)
                 .map_err(|_| RuntimeStartError::InvalidRunConfiguration)?;
@@ -237,11 +246,14 @@ impl AgentRuntimeService {
         let runtime_events = self.runtime_events.clone();
         let action_adapter =
             BlocklistRuntimeToolActionAdapter::new(action_model, conversation_id, ctx);
-        let authority = Arc::new(ToolExecutionAuthority::new(
-            tool_catalog,
-            Arc::new(action_adapter),
-            persistence.clone(),
-        ));
+        let authority = Arc::new(
+            ToolExecutionAuthority::new(
+                tool_catalog,
+                Arc::new(action_adapter),
+                persistence.clone(),
+            )
+            .with_embedding(embedding),
+        );
         self.active_run_ids_by_conversation_id
             .insert(conversation_id, run_id.clone());
         let cancellation = Arc::new(AtomicBool::new(false));

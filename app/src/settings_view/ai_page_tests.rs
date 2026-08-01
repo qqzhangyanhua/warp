@@ -1,4 +1,4 @@
-use ::ai::api_keys::{ApiKeyManager, VoiceTranscriptionConfig};
+use ::ai::api_keys::{ApiKeyManager, EmbeddingProviderConfig, VoiceTranscriptionConfig};
 use warpui::platform::WindowStyle;
 use warpui::{App, SingletonEntity, TypedActionView};
 
@@ -11,6 +11,8 @@ use crate::settings::AISettings;
 use crate::settings_view::SettingsSection;
 use crate::test_util::terminal::initialize_app_for_terminal_view;
 use crate::view_components::dropdown::DropdownAction;
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+use crate::workspace::ToastStack;
 use crate::workspaces::workspace::AdminEnablementSetting;
 #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
 use crate::{
@@ -79,6 +81,59 @@ fn personal_memory_toggle_updates_the_persisted_setting() {
             assert!(!*AISettings::as_ref(ctx).personal_memory_enabled);
             assert!(!AISettings::as_ref(ctx).is_personal_memory_enabled(ctx));
         });
+    });
+}
+
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+#[test]
+fn personal_memory_settings_load_separate_embedding_provider_configuration() {
+    App::test((), |mut app| async move {
+        initialize_app_for_terminal_view(&mut app);
+        let expected = EmbeddingProviderConfig {
+            base_url: "http://localhost:11434/v1".into(),
+            model: "bge-m3".into(),
+            api_key: "embedding-key".into(),
+        };
+        ApiKeyManager::handle(&app).update(&mut app, |manager, ctx| {
+            manager.set_embedding_provider(Some(expected.clone()), ctx);
+        });
+
+        let (_, page) = app.add_window(WindowStyle::NotStealFocus, AISettingsPageView::new);
+
+        page.read(&app, |page, ctx| {
+            assert_eq!(
+                page.personal_memory_embedding_config_for_test(ctx),
+                expected
+            );
+        });
+    });
+}
+
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+#[test]
+fn invalid_personal_memory_embedding_test_shows_error_toast() {
+    App::test((), |mut app| async move {
+        initialize_app_for_terminal_view(&mut app);
+        app.add_singleton_model(|_| ToastStack);
+        let (sender, receiver) = async_channel::unbounded();
+        app.update(|ctx| {
+            ctx.subscribe_to_model(&ToastStack::handle(ctx), move |_, _, _| {
+                let _ = sender.try_send(());
+            });
+        });
+        let (_, page) = app.add_window(WindowStyle::NotStealFocus, AISettingsPageView::new);
+
+        page.update(&mut app, |page, ctx| {
+            page.handle_action(
+                &AISettingsPageAction::TestPersonalMemoryEmbeddingProvider,
+                ctx,
+            );
+        });
+
+        assert!(page.read(&app, |page, _| {
+            page.personal_memory_embedding_test_failed_for_test()
+        }));
+        assert!(receiver.try_recv().is_ok(), "expected an error toast event");
     });
 }
 

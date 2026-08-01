@@ -70,7 +70,10 @@ use super::model::{
     MCP_SERVER_PANE_KIND, NOTEBOOK_PANE_KIND, SETTINGS_PANE_KIND, TERMINAL_PANE_KIND,
     WORKFLOW_PANE_KIND,
 };
-use super::personal_memory::{create_personal_memory, list_personal_memories};
+use super::personal_memory::{
+    create_personal_memory, list_personal_memories, list_personal_memory_vectors,
+    upsert_personal_memory_vector,
+};
 use super::{
     schema, BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, PersistedDataScope,
     PersistenceScope, StartedCommandMetadata, WriterHandles,
@@ -774,6 +777,16 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         }
         ModelEvent::ListPersonalMemories(command) => {
             let result = list_personal_memories(connection);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::UpsertPersonalMemoryVector(command) => {
+            let result = upsert_personal_memory_vector(connection, &command);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::ListPersonalMemoryVectors(command) => {
+            let result = list_personal_memory_vectors(connection, &command);
             let _ = command.acknowledgement.send(result);
             Ok(())
         }

@@ -48,6 +48,12 @@ pub(crate) struct PersonalMemoryRecord {
     pub(crate) updated_at: NaiveDateTime,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct PersonalMemoryVector {
+    pub(crate) record_id: String,
+    pub(crate) values: Vec<f32>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct NewPersonalMemoryRecord {
     pub(crate) record_id: String,

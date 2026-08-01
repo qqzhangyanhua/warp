@@ -32,6 +32,7 @@ use super::tool_catalog::{
 use super::transcript::{
     RuntimeContentBlock, ToolDenialSource, ToolErrorCode, ToolResultProjection,
 };
+use crate::ai::personal_memory::SharedEmbeddingClient;
 use crate::persistence::model::{AgentRuntimeTerminalOutcome, AgentToolExecutionState};
 use crate::persistence::{
     AcceptAgentToolExecution, AcceptAgentToolExecutionResult, AgentRuntimeSidecarMutation,
@@ -51,6 +52,7 @@ pub(super) struct ToolExecutionAuthority {
     catalog: ToolCatalog,
     adapter: Arc<dyn RuntimeToolActionAdapter>,
     persistence: SyncSender<ModelEvent>,
+    embedding: Option<SharedEmbeddingClient>,
     #[cfg(test)]
     fault_injector: Option<Arc<dyn ToolExecutionFaultInjector>>,
 }
@@ -65,19 +67,15 @@ impl ToolExecutionAuthority {
             catalog,
             adapter,
             persistence,
+            embedding: None,
             #[cfg(test)]
             fault_injector: None,
         }
     }
 
-    #[cfg(test)]
-    fn set_fault_injector(&mut self, fault_injector: Arc<dyn ToolExecutionFaultInjector>) {
-        self.fault_injector = Some(fault_injector);
-    }
-
-    #[cfg(test)]
-    fn clear_fault_injector(&mut self) {
-        self.fault_injector = None;
+    pub(super) fn with_embedding(mut self, embedding: Option<SharedEmbeddingClient>) -> Self {
+        self.embedding = embedding;
+        self
     }
 
     pub(super) async fn cancel_run(&self, run_id: String) {
@@ -341,7 +339,7 @@ impl ToolExecutionAuthority {
                     request_fingerprint,
                     request_payload: ToolRequestPayload::current(request_payload(
                         request,
-                        &request_task_id,
+                        request_task_id,
                     )),
                     request_limit: TOOL_REQUEST_LIMIT,
                     acknowledgement,

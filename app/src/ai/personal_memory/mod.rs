@@ -1,31 +1,55 @@
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::sync::mpsc::SyncSender;
 
 use futures::channel::oneshot;
 use uuid::Uuid;
 
 mod capability;
+mod embedding;
 mod types;
 
 pub(crate) use capability::MemoryCapability;
+#[cfg(test)]
+pub(crate) use embedding::EmbeddingClient;
+pub(crate) use embedding::{cosine_similarity, EmbeddingProvider, SharedEmbeddingClient};
+#[cfg(any(test, feature = "personal_memory"))]
+pub(crate) use embedding::{EmbeddingConnectionTestResult, EmbeddingProviderError};
 pub(crate) use types::{
     CreatePersonalMemoryInput, CreatePersonalMemoryResult, NewPersonalMemoryRecord,
-    PersonalMemoryIndexState, PersonalMemoryRecord,
+    PersonalMemoryIndexState, PersonalMemoryRecord, PersonalMemoryVector,
     QueryPersonalMemoryResult, PERSONAL_MEMORY_QUERY_LIMIT, PERSONAL_MEMORY_RECORD_LIMIT,
 };
 
 use crate::persistence::{
-    CreatePersonalMemory, ListPersonalMemories, ModelEvent, PersonalMemoryPersistenceError,
+    CreatePersonalMemory, ListPersonalMemories, ListPersonalMemoryVectors, ModelEvent,
+    PersonalMemoryPersistenceError, UpsertPersonalMemoryVector,
 };
+
+const SEMANTIC_MATCH_THRESHOLD: f32 = 0.55;
 
 #[derive(Clone)]
 pub(crate) struct PersonalMemoryService {
     persistence: SyncSender<ModelEvent>,
+    embedding: Option<SharedEmbeddingClient>,
 }
 
 impl PersonalMemoryService {
     pub(crate) fn new(persistence: SyncSender<ModelEvent>) -> Self {
-        Self { persistence }
+        Self {
+            persistence,
+            embedding: None,
+        }
+    }
+
+    pub(crate) fn with_embedding(
+        persistence: SyncSender<ModelEvent>,
+        embedding: SharedEmbeddingClient,
+    ) -> Self {
+        Self {
+            persistence,
+            embedding: Some(embedding),
+        }
     }
 
     pub(crate) async fn create(
@@ -41,7 +65,11 @@ impl PersonalMemoryService {
             topic: input.topic,
             labels: input.labels,
             is_default: input.is_default,
-            index_state: PersonalMemoryIndexState::Unconfigured,
+            index_state: if self.embedding.is_some() {
+                PersonalMemoryIndexState::Pending
+            } else {
+                PersonalMemoryIndexState::Unconfigured
+            },
         };
         let (acknowledgement, acknowledged) = oneshot::channel();
         self.persistence
@@ -54,6 +82,20 @@ impl PersonalMemoryService {
             .await
             .map_err(|_| PersonalMemoryError::PersistenceAcknowledgementDropped)?
             .map_err(PersonalMemoryError::from)?;
+        if let Some(embedding) = &self.embedding {
+            let record = result.record();
+            if record.index_state != PersonalMemoryIndexState::Ready {
+                if let Ok(vector) = embedding.embed(record.fact_text.clone()).await {
+                    let _ = self
+                        .upsert_vector(
+                            record.record_id.clone(),
+                            embedding.index_identity().to_string(),
+                            vector,
+                        )
+                        .await;
+                }
+            }
+        }
         Ok(result)
     }
 
@@ -83,7 +125,45 @@ impl PersonalMemoryService {
             return Ok(QueryPersonalMemoryResult::Matches(exact_records));
         }
 
-        Ok(QueryPersonalMemoryResult::NoMatch)
+        let Some(embedding) = &self.embedding else {
+            return Ok(QueryPersonalMemoryResult::NoMatch);
+        };
+        let Ok(query_vector) = embedding.embed(query.to_string()).await else {
+            return Ok(QueryPersonalMemoryResult::NoMatch);
+        };
+        let vectors = self.list_vectors(embedding.index_identity()).await?;
+        let records_by_id = records
+            .into_iter()
+            .map(|record| (record.record_id.clone(), record))
+            .collect::<HashMap<_, _>>();
+        let mut semantic_records = vectors
+            .into_iter()
+            .filter_map(|vector| {
+                let similarity = cosine_similarity(&query_vector, &vector.values)?;
+                (similarity >= SEMANTIC_MATCH_THRESHOLD).then(|| {
+                    records_by_id
+                        .get(&vector.record_id)
+                        .cloned()
+                        .map(|record| (similarity, record))
+                })?
+            })
+            .collect::<Vec<_>>();
+        semantic_records.sort_by(|(left_score, left), (right_score, right)| {
+            right_score
+                .total_cmp(left_score)
+                .then_with(|| right.is_default.cmp(&left.is_default))
+                .then_with(|| right.updated_at.cmp(&left.updated_at))
+        });
+        let records = semantic_records
+            .into_iter()
+            .take(PERSONAL_MEMORY_QUERY_LIMIT)
+            .map(|(_, record)| record)
+            .collect::<Vec<_>>();
+        if records.is_empty() {
+            Ok(QueryPersonalMemoryResult::NoMatch)
+        } else {
+            Ok(QueryPersonalMemoryResult::Matches(records))
+        }
     }
 
     pub(crate) async fn list(&self) -> Result<Vec<PersonalMemoryRecord>, PersonalMemoryError> {
@@ -92,6 +172,48 @@ impl PersonalMemoryService {
             .send(ModelEvent::ListPersonalMemories(ListPersonalMemories {
                 acknowledgement,
             }))
+            .map_err(|_| PersonalMemoryError::PersistenceUnavailable)?;
+        acknowledged
+            .await
+            .map_err(|_| PersonalMemoryError::PersistenceAcknowledgementDropped)?
+            .map_err(Into::into)
+    }
+
+    async fn upsert_vector(
+        &self,
+        record_id: String,
+        index_identity: String,
+        vector: Vec<f32>,
+    ) -> Result<(), PersonalMemoryError> {
+        let (acknowledgement, acknowledged) = oneshot::channel();
+        self.persistence
+            .send(ModelEvent::UpsertPersonalMemoryVector(
+                UpsertPersonalMemoryVector {
+                    record_id,
+                    index_identity,
+                    vector,
+                    acknowledgement,
+                },
+            ))
+            .map_err(|_| PersonalMemoryError::PersistenceUnavailable)?;
+        acknowledged
+            .await
+            .map_err(|_| PersonalMemoryError::PersistenceAcknowledgementDropped)?
+            .map_err(Into::into)
+    }
+
+    async fn list_vectors(
+        &self,
+        index_identity: &str,
+    ) -> Result<Vec<PersonalMemoryVector>, PersonalMemoryError> {
+        let (acknowledgement, acknowledged) = oneshot::channel();
+        self.persistence
+            .send(ModelEvent::ListPersonalMemoryVectors(
+                ListPersonalMemoryVectors {
+                    index_identity: index_identity.to_string(),
+                    acknowledgement,
+                },
+            ))
             .map_err(|_| PersonalMemoryError::PersistenceUnavailable)?;
         acknowledged
             .await

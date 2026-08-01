@@ -14,6 +14,7 @@ const supportsTextRuns =
   mode === "text-run-read-tool" ||
   mode === "text-run-personal-memory-create" ||
   mode === "text-run-personal-memory-query" ||
+  mode === "text-run-personal-memory-semantic-query" ||
   mode === "text-run-personal-memory-gui";
 
 if (mode === "text-run-read-tool") {
@@ -150,6 +151,7 @@ if (mode === "hang-handshake") {
         mode === "text-run-read-tool" ||
         mode === "text-run-personal-memory-create" ||
         mode === "text-run-personal-memory-query" ||
+        mode === "text-run-personal-memory-semantic-query" ||
         mode === "text-run-personal-memory-gui"
       ) {
         let toolRequest;
@@ -171,11 +173,19 @@ if (mode === "hang-handshake") {
               topic: "GitHub 帐号",
             },
           };
-        } else if (mode === "text-run-personal-memory-query") {
+        } else if (
+          mode === "text-run-personal-memory-query" ||
+          mode === "text-run-personal-memory-semantic-query"
+        ) {
           toolRequest = {
             tool_id: "personal_memory.query",
             tool_name: "recall_personal_memory",
-            arguments: { query_text: "GitHub 帐号" },
+            arguments: {
+              query_text:
+                mode === "text-run-personal-memory-semantic-query"
+                  ? "我的代码托管身份"
+                  : "GitHub 帐号",
+            },
           };
         } else if (mode === "text-run-personal-memory-gui") {
           const toolIds = new Set(message.configuration.tools.map((tool) => tool.id));
@@ -314,6 +324,7 @@ if (mode === "hang-handshake") {
         mode === "text-run-read-tool" ||
         mode === "text-run-personal-memory-create" ||
         mode === "text-run-personal-memory-query" ||
+        mode === "text-run-personal-memory-semantic-query" ||
         mode === "text-run-personal-memory-gui") &&
       message.type === "tool_result"
     ) {
