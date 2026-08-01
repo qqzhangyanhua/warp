@@ -105,6 +105,13 @@ use crate::view_components::{
 };
 use crate::workspaces::user_workspaces::UserWorkspacesEvent;
 
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+mod personal_memory_settings;
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+mod personal_memory_toggle;
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+use personal_memory_settings::{PersonalMemorySettingsState, PersonalMemoryWidget};
+
 /// Identifies which subpage of the AI settings the user is viewing.
 /// When `None`, the page shows all widgets (legacy/full view).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -115,6 +122,9 @@ pub enum AISubpage {
     Profiles,
     /// Knowledge / Rules settings.
     Knowledge,
+    /// Local Personal Memory records.
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    PersonalMemory,
     /// Third-party CLI agent settings.
     ThirdPartyCLIAgents,
 }
@@ -125,6 +135,8 @@ impl AISubpage {
             SettingsSection::WarpAgent => Some(Self::WarpAgent),
             SettingsSection::AgentProfiles => Some(Self::Profiles),
             SettingsSection::Knowledge => Some(Self::Knowledge),
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            SettingsSection::PersonalMemory => Some(Self::PersonalMemory),
             SettingsSection::ThirdPartyCLIAgents => Some(Self::ThirdPartyCLIAgents),
             // AgentMCPServers renders the standalone MCPServers page, not an AI subpage.
             _ => None,
@@ -181,6 +193,21 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
             flags::IS_ANY_AI_ENABLED,
         )
         .with_group(bindings::BindingGroup::WarpAi)],
+        app,
+    );
+
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    ToggleSettingActionPair::add_toggle_setting_action_pairs_as_bindings(
+        vec![ToggleSettingActionPair::new(
+            "Personal Memory",
+            builder(SettingsAction::AI(
+                AISettingsPageAction::TogglePersonalMemory,
+            )),
+            &(context.clone() & id!(flags::IS_ANY_AI_ENABLED)),
+            flags::PERSONAL_MEMORY_ENABLED_FLAG,
+        )
+        .with_group(bindings::BindingGroup::WarpAi)
+        .with_enabled(|| FeatureFlag::PersonalMemory.is_enabled())],
         app,
     );
 
@@ -605,6 +632,10 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
 pub struct AISettingsPageView {
     page: PageType<Self>,
     active_subpage: Option<AISubpage>,
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    personal_memory_state: PersonalMemorySettingsState,
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    personal_memory_focus_record_id: Option<String>,
     voice_input_toggle_key_dropdown: ViewHandle<Dropdown<AISettingsPageAction>>,
     voice_provider_dropdown: ViewHandle<Dropdown<AISettingsPageAction>>,
     voice_model_editor: ViewHandle<EditorView>,
@@ -1913,9 +1944,14 @@ impl AISettingsPageView {
             },
         );
 
+
         Self {
             page: Self::build_page(None, ctx),
             active_subpage: None,
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            personal_memory_state: PersonalMemorySettingsState::default(),
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            personal_memory_focus_record_id: None,
             voice_input_toggle_key_dropdown,
             voice_provider_dropdown,
             voice_model_editor,
@@ -2812,6 +2848,10 @@ impl AISettingsPageView {
         if self.active_subpage != subpage {
             self.active_subpage = subpage;
             self.page = Self::build_page(subpage, ctx);
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            if subpage == Some(AISubpage::PersonalMemory) {
+                self.refresh_personal_memory(ctx);
+            }
             ctx.notify();
         }
     }
@@ -2926,6 +2966,10 @@ impl AISettingsPageView {
                 if FeatureFlag::AIRules.is_enabled() {
                     widgets.push(Box::new(AIFactWidget::default()));
                 }
+            }
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            Some(AISubpage::PersonalMemory) => {
+                widgets.push(Box::new(PersonalMemoryWidget::default()));
             }
             Some(AISubpage::ThirdPartyCLIAgents) => {
                 widgets.push(Box::new(CLIAgentWidget::default()));
@@ -3629,6 +3673,8 @@ pub enum AISettingsPageAction {
     SetVoiceInputToggleKey(VoiceInputToggleKey),
     SetVoiceProvider(Option<String>),
     TestVoiceProvider,
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    TogglePersonalMemory,
     ToggleGlobalAI,
     ToggleActiveAI,
     ToggleIntelligentAutosuggestions,
@@ -3798,6 +3844,15 @@ impl TypedActionView for AISettingsPageView {
                         Err(error) => me.show_voice_test_toast(false, &error.to_string(), ctx),
                     },
                 );
+            }
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            AISettingsPageAction::TogglePersonalMemory => {
+                if let Err(error) = AISettings::handle(ctx).update(ctx, |settings, ctx| {
+                    settings.personal_memory_enabled.toggle_and_save_value(ctx)
+                }) {
+                    log::warn!("Failed to set Personal Memory enabled setting: {error:?}");
+                }
+                ctx.notify();
             }
             AISettingsPageAction::ToggleGlobalAI => {
                 match AISettings::handle(ctx).update(ctx, |settings, ctx| {

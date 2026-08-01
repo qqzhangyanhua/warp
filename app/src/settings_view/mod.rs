@@ -252,6 +252,7 @@ pub enum SettingsSection {
     AgentProfiles,
     AgentMCPServers,
     Knowledge,
+    PersonalMemory,
     ThirdPartyCLIAgents,
     /// Internal backing-page identifier for CodeSettingsPageView. Multiple subpages
     /// (CodeIndexing, EditorAndCodeReview) share this single backing page,
@@ -283,6 +284,7 @@ impl Display for SettingsSection {
             SettingsSection::AgentProfiles => write!(f, "Profiles"),
             SettingsSection::AgentMCPServers => write!(f, "MCP servers"),
             SettingsSection::Knowledge => write!(f, "Knowledge"),
+            SettingsSection::PersonalMemory => write!(f, "Personal Memory"),
             SettingsSection::ThirdPartyCLIAgents => write!(f, "Third party CLI agents"),
             SettingsSection::CodeIndexing => write!(f, "Indexing and projects"),
             SettingsSection::EditorAndCodeReview => write!(f, "Editor and Code Review"),
@@ -321,6 +323,9 @@ impl SettingsSection {
 
     fn unavailable_in_zyh(self) -> bool {
         self.hidden_without_account_and_cloud_services()
+            || (self == Self::PersonalMemory
+                && (!cfg!(all(feature = "local_fs", feature = "personal_memory"))
+                    || !FeatureFlag::PersonalMemory.is_enabled()))
     }
 
     fn default_for_zyh() -> Self {
@@ -353,6 +358,7 @@ impl SettingsSection {
                 | Self::AgentProfiles
                 | Self::AgentMCPServers
                 | Self::Knowledge
+                | Self::PersonalMemory
                 | Self::ThirdPartyCLIAgents
         )
     }
@@ -390,6 +396,8 @@ impl SettingsSection {
             Self::AgentProfiles,
             Self::AgentMCPServers,
             Self::Knowledge,
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            Self::PersonalMemory,
             Self::ThirdPartyCLIAgents,
         ]
     }
@@ -424,6 +432,7 @@ impl SettingsSection {
             Self::AgentProfiles => Message::SettingsSectionAgentProfiles,
             Self::AgentMCPServers => Message::SettingsSectionAgentMcpServers,
             Self::Knowledge => Message::SettingsSectionKnowledge,
+            Self::PersonalMemory => Message::SettingsSectionPersonalMemory,
             Self::ThirdPartyCLIAgents => Message::SettingsSectionThirdPartyCliAgents,
             Self::Code => Message::SettingsSectionCode,
             Self::CodeIndexing => Message::SettingsSectionCodeIndexing,
@@ -463,6 +472,7 @@ impl FromStr for SettingsSection {
             "Profiles" | "AgentProfiles" => Ok(Self::AgentProfiles),
             "MCP servers" | "AgentMCPServers" => Ok(Self::AgentMCPServers),
             "Knowledge" => Ok(Self::Knowledge),
+            "Personal Memory" | "PersonalMemory" => Ok(Self::PersonalMemory),
             "Third party CLI agents" | "ThirdPartyCLIAgents" => Ok(Self::ThirdPartyCLIAgents),
             "Indexing and projects" | "CodeIndexing" => Ok(Self::CodeIndexing),
             "Editor and Code Review" | "EditorAndCodeReview" => Ok(Self::EditorAndCodeReview),
@@ -639,6 +649,7 @@ pub mod flags {
     pub const GIT_OPERATIONS_AUTOGEN_FLAG: &str = "Git_Operations_Autogen";
     pub const INCLUDE_AGENT_COMMANDS_IN_HISTORY_FLAG: &str = "Include_Agent_Commands_In_History";
     pub const AI_RULES_FLAG: &str = "AI_Rules";
+    pub const PERSONAL_MEMORY_ENABLED_FLAG: &str = "Personal_Memory_Enabled";
     pub const SUGGESTED_RULES_FLAG: &str = "Suggested_Rules";
     pub const FILE_BASED_MCP_FLAG: &str = "File_Based_MCP";
     pub const WARP_CREDIT_FALLBACK_FLAG: &str = "Warp_Credit_Fallback";
@@ -1479,9 +1490,14 @@ impl SettingsView {
 
         // Build sidebar nav items. AI page is presented as an "Agents" umbrella
         // with subpages; the actual AI SettingsPage is hidden from direct sidebar listing.
+        let ai_subpages = SettingsSection::ai_subpages()
+            .iter()
+            .copied()
+            .filter(|section| !section.unavailable_in_zyh())
+            .collect();
         let mut nav_items = vec![
             SettingsNavItem::Umbrella(
-                SettingsUmbrella::new("Agents", SettingsSection::ai_subpages().to_vec())
+                SettingsUmbrella::new("Agents", ai_subpages)
                     .with_localized_label(Message::SettingsSectionAgents),
             ),
             SettingsNavItem::Umbrella(
@@ -1525,6 +1541,12 @@ impl SettingsView {
 
         // Resolve the initial page: map internal backing-page sections to their default subpage.
         let initial_page = SettingsSection::initial_page_for_zyh(page);
+        if initial_page.is_ai_subpage() && initial_page != SettingsSection::AgentMCPServers {
+            let subpage = AISubpage::from_section(initial_page);
+            ai_page_handle_for_nav.update(ctx, |view, ctx| {
+                view.set_active_subpage(subpage, ctx);
+            });
+        }
 
         // Auto-expand the umbrella if the initial page is one of its subpages.
         if initial_page.is_subpage() {
@@ -2035,6 +2057,21 @@ impl SettingsView {
         self.current_settings_page
     }
 
+    #[cfg(all(
+        feature = "integration_tests",
+        feature = "local_fs",
+        feature = "personal_memory"
+    ))]
+    pub fn personal_memory_focused_record_has_value_for_test(
+        &self,
+        expected_value: &str,
+        ctx: &AppContext,
+    ) -> bool {
+        self.ai_page_handle.read(ctx, |page, _| {
+            page.focused_personal_memory_record_has_value_for_test(expected_value)
+        })
+    }
+
     fn current_settings_page(&self) -> Option<&SettingsPage> {
         // For AI subpages, the backing SettingsPage has section == AI.
         let lookup_section = self.current_settings_page.parent_page_section();
@@ -2151,6 +2188,18 @@ impl SettingsView {
         ctx: &mut ViewContext<Self>,
     ) {
         self.set_and_refresh_current_page_internal(section, true, true, ctx);
+    }
+
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    pub(crate) fn open_personal_memory_record(
+        &mut self,
+        record_id: String,
+        ctx: &mut ViewContext<Self>,
+    ) {
+        self.set_and_refresh_current_page(SettingsSection::PersonalMemory, ctx);
+        self.ai_page_handle.update(ctx, |page, ctx| {
+            page.focus_personal_memory_record(record_id, ctx);
+        });
     }
 
     pub fn set_search_query(&mut self, query: &str, ctx: &mut ViewContext<Self>) {

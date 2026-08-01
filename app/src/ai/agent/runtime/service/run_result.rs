@@ -49,6 +49,7 @@ impl AgentRuntimeService {
                 BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
                     history_model.finish_runtime_text_run(
                         conversation_id,
+                        &response_stream_id,
                         terminal_surface_id,
                         result.conversation_data().clone(),
                         result.tasks().to_vec(),

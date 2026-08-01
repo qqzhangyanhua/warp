@@ -5,6 +5,7 @@ cfg_if::cfg_if! {
         pub mod agent;
         mod agent_runtime;
         mod block_list;
+        mod personal_memory;
         mod sqlite;
         pub mod commands;
     }
@@ -31,6 +32,10 @@ pub use agent_runtime_command::{
 pub use persistence::model;
 #[cfg_attr(not(feature = "local_fs"), expect(unused_imports))]
 pub use persistence::schema;
+#[cfg(feature = "local_fs")]
+pub(crate) use personal_memory::{
+    CreatePersonalMemory, ListPersonalMemories, PersonalMemoryPersistenceError,
+};
 #[cfg(all(test, feature = "local_fs"))]
 pub(crate) use sqlite::start_writer;
 #[cfg(feature = "local_fs")]
@@ -456,6 +461,10 @@ pub enum ModelEvent {
     MarkAgentToolExecutionExecuting(MarkAgentToolExecutionExecuting),
     ReadLatestAgentRuntimeRunId(ReadLatestAgentRuntimeRunId),
     ReadUnfinishedAgentToolExecutions(ReadUnfinishedAgentToolExecutions),
+    #[cfg(feature = "local_fs")]
+    CreatePersonalMemory(CreatePersonalMemory),
+    #[cfg(feature = "local_fs")]
+    ListPersonalMemories(ListPersonalMemories),
     /// Persists read-time-derived conversation summaries for rows written
     /// before the `summary` column existed.
     BackfillConversationSummaries {

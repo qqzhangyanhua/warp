@@ -5,10 +5,19 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use thiserror::Error;
 use uuid::Uuid;
+use warp_core::features::FeatureFlag;
 use warp_multi_agent_api as api;
 
 use crate::ai::agent::provider_tool_name::mcp_provider_name;
 use crate::ai::agent::MCPContext;
+use crate::ai::personal_memory::MemoryCapability;
+
+mod personal_memory;
+pub(super) use personal_memory::PersonalMemoryToolRequest;
+use personal_memory::{
+    catalog_entry as personal_memory_entry, create_tool as personal_memory_create_tool,
+    query_tool as personal_memory_query_tool,
+};
 
 pub(super) const TOOL_REQUEST_LIMIT: u32 = 32;
 
@@ -20,6 +29,13 @@ pub(super) struct ToolCatalog {
 
 impl ToolCatalog {
     pub(super) fn initial(mcp_context: Option<&MCPContext>) -> Result<Self, ToolCatalogError> {
+        Self::for_user_input(mcp_context, None)
+    }
+
+    pub(super) fn for_user_input(
+        mcp_context: Option<&MCPContext>,
+        memory_capability: Option<MemoryCapability>,
+    ) -> Result<Self, ToolCatalogError> {
         let mut entries = builtin_entries();
         let mut routes = HashMap::from([
             (
@@ -54,6 +70,13 @@ impl ToolCatalog {
                 }
             }
         }
+        if let Some(capability) =
+            memory_capability.filter(|_| FeatureFlag::PersonalMemory.is_enabled())
+        {
+            let (entry, route) = personal_memory_entry(capability);
+            routes.insert(entry.id.clone(), route);
+            entries.push(entry);
+        }
         validate_unique_entries(&entries)?;
         Ok(Self { entries, routes })
     }
@@ -72,7 +95,7 @@ impl ToolCatalog {
         tool_id: &str,
         tool_name: &str,
         arguments: &Map<String, Value>,
-    ) -> Result<api::message::tool_call::Tool, ToolRequestError> {
+    ) -> Result<ResolvedTool, ToolRequestError> {
         let entry = self
             .entries
             .iter()
@@ -88,13 +111,21 @@ impl ToolCatalog {
             return Err(ToolRequestError::InvalidArguments);
         }
         match self.routes.get(tool_id) {
-            Some(ToolRoute::RunShellCommand) => shell_tool(arguments),
-            Some(ToolRoute::ReadFiles) => read_files_tool(arguments),
-            Some(ToolRoute::ApplyFileDiffs) => apply_diffs_tool(arguments),
+            Some(ToolRoute::RunShellCommand) => shell_tool(arguments).map(ResolvedTool::Api),
+            Some(ToolRoute::ReadFiles) => read_files_tool(arguments).map(ResolvedTool::Api),
+            Some(ToolRoute::ApplyFileDiffs) => apply_diffs_tool(arguments).map(ResolvedTool::Api),
             Some(ToolRoute::Mcp {
                 server_id,
                 tool_name,
-            }) => mcp_tool(*server_id, tool_name, arguments),
+            }) => mcp_tool(*server_id, tool_name, arguments).map(ResolvedTool::Api),
+            Some(ToolRoute::PersonalMemoryCreate {
+                initiating_user_text,
+            }) => personal_memory_create_tool(initiating_user_text, arguments)
+                .map(ResolvedTool::PersonalMemory),
+            Some(ToolRoute::PersonalMemoryQuery {
+                initiating_user_text,
+            }) => personal_memory_query_tool(initiating_user_text, arguments)
+                .map(ResolvedTool::PersonalMemory),
             None => Err(ToolRequestError::UnavailableTool),
         }
     }
@@ -114,6 +145,23 @@ pub(super) enum ToolRoute {
     ReadFiles,
     ApplyFileDiffs,
     Mcp { server_id: Uuid, tool_name: String },
+    PersonalMemoryCreate { initiating_user_text: String },
+    PersonalMemoryQuery { initiating_user_text: String },
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum ResolvedTool {
+    Api(api::message::tool_call::Tool),
+    PersonalMemory(PersonalMemoryToolRequest),
+}
+
+impl ResolvedTool {
+    pub(super) fn api_tool(&self) -> Option<api::message::tool_call::Tool> {
+        match self {
+            Self::Api(tool) => Some(tool.clone()),
+            Self::PersonalMemory(_) => None,
+        }
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]

@@ -4,7 +4,6 @@ use std::sync::Arc;
 #[cfg(feature = "local_fs")]
 use std::sync::Mutex;
 
-
 use ai::skills::SkillPathOrigin;
 use anyhow::anyhow;
 use chrono::{DateTime, Local, NaiveDateTime};
@@ -316,33 +315,33 @@ pub struct BlocklistAIHistoryModel {
 
 /// Runtime Selection Policy for newly created Conversation Records.
 ///
-/// Interactive Agent Conversations (GUI, TUI, and `zyh agent`) always receive an
-/// immutable Pi Runtime Binding. There is no rollout flag, runtime selector, or
-/// silent fallback to the legacy Rust direct-provider runtime.
+/// Interactive Agent Conversations always receive an immutable Pi Runtime Binding.
+/// There is no rollout flag, runtime selector, or silent fallback to the legacy
+/// Rust direct-provider runtime.
 ///
 /// Non-interactive records that only display external history (shared-session
 /// viewers and CLI agent transcripts) remain Rust-bound because they are not
 /// Interactive Agent Conversations driven by the Pi Runtime Supervisor.
 ///
 /// Missing Provider configuration does not change the binding: new interactive
-/// conversations stay Pi-bound and fail at Agent Run start with local setup
-/// ZYH local-only build: no warp-bridge binary exists, so all conversations
-/// use the Rust runtime (local provider path).
+/// conversations stay Pi-bound and fail at Agent Run start with local setup guidance.
 fn runtime_binding_for_new_conversation(
-    _is_viewing_shared_session: bool,
-    _is_cli_agent_transcript: bool,
+    is_viewing_shared_session: bool,
+    is_cli_agent_transcript: bool,
     _ctx: &AppContext,
 ) -> AgentRuntimeBinding {
-    AgentRuntimeBinding::Rust
+    if is_viewing_shared_session || is_cli_agent_transcript {
+        AgentRuntimeBinding::Rust
+    } else {
+        AgentRuntimeBinding::Pi
+    }
 }
 
 /// Whether a Conversation Record may start a new Interactive Agent Run.
 ///
 /// Legacy Rust-bound Conversations are view-only. Continuing them requires an
 /// explicit fork into a new Pi-bound Conversation.
-pub(crate) fn may_start_interactive_agent_run(
-    runtime_binding: AgentRuntimeBinding,
-) -> bool {
+pub(crate) fn may_start_interactive_agent_run(runtime_binding: AgentRuntimeBinding) -> bool {
     !matches!(runtime_binding, AgentRuntimeBinding::Rust)
 }
 
@@ -2055,6 +2054,7 @@ impl BlocklistAIHistoryModel {
     pub(crate) fn finish_runtime_text_run(
         &mut self,
         conversation_id: AIConversationId,
+        response_stream_id: &ResponseStreamId,
         terminal_surface_id: EntityId,
         mut conversation_data: AgentConversationData,
         tasks: Vec<warp_multi_agent_api::Task>,
@@ -2064,57 +2064,54 @@ impl BlocklistAIHistoryModel {
     ) {
         conversation_data.runtime_binding = Some(AgentRuntimeBinding::Pi);
         conversation_data.runtime_transcript_revision = Some(revision);
-        let replacement = match AIConversation::new_restored_synthesizing_on_empty(
-            conversation_id,
-            tasks,
-            Some(conversation_data),
-        ) {
-            Ok(conversation) => conversation,
-            Err(error) => {
-                log::warn!(
-                    "Failed to rebuild Pi runtime conversation {conversation_id:?}: {error:#}"
-                );
-                return;
-            }
+        let Some(conversation) = self.conversations_by_id.get_mut(&conversation_id) else {
+            log::warn!("Failed to find Pi runtime conversation {conversation_id:?}");
+            return;
         };
-
-        self.conversations_by_id
-            .insert(conversation_id, replacement);
-
-        if let Some(conversation) = self.conversations_by_id.get_mut(&conversation_id) {
-            match finish {
-                RuntimeTextRunFinish::Success => {
-                    conversation.update_status(
-                        ConversationStatus::Success,
+        let merge_result = if matches!(&finish, RuntimeTextRunFinish::Success) {
+            conversation.apply_runtime_final_snapshot(response_stream_id, tasks, conversation_data)
+        } else {
+            conversation.apply_runtime_progress_snapshot(
+                response_stream_id,
+                tasks,
+                conversation_data,
+            )
+        };
+        if let Err(error) = merge_result {
+            log::warn!(
+                "Failed to merge final Pi runtime snapshot for {conversation_id:?}: {error:#}"
+            );
+            return;
+        }
+        let result = match finish {
+            RuntimeTextRunFinish::Success => {
+                conversation.update_status(ConversationStatus::Success, terminal_surface_id, ctx);
+                for exchange in conversation.all_exchanges() {
+                    ctx.emit(BlocklistAIHistoryEvent::UpdatedStreamingExchange {
+                        exchange_id: exchange.id,
                         terminal_surface_id,
-                        ctx,
-                    );
+                        conversation_id,
+                        is_hidden: conversation.is_exchange_hidden(exchange.id),
+                    });
                 }
-                RuntimeTextRunFinish::Cancelled => {
-                    conversation.update_status(
-                        ConversationStatus::Cancelled,
-                        terminal_surface_id,
-                        ctx,
-                    );
-                }
-                RuntimeTextRunFinish::Error(error) => {
-                    conversation.update_status_with_error(
-                        ConversationStatus::Error,
-                        Some(error),
-                        terminal_surface_id,
-                        ctx,
-                    );
-                }
+                Ok(())
             }
-
-            for exchange in conversation.all_exchanges().into_iter() {
-                ctx.emit(BlocklistAIHistoryEvent::UpdatedStreamingExchange {
-                    exchange_id: exchange.id,
-                    terminal_surface_id,
-                    conversation_id,
-                    is_hidden: conversation.is_exchange_hidden(exchange.id),
-                });
-            }
+            RuntimeTextRunFinish::Cancelled => conversation.mark_request_cancelled(
+                response_stream_id,
+                terminal_surface_id,
+                CancellationReason::ManuallyCancelled,
+                ctx,
+            ),
+            RuntimeTextRunFinish::Error(error) => conversation.mark_request_completed_with_error(
+                response_stream_id,
+                error,
+                false,
+                terminal_surface_id,
+                ctx,
+            ),
+        };
+        if let Err(error) = result {
+            log::warn!("Failed to finalize Pi runtime conversation {conversation_id:?}: {error:#}");
         }
     }
 

@@ -8,6 +8,7 @@ use warp_multi_agent_api as api;
 pub(super) mod blocklist_adapter;
 mod fault_injection;
 mod messages;
+mod personal_memory;
 mod projection;
 mod recovery;
 mod request;
@@ -16,7 +17,7 @@ mod types;
 #[cfg(test)]
 use fault_injection::ToolExecutionFaultInjector;
 use fault_injection::ToolExecutionFaultPoint;
-use messages::{tool_request_message, tool_result_message};
+use messages::{tool_request_message, tool_result_message, tool_result_message_with_memories};
 use projection::{error_projection, projection_ends_run, unknown_outcome_projection};
 use request::{request_payload, typed_action};
 pub(super) use types::{
@@ -25,7 +26,9 @@ pub(super) use types::{
 pub(crate) use types::{ToolExecutionError, ToolPermissionDecision};
 
 use super::protocol::RuntimeToolRequest;
-use super::tool_catalog::{ToolCatalog, TOOL_REQUEST_LIMIT};
+use super::tool_catalog::{
+    PersonalMemoryToolRequest, ResolvedTool, ToolCatalog, TOOL_REQUEST_LIMIT,
+};
 use super::transcript::{
     RuntimeContentBlock, ToolDenialSource, ToolErrorCode, ToolResultProjection,
 };
@@ -175,7 +178,7 @@ impl ToolExecutionAuthority {
         }
         self.inject_fault(ToolExecutionFaultPoint::AfterPendingPersisted)?;
 
-        let tool =
+        let resolved_tool =
             match self
                 .catalog
                 .resolve(&request.tool_id, &request.tool_name, &request.arguments)
@@ -185,6 +188,14 @@ impl ToolExecutionAuthority {
                     return self.complete_invalid(request, state).await;
                 }
             };
+        if let ResolvedTool::PersonalMemory(memory_request) = resolved_tool {
+            return self
+                .execute_personal_memory(request, state, memory_request, fingerprint)
+                .await;
+        }
+        let tool = resolved_tool
+            .api_tool()
+            .ok_or(ToolExecutionError::InvalidTypedAction)?;
         let action = typed_action(&request, &state.task_id, tool.clone())?;
         self.inject_fault(ToolExecutionFaultPoint::BeforePermissionDecision)?;
         let permission = self
@@ -279,6 +290,7 @@ impl ToolExecutionAuthority {
         self.catalog
             .resolve(&request.tool_id, &request.tool_name, &request.arguments)
             .ok()
+            .and_then(|tool| tool.api_tool())
     }
 
     async fn complete_denial(
@@ -374,6 +386,31 @@ impl ToolExecutionAuthority {
         complete_outcome: Vec<u8>,
         completion_state: CompletionState,
     ) -> Result<Vec<u8>, ToolExecutionError> {
+        self.complete_with_fetched_memories(
+            request,
+            state,
+            tool,
+            result,
+            projection,
+            complete_outcome,
+            Vec::new(),
+            completion_state,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn complete_with_fetched_memories(
+        &self,
+        request: &RuntimeToolRequest,
+        state: &mut ToolRunState,
+        tool: Option<api::message::tool_call::Tool>,
+        result: Option<api::message::tool_call_result::Result>,
+        projection: ToolResultProjection,
+        complete_outcome: Vec<u8>,
+        fetched_memories: Vec<api::message::FetchedMemory>,
+        completion_state: CompletionState,
+    ) -> Result<Vec<u8>, ToolExecutionError> {
         let mut tasks = state.tasks.clone();
         let task = tasks
             .iter_mut()
@@ -381,8 +418,12 @@ impl ToolExecutionAuthority {
             .ok_or(ToolExecutionError::TaskNotFound)?;
         task.messages
             .push(tool_request_message(request, &state.task_id, tool));
-        task.messages
-            .push(tool_result_message(request, &state.task_id, result));
+        let result_message = if fetched_memories.is_empty() {
+            tool_result_message(request, &state.task_id, result)
+        } else {
+            tool_result_message_with_memories(request, &state.task_id, result, fetched_memories)
+        };
+        task.messages.push(result_message);
         let (expected_state, run_terminal_outcome) = match completion_state {
             CompletionState::Pending => (AgentToolExecutionState::Pending, None),
             CompletionState::Executing => (AgentToolExecutionState::Executing, None),

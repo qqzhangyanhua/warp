@@ -2183,11 +2183,11 @@ impl AIBlock {
                     }
                     self.state_handles
                         .footer_citation_chip_handles
-                        .entry(AIAgentCitation::AgentMemory {
-                            memory_store_id: memory.memory_store_id.clone(),
-                            memory_id: memory.memory_id.clone(),
-                            content: memory.content.clone(),
-                        })
+                        .entry(view_impl::fetched_memory_citation(
+                            memory.memory_store_id.clone(),
+                            memory.memory_id.clone(),
+                            memory.content.clone(),
+                        ))
                         .or_default();
                 }
             }
@@ -4270,6 +4270,18 @@ impl AIBlock {
     #[cfg(feature = "integration_tests")]
     pub fn selection_type(&self) -> SelectionType {
         self.state_handles.selection_handle.selection_type()
+    }
+
+    #[cfg(feature = "integration_tests")]
+    pub fn has_footer_citation_for_test(&self, citation: &AIAgentCitation) -> bool {
+        self.state_handles
+            .footer_citation_chip_handles
+            .contains_key(citation)
+    }
+
+    #[cfg(feature = "integration_tests")]
+    pub fn exchange_id_for_test(&self) -> crate::ai::agent::AIAgentExchangeId {
+        self.client_ids.client_exchange_id
     }
 
     /// Handles find match focus changes by auto-expanding collapsed reasoning blocks

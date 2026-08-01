@@ -193,8 +193,14 @@ export class PiTextRuntime implements TextRuntime {
         ),
       },
       getApiKey: () => configuration.provider.api_key,
-      streamFn: (model, context, options) =>
-        this.providerStream(model, context, { ...options, maxRetries: 0 }),
+      streamFn: (model, context, options) => {
+        const toolChoice = requiredPersonalMemoryTool(configuration, context);
+        return this.providerStream(model, context, {
+          ...options,
+          maxRetries: 0,
+          ...(toolChoice === undefined ? {} : { toolChoice }),
+        } as Parameters<StreamFn>[2]);
+      },
       toolExecution: "sequential",
       afterToolCall: async ({ toolCall }) => ({
         isError: proxyTools.takeResultError(toolCall.id),
@@ -362,6 +368,25 @@ function validateTextRun(start: RunStart): void {
   ) {
     throw new Error("Invalid text-only Agent Run Configuration");
   }
+}
+
+function requiredPersonalMemoryTool(
+  configuration: RunConfiguration,
+  context: Parameters<StreamFn>[1],
+): { type: "function"; function: { name: string } } | undefined {
+  if (context.messages.at(-1)?.role !== "user") {
+    return undefined;
+  }
+  const memoryTools = configuration.tools.filter((tool) =>
+    tool.id.startsWith("personal_memory."),
+  );
+  if (memoryTools.length !== 1) {
+    return undefined;
+  }
+  return {
+    type: "function",
+    function: { name: memoryTools[0]!.name },
+  };
 }
 
 function validToolConfiguration(

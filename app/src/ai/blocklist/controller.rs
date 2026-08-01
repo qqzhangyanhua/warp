@@ -2601,18 +2601,6 @@ impl BlocklistAIController {
                             ConversationStatus::InProgress,
                             ctx,
                         );
-                        history_model.initialize_output_for_response_stream(
-                            &response_stream_id,
-                            conversation_data.id,
-                            self.terminal_surface_id,
-                            warp_multi_agent_api::response_event::StreamInit {
-                                request_id: "pi-runtime-output".to_string(),
-                                conversation_id: conversation_data.id.to_string(),
-                                run_id: String::new(),
-                            },
-                            ctx,
-                        );
-
                         let needs_runtime_task_initialization = history_model
                             .conversation(&conversation_data.id)
                             .is_some_and(|conversation| {
@@ -2711,19 +2699,36 @@ impl BlocklistAIController {
                             ctx,
                         )
                     });
-                if let Err(runtime_start_error) = runtime_start_result {
-                    history_model.update(ctx, |history_model, ctx| {
-                        history_model.mark_response_stream_completed_with_error(
-                            RenderableAIError::agent_runtime_unavailable(
-                                runtime_start_error.to_string(),
-                            ),
-                            /* recovery_pending */ false,
-                            &response_stream_id,
-                            conversation_data.id,
-                            self.terminal_surface_id,
-                            ctx,
-                        );
-                    });
+                match runtime_start_result {
+                    Ok(run_id) => {
+                        history_model.update(ctx, |history_model, ctx| {
+                            history_model.initialize_output_for_response_stream(
+                                &response_stream_id,
+                                conversation_data.id,
+                                self.terminal_surface_id,
+                                warp_multi_agent_api::response_event::StreamInit {
+                                    request_id: run_id,
+                                    conversation_id: conversation_data.id.to_string(),
+                                    run_id: String::new(),
+                                },
+                                ctx,
+                            );
+                        });
+                    }
+                    Err(runtime_start_error) => {
+                        history_model.update(ctx, |history_model, ctx| {
+                            history_model.mark_response_stream_completed_with_error(
+                                RenderableAIError::agent_runtime_unavailable(
+                                    runtime_start_error.to_string(),
+                                ),
+                                /* recovery_pending */ false,
+                                &response_stream_id,
+                                conversation_data.id,
+                                self.terminal_surface_id,
+                                ctx,
+                            );
+                        });
+                    }
                 }
             }
 

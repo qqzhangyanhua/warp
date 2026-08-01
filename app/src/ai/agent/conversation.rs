@@ -3612,23 +3612,133 @@ impl AIConversation {
         tasks: Vec<api::Task>,
         conversation_data: AgentConversationData,
     ) -> anyhow::Result<()> {
+        self.apply_runtime_snapshot(response_stream_id, tasks, conversation_data, true)
+    }
+
+    pub(crate) fn apply_runtime_final_snapshot(
+        &mut self,
+        response_stream_id: &ResponseStreamId,
+        tasks: Vec<api::Task>,
+        conversation_data: AgentConversationData,
+    ) -> anyhow::Result<()> {
+        self.apply_runtime_snapshot(response_stream_id, tasks, conversation_data, false)
+    }
+
+    fn apply_runtime_snapshot(
+        &mut self,
+        response_stream_id: &ResponseStreamId,
+        tasks: Vec<api::Task>,
+        conversation_data: AgentConversationData,
+        keep_active_exchange_streaming: bool,
+    ) -> anyhow::Result<()> {
+        let mut active_request_message_ids = HashMap::new();
+        if keep_active_exchange_streaming {
+            if let Some(added_exchanges) = self.added_exchanges_by_response.get(response_stream_id)
+            {
+                for added_exchange in added_exchanges {
+                    let server_output_id = self
+                        .exchange_with_id(added_exchange.exchange_id)
+                        .and_then(|exchange| exchange.output_status.server_output_id())
+                        .ok_or_else(|| {
+                            anyhow::anyhow!(
+                                "Pi runtime active exchange {} has no server output ID",
+                                added_exchange.exchange_id
+                            )
+                        })?;
+                    let task = tasks
+                        .iter()
+                        .find(|task| task.id == added_exchange.task_id.to_string())
+                        .ok_or_else(|| {
+                            anyhow::anyhow!(
+                                "Pi runtime progress snapshot is missing active task {}",
+                                added_exchange.task_id
+                            )
+                        })?;
+                    let request_id = server_output_id.to_string();
+                    let message_ids = task
+                        .messages
+                        .iter()
+                        .filter(|message| message.request_id == request_id)
+                        .map(|message| MessageId::new(message.id.clone()))
+                        .collect::<HashSet<_>>();
+                    active_request_message_ids.insert(added_exchange.exchange_id, message_ids);
+                }
+            }
+        }
+
         let mut replacement =
             Self::new_restored_synthesizing_on_empty(self.id, tasks, Some(conversation_data))
                 .map_err(anyhow::Error::new)?;
 
         if let Some(added_exchanges) = self.added_exchanges_by_response.get(response_stream_id) {
             for added_exchange in added_exchanges {
-                let durable_exchange_id = replacement
+                let server_output_id = self
+                    .exchange_with_id(added_exchange.exchange_id)
+                    .and_then(|exchange| exchange.output_status.server_output_id())
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "Pi runtime active exchange {} has no server output ID",
+                            added_exchange.exchange_id
+                        )
+                    })?;
+                let durable_exchange_ids = replacement
                     .task_store
                     .get(&added_exchange.task_id)
-                    .and_then(Task::last_exchange)
-                    .map(|exchange| exchange.id)
+                    .map(|task| {
+                        task.exchanges()
+                            .filter(|exchange| {
+                                exchange.output_status.server_output_id().as_ref()
+                                    == Some(&server_output_id)
+                            })
+                            .map(|exchange| exchange.id)
+                            .collect::<Vec<_>>()
+                    })
                     .ok_or_else(|| {
                         anyhow::anyhow!(
                             "Pi runtime progress snapshot is missing active task {}",
                             added_exchange.task_id
                         )
                     })?;
+                let durable_exchange_id = match durable_exchange_ids.as_slice() {
+                    [durable_exchange_id] => *durable_exchange_id,
+                    [] if keep_active_exchange_streaming => {
+                        let request_message_ids = active_request_message_ids
+                            .get(&added_exchange.exchange_id)
+                            .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "Pi runtime progress snapshot has no message identity for active exchange {}",
+                                    added_exchange.exchange_id
+                                )
+                            })?;
+                        let request_exchange_ids = replacement
+                            .task_store
+                            .get(&added_exchange.task_id)
+                            .into_iter()
+                            .flat_map(Task::exchanges)
+                            .filter(|exchange| {
+                                !exchange.added_message_ids.is_disjoint(request_message_ids)
+                            })
+                            .map(|exchange| exchange.id)
+                            .collect::<Vec<_>>();
+                        let [request_exchange_id] = request_exchange_ids.as_slice() else {
+                            anyhow::bail!(
+                                "Pi runtime progress snapshot expected one exchange for request {server_output_id}, found {}",
+                                request_exchange_ids.len()
+                            );
+                        };
+                        *request_exchange_id
+                    }
+                    _ => {
+                        anyhow::bail!(
+                            "Pi runtime snapshot expected one exchange for server output ID {server_output_id}, found {}",
+                            durable_exchange_ids.len()
+                        );
+                    }
+                };
+                let active_output = self
+                    .exchange_with_id(added_exchange.exchange_id)
+                    .and_then(|exchange| exchange.output_status.output())
+                    .map(Shared::get_owned);
                 let durable_exchange = replacement
                     .task_store
                     .exchange_mut(durable_exchange_id)
@@ -3637,13 +3747,16 @@ impl AIConversation {
                             "Pi runtime progress snapshot is missing active exchange {durable_exchange_id}"
                         )
                     })?;
-                let output = durable_exchange
-                    .output_status
-                    .output()
-                    .map(Shared::get_owned);
                 durable_exchange.id = added_exchange.exchange_id;
-                durable_exchange.output_status = AIAgentOutputStatus::Streaming { output };
-                durable_exchange.finish_time = None;
+                if keep_active_exchange_streaming {
+                    let output = durable_exchange
+                        .output_status
+                        .output()
+                        .map(Shared::get_owned)
+                        .or(active_output);
+                    durable_exchange.output_status = AIAgentOutputStatus::Streaming { output };
+                    durable_exchange.finish_time = None;
+                }
             }
         }
         replacement.task_store.rebuild_exchange_index();

@@ -41,9 +41,14 @@ impl ForTelemetry for AIAgentCitation {
                 memory_store_id: memory_store_id.clone(),
                 memory_id: memory_id.clone(),
             }),
+            Self::PersonalMemory { .. } => None,
         }
     }
 }
+
+#[cfg(test)]
+#[path = "telemetry_tests.rs"]
+mod tests;
 
 impl EntrypointType {
     pub fn entrypoint(&self) -> String {

@@ -54,6 +54,8 @@ pub mod onboarding;
 // TODO(issue #23): Remove with legacy server-backed Agent workspace persistence.
 #[allow(dead_code)]
 pub(crate) mod persisted_workspace;
+#[cfg(feature = "local_fs")]
+pub(crate) mod personal_memory;
 pub(crate) mod predict;
 #[cfg(all(not(target_family = "wasm"), feature = "local_fs"))]
 pub(crate) mod remote_agent_context;

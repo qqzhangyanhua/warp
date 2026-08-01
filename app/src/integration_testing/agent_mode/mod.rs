@@ -1,5 +1,6 @@
 mod assertions;
 pub mod llm_judge;
+mod personal_memory;
 mod step;
 mod user_defaults;
 mod util;
@@ -9,6 +10,7 @@ use std::io::Write;
 use std::sync::Mutex;
 
 pub use assertions::*;
+pub use personal_memory::*;
 pub use step::*;
 pub use user_defaults::*;
 pub use util::*;

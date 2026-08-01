@@ -29,6 +29,14 @@ fn en_text(message: Message) -> &'static str {
         Message::SettingsSectionAgentProfiles => "Profiles",
         Message::SettingsSectionAgentMcpServers => "MCP servers",
         Message::SettingsSectionKnowledge => "Knowledge",
+        Message::SettingsSectionPersonalMemory => "Personal Memory",
+        Message::PersonalMemoryEnable => "Enable Personal Memory",
+        Message::PersonalMemoryEnableDescription => "Allow explicit memory requests in new Agent conversations. Turning this off keeps existing records.",
+        Message::PersonalMemoryLoading => "Loading Personal Memory...",
+        Message::PersonalMemoryLoadFailed => "Personal Memory could not be loaded.",
+        Message::PersonalMemoryEmpty => "No Personal Memory records.",
+        Message::PersonalMemoryRecordCount => "{count} of {limit} records",
+        Message::PersonalMemoryUpdatedAt => "Updated {time}",
         Message::SettingsSectionThirdPartyCliAgents => "Third party CLI agents",
         Message::SettingsSectionCode => "Code",
         Message::SettingsSectionCodeIndexing => "Indexing and projects",
@@ -4503,6 +4511,14 @@ fn zh_cn_text(message: Message) -> &'static str {
         Message::SettingsSectionAgentProfiles => "配置档案",
         Message::SettingsSectionAgentMcpServers => "MCP 服务器",
         Message::SettingsSectionKnowledge => "知识库",
+        Message::SettingsSectionPersonalMemory => "个人记忆",
+        Message::PersonalMemoryEnable => "启用个人记忆",
+        Message::PersonalMemoryEnableDescription => "允许在新的 Agent 对话中响应明确的记忆请求。关闭后仍会保留已有记录。",
+        Message::PersonalMemoryLoading => "正在加载个人记忆...",
+        Message::PersonalMemoryLoadFailed => "无法加载个人记忆。",
+        Message::PersonalMemoryEmpty => "暂无个人记忆记录。",
+        Message::PersonalMemoryRecordCount => "已使用 {count} / {limit} 条记录",
+        Message::PersonalMemoryUpdatedAt => "更新于 {time}",
         Message::SettingsSectionThirdPartyCliAgents => "第三方 CLI agents",
         Message::SettingsSectionCode => "代码",
         Message::SettingsSectionCodeIndexing => "索引与项目",
@@ -8619,6 +8635,17 @@ mod tests {
         }
     }
 
+    #[test]
+    fn personal_memory_messages_have_chinese_text() {
+        for message in PERSONAL_MEMORY_MESSAGES {
+            assert_ne!(
+                en_text(*message),
+                zh_cn_text(*message),
+                "Personal Memory Chinese text reuses English for {message:?}"
+            );
+        }
+    }
+
     fn english_text_is_intentional_in_chinese(message: Message) -> bool {
         matches!(
             message,
@@ -8653,6 +8680,17 @@ mod tests {
         )
     }
 
+    const PERSONAL_MEMORY_MESSAGES: &[Message] = &[
+        Message::SettingsSectionPersonalMemory,
+        Message::PersonalMemoryEnable,
+        Message::PersonalMemoryEnableDescription,
+        Message::PersonalMemoryLoading,
+        Message::PersonalMemoryLoadFailed,
+        Message::PersonalMemoryEmpty,
+        Message::PersonalMemoryRecordCount,
+        Message::PersonalMemoryUpdatedAt,
+    ];
+
     const ALL_MESSAGES: &[Message] = &[
         Message::SettingsSectionAbout,
         Message::SettingsSectionAccount,
@@ -8673,6 +8711,14 @@ mod tests {
         Message::SettingsSectionAgentProfiles,
         Message::SettingsSectionAgentMcpServers,
         Message::SettingsSectionKnowledge,
+        Message::SettingsSectionPersonalMemory,
+        Message::PersonalMemoryEnable,
+        Message::PersonalMemoryEnableDescription,
+        Message::PersonalMemoryLoading,
+        Message::PersonalMemoryLoadFailed,
+        Message::PersonalMemoryEmpty,
+        Message::PersonalMemoryRecordCount,
+        Message::PersonalMemoryUpdatedAt,
         Message::SettingsSectionThirdPartyCliAgents,
         Message::SettingsSectionCode,
         Message::SettingsSectionCodeIndexing,

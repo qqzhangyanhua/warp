@@ -20,6 +20,75 @@ import {
 } from "./text-runtime-test-helpers.js";
 
 describe("Pi text runtime proxy tools", () => {
+  test("requires the explicit Personal Memory tool on the first provider turn", async () => {
+    let providerTurns = 0;
+    const toolChoices: unknown[] = [];
+    const runtime = new PiTextRuntime({
+      stream: (_model, _context, options) => {
+        providerTurns += 1;
+        toolChoices.push(
+          (options as { toolChoice?: unknown } | undefined)?.toolChoice,
+        );
+        return providerTurns === 1
+          ? toolCallStream("call-1", "remember_personal_fact", {
+              fact_text: "我的管理员帐号是admin123",
+              value_text: "admin123",
+              topic: "管理员帐号",
+            })
+          : scriptedStream([{ type: "text", text: "已记住管理员帐号 admin123。" }]);
+      },
+      createId: idSequence(),
+    });
+    const start = runStart();
+    start.configuration.tool_request_limit = 32;
+    start.configuration.tools = [
+      {
+        id: "personal_memory.create",
+        name: "remember_personal_fact",
+        description: "Store the fact explicitly requested by the current user.",
+        input_schema: {
+          type: "object",
+          properties: {
+            fact_text: { type: "string" },
+            value_text: { type: "string" },
+            topic: { type: "string" },
+          },
+          required: ["fact_text", "value_text", "topic"],
+          additionalProperties: false,
+        },
+      },
+    ];
+
+    await runtime.run(transcript(), start, {
+      emit: () => {},
+      commit: async (request) => ({
+        type: "commit_result",
+        conversation_id: request.conversation_id,
+        run_id: request.run_id,
+        commit_id: request.commit_id,
+        status: "committed",
+        revision: request.expected_revision + 1,
+      }),
+      tool: async (request) => ({
+        type: "tool_result",
+        conversation_id: request.conversation_id,
+        run_id: request.run_id,
+        tool_call_id: request.tool_call_id,
+        status: "success",
+        content: [{ type: "text", text: '{"status":"created"}' }],
+        truncated: false,
+      }),
+    });
+
+    expect(toolChoices).toEqual([
+      {
+        type: "function",
+        function: { name: "remember_personal_fact" },
+      },
+      undefined,
+    ]);
+  });
+
   test("returns a Warp tool result to the same run before the next model turn", async () => {
     let providerTurns = 0;
     const runtime = new PiTextRuntime({

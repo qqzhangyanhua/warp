@@ -59,6 +59,7 @@ fn ai_subpages_are_identified() {
     assert!(SettingsSection::AgentProfiles.is_ai_subpage());
     assert!(SettingsSection::AgentMCPServers.is_ai_subpage());
     assert!(SettingsSection::Knowledge.is_ai_subpage());
+    assert!(SettingsSection::PersonalMemory.is_ai_subpage());
     assert!(SettingsSection::ThirdPartyCLIAgents.is_ai_subpage());
 
     assert!(!SettingsSection::AI.is_ai_subpage());
@@ -116,6 +117,10 @@ fn ai_subpages_map_to_ai_backing_page() {
     );
     assert_eq!(
         SettingsSection::Knowledge.parent_page_section(),
+        SettingsSection::AI
+    );
+    assert_eq!(
+        SettingsSection::PersonalMemory.parent_page_section(),
         SettingsSection::AI
     );
     assert_eq!(
@@ -211,6 +216,23 @@ fn zyh_defaults_to_provider_settings() {
         SettingsSection::default_for_zyh(),
         SettingsSection::WarpAgent
     );
+}
+
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+#[test]
+#[serial_test::serial]
+fn personal_memory_settings_visibility_follows_feature_flag() {
+    {
+        let _flag = FeatureFlag::PersonalMemory.override_enabled(false);
+        assert!(SettingsSection::PersonalMemory.unavailable_in_zyh());
+        assert_eq!(
+            SettingsSection::initial_page_for_zyh(Some(SettingsSection::PersonalMemory)),
+            SettingsSection::WarpAgent
+        );
+    }
+
+    let _flag = FeatureFlag::PersonalMemory.override_enabled(true);
+    assert!(!SettingsSection::PersonalMemory.unavailable_in_zyh());
 }
 
 #[test]
@@ -322,6 +344,8 @@ fn ai_subpages_list_contains_all_ai_subpage_variants() {
     assert!(subpages.contains(&SettingsSection::AgentProfiles));
     assert!(subpages.contains(&SettingsSection::AgentMCPServers));
     assert!(subpages.contains(&SettingsSection::Knowledge));
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    assert!(subpages.contains(&SettingsSection::PersonalMemory));
     assert!(subpages.contains(&SettingsSection::ThirdPartyCLIAgents));
 }
 
@@ -365,6 +389,10 @@ fn subpage_display_names_are_correct() {
     assert_eq!(SettingsSection::AgentProfiles.to_string(), "Profiles");
     assert_eq!(SettingsSection::AgentMCPServers.to_string(), "MCP servers");
     assert_eq!(SettingsSection::Knowledge.to_string(), "Knowledge");
+    assert_eq!(
+        SettingsSection::PersonalMemory.to_string(),
+        "Personal Memory"
+    );
     assert_eq!(
         SettingsSection::ThirdPartyCLIAgents.to_string(),
         "Third party CLI agents"
@@ -419,6 +447,10 @@ fn subpage_from_str_parses_display_names() {
     assert_eq!(
         SettingsSection::from_str("Knowledge"),
         Ok(SettingsSection::Knowledge)
+    );
+    assert_eq!(
+        SettingsSection::from_str("Personal Memory"),
+        Ok(SettingsSection::PersonalMemory)
     );
     assert_eq!(
         SettingsSection::from_str("Indexing and projects"),
@@ -917,7 +949,7 @@ fn expanded_umbrella_produces_section_stop_per_subpage() {
     let stops = build_nav_stops(&nav_items, |_| true);
 
     // Expect: Account, WarpAgent, AgentProfiles, AgentMCPServers, Knowledge,
-    // ThirdPartyCLIAgents, BillingAndUsage, <Code umbrella>,
+    // PersonalMemory, ThirdPartyCLIAgents, BillingAndUsage, <Code umbrella>,
     // <Cloud platform umbrella>, Teams.
     let sections: Vec<_> = stops
         .iter()
@@ -934,6 +966,7 @@ fn expanded_umbrella_produces_section_stop_per_subpage() {
             "AgentProfiles",
             "AgentMCPServers",
             "Knowledge",
+            "PersonalMemory",
             "ThirdPartyCLIAgents",
             "BillingAndUsage",
             "Umbrella@3",
@@ -1150,7 +1183,9 @@ fn arrow_up_into_collapsed_umbrella_respects_search_filter_for_last_subpage() {
     let is_visible = |section: SettingsSection| {
         !matches!(
             section,
-            SettingsSection::Knowledge | SettingsSection::ThirdPartyCLIAgents
+            SettingsSection::Knowledge
+                | SettingsSection::PersonalMemory
+                | SettingsSection::ThirdPartyCLIAgents
         )
     };
     let stops = build_nav_stops(&nav_items, is_visible);

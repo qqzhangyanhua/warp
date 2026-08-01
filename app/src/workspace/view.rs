@@ -21041,6 +21041,9 @@ impl Workspace {
         if *ai_settings.memory_enabled.value() {
             context.set.insert(flags::AI_RULES_FLAG);
         }
+        if *ai_settings.personal_memory_enabled.value() {
+            context.set.insert(flags::PERSONAL_MEMORY_ENABLED_FLAG);
+        }
         if *ai_settings.rule_suggestions_enabled_internal.value() {
             context.set.insert(flags::SUGGESTED_RULES_FLAG);
         }
@@ -21904,6 +21907,13 @@ impl TypedActionView for Workspace {
                     return;
                 }
                 self.show_settings_with_search(search_query, *section, ctx)
+            }
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            ShowPersonalMemoryRecord { record_id } => {
+                self.show_settings_with_section(Some(SettingsSection::PersonalMemory), ctx);
+                self.settings_pane.update(ctx, |settings, ctx| {
+                    settings.open_personal_memory_record(record_id.clone(), ctx);
+                });
             }
             OpenPromptSuggestionsUnavailableModal => {
                 self.open_prompt_suggestions_unavailable_modal(ctx)

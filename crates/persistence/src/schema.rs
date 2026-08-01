@@ -362,6 +362,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    personal_memory_records (id) {
+        id -> Integer,
+        record_id -> Text,
+        fact_text -> Text,
+        value_text -> Text,
+        topic -> Text,
+        normalized_topic -> Text,
+        labels_json -> Text,
+        is_default -> Bool,
+        index_state -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     project_rules (id) {
         id -> Integer,
         path -> Text,

@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use warp_multi_agent_api as api;
 
+pub const PERSONAL_MEMORY_STORE_ID: &str = "zyh-personal-memory";
+
 /// A citation listed in an AI response.
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum AIAgentCitation {
@@ -21,6 +23,32 @@ pub enum AIAgentCitation {
         memory_id: String,
         content: String,
     },
+    /// A canonical record from the local Personal Memory Store.
+    PersonalMemory {
+        record_id: String,
+        content: String,
+    },
+}
+
+impl AIAgentCitation {
+    pub fn from_fetched_memory(
+        memory_store_id: String,
+        memory_id: String,
+        content: String,
+    ) -> Self {
+        if memory_store_id == PERSONAL_MEMORY_STORE_ID {
+            Self::PersonalMemory {
+                record_id: memory_id,
+                content,
+            }
+        } else {
+            Self::AgentMemory {
+                memory_store_id,
+                memory_id,
+                content,
+            }
+        }
+    }
 }
 
 impl Display for AIAgentCitation {
@@ -41,6 +69,9 @@ impl Display for AIAgentCitation {
                 ..
             } => {
                 write!(f, "Agent Memory: {memory_store_id}/{memory_id}")
+            }
+            AIAgentCitation::PersonalMemory { record_id, .. } => {
+                write!(f, "Personal Memory: {record_id}")
             }
         }
     }
@@ -75,3 +106,7 @@ impl TryFrom<api::Citation> for AIAgentCitation {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "citation_tests.rs"]
+mod tests;

@@ -20321,6 +20321,14 @@ impl TerminalView {
                     );
                     ctx.open_url(&url);
                 }
+                #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+                AIAgentCitation::PersonalMemory { record_id, .. } => {
+                    ctx.dispatch_typed_action_deferred(WorkspaceAction::ShowPersonalMemoryRecord {
+                        record_id: record_id.clone(),
+                    });
+                }
+                #[cfg(not(all(feature = "local_fs", feature = "personal_memory")))]
+                AIAgentCitation::PersonalMemory { .. } => {}
             },
             AIBlockEvent::OpenAIFactCollection { sync_id } => {
                 ctx.emit(Event::OpenAIFactCollection { sync_id: *sync_id });

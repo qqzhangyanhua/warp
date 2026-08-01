@@ -1262,6 +1262,16 @@ define_settings_group!(AISettings, settings: [
         toml_path: "agents.knowledge.rules_enabled",
         description: "Whether the agent uses your saved rules during requests.",
     }
+    personal_memory_enabled: PersonalMemoryEnabled {
+        type: bool,
+        default: true,
+        supported_platforms: SupportedPlatforms::ALL,
+        sync_to_cloud: SyncToCloud::Never,
+        surface: settings::SettingSurfaces::GUI,
+        private: false,
+        toml_path: "agents.personal_memory.enabled",
+        description: "Whether explicit Personal Memory reads and writes are enabled.",
+    }
     // Legacy cloud Drive context flag. ZYH Drive is removed (#41 PR16); the
     // setting is retained only so old toml keys are recognized and ignored.
     warp_drive_context_enabled: WarpDriveContextEnabled {
@@ -1869,6 +1879,10 @@ impl AISettings {
 
     pub fn is_memory_enabled(&self, app: &warpui::AppContext) -> bool {
         self.is_any_ai_enabled(app) && *self.memory_enabled
+    }
+
+    pub fn is_personal_memory_enabled(&self, app: &warpui::AppContext) -> bool {
+        self.is_any_ai_enabled(app) && *self.personal_memory_enabled
     }
 
     pub fn is_warp_drive_context_enabled(&self, _app: &warpui::AppContext) -> bool {

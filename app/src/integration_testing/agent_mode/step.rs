@@ -22,7 +22,7 @@ use crate::integration_testing::step::{
 };
 use crate::integration_testing::terminal::assert_input_is_focused;
 use crate::integration_testing::view_getters::terminal_view;
-use crate::BlocklistAIHistoryModel;
+use crate::{cmd_or_ctrl_shift, BlocklistAIHistoryModel};
 
 pub const AGENT_MODE_RUNNING_STEP_GROUP_NAME: &str = "Agent mode running";
 
@@ -35,7 +35,7 @@ use super::hydrate_ai_conversation_assertion;
 /// Assumes that the terminal input is currently not in AI input mode.
 pub fn enter_agent_view() -> TestStep {
     new_step_with_default_assertions("Enter Agent View")
-        .with_keystrokes(&["ctrl-shift-enter"])
+        .with_keystrokes(&[cmd_or_ctrl_shift("enter")])
         .add_named_assertion(
             "Assert that we are in Agent View and AI input mode",
             move |app, window_id| {

@@ -8,6 +8,7 @@ use diesel::prelude::*;
 use futures::channel::oneshot;
 use futures::future::{pending, BoxFuture};
 use tempfile::TempDir;
+use warp_core::features::FeatureFlag;
 use warpui_core::r#async::FutureExt as _;
 
 use super::configuration::{ChatCompletionsProvider, ReasoningEffort, RunConfiguration};
@@ -26,6 +27,7 @@ use super::transcript::{
 use super::{AgentRuntimeSupervisor, RuntimeError};
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::agent::AIAgentAction;
+use crate::ai::personal_memory::MemoryCapability;
 use crate::persistence::model::{
     AgentRuntimeRunRecord, AgentRuntimeRunState, AgentRuntimeTerminalOutcome,
     AgentToolExecutionRecord, AgentToolExecutionState, NewAgentRuntimeRunRecord,
@@ -48,6 +50,195 @@ struct BlockingPermissionAdapter {
 struct EndingAdapter {
     permissions: AtomicUsize,
     effects: AtomicUsize,
+}
+
+const MEMORY_CREATE_CONVERSATION_ID: &str = "018f8a1e-7d2c-7c45-9c3a-6f78f04b3d21";
+const MEMORY_QUERY_CONVERSATION_ID: &str = "018f8a1e-7d2c-7c45-9c3a-6f78f04b3d22";
+
+#[tokio::test]
+async fn personal_memory_survives_restart_and_recalls_from_a_new_conversation() {
+    let tempdir = TempDir::new().unwrap();
+    let database_path = tempdir.path().join("warp.sqlite");
+    let create_observer = TempDir::new().unwrap();
+    let create_text = "帮我记住我的 GitHub 帐号是 zyh-work";
+    let create_tasks = vec![memory_task(create_text)];
+    let mut conn = setup_database(&database_path).unwrap();
+    upsert_agent_conversation(
+        &mut conn,
+        MEMORY_CREATE_CONVERSATION_ID,
+        &create_tasks,
+        runtime_data(0),
+    )
+    .unwrap();
+    let writer = start_writer(conn, database_path.clone()).unwrap();
+    let create_adapter = Arc::new(SuccessfulAdapter {
+        permissions: AtomicUsize::new(0),
+        effects: AtomicUsize::new(0),
+    });
+    let create_catalog = {
+        let _flag = FeatureFlag::PersonalMemory.override_enabled(true);
+        ToolCatalog::for_user_input(None, MemoryCapability::derive(create_text)).unwrap()
+    };
+    let create_authority = Arc::new(ToolExecutionAuthority::new(
+        create_catalog.clone(),
+        create_adapter.clone(),
+        writer.sender.clone(),
+    ));
+    let create_supervisor = AgentRuntimeSupervisor::new(
+        test_launch_config("text-run-personal-memory-create", &create_observer),
+        Arc::new(warpui_core::r#async::executor::Background::default()),
+    );
+    let create_handle = create_supervisor
+        .attach(MEMORY_CREATE_CONVERSATION_ID)
+        .await
+        .unwrap();
+
+    let create_result = create_handle
+        .run_text(
+            &writer.sender,
+            personal_memory_run_request(
+                MEMORY_CREATE_CONVERSATION_ID,
+                create_tasks,
+                create_catalog,
+                create_authority,
+            ),
+            |_| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(create_result.outcome(), &TextRunOutcome::Completed);
+    assert_eq!(create_adapter.permissions.load(Ordering::SeqCst), 0);
+    assert_eq!(create_adapter.effects.load(Ordering::SeqCst), 0);
+
+    create_supervisor.shutdown_all().await;
+    writer
+        .sender
+        .send(ModelEvent::DeleteMultiAgentConversations {
+            conversation_ids: vec![MEMORY_CREATE_CONVERSATION_ID.to_string()],
+        })
+        .unwrap();
+    writer.sender.send(ModelEvent::Terminate).unwrap();
+    writer.handle.join().unwrap();
+
+    let query_observer = TempDir::new().unwrap();
+    let query_text = "我的 GitHub 帐号还记得么？";
+    let query_tasks = vec![memory_task(query_text)];
+    let mut conn = setup_database(&database_path).unwrap();
+    upsert_agent_conversation(
+        &mut conn,
+        MEMORY_QUERY_CONVERSATION_ID,
+        &query_tasks,
+        runtime_data(0),
+    )
+    .unwrap();
+    let writer = start_writer(conn, database_path).unwrap();
+    let query_adapter = Arc::new(SuccessfulAdapter {
+        permissions: AtomicUsize::new(0),
+        effects: AtomicUsize::new(0),
+    });
+    let query_catalog = {
+        let _flag = FeatureFlag::PersonalMemory.override_enabled(true);
+        ToolCatalog::for_user_input(None, MemoryCapability::derive(query_text)).unwrap()
+    };
+    let query_authority = Arc::new(ToolExecutionAuthority::new(
+        query_catalog.clone(),
+        query_adapter.clone(),
+        writer.sender.clone(),
+    ));
+    let query_supervisor = AgentRuntimeSupervisor::new(
+        test_launch_config("text-run-personal-memory-query", &query_observer),
+        Arc::new(warpui_core::r#async::executor::Background::default()),
+    );
+    let query_handle = query_supervisor
+        .attach(MEMORY_QUERY_CONVERSATION_ID)
+        .await
+        .unwrap();
+
+    let query_result = query_handle
+        .run_text(
+            &writer.sender,
+            personal_memory_run_request(
+                MEMORY_QUERY_CONVERSATION_ID,
+                query_tasks,
+                query_catalog,
+                query_authority,
+            ),
+            |_| {},
+        )
+        .await
+        .unwrap();
+    let fetched_memories = &query_result.tasks()[0]
+        .messages
+        .last()
+        .unwrap()
+        .fetched_memories;
+    assert_eq!(query_result.outcome(), &TextRunOutcome::Completed);
+    assert_eq!(fetched_memories.len(), 1);
+    assert_eq!(fetched_memories[0].memory_store_id, "zyh-personal-memory");
+    assert!(fetched_memories[0].content.contains("zyh-work"));
+    assert_eq!(query_adapter.permissions.load(Ordering::SeqCst), 0);
+    assert_eq!(query_adapter.effects.load(Ordering::SeqCst), 0);
+
+    query_supervisor.shutdown_all().await;
+    writer.sender.send(ModelEvent::Terminate).unwrap();
+    writer.handle.join().unwrap();
+}
+
+fn memory_task(query: &str) -> warp_multi_agent_api::Task {
+    warp_multi_agent_api::Task {
+        id: "root-task".to_string(),
+        messages: vec![warp_multi_agent_api::Message {
+            id: "user-1".to_string(),
+            task_id: "root-task".to_string(),
+            request_id: "request-1".to_string(),
+            message: Some(warp_multi_agent_api::message::Message::UserQuery(
+                warp_multi_agent_api::message::UserQuery {
+                    query: query.to_string(),
+                    ..Default::default()
+                },
+            )),
+            ..Default::default()
+        }],
+        ..Default::default()
+    }
+}
+
+fn personal_memory_run_request(
+    conversation_id: &str,
+    tasks: Vec<warp_multi_agent_api::Task>,
+    catalog: ToolCatalog,
+    authority: Arc<ToolExecutionAuthority>,
+) -> TextRunRequest {
+    let conversation = AIConversation::new_restored(
+        AIConversationId::try_from(conversation_id.to_string()).unwrap(),
+        tasks.clone(),
+        Some(runtime_data(0)),
+    )
+    .unwrap();
+    let transcript =
+        RuntimeTranscript::project(&conversation, 0, &HashSet::new(), &HashMap::new()).unwrap();
+    let provider =
+        ChatCompletionsProvider::new("https://provider.example/v1", "local-model", "secret-key")
+            .unwrap();
+    let configuration = RunConfiguration::with_tools(
+        provider,
+        "/workspace",
+        32_768,
+        ReasoningEffort::Medium,
+        &catalog,
+        Vec::new(),
+    )
+    .unwrap();
+    TextRunRequest::new(
+        "run-1",
+        None::<String>,
+        transcript,
+        configuration,
+        tasks,
+        runtime_data(0),
+        "root-task",
+    )
+    .with_tool_execution_authority(authority)
 }
 
 impl RuntimeToolActionAdapter for BlockingPermissionAdapter {

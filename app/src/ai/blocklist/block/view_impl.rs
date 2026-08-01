@@ -687,6 +687,10 @@ pub fn render_citation(
             };
             (Some(icon), name)
         }
+        AIAgentCitation::PersonalMemory { .. } => {
+            let icon = Icon::Cognition.to_warpui_icon(theme.foreground()).finish();
+            (Some(icon), String::from("Personal Memory"))
+        }
     };
 
     // Shorten the name to 30 chars.
@@ -728,6 +732,14 @@ pub fn render_citation(
             .with_cursor(Cursor::PointingHand)
             .finish(),
     )
+}
+
+pub(super) fn fetched_memory_citation(
+    memory_store_id: String,
+    memory_id: String,
+    content: String,
+) -> AIAgentCitation {
+    AIAgentCitation::from_fetched_memory(memory_store_id, memory_id, content)
 }
 
 /// Renders the Ask-User-Question speedbump footer: a short description label, a

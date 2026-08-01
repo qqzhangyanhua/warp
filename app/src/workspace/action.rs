@@ -284,6 +284,10 @@ pub enum WorkspaceAction {
         search_query: String,
         section: Option<SettingsSection>,
     },
+    #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+    ShowPersonalMemoryRecord {
+        record_id: String,
+    },
     ShowThemeChooser(ThemeChooserMode),
     ShowThemeChooserForActiveTheme,
     IncreaseFontSize,
@@ -967,6 +971,8 @@ impl WorkspaceAction {
             | OpenVerticalTabsPanel => true, // actions that actually change a state of the state of user's
             // workspace would most likely require a save, so that if the app gets
             // restarted, the user can continue working
+            #[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+            ShowPersonalMemoryRecord { .. } => false,
             CopyVersion(_)
             | ConfigureKeybindingSettings { .. }
             | ExportAllWarpDriveObjects

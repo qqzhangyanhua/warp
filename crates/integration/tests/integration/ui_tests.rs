@@ -360,4 +360,6 @@ integration_tests! {
     test_rich_input_toggle_on_enter_inserts_newline_and_ctrl_enter_submits,
     // Regression: Enter must accept inline menus (not insert newline) when toggle=true
     test_rich_input_enter_accepts_menu_item_when_toggle_is_true,
+
+    test_personal_memory_remember_recall_and_open_source,
 }

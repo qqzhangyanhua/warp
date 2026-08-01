@@ -11,7 +11,10 @@ const supportsTextRuns =
   mode === "text-run-hang-cancel" ||
   mode === "text-run-hang-sync" ||
   mode === "text-run-tool" ||
-  mode === "text-run-read-tool";
+  mode === "text-run-read-tool" ||
+  mode === "text-run-personal-memory-create" ||
+  mode === "text-run-personal-memory-query" ||
+  mode === "text-run-personal-memory-gui";
 
 if (mode === "text-run-read-tool") {
   writeFileSync(join(observerDirectory, "runtime-tool.txt"), "runtime bridge file content");
@@ -40,6 +43,8 @@ if (mode === "hang-handshake") {
   let transcriptCandidate;
   let acceptedTranscript;
   let activeRun;
+  let activeCommitId;
+  let activeCommitResultRevision;
   for await (const line of createInterface({ input: process.stdin })) {
     const message = JSON.parse(line);
     if (!handshakeAccepted) {
@@ -140,21 +145,66 @@ if (mode === "hang-handshake") {
           status: "running",
         })}\n`,
       );
-      if (mode === "text-run-tool" || mode === "text-run-read-tool") {
-        const toolRequest =
-          mode === "text-run-read-tool"
-            ? {
+      if (
+        mode === "text-run-tool" ||
+        mode === "text-run-read-tool" ||
+        mode === "text-run-personal-memory-create" ||
+        mode === "text-run-personal-memory-query" ||
+        mode === "text-run-personal-memory-gui"
+      ) {
+        let toolRequest;
+        if (mode === "text-run-read-tool") {
+          toolRequest = {
                 tool_id: "builtin.read_files",
                 tool_name: "read_files",
                 arguments: {
                   files: [{ name: join(observerDirectory, "runtime-tool.txt"), line_ranges: [] }],
                 },
-              }
-            : {
+              };
+        } else if (mode === "text-run-personal-memory-create") {
+          toolRequest = {
+            tool_id: "personal_memory.create",
+            tool_name: "remember_personal_fact",
+            arguments: {
+              fact_text: "我的 GitHub 帐号是 zyh-work",
+              value_text: "zyh-work",
+              topic: "GitHub 帐号",
+            },
+          };
+        } else if (mode === "text-run-personal-memory-query") {
+          toolRequest = {
+            tool_id: "personal_memory.query",
+            tool_name: "recall_personal_memory",
+            arguments: { query_text: "GitHub 帐号" },
+          };
+        } else if (mode === "text-run-personal-memory-gui") {
+          const toolIds = new Set(message.configuration.tools.map((tool) => tool.id));
+          if (toolIds.has("personal_memory.create")) {
+            toolRequest = {
+              tool_id: "personal_memory.create",
+              tool_name: "remember_personal_fact",
+              arguments: {
+                fact_text: "我的管理员帐号是admin123",
+                value_text: "admin123",
+                topic: "管理员帐号",
+              },
+            };
+          } else if (toolIds.has("personal_memory.query")) {
+            toolRequest = {
+              tool_id: "personal_memory.query",
+              tool_name: "recall_personal_memory",
+              arguments: { query_text: "管理员帐号" },
+            };
+          } else {
+            process.exit(37);
+          }
+        } else {
+          toolRequest = {
                 tool_id: "builtin.run_shell_command",
                 tool_name: "run_shell_command",
                 arguments: { command: "pwd", wait_until_complete: true },
               };
+        }
         process.stdout.write(
           `${JSON.stringify({
             type: "run_status",
@@ -213,6 +263,8 @@ if (mode === "hang-handshake") {
         );
         activeRun = undefined;
       } else {
+        activeCommitId = "commit-run-2";
+        activeCommitResultRevision = message.transcript_revision + 1;
         process.stdout.write(
           `${JSON.stringify({
             type: "run_status",
@@ -227,7 +279,7 @@ if (mode === "hang-handshake") {
             conversation_id: message.conversation_id,
             run_id: message.run_id,
             event_id: `event-${message.run_id}`,
-            commit_id: "commit-run-2",
+            commit_id: activeCommitId,
             message_id: "assistant-run-2",
             expected_revision: message.transcript_revision,
             content: [{ type: "text", text }],
@@ -239,8 +291,8 @@ if (mode === "hang-handshake") {
     if (supportsTextRuns && message.type === "commit_result") {
       if (
         activeRun?.run_id !== message.run_id ||
-        message.commit_id !== "commit-run-2" ||
-        message.revision !== activeRun.transcript_revision + 1
+        message.commit_id !== activeCommitId ||
+        message.revision !== activeCommitResultRevision
       ) {
         process.exit(34);
       }
@@ -253,10 +305,16 @@ if (mode === "hang-handshake") {
         })}\n`,
       );
       activeRun = undefined;
+      activeCommitId = undefined;
+      activeCommitResultRevision = undefined;
       continue;
     }
     if (
-      (mode === "text-run-tool" || mode === "text-run-read-tool") &&
+      (mode === "text-run-tool" ||
+        mode === "text-run-read-tool" ||
+        mode === "text-run-personal-memory-create" ||
+        mode === "text-run-personal-memory-query" ||
+        mode === "text-run-personal-memory-gui") &&
       message.type === "tool_result"
     ) {
       if (
@@ -270,6 +328,45 @@ if (mode === "hang-handshake") {
         join(observerDirectory, "tool-results.jsonl"),
         `${JSON.stringify(message)}\n`,
       );
+      if (mode === "text-run-personal-memory-gui") {
+        const isCreate = activeRun.configuration.tools.some(
+          (tool) => tool.id === "personal_memory.create",
+        );
+        const text = isCreate ? "已记住管理员帐号：admin123" : "你的管理员帐号是 admin123";
+        const eventId = `event-${message.run_id}`;
+        activeCommitId = `commit-${message.run_id}`;
+        activeCommitResultRevision = activeRun.transcript_revision + 2;
+        process.stdout.write(
+          `${JSON.stringify({
+            type: "text_delta",
+            conversation_id: message.conversation_id,
+            run_id: message.run_id,
+            event_id: eventId,
+            delta: text,
+          })}\n`,
+        );
+        process.stdout.write(
+          `${JSON.stringify({
+            type: "run_status",
+            conversation_id: message.conversation_id,
+            run_id: message.run_id,
+            status: "waiting_for_commit",
+          })}\n`,
+        );
+        process.stdout.write(
+          `${JSON.stringify({
+            type: "assistant_message_commit",
+            conversation_id: message.conversation_id,
+            run_id: message.run_id,
+            event_id: eventId,
+            commit_id: activeCommitId,
+            message_id: `assistant-${message.run_id}`,
+            expected_revision: activeRun.transcript_revision + 1,
+            content: [{ type: "text", text }],
+          })}\n`,
+        );
+        continue;
+      }
       process.stdout.write(
         `${JSON.stringify({
           type: "run_finished",

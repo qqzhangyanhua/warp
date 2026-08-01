@@ -678,6 +678,7 @@ default = [
     "open_warp_new_settings_modes",
     "skip_firebase_anonymous_user",
     "settings_file",
+    "personal_memory",
     "directory_tab_colors",
     "git_credential_refresh",
     "oz_handoff",
@@ -1011,6 +1012,7 @@ open_code_notifications = []
 transfer_control_tool = []
 skip_firebase_anonymous_user = []
 pi_agent_runtime = []
+personal_memory = []
 custom_model_routers = []
 solo_user_byok = []
 billing_and_usage_page_v2 = []

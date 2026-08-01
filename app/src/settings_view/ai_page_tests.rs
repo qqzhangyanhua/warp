@@ -3,12 +3,21 @@ use warpui::platform::WindowStyle;
 use warpui::{App, SingletonEntity, TypedActionView};
 
 use super::{
-    derive_agent_attribution_toggle_state, AISettingsPageAction, AISettingsPageView,
+    derive_agent_attribution_toggle_state, AISettingsPageAction, AISettingsPageView, AISubpage,
     AgentAttributionToggleState,
 };
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+use crate::settings::AISettings;
+use crate::settings_view::SettingsSection;
 use crate::test_util::terminal::initialize_app_for_terminal_view;
 use crate::view_components::dropdown::DropdownAction;
 use crate::workspaces::workspace::AdminEnablementSetting;
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+use crate::{
+    ai::personal_memory::{CreatePersonalMemoryInput, PersonalMemoryService},
+    persistence::{setup_database, start_writer, ModelEvent},
+    GlobalResourceHandlesProvider,
+};
 
 #[test]
 fn clearing_voice_provider_does_not_circularly_update_ai_settings_view() {
@@ -43,6 +52,105 @@ fn clearing_voice_provider_does_not_circularly_update_ai_settings_view() {
                 .voice_transcription
                 .is_none());
         });
+    });
+}
+
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+#[test]
+fn personal_memory_section_selects_personal_memory_subpage() {
+    assert_eq!(
+        AISubpage::from_section(SettingsSection::PersonalMemory),
+        Some(AISubpage::PersonalMemory)
+    );
+}
+
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+#[test]
+fn personal_memory_toggle_updates_the_persisted_setting() {
+    App::test((), |mut app| async move {
+        initialize_app_for_terminal_view(&mut app);
+        let (_, page) = app.add_window(WindowStyle::NotStealFocus, AISettingsPageView::new);
+
+        page.update(&mut app, |page, ctx| {
+            page.handle_action(&AISettingsPageAction::TogglePersonalMemory, ctx);
+        });
+
+        app.read(|ctx| {
+            assert!(!*AISettings::as_ref(ctx).personal_memory_enabled);
+            assert!(!AISettings::as_ref(ctx).is_personal_memory_enabled(ctx));
+        });
+    });
+}
+
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+#[test]
+fn personal_memory_citation_focuses_the_requested_record() {
+    App::test((), |mut app| async move {
+        initialize_app_for_terminal_view(&mut app);
+        let (_, page) = app.add_window(WindowStyle::NotStealFocus, AISettingsPageView::new);
+
+        page.update(&mut app, |page, ctx| {
+            page.focus_personal_memory_record("record-2".to_string(), ctx);
+        });
+
+        page.read(&app, |page, _| {
+            assert_eq!(
+                page.personal_memory_focus_record_id.as_deref(),
+                Some("record-2")
+            );
+            assert_eq!(page.active_subpage, Some(AISubpage::PersonalMemory));
+        });
+    });
+}
+
+#[cfg(all(feature = "local_fs", feature = "personal_memory"))]
+#[test]
+fn personal_memory_subpage_loads_canonical_records_through_service() {
+    App::test((), |mut app| async move {
+        initialize_app_for_terminal_view(&mut app);
+        let tempdir = tempfile::tempdir().unwrap();
+        let database_path = tempdir.path().join("warp.sqlite");
+        let conn = setup_database(&database_path).unwrap();
+        let writer = start_writer(conn, database_path).unwrap();
+        app.update(|ctx| {
+            GlobalResourceHandlesProvider::handle(ctx).update(ctx, |provider, _| {
+                provider.set_model_event_sender_for_test(Some(writer.sender.clone()));
+            });
+        });
+        PersonalMemoryService::new(writer.sender.clone())
+            .create(CreatePersonalMemoryInput::exact(
+                "My GitHub account is zyh-work".to_string(),
+                "zyh-work".to_string(),
+                "GitHub account".to_string(),
+            ))
+            .await
+            .unwrap();
+
+        let (_, page) = app.add_window(WindowStyle::NotStealFocus, AISettingsPageView::new);
+        page.update(&mut app, |page, ctx| {
+            page.set_active_subpage(Some(AISubpage::PersonalMemory), ctx);
+        });
+        let mut loaded = false;
+        for _ in 0..20 {
+            loaded = page.read(&app, |page, _| {
+                matches!(
+                    &page.personal_memory_state,
+                    super::PersonalMemorySettingsState::Loaded(records)
+                        if records.len() == 1 && records[0].value_text == "zyh-work"
+                )
+            });
+            if loaded {
+                break;
+            }
+            warpui::r#async::Timer::after(std::time::Duration::from_millis(10)).await;
+        }
+
+        writer.sender.send(ModelEvent::Terminate).unwrap();
+        writer.handle.join().unwrap();
+        assert!(
+            loaded,
+            "Personal Memory settings did not load the canonical record"
+        );
     });
 }
 

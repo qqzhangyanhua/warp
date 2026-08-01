@@ -804,6 +804,9 @@ pub enum FeatureFlag {
     /// Routes eligible Local-only Interactive Agent Conversations through the Pi Agent Runtime.
     PiAgentRuntime,
 
+    /// Enables explicit, local Personal Memory tools and management surfaces.
+    PersonalMemory,
+
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 
@@ -1021,6 +1024,7 @@ pub const RELEASE_FLAGS: &[FeatureFlag] = &[
 pub const RUNTIME_FEATURE_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::LocalClaudeCodexChildHarnesses,
     FeatureFlag::PiAgentRuntime,
+    FeatureFlag::PersonalMemory,
 ];
 
 impl FeatureFlag {

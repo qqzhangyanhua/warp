@@ -106,6 +106,10 @@ struct Harness {
 
 impl Harness {
     fn new(default_decision: ToolPermissionDecision) -> Self {
+        Self::new_with_catalog(default_decision, ToolCatalog::initial(None).unwrap())
+    }
+
+    fn new_with_catalog(default_decision: ToolPermissionDecision, catalog: ToolCatalog) -> Self {
         let tempdir = tempfile::tempdir().unwrap();
         let database_path = tempdir.path().join("warp.sqlite");
         let mut conn = setup_database(&database_path).unwrap();
@@ -123,7 +127,6 @@ impl Harness {
             .unwrap();
         let writer = start_writer(conn, database_path.clone()).unwrap();
         let adapter = Arc::new(FakeAdapter::new(default_decision, database_path.clone()));
-        let catalog = ToolCatalog::initial(None).unwrap();
         let authority =
             ToolExecutionAuthority::new(catalog, adapter.clone(), writer.sender.clone());
         Self {
@@ -468,5 +471,7 @@ fn run_terminal_outcome(database_path: &Path, run_id: &str) -> Option<AgentRunti
 mod crash_boundary_tests;
 #[path = "tool_execution/crash_tests.rs"]
 mod crash_tests;
+#[path = "tool_execution/personal_memory_tests.rs"]
+mod personal_memory_tests;
 #[path = "tool_execution/recovery_tests.rs"]
 mod recovery_tests;

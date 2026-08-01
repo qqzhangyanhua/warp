@@ -31,6 +31,8 @@ use provider::selected_custom_provider;
 pub(crate) use provider::{validate_provider_configuration, validate_provider_inventory};
 use run_result::interrupted_message_ids;
 use ui_events::{add_message_action, append_message_action, RuntimeUiEvent, StreamedMessageKey};
+use warp_core::features::FeatureFlag;
+use warp_multi_agent_api as api;
 
 use super::configuration::{ReasoningEffort, RunConfiguration};
 use super::resources::ResourceSnapshotBuilder;
@@ -45,6 +47,7 @@ use crate::ai::agent::conversation::{AIConversation, AIConversationId, Conversat
 use crate::ai::agent::EntrypointType;
 use crate::ai::blocklist::{BlocklistAIActionModel, BlocklistAIHistoryModel, ResponseStreamId};
 use crate::persistence::ModelEvent;
+use crate::settings::AISettings;
 use crate::GlobalResourceHandlesProvider;
 
 const DEFAULT_CONTEXT_LIMIT: u64 = 200_000;
@@ -134,7 +137,7 @@ impl AgentRuntimeService {
         terminal_surface_id: EntityId,
         action_model: ModelHandle<BlocklistAIActionModel>,
         ctx: &mut ModelContext<Self>,
-    ) -> Result<(), RuntimeStartError> {
+    ) -> Result<String, RuntimeStartError> {
         let conversation_id = conversation.id();
         #[cfg(test)]
         {
@@ -143,8 +146,8 @@ impl AgentRuntimeService {
                 .entry(conversation_id)
                 .or_default() += 1;
 
-            if let Some(result) = &self.start_result_for_test {
-                return result.clone();
+            if let Some(Err(error)) = &self.start_result_for_test {
+                return Err(error.clone());
             }
         }
 
@@ -160,8 +163,24 @@ impl AgentRuntimeService {
             .ok_or(RuntimeStartError::MissingPersistence)?;
         let provider = selected_custom_provider(&request_params)
             .map_err(RuntimeStartError::MissingProvider)?;
-        let tool_catalog = ToolCatalog::initial(request_params.mcp_context.as_ref())
-            .map_err(|_| RuntimeStartError::InvalidRunConfiguration)?;
+        let initiating_user_text = conversation
+            .all_linearized_messages()
+            .into_iter()
+            .rev()
+            .find_map(|message| match message.message.as_ref() {
+                Some(api::message::Message::UserQuery(query)) => Some(query.query.as_str()),
+                _ => None,
+            });
+        let memory_capability = if FeatureFlag::PersonalMemory.is_enabled()
+            && AISettings::as_ref(ctx).is_personal_memory_enabled(ctx)
+        {
+            initiating_user_text.and_then(crate::ai::personal_memory::MemoryCapability::derive)
+        } else {
+            None
+        };
+        let tool_catalog =
+            ToolCatalog::for_user_input(request_params.mcp_context.as_ref(), memory_capability)
+                .map_err(|_| RuntimeStartError::InvalidRunConfiguration)?;
         let resources = ResourceSnapshotBuilder::default()
             .build(
                 conversation
@@ -203,6 +222,7 @@ impl AgentRuntimeService {
         )
         .map_err(|_| RuntimeStartError::TranscriptProjectionFailed)?;
         let run_id = self.next_run_id();
+        let output_id = run_id.clone();
         let is_explicit_retry = request_params.metadata.as_ref().is_some_and(|metadata| {
             metadata.entrypoint == EntrypointType::ResumeConversation
                 && !metadata.is_auto_resume_after_error
@@ -372,7 +392,7 @@ impl AgentRuntimeService {
             },
         );
 
-        Ok(())
+        Ok(output_id)
     }
 
     fn ensure_runtime_event_stream(&mut self, ctx: &mut ModelContext<Self>) {

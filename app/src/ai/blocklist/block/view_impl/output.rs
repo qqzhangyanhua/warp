@@ -48,9 +48,9 @@ use super::common::{
 use super::imported_comments::render_imported_comments;
 use super::todos::{render_completed_todo_items, render_todos};
 use super::{
-    add_highlights_to_rich_text, orchestration, render_autonomy_checkbox_setting_speedbump_footer,
-    render_citation_chips, WithContentItemSpacing, CONTENT_HORIZONTAL_PADDING,
-    CONTENT_ITEM_VERTICAL_MARGIN,
+    add_highlights_to_rich_text, fetched_memory_citation, orchestration,
+    render_autonomy_checkbox_setting_speedbump_footer, render_citation_chips,
+    WithContentItemSpacing, CONTENT_HORIZONTAL_PADDING, CONTENT_ITEM_VERTICAL_MARGIN,
 };
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::comment::ReviewComment;
@@ -1179,10 +1179,12 @@ pub(super) fn render(props: Props, app: &AppContext) -> Box<dyn Element> {
                         .into_iter()
                         .flat_map(|conv| conv.fetched_memories())
                         .filter(|m| !m.memory_store_id.is_empty() && !m.memory_id.is_empty())
-                        .map(|m| AIAgentCitation::AgentMemory {
-                            memory_store_id: m.memory_store_id.clone(),
-                            memory_id: m.memory_id.clone(),
-                            content: m.content.clone(),
+                        .map(|m| {
+                            fetched_memory_citation(
+                                m.memory_store_id.clone(),
+                                m.memory_id.clone(),
+                                m.content.clone(),
+                            )
                         })
                         .collect();
                     let all_citations: Vec<AIAgentCitation> = output

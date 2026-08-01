@@ -13,7 +13,7 @@ use warpui::{App, EntityId, ModelHandle, SingletonEntity};
 use super::{
     convert_persisted_conversation_to_ai_conversation_with_metadata, AIConversationMetadata,
     AIQueryHistoryOutputStatus, BeginConversationRenameError, BlocklistAIHistoryEvent,
-    BlocklistAIHistoryModel, PersistedAIInput, PersistedAIInputType,
+    BlocklistAIHistoryModel, PersistedAIInput, PersistedAIInputType, RuntimeTextRunFinish,
 };
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{
@@ -5488,6 +5488,156 @@ fn fork_conversation_inherits_runtime_binding() {
 }
 
 #[test]
+fn runtime_progress_without_assistant_output_preserves_visible_exchange_and_commits_revision() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_surface_id = EntityId::new();
+        let response_stream_id = ResponseStreamId::new_for_test();
+
+        history_model.update(&mut app, |history_model, ctx| {
+            let conversation_id =
+                history_model.start_new_conversation(terminal_surface_id, false, false, false, ctx);
+            let exchange = create_exchange_with_query("remember this", Local::now(), None);
+            let task_id = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .get_root_task_id()
+                .clone();
+            history_model
+                .update_conversation_for_new_request_input(
+                    RequestInput {
+                        conversation_id,
+                        input_messages: HashMap::from([(task_id.clone(), exchange.input)]),
+                        working_directory: exchange.working_directory,
+                        model_id: exchange.model_id,
+                        coding_model_id: exchange.coding_model_id,
+                        cli_agent_model_id: exchange.cli_agent_model_id,
+                        computer_use_model_id: exchange.computer_use_model_id,
+                        shared_session_response_initiator: exchange.response_initiator,
+                        request_start_ts: exchange.start_time,
+                        supported_tools_override: None,
+                    },
+                    response_stream_id.clone(),
+                    terminal_surface_id,
+                    ctx,
+                )
+                .expect("request input should initialize");
+            let visible_exchange_id = history_model
+                .conversation(&conversation_id)
+                .and_then(AIConversation::latest_exchange)
+                .expect("visible exchange should exist")
+                .id;
+            history_model.initialize_output_for_response_stream(
+                &response_stream_id,
+                conversation_id,
+                terminal_surface_id,
+                warp_multi_agent_api::response_event::StreamInit {
+                    request_id: "runtime-run".to_string(),
+                    conversation_id: conversation_id.to_string(),
+                    run_id: String::new(),
+                },
+                ctx,
+            );
+            history_model
+                .apply_client_actions(
+                    &response_stream_id,
+                    vec![warp_multi_agent_api::ClientAction {
+                        action: Some(warp_multi_agent_api::client_action::Action::CreateTask(
+                            warp_multi_agent_api::client_action::CreateTask {
+                                task: Some(create_api_task(
+                                    &task_id.to_string(),
+                                    vec![create_user_query_message(
+                                        "runtime-user",
+                                        &task_id.to_string(),
+                                        "runtime-run",
+                                        "remember this",
+                                    )],
+                                )),
+                            },
+                        )),
+                    }],
+                    conversation_id,
+                    terminal_surface_id,
+                    &ai::skills::SkillPathOrigin::Unavailable,
+                    ctx,
+                )
+                .expect("runtime task should initialize");
+            history_model
+                .apply_client_actions(
+                    &response_stream_id,
+                    vec![warp_multi_agent_api::ClientAction {
+                        action: Some(
+                            warp_multi_agent_api::client_action::Action::AddMessagesToTask(
+                                warp_multi_agent_api::client_action::AddMessagesToTask {
+                                    task_id: task_id.to_string(),
+                                    messages: vec![agent_output_message(
+                                        "runtime-delta:runtime-run:event-1",
+                                        &task_id.to_string(),
+                                        "runtime-run",
+                                        "visible progress",
+                                    )],
+                                },
+                            ),
+                        ),
+                    }],
+                    conversation_id,
+                    terminal_surface_id,
+                    &ai::skills::SkillPathOrigin::Unavailable,
+                    ctx,
+                )
+                .expect("runtime delta should apply");
+            let (_, conversation_data) = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .runtime_persistence_snapshot();
+            let task_id = task_id.to_string();
+
+            history_model.commit_runtime_text_run_progress(
+                conversation_id,
+                &response_stream_id,
+                terminal_surface_id,
+                conversation_data,
+                vec![create_api_task(
+                    &task_id,
+                    vec![create_user_query_message(
+                        "runtime-user",
+                        &task_id,
+                        "runtime-run",
+                        "remember this",
+                    )],
+                )],
+                1,
+                ctx,
+            );
+
+            let conversation = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist");
+            assert_eq!(conversation.runtime_transcript_revision(), 1);
+            let visible_exchange = conversation
+                .exchange_with_id(visible_exchange_id)
+                .expect("progress should preserve the visible exchange identity");
+            assert!(matches!(
+                visible_exchange.output_status,
+                AIAgentOutputStatus::Streaming { .. }
+            ));
+            let visible_output = visible_exchange
+                .output_status
+                .output()
+                .expect("progress should preserve the visible streaming output");
+            assert!(visible_output
+                .get()
+                .messages
+                .iter()
+                .any(|message| &*message.id == "runtime-delta:runtime-run:event-1"));
+        });
+    });
+}
+
+#[test]
 fn runtime_progress_commit_preserves_live_response_stream_for_later_delta() {
     App::test((), |mut app| async move {
         initialize_settings_for_tests(&mut app);
@@ -5651,6 +5801,109 @@ fn runtime_progress_commit_preserves_live_response_stream_for_later_delta() {
                 .all_linearized_messages()
                 .iter()
                 .any(|message| message.id == "runtime-delta:run-active:event-2"));
+        });
+    });
+}
+
+#[test]
+fn completed_runtime_run_preserves_the_visible_exchange_and_marks_it_complete() {
+    App::test((), |mut app| async move {
+        initialize_settings_for_tests(&mut app);
+        let global_resource_handles = GlobalResourceHandles::mock(&mut app);
+        app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
+        let history_model = app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
+        let terminal_surface_id = EntityId::new();
+        let response_stream_id = ResponseStreamId::new_for_test();
+
+        history_model.update(&mut app, |history_model, ctx| {
+            let conversation_id =
+                history_model.start_new_conversation(terminal_surface_id, false, false, false, ctx);
+            let exchange = create_exchange_with_query("remember this", Local::now(), None);
+            let task_id = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .get_root_task_id()
+                .clone();
+            history_model
+                .update_conversation_for_new_request_input(
+                    RequestInput {
+                        conversation_id,
+                        input_messages: HashMap::from([(task_id.clone(), exchange.input)]),
+                        working_directory: exchange.working_directory,
+                        model_id: exchange.model_id,
+                        coding_model_id: exchange.coding_model_id,
+                        cli_agent_model_id: exchange.cli_agent_model_id,
+                        computer_use_model_id: exchange.computer_use_model_id,
+                        shared_session_response_initiator: exchange.response_initiator,
+                        request_start_ts: exchange.start_time,
+                        supported_tools_override: None,
+                    },
+                    response_stream_id.clone(),
+                    terminal_surface_id,
+                    ctx,
+                )
+                .expect("request input should initialize");
+            let visible_exchange_id = history_model
+                .conversation(&conversation_id)
+                .and_then(AIConversation::latest_exchange)
+                .expect("visible exchange should exist")
+                .id;
+            history_model.initialize_output_for_response_stream(
+                &response_stream_id,
+                conversation_id,
+                terminal_surface_id,
+                warp_multi_agent_api::response_event::StreamInit {
+                    request_id: "runtime-run".to_string(),
+                    conversation_id: conversation_id.to_string(),
+                    run_id: String::new(),
+                },
+                ctx,
+            );
+            let (_, conversation_data) = history_model
+                .conversation(&conversation_id)
+                .expect("conversation should exist")
+                .runtime_persistence_snapshot();
+            let task_id = task_id.to_string();
+            let tasks = vec![create_api_task(
+                &task_id,
+                vec![
+                    create_user_query_message(
+                        "runtime-user",
+                        &task_id,
+                        "runtime-run",
+                        "remember this",
+                    ),
+                    agent_output_message("runtime-output", &task_id, "runtime-run", "remembered"),
+                    create_user_query_message(
+                        "trailing-user",
+                        &task_id,
+                        "trailing-run",
+                        "later request",
+                    ),
+                ],
+            )];
+
+            history_model.finish_runtime_text_run(
+                conversation_id,
+                &response_stream_id,
+                terminal_surface_id,
+                conversation_data,
+                tasks,
+                1,
+                RuntimeTextRunFinish::Success,
+                ctx,
+            );
+
+            let visible_exchange = history_model
+                .conversation(&conversation_id)
+                .and_then(|conversation| conversation.exchange_with_id(visible_exchange_id))
+                .expect("completed run should preserve the visible exchange identity");
+            assert!(matches!(
+                visible_exchange.output_status,
+                AIAgentOutputStatus::Finished {
+                    finished_output: FinishedAIAgentOutput::Success { .. }
+                }
+            ));
         });
     });
 }

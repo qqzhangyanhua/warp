@@ -70,6 +70,7 @@ use super::model::{
     MCP_SERVER_PANE_KIND, NOTEBOOK_PANE_KIND, SETTINGS_PANE_KIND, TERMINAL_PANE_KIND,
     WORKFLOW_PANE_KIND,
 };
+use super::personal_memory::{create_personal_memory, list_personal_memories};
 use super::{
     schema, BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, PersistedDataScope,
     PersistenceScope, StartedCommandMetadata, WriterHandles,
@@ -763,6 +764,16 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         }
         ModelEvent::ReadUnfinishedAgentToolExecutions(command) => {
             let result = read_unfinished_agent_tool_executions(connection, &command);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::CreatePersonalMemory(command) => {
+            let result = create_personal_memory(connection, &command);
+            let _ = command.acknowledgement.send(result);
+            Ok(())
+        }
+        ModelEvent::ListPersonalMemories(command) => {
+            let result = list_personal_memories(connection);
             let _ = command.acknowledgement.send(result);
             Ok(())
         }
