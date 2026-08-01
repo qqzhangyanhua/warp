@@ -1,0 +1,146 @@
+app/src/ai/blocklist/history_model_tests.rs
+  62faf9b82e57e85f 16,5491-5639,5808-5906
+app/src/settings_view/ai_page.rs
+  62faf9b82e57e85f 108-114,125-127,138-139,199-210,635-638,1951-1954,2851-2854,2970-2972,3676-3677,3848-3855
+app/src/ai/blocklist/block.rs
+  62faf9b82e57e85f 2186-2190,4275-4284
+app/src/ai/agent/conversation.rs
+  62faf9b82e57e85f 3615-3668,3675-3684,3687-3695,3702-3741,3751-3759
+app/src/workspace/action.rs
+  62faf9b82e57e85f 287-290,974-975
+crates/ai/src/agent/citation.rs
+  62faf9b82e57e85f 5-6,26-28,31-51,73-75,109-112
+tools/warp-bridge/test/text-runtime-tools.test.ts
+  62faf9b82e57e85f 23-91
+app/src/ai/blocklist/history_model.rs
+  62faf9b82e57e85f 318-320,327,329-330,333-337,344,2057,2067-2069,2071-2091,2093-2095,2097,2099-2114
+app/src/ai/agent/runtime/service.rs
+  62faf9b82e57e85f 34-35,50,140,149-150,166-183,225,395
+app/src/ai/personal_memory/mod.rs
+  62faf9b82e57e85f 1-174
+app/src/settings_view/ai_page/personal_memory_toggle.rs
+  62faf9b82e57e85f 1-40
+app/src/integration_testing/agent_mode/personal_memory.rs
+  62faf9b82e57e85f 1-248
+app/src/ai/agent/runtime/service/run_result.rs
+  62faf9b82e57e85f 52
+app/src/ai/agent/runtime/tool_catalog.rs
+  62faf9b82e57e85f 8,13,15-20,32-38,73-79,98,114-116,120-128,148-164
+app/src/ai/personal_memory/personal_memory_tests.rs
+  62faf9b82e57e85f 1-81
+tools/warp-bridge/test/supervisor-fake-bridge.mjs
+  62faf9b82e57e85f 14-17,46-47,148-157,163-202,207,266-267,282,294-295,308-309,313-317,331-369
+app/src/persistence/sqlite.rs
+  62faf9b82e57e85f 73,770-776
+app/src/persistence/personal_memory_migration_tests.rs
+  62faf9b82e57e85f 1-99
+app/src/ai/blocklist/block/view_impl.rs
+  62faf9b82e57e85f 690-693,737-742
+app/src/ai/agent/telemetry_tests.rs
+  62faf9b82e57e85f 1-18
+app/src/persistence/personal_memory_tests.rs
+  62faf9b82e57e85f 1-72
+app/src/ai/personal_memory/capability.rs
+  62faf9b82e57e85f 1-65
+app/src/i18n/table.rs
+  62faf9b82e57e85f 32-39,4514-4521,8638-8648,8683-8692,8714-8721
+app/src/ai/agent/runtime/tool_run_integration_tests.rs
+  62faf9b82e57e85f 11,30,55-241
+app/src/settings_view/mod.rs
+  62faf9b82e57e85f 255,287,326-328,361,399-400,435,475,652,1493-1497,1500,1544-1549,2060-2072,2193-2202
+crates/warp_features/src/lib.rs
+  62faf9b82e57e85f 807-809,1027
+crates/integration/src/test/personal_memory.rs
+  62faf9b82e57e85f 1-94
+app/src/features.rs
+  62faf9b82e57e85f 475-476
+tools/warp-bridge/src/text-runtime.ts
+  62faf9b82e57e85f 196-203,373-384,386-389
+crates/persistence/migrations/2026-07-30-000000_create_personal_memory/down.sql
+  62faf9b82e57e85f 1-5
+app/src/ai/mod.rs
+  62faf9b82e57e85f 57-58
+app/src/ai/agent/runtime/tool_execution_tests.rs
+  62faf9b82e57e85f 109-112,474-475
+app/src/settings/ai.rs
+  62faf9b82e57e85f 1265-1274,1884-1885
+crates/ai/src/agent/citation_tests.rs
+  62faf9b82e57e85f 1-36
+crates/integration/src/test.rs
+  62faf9b82e57e85f 22,71
+app/src/workspace/view.rs
+  62faf9b82e57e85f 21044-21046,21911-21916
+crates/persistence/migrations/2026-07-30-000000_create_personal_memory/up.sql
+  62faf9b82e57e85f 1-37
+app/src/integration_testing/agent_mode/mod.rs
+  62faf9b82e57e85f 3,13
+app/src/settings_view/ai_page/personal_memory_settings.rs
+  62faf9b82e57e85f 1-247
+app/src/settings_view/mod_tests.rs
+  62faf9b82e57e85f 62,123-125,221-235,347-348,393-395,451-453,952,969,1186-1188
+app/src/ai/personal_memory/capability_tests.rs
+  62faf9b82e57e85f 1-37
+app/src/ai/agent/runtime/tool_execution/personal_memory_tests.rs
+  62faf9b82e57e85f 1-138
+app/Cargo.toml
+  62faf9b82e57e85f 681,1015
+app/src/ai/agent/runtime/tool_catalog_tests.rs
+  62faf9b82e57e85f 6,8,10,61-164
+crates/persistence/src/schema.rs
+  62faf9b82e57e85f 365-379
+app/src/i18n/message.rs
+  62faf9b82e57e85f 23-30
+app/src/ai/blocklist/controller.rs
+  62faf9b82e57e85f 2702-2731
+app/src/settings_view/ai_page_tests.rs
+  62faf9b82e57e85f 6,9-11,15-20,58-118,120-153
+app/src/persistence/mod.rs
+  62faf9b82e57e85f 8,35-38,464-467
+crates/integration/src/bin/integration.rs
+  62faf9b82e57e85f 487-488
+app/src/ai/personal_memory/types.rs
+  62faf9b82e57e85f 1-102
+app/src/ai/agent/telemetry.rs
+  62faf9b82e57e85f 44,49-51
+crates/ai/src/agent/mod.rs
+  62faf9b82e57e85f 8
+app/src/persistence/personal_memory.rs
+  62faf9b82e57e85f 1-172
+app/src/ai/agent/runtime/tool_catalog/personal_memory.rs
+  62faf9b82e57e85f 1-98
+app/src/ai/blocklist/block/view_impl/output.rs
+  62faf9b82e57e85f 51-53,1182-1187
+app/src/terminal/view.rs
+  62faf9b82e57e85f 20324-20331
+crates/integration/tests/integration/ui_tests.rs
+  62faf9b82e57e85f 363-364
+app/src/ai/agent/runtime/tool_execution.rs
+  62faf9b82e57e85f 11,20,29-31,181,191-198,293,388-403,411,421-426
+app/src/ai/agent/runtime/tool_execution/personal_memory.rs
+  62faf9b82e57e85f 1-171
+app/src/ai/agent/runtime/tool_execution/messages.rs
+  62faf9b82e57e85f 26-35,44-46
+app/src/integration_testing/agent_mode/step.rs
+  62faf9b82e57e85f 25,38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "90b98054a1a92078b7ec07095a14d4895d6e7422",
+  "prompts": {
+    "62faf9b82e57e85f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fbb4b-731f-7fc3-86e6-ad62ce87be51",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "张艳华",
+      "messages": [],
+      "total_additions": 3524,
+      "total_deletions": 147,
+      "accepted_lines": 3524,
+      "overriden_lines": 0,
+      "messages_url": "https://gitai.tongbaninfo.com/cas/0f344500e9aa5e9e14654e6ca9d72fa28b123649f69b6cf22e13741ffcd34e6e"
+    }
+  }
+}
