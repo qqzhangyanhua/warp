@@ -10,7 +10,8 @@
 pub const HOSTED_SEMANTIC_INDEXING_REMOVED: bool = true;
 
 /// User-facing guidance when an Agent requests built-in semantic code search.
-pub const SEMANTIC_SEARCH_REMOVED_GUIDANCE: &str = "Built-in semantic code search is no longer available. \
+pub const SEMANTIC_SEARCH_REMOVED_GUIDANCE: &str =
+    "Built-in semantic code search is no longer available. \
 Use local file search (tree, outline, grep, or ripgrep), SSH-side search on the connected host, \
 or an explicitly configured MCP search tool.";
 

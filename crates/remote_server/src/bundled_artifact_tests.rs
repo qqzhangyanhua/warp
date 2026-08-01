@@ -71,10 +71,8 @@ fn parse_and_validate_complete_manifest() {
 
 #[test]
 fn reject_wrong_protocol_identity() {
-    let json = valid_manifest_json(&sha256_hex(b"x"), 1).replace(
-        REMOTE_DAEMON_PROTOCOL_IDENTITY,
-        "warp-remote-daemon/1",
-    );
+    let json = valid_manifest_json(&sha256_hex(b"x"), 1)
+        .replace(REMOTE_DAEMON_PROTOCOL_IDENTITY, "warp-remote-daemon/1");
     match parse_manifest(json.as_bytes()) {
         Err(BundledArtifactError::ProtocolIdentity { expected, found }) => {
             assert_eq!(expected, REMOTE_DAEMON_PROTOCOL_IDENTITY);
@@ -110,10 +108,7 @@ fn reject_missing_required_target() {
 fn reject_path_escape() {
     let digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     let mut json = valid_manifest_json(digest, 1);
-    json = json.replace(
-        "linux-x86_64/zyh-remote-daemon.tar.gz",
-        "../escape.tar.gz",
-    );
+    json = json.replace("linux-x86_64/zyh-remote-daemon.tar.gz", "../escape.tar.gz");
     match parse_manifest(json.as_bytes()) {
         Err(BundledArtifactError::PathEscapesRoot { path }) => {
             assert!(path.contains(".."));
@@ -126,8 +121,8 @@ fn reject_path_escape() {
 fn select_entry_for_remote_platform() {
     let bytes = b"daemon-bytes";
     let digest = sha256_hex(bytes);
-    let manifest = parse_manifest(valid_manifest_json(&digest, bytes.len() as u64).as_bytes())
-        .unwrap();
+    let manifest =
+        parse_manifest(valid_manifest_json(&digest, bytes.len() as u64).as_bytes()).unwrap();
     let (target, entry) =
         select_artifact_entry(&manifest, &platform(RemoteOs::Linux, RemoteArch::Aarch64)).unwrap();
     assert_eq!(target, "linux-aarch64");
@@ -138,8 +133,8 @@ fn select_entry_for_remote_platform() {
 fn verify_bytes_accepts_matching_digest_and_size() {
     let bytes = b"daemon-bytes";
     let digest = sha256_hex(bytes);
-    let manifest = parse_manifest(valid_manifest_json(&digest, bytes.len() as u64).as_bytes())
-        .unwrap();
+    let manifest =
+        parse_manifest(valid_manifest_json(&digest, bytes.len() as u64).as_bytes()).unwrap();
     let (target, entry) =
         select_artifact_entry(&manifest, &platform(RemoteOs::MacOs, RemoteArch::X86_64)).unwrap();
     verify_artifact_bytes(target, entry, bytes).unwrap();
@@ -149,12 +144,14 @@ fn verify_bytes_accepts_matching_digest_and_size() {
 fn verify_bytes_rejects_digest_mismatch() {
     let bytes = b"daemon-bytes";
     let digest = sha256_hex(bytes);
-    let manifest = parse_manifest(valid_manifest_json(&digest, bytes.len() as u64).as_bytes())
-        .unwrap();
+    let manifest =
+        parse_manifest(valid_manifest_json(&digest, bytes.len() as u64).as_bytes()).unwrap();
     let (target, entry) =
         select_artifact_entry(&manifest, &platform(RemoteOs::MacOs, RemoteArch::X86_64)).unwrap();
     match verify_artifact_bytes(target, entry, b"tampered") {
-        Err(BundledArtifactError::SizeMismatch { .. } | BundledArtifactError::DigestMismatch { .. }) => {}
+        Err(
+            BundledArtifactError::SizeMismatch { .. } | BundledArtifactError::DigestMismatch { .. },
+        ) => {}
         other => panic!("expected size or digest mismatch, got {other:?}"),
     }
 }
@@ -217,11 +214,8 @@ fn resolve_verified_artifact_from_disk() {
     )
     .unwrap();
 
-    let verified = resolve_verified_artifact(
-        &tmp,
-        &platform(RemoteOs::Linux, RemoteArch::X86_64),
-    )
-    .expect("verified artifact");
+    let verified = resolve_verified_artifact(&tmp, &platform(RemoteOs::Linux, RemoteArch::X86_64))
+        .expect("verified artifact");
     assert_eq!(verified.target, "linux-x86_64");
     assert_eq!(verified.size, size);
     assert_eq!(verified.sha256, digest);
@@ -255,20 +249,14 @@ fn resolve_verified_artifact_fails_on_digest_mismatch() {
     )
     .unwrap();
 
-    let err = resolve_verified_artifact(
-        &tmp,
-        &platform(RemoteOs::MacOs, RemoteArch::Aarch64),
-    )
-    .unwrap_err();
+    let err = resolve_verified_artifact(&tmp, &platform(RemoteOs::MacOs, RemoteArch::Aarch64))
+        .unwrap_err();
     assert!(matches!(err, BundledArtifactError::DigestMismatch { .. }));
 }
 
 #[cfg(unix)]
 fn tempfile_dir() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "zyh-remote-daemon-test-{}",
-        uuid::Uuid::new_v4()
-    ));
+    let dir = std::env::temp_dir().join(format!("zyh-remote-daemon-test-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }

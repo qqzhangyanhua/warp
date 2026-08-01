@@ -19,8 +19,14 @@ fn retained_local_version_and_diagnostics_export() {
 
 #[test]
 fn guidance_forbids_background_update_and_upload() {
-    assert!(autoupdate_unavailable_message().contains("manually") || autoupdate_unavailable_message().contains("Automatic"));
-    assert!(upload_unavailable_message().contains("not uploaded") || upload_unavailable_message().contains("local diagnostics"));
+    assert!(
+        autoupdate_unavailable_message().contains("manually")
+            || autoupdate_unavailable_message().contains("Automatic")
+    );
+    assert!(
+        upload_unavailable_message().contains("not uploaded")
+            || upload_unavailable_message().contains("local diagnostics")
+    );
     assert!(voice_unavailable_message().contains("Voice"));
     assert!(wasm_product_unavailable_message().contains("desktop"));
 }

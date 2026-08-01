@@ -133,12 +133,7 @@ pub fn legacy_command_alias_rejected_message(name: &str) -> String {
 }
 
 /// Cloud/account deep-link hosts that must not be accepted as product actions.
-pub const FORBIDDEN_CLOUD_URI_HOSTS: &[&str] = &[
-    "shared_session",
-    "drive",
-    "team",
-    "auth",
-];
+pub const FORBIDDEN_CLOUD_URI_HOSTS: &[&str] = &["shared_session", "drive", "team", "auth"];
 
 pub fn is_forbidden_cloud_uri_host(host: &str) -> bool {
     FORBIDDEN_CLOUD_URI_HOSTS

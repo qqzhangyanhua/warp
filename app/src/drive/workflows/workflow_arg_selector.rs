@@ -271,7 +271,9 @@ impl WorkflowArgSelector {
         ctx: &mut ViewContext<Self>,
     ) {
         if let Some(id) = id {
-            self.base_selection = ArgumentType::Enum { enum_id: sync_id_to_object_ref(id) };
+            self.base_selection = ArgumentType::Enum {
+                enum_id: sync_id_to_object_ref(id),
+            };
         } else {
             self.base_selection = ArgumentType::Text;
         }

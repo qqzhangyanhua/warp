@@ -28,7 +28,6 @@ pub(crate) mod block_context;
 pub(crate) mod blocklist;
 #[cfg(any(feature = "local_fs", not(target_family = "wasm")))]
 pub(crate) mod codebase_auto_indexing;
-pub(crate) mod semantic_indexing_removal;
 pub mod control_code_parser;
 pub(crate) mod conversation_details_panel;
 pub(crate) mod conversation_navigation;
@@ -43,6 +42,7 @@ pub(crate) mod document;
 #[allow(dead_code)]
 pub mod geap_credentials;
 pub(crate) mod get_relevant_files;
+pub(crate) mod semantic_indexing_removal;
 // TODO(issue #23): Remove with the legacy hosted harness availability model.
 #[allow(dead_code)]
 pub mod harness_availability;

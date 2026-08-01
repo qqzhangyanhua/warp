@@ -26,10 +26,7 @@ fn first_save_writes_markdown_atomically() {
     assert_eq!(notebook.path, path);
     assert_eq!(notebook.content, content);
     assert_eq!(fs::read_to_string(&path).unwrap(), content);
-    assert_eq!(
-        content_hash(&path).unwrap().unwrap(),
-        notebook.content_hash
-    );
+    assert_eq!(content_hash(&path).unwrap().unwrap(), notebook.content_hash);
 
     #[cfg(unix)]
     {
@@ -157,6 +154,9 @@ fn save_notebook_any_is_available_but_bound_api_requires_hash() {
     let path = temp.path().join("any.md");
     first_save(&path, "a\n").unwrap();
     let hash = save_notebook(&path, "b\n", ExpectedContent::Any).unwrap();
-    assert_eq!(save_bound(&path, "c\n", hash).unwrap(), content_hash(&path).unwrap().unwrap());
+    assert_eq!(
+        save_bound(&path, "c\n", hash).unwrap(),
+        content_hash(&path).unwrap().unwrap()
+    );
     assert_eq!(fs::read_to_string(&path).unwrap(), "c\n");
 }

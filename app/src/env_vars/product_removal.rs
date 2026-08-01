@@ -25,9 +25,7 @@ pub enum StaleEvcRestoreOutcome {
 ///
 /// Never requires CloudModel or UpdateManager. Always fail closed while EVC is
 /// removed from the product.
-pub fn evaluate_stale_evc_restore(
-    _env_var_collection_id_present: bool,
-) -> StaleEvcRestoreOutcome {
+pub fn evaluate_stale_evc_restore(_env_var_collection_id_present: bool) -> StaleEvcRestoreOutcome {
     debug_assert!(EVC_PRODUCT_REMOVED);
     StaleEvcRestoreOutcome::Unsupported {
         message: EVC_REMOVED_GUIDANCE,

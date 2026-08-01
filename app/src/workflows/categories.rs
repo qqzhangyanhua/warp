@@ -490,8 +490,12 @@ impl CategoriesView {
     pub fn load_cloud_workflows(&mut self, ctx: &mut ViewContext<Self>) {
         // Retained product: Personal/Team cloud collections are not part of the
         // local YAML Workflow lifecycle. Clear any previously cached cloud rows.
-        self.workflows_by_source
-            .retain(|source, _| !matches!(source, WorkflowSource::PersonalCloud | WorkflowSource::Team { .. }));
+        self.workflows_by_source.retain(|source, _| {
+            !matches!(
+                source,
+                WorkflowSource::PersonalCloud | WorkflowSource::Team { .. }
+            )
+        });
         self.selected_workflow_index = 0;
         self.compute_active_workflows(ctx);
         ctx.notify();

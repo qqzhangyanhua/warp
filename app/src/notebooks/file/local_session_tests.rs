@@ -42,7 +42,10 @@ fn bound_clean_save_requires_expected_hash() {
         }
     );
     assert_eq!(
-        session.document_path_for_relative_content().unwrap().as_os_str(),
+        session
+            .document_path_for_relative_content()
+            .unwrap()
+            .as_os_str(),
         "/docs/a.md"
     );
 }
@@ -110,7 +113,10 @@ fn apply_save_conflict_blocks_until_refresh() {
     session.mark_edited();
     session.apply_save_conflict();
     assert!(session.has_conflict());
-    assert!(matches!(session.save_plan(), SavePlan::BlockedByConflict { .. }));
+    assert!(matches!(
+        session.save_plan(),
+        SavePlan::BlockedByConflict { .. }
+    ));
 
     let disk = hash_of(b"disk");
     session.apply_refresh(disk);

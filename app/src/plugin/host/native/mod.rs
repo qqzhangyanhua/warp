@@ -91,8 +91,8 @@ pub fn run() -> Result<()> {
 /// Plugins load from the application home (for example `~/.zyh/plugins`) without
 /// Account or cloud state. Marketplace and background download are not used.
 fn plugin_paths() -> Vec<PathBuf> {
-    let Some(plugins_dir) = crate::ai::skills::local_plugins_dir()
-        .or_else(warp_core::paths::warp_home_plugins_dir)
+    let Some(plugins_dir) =
+        crate::ai::skills::local_plugins_dir().or_else(warp_core::paths::warp_home_plugins_dir)
     else {
         return Vec::new();
     };

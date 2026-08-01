@@ -1086,14 +1086,18 @@ fn render_header(
             );
             row.add_child(Container::new(keycap).with_margin_left(4.).finish());
             row.add_child(
-                Text::new(tr_cached(Message::QueuedPromptToSend), ui_font_family, ui_font_size)
-                    .with_style(Properties {
-                        style: Style::Normal,
-                        weight: Weight::Normal,
-                    })
-                    .with_color(sub_text_color)
-                    .with_selectable(false)
-                    .finish(),
+                Text::new(
+                    tr_cached(Message::QueuedPromptToSend),
+                    ui_font_family,
+                    ui_font_size,
+                )
+                .with_style(Properties {
+                    style: Style::Normal,
+                    weight: Weight::Normal,
+                })
+                .with_color(sub_text_color)
+                .with_selectable(false)
+                .finish(),
             );
         }
         let row = row.finish();

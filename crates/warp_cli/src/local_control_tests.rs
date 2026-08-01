@@ -27,9 +27,8 @@ fn parses_typed_create_and_setting_list_params() {
     assert_eq!(args.shell.as_deref(), Some("zsh"));
     assert_eq!(args.target.session.as_deref(), Some("session_1"));
 
-    let args =
-        ControlArgs::try_parse_from(["zyhctrl", "setting", "list", "--namespace", "editor"])
-            .expect("setting list parses");
+    let args = ControlArgs::try_parse_from(["zyhctrl", "setting", "list", "--namespace", "editor"])
+        .expect("setting list parses");
     let ControlCommand::Setting(SettingCommand::List(args)) = args.command else {
         panic!("expected setting list command");
     };
@@ -100,8 +99,8 @@ fn rejects_excluded_command_routes() {
 
 #[test]
 fn parses_first_slice_instance_list() {
-    let args = ControlArgs::try_parse_from(["zyhctrl", "instance", "list"])
-        .expect("instance list parses");
+    let args =
+        ControlArgs::try_parse_from(["zyhctrl", "instance", "list"]).expect("instance list parses");
     assert!(matches!(
         args.command,
         ControlCommand::Instance(InstanceCommand::List)

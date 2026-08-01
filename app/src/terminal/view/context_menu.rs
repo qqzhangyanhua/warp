@@ -1,8 +1,6 @@
 use warp_core::send_telemetry_from_ctx;
 use warpui::{SingletonEntity, UpdateView};
 
-use crate::i18n::{tr_cached, Message};
-
 use super::{
     fork_label_for_query, mark_feature_used_and_write_to_user_defaults, terminal_menu_fields,
     terminal_menu_text, AIAgentExchangeId, AIConversationId, AgentModeRewindEntrypoint, AppContext,
@@ -12,6 +10,7 @@ use super::{
     ServerConversationToken, ServerOutputId, TelemetryEvent, TerminalAction, TerminalModel,
     TerminalView, Tip, TipHint, Vector2F, ViewContext, CONTEXT_MENU_WIDTH,
 };
+use crate::i18n::{tr_cached, Message};
 
 impl TerminalView {
     pub(super) fn ai_block_copying_menu_items(

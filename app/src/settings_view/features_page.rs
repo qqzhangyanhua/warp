@@ -39,9 +39,8 @@ use super::settings_page::render_sub_sub_header;
 use super::settings_page::{
     add_setting, build_reset_button, build_toggle_element, render_body_item,
     render_body_item_label, render_dropdown_item, render_dropdown_item_label, AdditionalInfo,
-    Category, LocalOnlyIconState, MatchData, PageType,
-    SettingsPageMeta, SettingsPageViewHandle, SettingsWidget, ToggleState, CONTENT_FONT_SIZE,
-    HEADER_PADDING, TOGGLE_BUTTON_RIGHT_PADDING,
+    Category, LocalOnlyIconState, MatchData, PageType, SettingsPageMeta, SettingsPageViewHandle,
+    SettingsWidget, ToggleState, CONTENT_FONT_SIZE, HEADER_PADDING, TOGGLE_BUTTON_RIGHT_PADDING,
 };
 use super::{
     features, flags, render_beta_chip, DisplayCount, SettingsAction, SettingsSection,
@@ -66,17 +65,17 @@ use crate::settings::native_preference::{NativePreferenceSettings, UserNativePre
 use crate::settings::{
     AISettingsChangedEvent, AliasExpansionEnabled, AliasExpansionSettings, AppEditorSettings,
     AtContextMenuInTerminalMode, AutocompleteSymbols, AutosuggestionKeybindingHint,
-    ChangelogSettings, CodeEditorLineNumberMode,
-    CodeEditorLineNumberModeSetting, CodeSettings, CommandCorrections, CompletionsOpenWhileTyping,
-    CopyOnSelect, CtrlTabBehavior, DefaultSessionMode, EnableSlashCommandsInTerminal,
-    ErrorUnderliningEnabled, ExtraMetaKeys, GPUSettings, GlobalHotkeyMode, InputSettings,
-    InputSettingsChangedEvent, LinuxSelectionClipboard, MiddleClickPasteEnabled,
-    MouseScrollMultiplier, OutlineCodebaseSymbolsForAtContextMenu, PreferLowPowerGPU,
-    PreferredGraphicsBackend, QuakeModeSettings, ScrollSettings, ScrollSettingsChangedEvent,
-    SelectionSettings, ShowAutosuggestionIgnoreButton, ShowChangelogAfterUpdate,
-    ShowTerminalInputMessageBar, SshSettings, SyntaxHighlighting, TabBehavior,
-    UserNativeRedirectPreference, VimModeEnabled, VimStatusBar, VimUnnamedSystemClipboard,
-    DEFAULT_QUAKE_MODE_SIZE_PERCENTAGES, QUAKE_WINDOW_AUTOHIDE_SUPPORTED,
+    ChangelogSettings, CodeEditorLineNumberMode, CodeEditorLineNumberModeSetting, CodeSettings,
+    CommandCorrections, CompletionsOpenWhileTyping, CopyOnSelect, CtrlTabBehavior,
+    DefaultSessionMode, EnableSlashCommandsInTerminal, ErrorUnderliningEnabled, ExtraMetaKeys,
+    GPUSettings, GlobalHotkeyMode, InputSettings, InputSettingsChangedEvent,
+    LinuxSelectionClipboard, MiddleClickPasteEnabled, MouseScrollMultiplier,
+    OutlineCodebaseSymbolsForAtContextMenu, PreferLowPowerGPU, PreferredGraphicsBackend,
+    QuakeModeSettings, ScrollSettings, ScrollSettingsChangedEvent, SelectionSettings,
+    ShowAutosuggestionIgnoreButton, ShowChangelogAfterUpdate, ShowTerminalInputMessageBar,
+    SshSettings, SyntaxHighlighting, TabBehavior, UserNativeRedirectPreference, VimModeEnabled,
+    VimStatusBar, VimUnnamedSystemClipboard, DEFAULT_QUAKE_MODE_SIZE_PERCENTAGES,
+    QUAKE_WINDOW_AUTOHIDE_SUPPORTED,
 };
 use crate::terminal::alt_screen_reporting::{
     AltScreenReporting, FocusReportingEnabled, MouseReportingEnabled, ScrollReportingEnabled,

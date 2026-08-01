@@ -238,10 +238,8 @@ fn upsert_with_stale_expected_after_external_edit_fails_and_preserves_disk() {
     )
     .unwrap();
 
-    let incoming = parse_servers_from_user_json(
-        r#"{ "mcpServers": { "b": { "command": "ls" } } }"#,
-    )
-    .unwrap();
+    let incoming =
+        parse_servers_from_user_json(r#"{ "mcpServers": { "b": { "command": "ls" } } }"#).unwrap();
     let err = document.upsert_servers(incoming, expected).unwrap_err();
     assert!(matches!(err, LocalMcpConfigError::Conflict { .. }));
 
@@ -250,7 +248,10 @@ fn upsert_with_stale_expected_after_external_edit_fails_and_preserves_disk() {
         on_disk.contains("external") && on_disk.contains("cat"),
         "stale upsert must not clobber external content: {on_disk}"
     );
-    assert!(!on_disk.contains("\"b\""), "stale upsert must not write: {on_disk}");
+    assert!(
+        !on_disk.contains("\"b\""),
+        "stale upsert must not write: {on_disk}"
+    );
 }
 
 #[test]
@@ -317,7 +318,10 @@ fn merge_secrets_overwrites_same_namespaced_key() {
         value: "new".to_owned(),
     }];
     let merged = merge_secrets(&existing, &extracted);
-    assert_eq!(merged.get("svc/env/API_KEY").map(String::as_str), Some("new"));
+    assert_eq!(
+        merged.get("svc/env/API_KEY").map(String::as_str),
+        Some("new")
+    );
 }
 
 #[test]
@@ -333,8 +337,14 @@ fn secrets_from_different_servers_do_not_collide() {
     .unwrap();
     let redacted = redact_server_map(servers).unwrap();
     let merged = merge_secrets(&HashMap::new(), &redacted.secrets);
-    assert_eq!(merged.get("alpha/env/API_KEY").map(String::as_str), Some("secret-a"));
-    assert_eq!(merged.get("beta/env/API_KEY").map(String::as_str), Some("secret-b"));
+    assert_eq!(
+        merged.get("alpha/env/API_KEY").map(String::as_str),
+        Some("secret-a")
+    );
+    assert_eq!(
+        merged.get("beta/env/API_KEY").map(String::as_str),
+        Some("secret-b")
+    );
 
     let on_disk = serde_json::to_string_pretty(&serde_json::json!({
         "mcpServers": redacted.servers

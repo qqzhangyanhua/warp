@@ -77,18 +77,14 @@ impl SshRemoteServerChoiceView {
             KeyboardNavigableButtons::new(vec![
                 rich_navigation_button(
                     tr_cached(Message::SshInstallZyhExtension).to_string(),
-                    Some(
-                        tr_cached(Message::SshInstallExtensionDescription).to_string(),
-                    ),
+                    Some(tr_cached(Message::SshInstallExtensionDescription).to_string()),
                     /* recommended */ true,
                     MouseStateHandle::default(),
                     SshRemoteServerChoiceViewAction::Install,
                 ),
                 rich_navigation_button(
                     tr_cached(Message::SshContinueWithoutInstalling).to_string(),
-                    Some(
-                        tr_cached(Message::SshContinueWithoutDescription).to_string(),
-                    ),
+                    Some(tr_cached(Message::SshContinueWithoutDescription).to_string()),
                     /* recommended */ false,
                     MouseStateHandle::default(),
                     SshRemoteServerChoiceViewAction::Skip,

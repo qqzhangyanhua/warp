@@ -1,6 +1,7 @@
 use super::{
     evaluate_stale_evc_restore, may_expose_evc_in_ui, may_open_or_create_evc,
-    unsupported_evc_error_message, EVC_PRODUCT_REMOVED, EVC_REMOVED_GUIDANCE, StaleEvcRestoreOutcome,
+    unsupported_evc_error_message, StaleEvcRestoreOutcome, EVC_PRODUCT_REMOVED,
+    EVC_REMOVED_GUIDANCE,
 };
 
 #[test]

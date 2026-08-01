@@ -329,8 +329,10 @@ fn compute_workflow_display_data_internal(
             );
 
         if let ArgumentType::Enum { enum_id } = workflow_argument.argument_type {
-            argument_index_to_object_id_map
-                .insert(workflow_argument.argument_index, object_ref_to_sync_id(enum_id));
+            argument_index_to_object_id_map.insert(
+                workflow_argument.argument_index,
+                object_ref_to_sync_id(enum_id),
+            );
         }
     }
 

@@ -63,11 +63,11 @@ pub mod gallery;
 pub use gallery::MCPGalleryManager;
 pub mod templatable;
 // Pure MCP payloads live in local_models; cloud wrappers remain for transitional stack.
+pub use cloud_object_models::{CloudMCPServer, CloudMCPServerModel};
 #[cfg(not(target_family = "wasm"))]
 pub use local_models::{
     CLIServer, JSONMCPServer, JSONTransportType, ServerSentEvents, StaticEnvVar, StaticHeader,
 };
-pub use cloud_object_models::{CloudMCPServer, CloudMCPServerModel};
 pub use local_models::{MCPServer, MCPServerState, TransportType};
 pub use templatable::{JsonTemplate, TemplatableMCPServer, TemplateVariable};
 pub mod logs;
@@ -576,11 +576,7 @@ impl MCPProvider {
 /// When `is_global` is true, uses the provider's home-relative config path under
 /// `root`. ZYH additionally prefers `home_config_file_path` so application-home
 /// overrides still apply when `root` is the managed global root.
-pub fn config_file_path_for_root(
-    provider: MCPProvider,
-    root: &Path,
-    is_global: bool,
-) -> PathBuf {
+pub fn config_file_path_for_root(provider: MCPProvider, root: &Path, is_global: bool) -> PathBuf {
     if !is_global {
         return root.join(provider.project_config_path());
     }

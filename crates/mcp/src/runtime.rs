@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use std::future::Future;
 
 use cfg_if::cfg_if;
-use local_models::{StaticEnvVar, TransportType};
 use futures::FutureExt as _;
+use local_models::{StaticEnvVar, TransportType};
 use rmcp::transport::ConfigureCommandExt as _;
 use rmcp::ServiceExt as _;
 use simple_logger::SimpleLogger;

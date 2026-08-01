@@ -112,8 +112,8 @@ impl View for RewindConfirmationDialog {
                     appearance.ui_font_family(),
                     14.,
                 )
-                    .with_color(text_color)
-                    .finish(),
+                .with_color(text_color)
+                .finish(),
             )
             .with_child(
                 Container::new(
@@ -170,8 +170,8 @@ impl View for RewindConfirmationDialog {
                     appearance.ui_font_family(),
                     14.,
                 )
-                    .with_color(color.into_solid())
-                    .finish()
+                .with_color(color.into_solid())
+                .finish()
             })
             .with_cursor(Cursor::PointingHand)
             .on_click(move |ctx, _, _| ctx.dispatch_typed_action(RewindConfirmationAction::Cancel))
@@ -208,9 +208,7 @@ impl View for RewindConfirmationDialog {
         let dialog = Container::new(
             Dialog::new(
                 tr_cached(Message::BlockRewind).into(),
-                Some(
-                    tr_cached(Message::RewindConfirmDescription).into(),
-                ),
+                Some(tr_cached(Message::RewindConfirmDescription).into()),
                 UiComponentStyles {
                     width: Some(DIALOG_WIDTH),
                     padding: Some(Coords::uniform(24.)),

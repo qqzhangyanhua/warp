@@ -196,7 +196,12 @@ fn test_cancel_first_save_keeps_unsaved() {
         app.read(|ctx| {
             assert!(handle.as_ref(ctx).is_unsaved());
             assert!(handle.as_ref(ctx).local_path().is_none());
-            assert!(handle.as_ref(ctx).editor.as_ref(ctx).markdown(ctx).contains("body"));
+            assert!(handle
+                .as_ref(ctx)
+                .editor
+                .as_ref(ctx)
+                .markdown(ctx)
+                .contains("body"));
         });
     });
 }

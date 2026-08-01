@@ -291,8 +291,8 @@ impl LocalMcpConfigDocument {
                         ExpectedContent::Any => ExpectedContent::Hash(hash),
                         other => other,
                     };
-                    let new_hash =
-                        atomic_replace(&self.path, content.as_bytes(), write_expected)?.content_hash;
+                    let new_hash = atomic_replace(&self.path, content.as_bytes(), write_expected)?
+                        .content_hash;
                     Ok(Some(new_hash))
                 }
             }
@@ -316,9 +316,9 @@ pub fn editor_json_for_server(
 ) -> Result<String, LocalMcpConfigError> {
     let document = LocalMcpConfigDocument::with_path(path);
     match document.load()? {
-        LocalMcpConfigState::Missing => Err(LocalMcpConfigError::ServerNotFound(
-            server_name.to_owned(),
-        )),
+        LocalMcpConfigState::Missing => {
+            Err(LocalMcpConfigError::ServerNotFound(server_name.to_owned()))
+        }
         LocalMcpConfigState::Present { servers, .. } => {
             let server = servers
                 .get(server_name)

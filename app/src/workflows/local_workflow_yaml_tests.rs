@@ -75,7 +75,10 @@ fn create_project_workflow_under_zyh_project_directory() {
     assert!(entry
         .path
         .starts_with(temp.path().join(".zyh").join("workflows")));
-    assert_eq!(load_workflow(&entry.path).unwrap().workflow.name(), "Project Task");
+    assert_eq!(
+        load_workflow(&entry.path).unwrap().workflow.name(),
+        "Project Task"
+    );
 }
 
 #[test]
@@ -138,10 +141,7 @@ fn stale_save_reports_conflict_without_overwriting() {
     .unwrap_err();
 
     assert!(matches!(error, LocalWorkflowYamlError::Conflict { .. }));
-    assert_eq!(
-        content_hash(&entry.path).unwrap().unwrap(),
-        external_hash
-    );
+    assert_eq!(content_hash(&entry.path).unwrap().unwrap(), external_hash);
     assert!(fs::read_to_string(&entry.path)
         .unwrap()
         .contains("echo external"));
@@ -163,7 +163,10 @@ fn rename_moves_file_and_updates_name() {
     assert_eq!(renamed.path, directory.join("new_name.yaml"));
     assert!(!entry.path.exists());
     assert_eq!(renamed.workflow.name(), "New Name");
-    assert_eq!(load_workflow(&renamed.path).unwrap().workflow.name(), "New Name");
+    assert_eq!(
+        load_workflow(&renamed.path).unwrap().workflow.name(),
+        "New Name"
+    );
 }
 
 #[test]
@@ -173,14 +176,18 @@ fn rename_collision_does_not_overwrite_or_remove_source() {
     let a = create_workflow(directory, &sample_workflow("Alpha", "echo a")).unwrap();
     let b = create_workflow(directory, &sample_workflow("Beta", "echo b")).unwrap();
 
-    let error = rename_workflow(&a.path, "Beta", ExpectedContent::Hash(a.content_hash)).unwrap_err();
+    let error =
+        rename_workflow(&a.path, "Beta", ExpectedContent::Hash(a.content_hash)).unwrap_err();
 
     assert!(matches!(
         error,
         LocalWorkflowYamlError::FilenameCollision { .. }
     ));
     assert!(a.path.exists());
-    assert_eq!(load_workflow(&b.path).unwrap().workflow.command(), Some("echo b"));
+    assert_eq!(
+        load_workflow(&b.path).unwrap().workflow.command(),
+        Some("echo b")
+    );
 }
 
 #[test]
@@ -264,11 +271,8 @@ fn execution_payload_matches_from_path_and_listed_entry() {
     // Search and editor both resolve to the same Workflow body for a path.
     let temp = tempfile::tempdir().unwrap();
     let directory = temp.path();
-    let created = create_workflow(
-        directory,
-        &sample_workflow("Shared Run", "echo {{target}}"),
-    )
-    .unwrap();
+    let created =
+        create_workflow(directory, &sample_workflow("Shared Run", "echo {{target}}")).unwrap();
 
     let from_list = list_workflows(directory)
         .unwrap()

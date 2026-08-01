@@ -3,6 +3,7 @@ mod active_session;
 #[cfg(target_os = "macos")]
 pub(crate) mod cli_install;
 mod close_session_confirmation_dialog;
+pub(crate) mod cloud_agent_capacity;
 pub(crate) mod cross_window_tab_drag;
 pub mod delete_conversation_confirmation_dialog;
 mod global_actions;
@@ -21,7 +22,6 @@ pub mod tab_settings;
 mod toast_stack;
 pub mod util;
 pub mod view;
-pub(crate) mod cloud_agent_capacity;
 
 pub use action::{
     CommandSearchOptions, InitContent, RestoreConversationLayout, TabContextMenuAnchor,

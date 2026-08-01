@@ -35,8 +35,7 @@ fn existing_cloud_workflow_open_does_not_require_cloud_model() {
     App::test((), |mut app| async move {
         app.add_singleton_model(WorkflowManager::new);
         app.update(|ctx| {
-            let source =
-                WorkflowOpenSource::Existing(SyncId::ClientId(ClientId::new()));
+            let source = WorkflowOpenSource::Existing(SyncId::ClientId(ClientId::new()));
             // Never registered — None without needing CloudModel.
             assert!(WorkflowManager::as_ref(ctx).find_pane(&source).is_none());
         });

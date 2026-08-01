@@ -1779,7 +1779,9 @@ impl SyncQueue {
                             .is_some_and(|deps| deps.contains(dependency))
                         {
                             let workflow_model = Arc::make_mut(model);
-                            workflow_model.data.replace_sync_object_id(SyncId::ClientId(client_id), SyncId::from(server_id),
+                            workflow_model.data.replace_sync_object_id(
+                                SyncId::ClientId(client_id),
+                                SyncId::from(server_id),
                             );
                         }
                     }
@@ -1791,7 +1793,9 @@ impl SyncQueue {
                             .is_some_and(|deps| deps.contains(dependency))
                         {
                             let workflow_model = Arc::make_mut(model);
-                            workflow_model.data.replace_sync_object_id(SyncId::ClientId(client_id), SyncId::from(server_id),
+                            workflow_model.data.replace_sync_object_id(
+                                SyncId::ClientId(client_id),
+                                SyncId::from(server_id),
                             );
                         }
                     }

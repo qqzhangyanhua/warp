@@ -33,10 +33,8 @@ fn memory_fact_round_trips_historical_json_shape() {
 
 #[test]
 fn memory_fact_defaults_optional_fields() {
-    let parsed: AIFact = serde_json::from_str(
-        r#"{"memory":{"content":"only content required"}}"#,
-    )
-    .expect("deserialize minimal memory");
+    let parsed: AIFact = serde_json::from_str(r#"{"memory":{"content":"only content required"}}"#)
+        .expect("deserialize minimal memory");
 
     match parsed {
         AIFact::Memory(memory) => {

@@ -87,8 +87,6 @@ impl OneTimeModalModel {
         Self::set_open(&mut self.is_hoa_onboarding_open, false, ctx);
     }
 
-
-
     pub fn active_feature_intro(&self) -> Option<FeatureIntroId> {
         self.target_window_id.and(self.active_feature_intro)
     }
@@ -129,7 +127,6 @@ impl OneTimeModalModel {
     }
 
     #[cfg(debug_assertions)]
-
     #[cfg(debug_assertions)]
     pub fn force_open_feature_intro(&mut self, id: FeatureIntroId, ctx: &mut ModelContext<Self>) {
         if self.active_feature_intro != Some(id) {

@@ -943,7 +943,15 @@ fn test_decode_uuid_hex_rejects_invalid_chars() {
 
 #[test]
 fn test_validate_custom_uri_rejects_legacy_schemes() {
-    for scheme in ["warp", "warplocal", "warpdev", "warppreview", "warposs", "oz", "ozlocal"] {
+    for scheme in [
+        "warp",
+        "warplocal",
+        "warpdev",
+        "warppreview",
+        "warposs",
+        "oz",
+        "ozlocal",
+    ] {
         let url = Url::parse(&format!("{scheme}://action/new_window")).unwrap();
         let err = validate_custom_uri(&url).unwrap_err().to_string();
         assert!(
@@ -973,8 +981,14 @@ fn test_validate_custom_uri_rejects_cloud_hosts() {
 #[test]
 fn test_validate_custom_uri_accepts_zyh_scheme() {
     let scheme = ChannelState::url_scheme();
-    assert!(scheme.starts_with("zyh"), "channel scheme must be zyh*, got {scheme}");
-    let url = Url::parse(&format!("{scheme}://session/A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4")).unwrap();
+    assert!(
+        scheme.starts_with("zyh"),
+        "channel scheme must be zyh*, got {scheme}"
+    );
+    let url = Url::parse(&format!(
+        "{scheme}://session/A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4"
+    ))
+    .unwrap();
     let host = validate_custom_uri(&url).unwrap();
     assert!(matches!(host, UriHost::Session));
 }

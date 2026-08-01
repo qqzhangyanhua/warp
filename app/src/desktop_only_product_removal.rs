@@ -14,17 +14,21 @@ pub const AUTOUPDATE_REMOVED_GUIDANCE: &str = "Automatic updates are no longer a
 Install a new ZYH desktop build manually when you choose to upgrade.";
 
 /// Guidance when Voice or transcription is requested.
-pub const VOICE_REMOVED_GUIDANCE: &str = "Voice input and transcription are no longer available in ZYH.";
+pub const VOICE_REMOVED_GUIDANCE: &str =
+    "Voice input and transcription are no longer available in ZYH.";
 
 /// Guidance when feedback, crash, or diagnostics upload is requested.
-pub const UPLOAD_REMOVED_GUIDANCE: &str = "Feedback, crash reports, and remote diagnostics are no longer uploaded. \
+pub const UPLOAD_REMOVED_GUIDANCE: &str =
+    "Feedback, crash reports, and remote diagnostics are no longer uploaded. \
 Use a local diagnostics export when you need to share debug information.";
 
 /// Guidance when remote changelog, survey, or referral fetch is requested.
-pub const REMOTE_CONTENT_REMOVED_GUIDANCE: &str = "Remote changelog, surveys, and referral services are no longer available.";
+pub const REMOTE_CONTENT_REMOVED_GUIDANCE: &str =
+    "Remote changelog, surveys, and referral services are no longer available.";
 
 /// Guidance when a WASM/Web product path is requested.
-pub const WASM_PRODUCT_REMOVED_GUIDANCE: &str = "WASM and Web product targets are not part of ZYH. Use a desktop build.";
+pub const WASM_PRODUCT_REMOVED_GUIDANCE: &str =
+    "WASM and Web product targets are not part of ZYH. Use a desktop build.";
 
 /// Whether the app may run automatic update checks, prompts, or downloads.
 pub fn may_run_automatic_updater() -> bool {

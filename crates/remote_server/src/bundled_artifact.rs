@@ -90,13 +90,8 @@ pub enum BundledArtifactError {
     ManifestParse(String),
     #[error("remote daemon manifest version mismatch: expected {expected}, found {found}")]
     ManifestVersion { expected: u32, found: u32 },
-    #[error(
-        "remote daemon protocol identity mismatch: expected {expected}, found {found}"
-    )]
-    ProtocolIdentity {
-        expected: String,
-        found: String,
-    },
+    #[error("remote daemon protocol identity mismatch: expected {expected}, found {found}")]
+    ProtocolIdentity { expected: String, found: String },
     #[error("remote daemon manifest is missing required target {target}")]
     MissingTarget { target: String },
     #[error("remote daemon manifest has unexpected targets: {targets}")]
@@ -193,12 +188,13 @@ pub fn validate_manifest(
     }
 
     for target in REQUIRED_REMOTE_DAEMON_TARGETS {
-        let entry = manifest
-            .artifacts
-            .get(*target)
-            .ok_or_else(|| BundledArtifactError::MissingTarget {
-                target: (*target).to_string(),
-            })?;
+        let entry =
+            manifest
+                .artifacts
+                .get(*target)
+                .ok_or_else(|| BundledArtifactError::MissingTarget {
+                    target: (*target).to_string(),
+                })?;
         validate_entry(target, entry)?;
     }
     Ok(())
@@ -381,10 +377,12 @@ pub fn sha256_file(path: &Path) -> Result<(u64, String), BundledArtifactError> {
     let mut buf = [0u8; 64 * 1024];
     let mut size = 0u64;
     loop {
-        let n = file.read(&mut buf).map_err(|source| BundledArtifactError::ArtifactRead {
-            path: path.to_path_buf(),
-            source,
-        })?;
+        let n = file
+            .read(&mut buf)
+            .map_err(|source| BundledArtifactError::ArtifactRead {
+                path: path.to_path_buf(),
+                source,
+            })?;
         if n == 0 {
             break;
         }
@@ -447,8 +445,8 @@ pub fn resolve_verified_artifact(
 
 /// Resolve the default artifact root using bundled resources and the override env.
 pub fn default_artifact_root() -> Result<PathBuf, BundledArtifactError> {
-    let override_root = std::env::var_os(REMOTE_DAEMON_ARTIFACT_ROOT_OVERRIDE_ENV)
-        .map(PathBuf::from);
+    let override_root =
+        std::env::var_os(REMOTE_DAEMON_ARTIFACT_ROOT_OVERRIDE_ENV).map(PathBuf::from);
     let bundled = warp_core::paths::bundled_resources_dir();
     resolve_artifact_root(
         bundled.as_deref(),

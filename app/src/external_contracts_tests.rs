@@ -8,7 +8,10 @@ fn production_names_are_zyh() {
     assert_eq!(LOCAL_CONTROL_COMMAND_STABLE, "zyhctrl");
     assert_eq!(URI_SCHEME_STABLE, "zyh");
     assert_eq!(agent_cli_command_for_channel(Channel::Stable), "zyh");
-    assert_eq!(local_control_command_for_channel(Channel::Stable), "zyhctrl");
+    assert_eq!(
+        local_control_command_for_channel(Channel::Stable),
+        "zyhctrl"
+    );
     assert_eq!(uri_scheme_for_channel(Channel::Stable), "zyh");
 }
 

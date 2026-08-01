@@ -2841,7 +2841,7 @@ impl UpdateManager {
             let mut workflow_model = original_workflow.clone();
 
             // Duplicate all enums associated with the workflow
-                        let enums = workflow_model.get_enum_sync_ids();
+            let enums = workflow_model.get_enum_sync_ids();
             for enum_id in enums.iter() {
                 let cloud_model = CloudModel::as_ref(ctx);
                 let object: Option<&CloudWorkflowEnum> = cloud_model.get_object_of_type(enum_id);

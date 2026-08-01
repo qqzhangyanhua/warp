@@ -187,7 +187,10 @@ fn skips_gallery_managed_mcp_installations() {
     migrate_sqlite(&source, &destination, None).unwrap();
     let mcp_path = temp.path().join(".mcp.json");
     assert!(
-        !mcp_path.exists() || !std::fs::read_to_string(&mcp_path).unwrap().contains("gallery-server"),
+        !mcp_path.exists()
+            || !std::fs::read_to_string(&mcp_path)
+                .unwrap()
+                .contains("gallery-server"),
         "gallery MCP must not be exported"
     );
 }

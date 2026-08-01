@@ -106,10 +106,7 @@ pub fn open_notebook(path: &Path) -> Result<LocalMarkdownNotebook, LocalMarkdown
 ///
 /// Fails with [`LocalMarkdownError::PathCollision`] when the destination already
 /// exists. Does not overwrite.
-pub fn first_save(
-    path: &Path,
-    content: &str,
-) -> Result<LocalMarkdownNotebook, LocalMarkdownError> {
+pub fn first_save(path: &Path, content: &str) -> Result<LocalMarkdownNotebook, LocalMarkdownError> {
     validate_markdown_path(path)?;
     if path.exists() {
         return Err(LocalMarkdownError::PathCollision {

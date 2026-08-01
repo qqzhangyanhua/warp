@@ -33,7 +33,8 @@ pub const SKILL_PROVIDER_PRECEDENCE: &[&str] = &[
 pub const ZYH_PLUGINS_DIR_NAME: &str = "plugins";
 
 /// Guidance when marketplace or cloud catalog access is refused.
-pub const MARKETPLACE_REMOVED_GUIDANCE: &str = "Skill and Plugin marketplaces are no longer available. \
+pub const MARKETPLACE_REMOVED_GUIDANCE: &str =
+    "Skill and Plugin marketplaces are no longer available. \
 Install Skills and Plugins locally under your ZYH home or project directories \
 (for example ~/.zyh/skills or .agents/skills) using explicit Git or file operations.";
 

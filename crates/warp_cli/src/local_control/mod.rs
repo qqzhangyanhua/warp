@@ -62,8 +62,8 @@ pub enum ActionCatalogCommand {
 
 impl ControlArgs {
     pub fn from_env() -> Self {
-        let bin_name = crate::binary_name()
-            .unwrap_or_else(|| DEFAULT_CONTROL_COMMAND_NAME.to_owned());
+        let bin_name =
+            crate::binary_name().unwrap_or_else(|| DEFAULT_CONTROL_COMMAND_NAME.to_owned());
         Self::try_parse_from_args(std::env::args_os(), bin_name).unwrap_or_else(|err| err.exit())
     }
 
@@ -102,8 +102,8 @@ impl ControlArgs {
     }
 
     pub fn clap_command() -> clap::Command {
-        let bin_name = crate::binary_name()
-            .unwrap_or_else(|| DEFAULT_CONTROL_COMMAND_NAME.to_owned());
+        let bin_name =
+            crate::binary_name().unwrap_or_else(|| DEFAULT_CONTROL_COMMAND_NAME.to_owned());
         Self::clap_command_for_bin_name(bin_name)
     }
 

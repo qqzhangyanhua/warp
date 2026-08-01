@@ -24,12 +24,11 @@ pub(super) async fn install(socket_path: &Path) -> Result<(), Error> {
     install_for_platform(socket_path, &platform).await
 }
 
-async fn install_for_platform(
-    socket_path: &Path,
-    platform: &RemotePlatform,
-) -> Result<(), Error> {
+async fn install_for_platform(socket_path: &Path, platform: &RemotePlatform) -> Result<(), Error> {
     let artifact_root = default_artifact_root().map_err(|e| {
-        Error::Other(anyhow::anyhow!("Remote daemon artifact root unavailable: {e}"))
+        Error::Other(anyhow::anyhow!(
+            "Remote daemon artifact root unavailable: {e}"
+        ))
     })?;
     let verified = resolve_verified_artifact(&artifact_root, platform).map_err(|e| {
         Error::Other(anyhow::anyhow!(
@@ -65,14 +64,9 @@ async fn install_for_platform(
         verified.target,
         verified.path.display()
     );
-    remote_server::ssh::scp_upload(
-        socket_path,
-        &verified.path,
-        &remote_tarball_path,
-        timeout,
-    )
-    .await
-    .map_err(Error::Other)?;
+    remote_server::ssh::scp_upload(socket_path, &verified.path, &remote_tarball_path, timeout)
+        .await
+        .map_err(Error::Other)?;
 
     log::info!("Running extract-only install script with tarball at {remote_tarball_path}");
     let script = remote_server::setup::install_script(Some(&remote_tarball_path));

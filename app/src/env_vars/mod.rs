@@ -15,7 +15,7 @@ pub mod view;
 
 pub use product_removal::{
     evaluate_stale_evc_restore, may_expose_evc_in_ui, may_open_or_create_evc,
-    EVC_REMOVED_GUIDANCE, StaleEvcRestoreOutcome,
+    StaleEvcRestoreOutcome, EVC_REMOVED_GUIDANCE,
 };
 
 // Test and transitional callers still reach this through the module path.

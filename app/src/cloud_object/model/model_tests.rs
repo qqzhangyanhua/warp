@@ -35,8 +35,8 @@ use crate::server::server_api::ServerApiProvider;
 use crate::server::sync_queue::SyncQueue;
 use crate::server::telemetry::context_provider::AppTelemetryContextProvider;
 use crate::settings::init_and_register_user_preferences;
-use crate::workflows::workflow_enum::{CloudWorkflowEnum, EnumVariants, WorkflowEnum};
 use crate::system::SystemStats;
+use crate::workflows::workflow_enum::{CloudWorkflowEnum, EnumVariants, WorkflowEnum};
 use crate::workflows::CloudWorkflowModel;
 use crate::workspaces::team::Team;
 use crate::workspaces::team_tester::TeamTesterStatus;
@@ -520,7 +520,10 @@ fn test_create_json_object() {
         cloud_model.read(&app, |model, _| {
             let json_object: &CloudWorkflowEnum =
                 model.get_object_of_type(&id).expect("model should exist");
-            assert_eq!(json_object.model().string_model.name, "test_enum".to_owned());
+            assert_eq!(
+                json_object.model().string_model.name,
+                "test_enum".to_owned()
+            );
         });
     })
 }
